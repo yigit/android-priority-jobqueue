@@ -1,26 +1,24 @@
 package com.path.android.jobqueue.persistentQueue.sqlite;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.log.JqLog;
-import com.path.android.jobqueue.persistentQueue.JobDb;
+import com.path.android.jobqueue.JobQueue;
 
 import java.io.*;
 import java.util.Date;
 
-public class SqliteJobDb implements JobDb {
+public class SqliteJobQueue implements JobQueue {
     DbOpenHelper dbOpenHelper;
     private final long sessionId;
     SQLiteDatabase db;
     SqlHelper sqlHelper;
     String selectQuery;
-    public SqliteJobDb(Context context, long sessionId, String id) {
+    public SqliteJobQueue(Context context, long sessionId, String id) {
         this.sessionId = sessionId;
         dbOpenHelper = new DbOpenHelper(context, "db_" + id);
         db = dbOpenHelper.getWritableDatabase();
@@ -118,40 +116,51 @@ public class SqliteJobDb implements JobDb {
     }
 
     @Override
-    public JobHolder nextJob() {
+    public JobHolder nextJobAndIncRunCount() {
         Cursor cursor = db.rawQuery(selectQuery, null);
         try {
             if (!cursor.moveToNext()) {
                 return null;
             }
-            return createJobHolderFromCursor(cursor);
+            JobHolder holder = createJobHolderFromCursor(cursor);
+            onJobFetchedForRunning(holder);
+            return holder;
         } catch (InvalidBaseJobException e) {
             //delete
             Long jobId = cursor.getLong(0);
             delete(jobId);
-            return nextJob();
+            return nextJobAndIncRunCount();
         } finally {
             cursor.close();
         }
     }
 
+    private void onJobFetchedForRunning(JobHolder jobHolder) {
+        SQLiteStatement stmt = sqlHelper.getOnJobFetchedForRunningStatement();
+        jobHolder.setRunCount(jobHolder.getRunCount() + 1);
+        jobHolder.setRunningSessionId(sessionId);
+        synchronized (stmt) {
+            stmt.bindLong(1, jobHolder.getRunCount());
+            stmt.bindLong(2, sessionId);
+            stmt.bindLong(3,jobHolder.getId());
+            stmt.execute();
+        }
+    }
+
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidBaseJobException {
-        JobHolder jobHolder = new JobHolder(
-                cursor.getLong(0),
-                cursor.getInt(1),
-                cursor.getInt(2),
-                cursor.getBlob(3),
-                new Date(cursor.getLong(4)),
-                cursor.getLong(5)
-        );
-        //verify base job
-        BaseJob job = safeDeserialize(jobHolder.get__baseJob());
+        BaseJob job = safeDeserialize(cursor.getBlob(3));
         if(job == null) {
             throw new InvalidBaseJobException();
         }
-        jobHolder.set__baseJob(null);
-        jobHolder.setBaseJob(job);
-        return jobHolder;
+        return new JobHolder(
+                cursor.getLong(0),
+                cursor.getInt(1),
+                cursor.getInt(2),
+                job,
+                new Date(cursor.getLong(4)),
+                cursor.getLong(5)
+        );
+
     }
 
     private BaseJob safeDeserialize(byte[] bytes) {
@@ -180,11 +189,7 @@ public class SqliteJobDb implements JobDb {
 
 
     private byte[] getSerializeBaseJob(JobHolder jobHolder) {
-        byte[] bytes = jobHolder.get__baseJob();
-        if(bytes == null) {
-            bytes = safeSerialize(jobHolder.getBaseJob());
-        }
-        return bytes;
+        return safeSerialize(jobHolder.getBaseJob());
     }
 
     private byte[] safeSerialize(Object object) {

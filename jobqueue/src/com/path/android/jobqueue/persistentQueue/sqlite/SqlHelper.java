@@ -11,6 +11,7 @@ public class SqlHelper {
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertOrReplaceStatement;
     private SQLiteStatement deleteStatement;
+    private SQLiteStatement onJobFetchedForRunningStatement;
     /*package*/ final String countQuery;
     final SQLiteDatabase db;
     final String tableName;
@@ -78,6 +79,17 @@ public class SqlHelper {
             deleteStatement = db.compileStatement("DELETE FROM " + tableName + " WHERE " + primaryKeyColumnName + " = ?");
         }
         return deleteStatement;
+    }
+
+    public SQLiteStatement getOnJobFetchedForRunningStatement() {
+        if(onJobFetchedForRunningStatement == null) {
+            String sql = "UPDATE " + tableName + " SET "
+                    + DbOpenHelper.RUN_COUNT_COLUMN.columnName + " = ? , "
+                    + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " = ? "
+                    + " WHERE " + primaryKeyColumnName + " = ? ";
+            onJobFetchedForRunningStatement = db.compileStatement(sql);
+        }
+        return onJobFetchedForRunningStatement;
     }
 
     public String createSelect(String where, Integer limit, Order... orders) {

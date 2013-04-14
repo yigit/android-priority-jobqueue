@@ -16,7 +16,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 public class MainRoboTest {
-
     @Test
     public void runManyNonPersistentJobs() throws Exception {
         JobManager jobManager = new JobManager(Robolectric.application, "test1");
@@ -70,11 +69,8 @@ public class MainRoboTest {
     public void testPersistentJob() throws Exception {
         String managerId = "persistentTest";
         JobManager jobManager = new JobManager(Robolectric.application, managerId);
-        jobManager.stop();
         jobManager.addJob(0, new DummyPersistentLatchJob());
-//        new JobManager(Robolectric.application, managerId);
-        jobManager.start();
-        persistentRunLatch.await(2, TimeUnit.SECONDS);
+        persistentRunLatch.await(5, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
     }
 
@@ -95,7 +91,7 @@ public class MainRoboTest {
 
     @Test
     public void testSessionId() throws Exception {
-        JobManager jobManager = new JobManager(Robolectric.application, "sessionTest");
+        JobManager jobManager = createNewJobManager();
         Long sessionId = Reflection.field("sessionId").ofType(long.class)
                 .in(jobManager).get();
         jobManager.stop();
@@ -109,9 +105,33 @@ public class MainRoboTest {
             Long holderSessionId = Reflection.field("runningSessionId").ofType(Long.class).in(jobHolder).get();
             MatcherAssert.assertThat(holderSessionId, equalTo(sessionId));
         }
+    }
+
+    private JobManager createNewJobManager(String id) {
+        return new JobManager(Robolectric.application, id);
+    }
+
+    private JobManager createNewJobManager() {
+        return createNewJobManager("_" + System.nanoTime());
+    }
 
 
+    @Test
+    public void testReRunWithLimit() throws Exception {
+        JobManager jobManager = createNewJobManager();
+        DummyJobWithRunCount.runCount = 0;//reset
+        testReRun(jobManager, false);
+        testReRun(jobManager, true);
+    }
 
+    private void testReRun(JobManager jobManager, boolean persist) throws InterruptedException {
+        DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
+        jobManager.addJob(0, job);
+        int limit = 5;
+        while(limit -- > 0 && DummyJobWithRunCount.runCount != 5) {
+            Thread.sleep(500);
+        }
+        MatcherAssert.assertThat(DummyJobWithRunCount.runCount, equalTo(job.getRetryLimit()));
     }
 
     private static class DummyPersistentLatchJob extends BaseJob implements Serializable {
@@ -231,5 +251,49 @@ public class MainRoboTest {
         }
     }
 
+
+    private static class DummyJobWithRunCount extends BaseJob {
+        private static int runCount;
+        private boolean persist;
+
+        private DummyJobWithRunCount(boolean persist) {
+            this.persist = persist;
+        }
+
+        @Override
+        public void onAdded() {
+
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            runCount ++;
+            throw new RuntimeException("i am dummy, i throw exception when running");
+        }
+
+        @Override
+        public boolean shouldPersist() {
+            return persist;
+        }
+
+        @Override
+        protected void onCancel() {
+
+        }
+
+        private int getRunCount() {
+            return runCount;
+        }
+
+        @Override
+        protected boolean shouldReRunOnThrowable(Throwable throwable) {
+            return true;
+        }
+
+        @Override
+        protected int getRetryLimit() {
+            return 5;
+        }
+    }
 
 }

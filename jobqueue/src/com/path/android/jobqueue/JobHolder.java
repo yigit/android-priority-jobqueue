@@ -6,26 +6,25 @@ public class JobHolder {
     protected Long id;
     protected Integer priority;
     protected Integer runCount;
-    protected byte[] __baseJob;
     protected java.util.Date created;
     protected Long runningSessionId;
     transient BaseJob baseJob;
 
-    public JobHolder(Long id, Integer priority, Integer runCount, byte[] __baseJob, java.util.Date created, Long runningSessionId) {
+    public JobHolder(Long id, Integer priority, Integer runCount, BaseJob baseJob, java.util.Date created, Long runningSessionId) {
         this.id = id;
         this.priority = priority;
         this.runCount = runCount;
-        this.__baseJob = __baseJob;
         this.created = created;
+        this.baseJob = baseJob;
         this.runningSessionId = runningSessionId;
     }
 
-    public final boolean safeRun(JobManager jobManager) {
+    public final boolean safeRun(int currentRunCount) {
         BaseJob baseJob = getBaseJob();
         if(baseJob == null) {
             return true;
         }
-        return baseJob.safeRun(jobManager);
+        return baseJob.safeRun(currentRunCount);
     }
 
     public Long getId() {
@@ -50,14 +49,6 @@ public class JobHolder {
 
     public void setRunCount(Integer runCount) {
         this.runCount = runCount;
-    }
-
-    public byte[] get__baseJob() {
-        return __baseJob;
-    }
-
-    public void set__baseJob(byte[] __baseJob) {
-        this.__baseJob = __baseJob;
     }
 
     public BaseJob getBaseJob() {

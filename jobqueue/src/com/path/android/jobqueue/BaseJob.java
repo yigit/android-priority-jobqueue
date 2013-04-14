@@ -39,7 +39,7 @@ abstract public class BaseJob implements Serializable {
      */
     abstract protected boolean shouldReRunOnThrowable(Throwable throwable);
 
-    public final boolean safeRun(JobManager jobManager) {
+    public final boolean safeRun(int currentRunCount) {
         if(JqLog.isDebugEnabled()) {
             JqLog.d("running job %s", this.getClass().getSimpleName());
         }
@@ -50,16 +50,7 @@ abstract public class BaseJob implements Serializable {
         } catch (Throwable t) {
             failed = true;
             JqLog.e(t, "error while executing job");
-            reRun = shouldReRunOnThrowable(t);
-            //TODO
-//            if(runCnt > getReRunLimit()) {
-//                //done dude, u are gone!
-//                Ln.e(t, "cancelling job because it hit re-run limit");
-//                reAdd = false;
-//                onCancel();
-//            } else {
-//                reAdd = onThrowable(t);
-//            }
+            reRun = currentRunCount < getRetryLimit() && shouldReRunOnThrowable(t);
         } finally {
             if(reRun) {
                 return false;
@@ -70,5 +61,9 @@ abstract public class BaseJob implements Serializable {
             }
         }
         return true;
+    }
+
+    protected int getRetryLimit() {
+        return 20;
     }
 }
