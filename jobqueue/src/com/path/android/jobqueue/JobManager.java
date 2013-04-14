@@ -2,6 +2,7 @@ package com.path.android.jobqueue;
 
 import android.content.Context;
 import android.util.Log;
+import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobDb;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.Comparator;
@@ -30,7 +31,7 @@ public class JobManager {
 
     private final Executor executor;
     private int maxConsumerCount = DEFAULT_MAX_EXECUTOR_COUNT;
-    private JobDb jobDb;
+    private com.path.android.jobqueue.persistentQueue.JobDb jobDb;
     private boolean running;
 
     public JobManager(Context context, String id) {
@@ -38,7 +39,7 @@ public class JobManager {
         sessionId = System.nanoTime();
         nonPersistentJobs = new PriorityQueue<JobHolder>(5, jobComparator);
         executor = new ThreadPoolExecutor(0, maxConsumerCount, 15, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(true));
-        jobDb = new JobDb(context, sessionId, id);
+        jobDb = new SqliteJobDb(context, sessionId, id);
         JqLog.getConfig().setLoggingLevel(Log.VERBOSE);
         start();
     }
@@ -65,7 +66,7 @@ public class JobManager {
     }
 
     public long addJob(int priority, BaseJob baseJob) {
-        JobHolder jobHolder = new JobHolder(null, priority, 0, null, new Date(), null);
+        JobHolder jobHolder = new JobHolder(null, priority, 0, null, new Date(), Long.MIN_VALUE);
         jobHolder.setBaseJob(baseJob);
         long id;
         if(baseJob.shouldPersist()) {

@@ -72,7 +72,8 @@ public class MainRoboTest {
         JobManager jobManager = new JobManager(Robolectric.application, managerId);
         jobManager.stop();
         jobManager.addJob(0, new DummyPersistentLatchJob());
-        new JobManager(Robolectric.application, managerId);
+//        new JobManager(Robolectric.application, managerId);
+        jobManager.start();
         persistentRunLatch.await(2, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
     }
