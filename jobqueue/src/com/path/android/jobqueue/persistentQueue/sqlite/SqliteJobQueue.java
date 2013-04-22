@@ -10,7 +10,6 @@ import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.JobQueue;
 
 import java.io.*;
-import java.util.Date;
 
 public class SqliteJobQueue implements JobQueue {
     DbOpenHelper dbOpenHelper;
@@ -27,7 +26,7 @@ public class SqliteJobQueue implements JobQueue {
                 DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId,
                 1,
                 new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
-                new SqlHelper.Order(DbOpenHelper.CREATED_COLUMN, SqlHelper.Order.Type.ASC),
+                new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
                 new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
         );
     }
@@ -48,22 +47,14 @@ public class SqliteJobQueue implements JobQueue {
         if(jobHolder.getId() != null) {
             stmt.bindLong(1, jobHolder.getId());
         }
-        if(jobHolder.getPriority() != null) {
-            stmt.bindLong(2, jobHolder.getPriority());
-        }
-        if(jobHolder.getRunCount() != null) {
-            stmt.bindLong(3, jobHolder.getRunCount());
-        }
+        stmt.bindLong(2, jobHolder.getPriority());
+        stmt.bindLong(3, jobHolder.getRunCount());
         byte[] baseJob = getSerializeBaseJob(jobHolder);
         if(baseJob != null) {
             stmt.bindBlob(4, baseJob);
         }
-        if(jobHolder.getCreated() != null) {
-            stmt.bindLong(5, jobHolder.getCreated().getTime());
-        }
-        if(jobHolder.getRunningSessionId() != null) {
-            stmt.bindLong(6, jobHolder.getRunningSessionId());
-        }
+        stmt.bindLong(5, jobHolder.getCreatedNs());
+        stmt.bindLong(6, jobHolder.getRunningSessionId());
     }
 
     @Override
@@ -71,6 +62,7 @@ public class SqliteJobQueue implements JobQueue {
         if(jobHolder.getId() == null) {
             return insert(jobHolder);
         }
+        jobHolder.setRunningSessionId(Long.MIN_VALUE);
         SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();
         long id;
         synchronized (stmt) {
@@ -157,7 +149,7 @@ public class SqliteJobQueue implements JobQueue {
                 cursor.getInt(1),
                 cursor.getInt(2),
                 job,
-                new Date(cursor.getLong(4)),
+                cursor.getLong(4),
                 cursor.getLong(5)
         );
 

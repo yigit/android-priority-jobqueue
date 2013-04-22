@@ -11,7 +11,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property("priority", "integer");
     /*package*/ static final SqlHelper.Property RUN_COUNT_COLUMN = new SqlHelper.Property("run_count", "integer");
     /*package*/ static final SqlHelper.Property BASE_JOB_COLUMN = new SqlHelper.Property("base_job", "byte");
-    /*package*/ static final SqlHelper.Property CREATED_COLUMN = new SqlHelper.Property("created", "long");
+    /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property("created_ns", "long");
     /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long");
     /*package*/ static final int COLUMN_COUNT = 6;
 
@@ -26,7 +26,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 PRIORITY_COLUMN,
                 RUN_COUNT_COLUMN,
                 BASE_JOB_COLUMN,
-                CREATED_COLUMN,
+                CREATED_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN
                 );
         sqLiteDatabase.execSQL(createQuery);

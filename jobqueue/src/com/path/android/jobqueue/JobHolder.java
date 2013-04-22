@@ -1,27 +1,29 @@
 package com.path.android.jobqueue;
 
+import com.path.android.jobqueue.log.JqLog;
+
 import java.util.Date;
 
 public class JobHolder {
     protected Long id;
-    protected Integer priority;
-    protected Integer runCount;
-    protected java.util.Date created;
-    protected Long runningSessionId;
+    protected int priority;
+    protected int runCount;
+    protected long createdNs;
+    protected long runningSessionId;
     transient BaseJob baseJob;
 
-    public JobHolder(Long id, Integer priority, Integer runCount, BaseJob baseJob, java.util.Date created, Long runningSessionId) {
+    public JobHolder(Long id, int priority, int runCount, BaseJob baseJob, long createdNs, long runningSessionId) {
         this.id = id;
         this.priority = priority;
         this.runCount = runCount;
-        this.created = created;
+        this.createdNs = createdNs;
         this.baseJob = baseJob;
         this.runningSessionId = runningSessionId;
     }
 
     public final boolean safeRun(int currentRunCount) {
-        BaseJob baseJob = getBaseJob();
         if(baseJob == null) {
+            JqLog.e("base job is null, skipping job on run");
             return true;
         }
         return baseJob.safeRun(currentRunCount);
@@ -35,20 +37,36 @@ public class JobHolder {
         this.id = id;
     }
 
-    public Integer getPriority() {
+    public int getPriority() {
         return priority;
     }
 
-    public void setPriority(Integer priority) {
+    public void setPriority(int priority) {
         this.priority = priority;
     }
 
-    public Integer getRunCount() {
+    public int getRunCount() {
         return runCount;
     }
 
-    public void setRunCount(Integer runCount) {
+    public void setRunCount(int runCount) {
         this.runCount = runCount;
+    }
+
+    public long getCreatedNs() {
+        return createdNs;
+    }
+
+    public void setCreatedNs(long createdNs) {
+        this.createdNs = createdNs;
+    }
+
+    public long getRunningSessionId() {
+        return runningSessionId;
+    }
+
+    public void setRunningSessionId(long runningSessionId) {
+        this.runningSessionId = runningSessionId;
     }
 
     public BaseJob getBaseJob() {
@@ -57,21 +75,5 @@ public class JobHolder {
 
     public void setBaseJob(BaseJob baseJob) {
         this.baseJob = baseJob;
-    }
-
-    public Date getCreated() {
-        return created;
-    }
-
-    public void setCreated(Date created) {
-        this.created = created;
-    }
-
-    public Long getRunningSessionId() {
-        return runningSessionId;
-    }
-
-    public void setRunningSessionId(Long runningSessionId) {
-        this.runningSessionId = runningSessionId;
     }
 }

@@ -66,7 +66,7 @@ public class JobManager {
     }
 
     public long addJob(int priority, BaseJob baseJob) {
-        JobHolder jobHolder = new JobHolder(null, priority, 0, null, new Date(), Long.MIN_VALUE);
+        JobHolder jobHolder = new JobHolder(null, priority, 0, null, System.nanoTime(), Long.MIN_VALUE);
         jobHolder.setBaseJob(baseJob);
         long id;
         if(baseJob.shouldPersist()) {
@@ -74,6 +74,7 @@ public class JobManager {
         } else {
             id = nonPersistentJobQueue.insert(jobHolder);
         }
+        jobHolder.getBaseJob().onAdded();
         if(runningConsumerCount.get() == 0) {
             addConsumer();
         }

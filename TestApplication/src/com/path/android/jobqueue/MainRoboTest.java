@@ -74,9 +74,30 @@ public class MainRoboTest {
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
     }
 
+    private static CountDownLatch priorityRunLatch;
+    @Test
+    public void testPriority() throws Exception {
+        JobManager jobManager = createNewJobManager();
+        testPriority(jobManager, false);
+    }
+
+    public void testPriority(JobManager jobManager, boolean persist) throws Exception {
+        priorityRunLatch = new CountDownLatch(2);
+        DummyJobWithRunOrderAssert.globalRunCount = 0;
+        BaseJob job1 = new DummyJobWithRunOrderAssert(2, persist);
+        BaseJob job2 = new DummyJobWithRunOrderAssert(1, persist);
+        jobManager.stop();
+        jobManager.addJob(1, job1);
+        jobManager.addJob(2, job2);
+        jobManager.start();
+        priorityRunLatch.await(10, TimeUnit.SECONDS);
+        //ensure both jobs did run
+        MatcherAssert.assertThat((int) priorityRunLatch.getCount(), equalTo(0));
+    }
+
     @Test
     public void testCount() throws Exception {
-        JobManager jobManager = new JobManager(Robolectric.application, "count"+ System.nanoTime());
+        JobManager jobManager = new JobManager(Robolectric.application, "count" + System.nanoTime());
         jobManager.stop();
         for(int i = 0; i < 10; i ++) {
             jobManager.addJob(0, new DummyNonPersistentJob());
@@ -102,7 +123,7 @@ public class MainRoboTest {
 
         for(int i = 0; i <jobs.length; i++) {
             JobHolder jobHolder = jobManager.getNextJob();
-            Long holderSessionId = Reflection.field("runningSessionId").ofType(Long.class).in(jobHolder).get();
+            long holderSessionId = Reflection.field("runningSessionId").ofType(long.class).in(jobHolder).get();
             MatcherAssert.assertThat(holderSessionId, equalTo(sessionId));
         }
     }
@@ -115,23 +136,33 @@ public class MainRoboTest {
         return createNewJobManager("_" + System.nanoTime());
     }
 
+    @Test
+    public void testAddedCount() throws Exception {
+        DummyJobWithAddedCount job = new DummyJobWithAddedCount();
+        JobManager jobManager = createNewJobManager();
+        jobManager.stop();
+        jobManager.addJob(0, job);
+        MatcherAssert.assertThat(1, equalTo(job.addedCount));
+    }
+
 
     @Test
     public void testReRunWithLimit() throws Exception {
         JobManager jobManager = createNewJobManager();
-        DummyJobWithRunCount.runCount = 0;//reset
         testReRun(jobManager, false);
         testReRun(jobManager, true);
     }
 
     private void testReRun(JobManager jobManager, boolean persist) throws InterruptedException {
+        DummyJobWithRunCount.runCount = 0;//reset
         DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
         jobManager.addJob(0, job);
-        int limit = 5;
+        int limit = 25;
         while(limit -- > 0 && DummyJobWithRunCount.runCount != 5) {
-            Thread.sleep(500);
+            Thread.sleep(100);
         }
         MatcherAssert.assertThat(DummyJobWithRunCount.runCount, equalTo(job.getRetryLimit()));
+        MatcherAssert.assertThat((int) jobManager.count(), equalTo(0));
     }
 
     private static class DummyPersistentLatchJob extends BaseJob implements Serializable {
@@ -281,10 +312,6 @@ public class MainRoboTest {
 
         }
 
-        private int getRunCount() {
-            return runCount;
-        }
-
         @Override
         protected boolean shouldReRunOnThrowable(Throwable throwable) {
             return true;
@@ -296,4 +323,71 @@ public class MainRoboTest {
         }
     }
 
+
+    public static class DummyJobWithRunOrderAssert extends BaseJob {
+        public static int globalRunCount = 0;
+        private int expectedRunOrder;
+        private boolean persist;
+        public DummyJobWithRunOrderAssert(int expectedRunOrder, boolean persist) {
+            this.expectedRunOrder = expectedRunOrder;
+            this.persist = persist;
+        }
+        @Override
+        public void onAdded() {
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            globalRunCount ++;
+            MatcherAssert.assertThat(expectedRunOrder, equalTo(globalRunCount));
+            priorityRunLatch.countDown();
+        }
+
+        @Override
+        public boolean shouldPersist() {
+            return persist;
+        }
+
+        @Override
+        protected void onCancel() {
+
+        }
+
+        @Override
+        protected boolean shouldReRunOnThrowable(Throwable throwable) {
+            return false;
+        }
+    }
+
+    public static class DummyJobWithAddedCount extends BaseJob {
+        int addedCount = 0;
+        @Override
+        public void onAdded() {
+            addedCount++;
+        }
+
+        public int getAddedCount() {
+            return addedCount;
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+
+        }
+
+        @Override
+        public boolean shouldPersist() {
+            return false;
+        }
+
+        @Override
+        protected void onCancel() {
+
+        }
+
+        @Override
+        protected boolean shouldReRunOnThrowable(Throwable throwable) {
+            return false;
+        }
+    }
 }
