@@ -22,3 +22,5 @@ local.properties
 .css
 *.html
 .img
+.DS_Store
+jobqueue/out

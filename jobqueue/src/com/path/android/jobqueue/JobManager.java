@@ -44,6 +44,10 @@ public class JobManager {
         start();
     }
 
+    public void setMaxConsumerCount(int maxConsumerCount) {
+        this.maxConsumerCount = maxConsumerCount;
+    }
+
     public JobManager(Context context) {
         this(context, "default");
     }
@@ -54,7 +58,9 @@ public class JobManager {
 
     public void start() {
         running = true;
-        addConsumer();
+        if(runningConsumerCount.get() == 0) {
+            addConsumer();
+        }
     }
 
     public JobHolder getNextJob() {
@@ -90,10 +96,6 @@ public class JobManager {
         if(jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
             jobHolder = persistentJobQueue.nextJobAndIncRunCount();
-            if(jobHolder != null) {
-                jobHolder.setRunningSessionId(sessionId);
-                persistentJobQueue.insertOrReplace(jobHolder);
-            }
         }
         return jobHolder;
     }
@@ -120,11 +122,8 @@ public class JobManager {
                     if(nextJob.safeRun(nextJob.getRunCount())) {
                         removeJob(nextJob);
                     } else if(nextJob.getBaseJob().shouldPersist()) {
-                        //delete session id and add it back to disk
-                        nextJob.setRunningSessionId(Long.MIN_VALUE);
                         persistentJobQueue.insertOrReplace(nextJob);
                     } else {
-                        nextJob.setRunningSessionId(Long.MIN_VALUE);
                         nonPersistentJobQueue.insertOrReplace(nextJob);
                     }
                     runningConsumerCount.decrementAndGet();

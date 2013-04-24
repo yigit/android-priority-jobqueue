@@ -66,7 +66,7 @@
             -post-build
             -pre-clean
     -->
-    <import file="custom_rules.xml" optional="true" />
+    <!-- <import file="custom_rules.xml" optional="true" /> -->
 
     <!-- Import the actual build file.
 
@@ -88,5 +88,83 @@
     -->
     <!-- version-tag: 1 -->
     <import file="${sdk.dir}/tools/ant/build.xml" />
+    
+    
+    
+    <property name="test.absolute.dir" location="${test.dir}"/>
+        <property name="out.test-classes.dir" value="${out.absolute.dir}/testClasses"/>
+        <property name="out.test-classes.absolute.dir" value="${out.test-classes.dir}"/>
+        <property name="test.external.libs.absolute.dir" location="${test.external.libs.dir}"/>
+        <property name="publish.dir" location="${out.absolute.dir}/publish"/>
 
+    <property environment="env"/>
+    <condition property="build.number" value="${env.BUILD_NUMBER}" else="unknown">
+        <isset property="env.BUILD_NUMBER"/>
+    </condition>
+    <exec executable="date" outputproperty="build.date"/>
+
+    <target name="-pre-compile">
+        <!-- android uses this property for its generated testing framework. We'll set it manually.-->
+        <property name="tested.project.absolute.dir" location="." />
+        <property name="tested.project.test.absolute.dir" location="${tested.project.absolute.dir}/test" />
+        <property name="out.test.classes.absolute.dir" location="${out.dir}/testClasses" />
+    </target>
+
+    <target name="compile.tests" depends="-set-debug-files, -set-debug-mode, -compile">
+        <mkdir dir="${out.test.classes.absolute.dir}"/>
+
+        <path id="project.javac.classpath">
+            <path refid="project.all.jars.path"/>
+            <path refid="tested.project.classpath"/>
+        </path>
+
+        <javac encoding="${java.encoding}"
+               source="${java.source}"
+               target="${java.target}"
+               debug="true"
+               extdirs=""
+               destdir="${out.test.classes.absolute.dir}"
+               bootclasspathref="project.target.class.path"
+               verbose="${verbose}"
+               classpathref="project.javac.classpath"
+               includeantruntime="false">
+            <src path="${source.absolute.dir}" />
+            <src path="${gen.absolute.dir}" />
+
+            <!-- test src -->
+            <src path="${tested.project.test.absolute.dir}"/>
+            <classpath>
+                <pathelement path="${out.classes.absolute.dir}"/>
+                <fileset dir="${jar.libs.dir}" includes="*.jar"/>
+                <fileset dir="${tested.project.absolute.dir}/test-libs" includes="**/*.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="-pre-clean" description="cleanup module">
+        <delete dir="${out.test-classes.absolute.dir}"/>
+        <delete dir="${tmp.dir}"/>
+    </target>
+
+    <target name="test" depends="compile.tests" description="test all">
+        <mkdir dir="${basedir}/out/reports/tests"/>
+        <junit showoutput="true" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
+            <formatter type="plain" usefile="false" />
+            <formatter type="plain"/>
+            <batchtest todir="${basedir}/out/reports/tests">
+                <fileset dir="${test.absolute.dir}">
+                    <include name="**/*Test.java"/>
+                </fileset>
+            </batchtest>
+            <classpath>
+                <pathelement path="${out.classes.absolute.dir}"/>
+                <pathelement path="${out.test-classes.absolute.dir}"/>
+                <fileset dir="${test.external.libs.absolute.dir}" includes="*.jar"/>
+                <fileset dir="${jar.libs.dir}" includes="*.jar"/>
+                <path refid="project.target.class.path"/>
+                <pathelement path="${sdk.dir}/extras/android/support/v4/android-support-v4.jar"/>
+            </classpath>
+        </junit>
+        <fail if="junit.failure" message="Unit test(s) failed.  See reports!"/>
+    </target>
 </project>

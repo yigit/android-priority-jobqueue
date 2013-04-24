@@ -1,6 +1,9 @@
-package com.path.android.jobqueue;
+package com.path.android.jobqueue.test;
 
 
+import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.JobManager;
 import org.fest.reflect.core.Reflection;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
@@ -11,6 +14,7 @@ import org.robolectric.RobolectricTestRunner;
 import java.io.Serializable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
@@ -78,19 +82,20 @@ public class MainRoboTest {
     @Test
     public void testPriority() throws Exception {
         JobManager jobManager = createNewJobManager();
+        jobManager.setMaxConsumerCount(1);
         testPriority(jobManager, false);
     }
 
     public void testPriority(JobManager jobManager, boolean persist) throws Exception {
         priorityRunLatch = new CountDownLatch(2);
-        DummyJobWithRunOrderAssert.globalRunCount = 0;
+        DummyJobWithRunOrderAssert.globalRunCount = new AtomicInteger(0);
         BaseJob job1 = new DummyJobWithRunOrderAssert(2, persist);
         BaseJob job2 = new DummyJobWithRunOrderAssert(1, persist);
         jobManager.stop();
         jobManager.addJob(1, job1);
         jobManager.addJob(2, job2);
         jobManager.start();
-        priorityRunLatch.await(10, TimeUnit.SECONDS);
+        priorityRunLatch.await(4, TimeUnit.SECONDS);
         //ensure both jobs did run
         MatcherAssert.assertThat((int) priorityRunLatch.getCount(), equalTo(0));
     }
@@ -116,15 +121,14 @@ public class MainRoboTest {
         Long sessionId = Reflection.field("sessionId").ofType(long.class)
                 .in(jobManager).get();
         jobManager.stop();
-        BaseJob[] jobs = new BaseJob[] {new DummyLatchJob(new CountDownLatch(1)), new DummyPersistentJob()};
+        BaseJob[] jobs = new BaseJob[] {new DummyPersistentJob()};
         for(BaseJob job :jobs) {
             jobManager.addJob(0, job);
         }
 
         for(int i = 0; i <jobs.length; i++) {
             JobHolder jobHolder = jobManager.getNextJob();
-            long holderSessionId = Reflection.field("runningSessionId").ofType(long.class).in(jobHolder).get();
-            MatcherAssert.assertThat(holderSessionId, equalTo(sessionId));
+            MatcherAssert.assertThat("session id should be correct for job " + i, jobHolder.getRunningSessionId(), equalTo(sessionId));
         }
     }
 
@@ -325,7 +329,7 @@ public class MainRoboTest {
 
 
     public static class DummyJobWithRunOrderAssert extends BaseJob {
-        public static int globalRunCount = 0;
+        transient public static AtomicInteger globalRunCount;
         private int expectedRunOrder;
         private boolean persist;
         public DummyJobWithRunOrderAssert(int expectedRunOrder, boolean persist) {
@@ -338,8 +342,8 @@ public class MainRoboTest {
 
         @Override
         public void onRun() throws Throwable {
-            globalRunCount ++;
-            MatcherAssert.assertThat(expectedRunOrder, equalTo(globalRunCount));
+            final int cnt = globalRunCount.incrementAndGet();
+            MatcherAssert.assertThat(expectedRunOrder, equalTo(cnt));
             priorityRunLatch.countDown();
         }
 

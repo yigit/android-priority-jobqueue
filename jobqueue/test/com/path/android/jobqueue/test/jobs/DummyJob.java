@@ -1,4 +1,4 @@
-package com.path.android.jobqueue.jobs;
+package com.path.android.jobqueue.test.jobs;
 
 import com.path.android.jobqueue.BaseJob;
 

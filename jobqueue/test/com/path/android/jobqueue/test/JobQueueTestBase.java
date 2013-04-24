@@ -1,21 +1,24 @@
-package com.path.android.jobqueue;
+package com.path.android.jobqueue.test;
 
-import com.path.android.jobqueue.jobs.DummyJob;
-import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
-import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
-import org.hamcrest.CoreMatchers;
+import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.test.jobs.DummyJob;
+import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.hamcrest.MatcherAssert;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
-
-import java.util.List;
+import org.junit.experimental.theories.Theory;
 
 import static org.hamcrest.CoreMatchers.*;
 
-@RunWith(RobolectricTestRunner.class)
-public class JobQueueTest {
+@Ignore
+public abstract class JobQueueTestBase {
+    JobQueueFactory currentFactory;
+
+    public JobQueueTestBase(JobQueueFactory factory) {
+        currentFactory = factory;
+    }
+
     @Test
     public void testBasicAddRemoveCount() throws Exception {
         final int ADD_COUNT = 6;
@@ -66,6 +69,17 @@ public class JobQueueTest {
     }
 
     @Test
+    public void testSessionId() throws Exception {
+        long sessionId = (long)(Math.random() * 100000);
+        JobQueue jobQueue = createNewJobQueueWithSessionId(sessionId);
+        JobHolder jobHolder = createNewJobHolder();
+        jobQueue.insert(jobHolder);
+        jobHolder = jobQueue.nextJobAndIncRunCount();
+        MatcherAssert.assertThat("session id should be attached to next job",
+                jobHolder.getRunningSessionId(), equalTo(sessionId));
+    }
+
+    @Test
     public void testPriorityWithReAdd() throws Exception {
         int JOB_LIMIT = 20;
         JobQueue jobQueue = createNewJobQueue();
@@ -92,9 +106,10 @@ public class JobQueueTest {
     }
 
     private JobQueue createNewJobQueue() {
-        return new NonPersistentPriorityQueue(System.nanoTime(), "id_" + System.nanoTime());
-//        return new SqliteJobQueue(Robolectric.application,System.nanoTime(), "id_" + System.nanoTime());
+        return createNewJobQueueWithSessionId(System.nanoTime());
     }
 
-
+    private JobQueue createNewJobQueueWithSessionId(Long sessionId) {
+        return currentFactory.createNew(sessionId, "id_" + sessionId);
+    }
 }
