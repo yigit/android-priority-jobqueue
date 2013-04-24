@@ -210,4 +210,9 @@
                           datafile="${cobertura.absolute}"/>
         <fail if="junit.failure" message="Unit test(s) failed.  See reports!"/>
     </target>
+    
+    <javadoc destdir="${basedir}/javadoc/"      additionalparam="-J-Dorg.apache.commons.attributes.javadoc.CATaglet.sources=${source.absolute.dir}">
+    <taglet name="org.apache.commons.attributes.javadoc.CATaglet" path="${ant.home}/lib/commons-attributes-compiler-2.2.jar"/>
+    <fileset dir="${source.absolute.dir}" includes="**/*.java"/>
+    </javadoc>
 </project>
