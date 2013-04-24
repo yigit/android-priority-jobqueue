@@ -6,17 +6,27 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.log.JqLog;
 
 import java.io.*;
 
+/**
+ * Persistent Job Queue that keeps its data in an sqlite database.
+ */
 public class SqliteJobQueue implements JobQueue {
     DbOpenHelper dbOpenHelper;
     private final long sessionId;
     SQLiteDatabase db;
     SqlHelper sqlHelper;
     String selectQuery;
+
+    /**
+     * @param context application context
+     * @param sessionId session id should match {@link JobManager}
+     * @param id uses this value to construct database name {@code "db_" + id}
+     */
     public SqliteJobQueue(Context context, long sessionId, String id) {
         this.sessionId = sessionId;
         dbOpenHelper = new DbOpenHelper(context, "db_" + id);
@@ -31,6 +41,9 @@ public class SqliteJobQueue implements JobQueue {
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long insert(JobHolder jobHolder) {
         SQLiteStatement stmt = sqlHelper.getInsertStatement();
@@ -44,25 +57,28 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private void bindValues(SQLiteStatement stmt, JobHolder jobHolder) {
-        if(jobHolder.getId() != null) {
+        if (jobHolder.getId() != null) {
             stmt.bindLong(1, jobHolder.getId());
         }
         stmt.bindLong(2, jobHolder.getPriority());
         stmt.bindLong(3, jobHolder.getRunCount());
         byte[] baseJob = getSerializeBaseJob(jobHolder);
-        if(baseJob != null) {
+        if (baseJob != null) {
             stmt.bindBlob(4, baseJob);
         }
         stmt.bindLong(5, jobHolder.getCreatedNs());
         stmt.bindLong(6, jobHolder.getRunningSessionId());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long insertOrReplace(JobHolder jobHolder) {
-        if(jobHolder.getId() == null) {
+        if (jobHolder.getId() == null) {
             return insert(jobHolder);
         }
-        jobHolder.setRunningSessionId(Long.MIN_VALUE);
+        jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);
         SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();
         long id;
         synchronized (stmt) {
@@ -73,9 +89,12 @@ public class SqliteJobQueue implements JobQueue {
         return id;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void remove(JobHolder jobHolder) {
-        if(jobHolder.getId() == null) {
+        if (jobHolder.getId() == null) {
             JqLog.w("called remove with null job id.");
             return;
         }
@@ -90,23 +109,21 @@ public class SqliteJobQueue implements JobQueue {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long count() {
-        Cursor cursor = db.rawQuery(sqlHelper.countQuery, null);
-        try {
-            if (!cursor.moveToNext()) {
-                JqLog.e("No result for count for count query");
-            } else if (!cursor.isLast()) {
-                JqLog.e("Unexpected row count: %s", cursor.getCount());
-            } else if (cursor.getColumnCount() != 1) {
-                JqLog.e("Unexpected column count: %s", cursor.getColumnCount());
-            }
-            return cursor.getLong(0);
-        } finally {
-            cursor.close();
+        SQLiteStatement stmt = sqlHelper.getCountStatement();
+        synchronized (stmt) {
+            stmt.bindLong(1, sessionId);
+            return stmt.simpleQueryForLong();
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public JobHolder nextJobAndIncRunCount() {
         Cursor cursor = db.rawQuery(selectQuery, null);
@@ -134,23 +151,23 @@ public class SqliteJobQueue implements JobQueue {
         synchronized (stmt) {
             stmt.bindLong(1, jobHolder.getRunCount());
             stmt.bindLong(2, sessionId);
-            stmt.bindLong(3,jobHolder.getId());
+            stmt.bindLong(3, jobHolder.getId());
             stmt.execute();
         }
     }
 
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidBaseJobException {
         BaseJob job = safeDeserialize(cursor.getBlob(3));
-        if(job == null) {
+        if (job == null) {
             throw new InvalidBaseJobException();
         }
         return new JobHolder(
-                cursor.getLong(0),
-                cursor.getInt(1),
-                cursor.getInt(2),
+                cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
+                cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex),
+                cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
                 job,
-                cursor.getLong(4),
-                cursor.getLong(5)
+                cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),
+                cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex)
         );
 
     }
@@ -158,22 +175,22 @@ public class SqliteJobQueue implements JobQueue {
     private BaseJob safeDeserialize(byte[] bytes) {
         try {
             return deserialize(bytes);
-        } catch (Throwable t){
+        } catch (Throwable t) {
             JqLog.e(t, "error while deserializing job");
         }
         return null;
     }
 
     private <T> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        if(bytes == null || bytes.length == 0) {
+        if (bytes == null || bytes.length == 0) {
             return null;
         }
         ObjectInputStream in = null;
         try {
             in = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            return (T)in.readObject();
+            return (T) in.readObject();
         } finally {
-            if(in != null) {
+            if (in != null) {
                 in.close();
             }
         }
@@ -188,13 +205,13 @@ public class SqliteJobQueue implements JobQueue {
         try {
             return serialize(object);
         } catch (Throwable t) {
-            JqLog.e(t, "error while serializing object %s",object.getClass().getSimpleName());
+            JqLog.e(t, "error while serializing object %s", object.getClass().getSimpleName());
         }
         return null;
     }
 
     private byte[] serialize(Object object) throws IOException {
-        if(object == null) {
+        if (object == null) {
             return null;
         }
         ByteArrayOutputStream bos = null;
@@ -206,7 +223,7 @@ public class SqliteJobQueue implements JobQueue {
             // Get the bytes of the serialized object
             return bos.toByteArray();
         } finally {
-            if(bos != null) {
+            if (bos != null) {
                 bos.close();
             }
         }

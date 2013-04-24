@@ -4,15 +4,18 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+/**
+ * Helper class for {@link SqliteJobQueue} to handle database connection
+ */
 public class DbOpenHelper extends SQLiteOpenHelper {
     private static final int DB_VERSION = 1;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
-    /*package*/ static final SqlHelper.Property ID_COLUMN = new SqlHelper.Property("_id", "integer");
-    /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property("priority", "integer");
-    /*package*/ static final SqlHelper.Property RUN_COUNT_COLUMN = new SqlHelper.Property("run_count", "integer");
-    /*package*/ static final SqlHelper.Property BASE_JOB_COLUMN = new SqlHelper.Property("base_job", "byte");
-    /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property("created_ns", "long");
-    /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long");
+    /*package*/ static final SqlHelper.Property ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
+    /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property("priority", "integer", 1);
+    /*package*/ static final SqlHelper.Property RUN_COUNT_COLUMN = new SqlHelper.Property("run_count", "integer", 2);
+    /*package*/ static final SqlHelper.Property BASE_JOB_COLUMN = new SqlHelper.Property("base_job", "byte", 3);
+    /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property("created_ns", "long", 4);
+    /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long", 5);
     /*package*/ static final int COLUMN_COUNT = 6;
 
     public DbOpenHelper(Context context, String name) {
@@ -28,7 +31,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 BASE_JOB_COLUMN,
                 CREATED_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN
-                );
+        );
         sqLiteDatabase.execSQL(createQuery);
     }
 

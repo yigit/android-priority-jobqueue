@@ -4,7 +4,7 @@
     <!-- The local.properties file is created and updated by the 'android' tool.
          It contains the path to the SDK. It should *NOT* be checked into
          Version Control Systems. -->
-    <property file="local.properties" />
+    <property file="local.properties"/>
 
     <!-- The ant.properties file can be created by you. It is only edited by the
          'android' tool to add properties to it.
@@ -26,15 +26,15 @@
          application and should be checked into Version Control Systems.
 
          -->
-    <property file="ant.properties" />
+    <property file="ant.properties"/>
 
     <!-- if sdk.dir was not set from one of the property file, then
          get it from the ANDROID_HOME env var.
          This must be done before we load project.properties since
          the proguard config can use sdk.dir -->
-    <property environment="env" />
+    <property environment="env"/>
     <condition property="sdk.dir" value="${env.ANDROID_HOME}">
-        <isset property="env.ANDROID_HOME" />
+        <isset property="env.ANDROID_HOME"/>
     </condition>
 
     <!-- The project.properties file is created and updated by the 'android'
@@ -46,13 +46,13 @@
 
          This file is an integral part of the build system for your
          application and should be checked into Version Control Systems. -->
-    <loadproperties srcFile="project.properties" />
+    <loadproperties srcFile="project.properties"/>
 
     <!-- quick check on sdk.dir -->
     <fail
             message="sdk.dir is missing. Make sure to generate local.properties using 'android update project' or to inject it through the ANDROID_HOME environment variable."
             unless="sdk.dir"
-    />
+            />
 
     <!--
         Import per project custom build rules if present at the root of the project.
@@ -87,35 +87,33 @@
          in order to avoid having your file be overridden by tools such as "android update project"
     -->
     <!-- version-tag: 1 -->
-    <import file="${sdk.dir}/tools/ant/build.xml" />
-    
-    
-    
-    <property name="test.absolute.dir" location="${test.dir}"/>
-        <property name="out.test-classes.dir" value="${out.absolute.dir}/testClasses"/>
-        <property name="out.test-classes.absolute.dir" value="${out.test-classes.dir}"/>
-        <property name="test.external.libs.absolute.dir" location="${test.external.libs.dir}"/>
-        <property name="publish.dir" location="${out.absolute.dir}/publish"/>
+    <import file="${sdk.dir}/tools/ant/build.xml"/>
 
-    <property name="instrumented.dir" value="${out.absolute.dir}/instrumented" />
-    <property name="cobertura.dir" value="${basedir}/cobertura" />
-    
-    <property name="cobertura.absolute" location="${basedir}/cobertura.ser" />
-    <property name="instrumented.absolute.dir" location="${instrumented.dir}" />
-    
+
+    <property name="test.absolute.dir" location="${test.dir}"/>
+    <property name="out.test-classes.dir" value="${out.absolute.dir}/testClasses"/>
+    <property name="out.test-classes.absolute.dir" value="${out.test-classes.dir}"/>
+    <property name="test.external.libs.absolute.dir" location="${test.external.libs.dir}"/>
+    <property name="publish.dir" location="${out.absolute.dir}/publish"/>
+
+    <property name="instrumented.dir" value="${out.absolute.dir}/instrumented"/>
+    <property name="cobertura.dir" value="${basedir}/cobertura"/>
+
+    <property name="cobertura.absolute" location="${basedir}/cobertura.ser"/>
+    <property name="instrumented.absolute.dir" location="${instrumented.dir}"/>
+
     <property name="coverate.report.dir" value="coverage-report"/>
     <property name="coverate.report.absolute.dir" location="${coverate.report.dir}"/>
-    
+
     <path id="cobertura.classpath">
         <fileset dir="${cobertura.dir}">
-            <include name="cobertura.jar" />
-            <include name="lib/**/*.jar" />
+            <include name="cobertura.jar"/>
+            <include name="lib/**/*.jar"/>
         </fileset>
     </path>
-    <taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
-    
-    
-    
+    <taskdef classpathref="cobertura.classpath" resource="tasks.properties"/>
+
+
     <property environment="env"/>
     <condition property="build.number" value="${env.BUILD_NUMBER}" else="unknown">
         <isset property="env.BUILD_NUMBER"/>
@@ -124,9 +122,9 @@
 
     <target name="-pre-compile">
         <!-- android uses this property for its generated testing framework. We'll set it manually.-->
-        <property name="tested.project.absolute.dir" location="." />
-        <property name="tested.project.test.absolute.dir" location="${tested.project.absolute.dir}/test" />
-        <property name="out.test.classes.absolute.dir" location="${out.dir}/testClasses" />
+        <property name="tested.project.absolute.dir" location="."/>
+        <property name="tested.project.test.absolute.dir" location="${tested.project.absolute.dir}/test"/>
+        <property name="out.test.classes.absolute.dir" location="${out.dir}/testClasses"/>
     </target>
 
     <target name="compile.tests" depends="-set-debug-files, -set-debug-mode, -compile">
@@ -147,8 +145,8 @@
                verbose="${verbose}"
                classpathref="project.javac.classpath"
                includeantruntime="false">
-            <src path="${source.absolute.dir}" />
-            <src path="${gen.absolute.dir}" />
+            <src path="${source.absolute.dir}"/>
+            <src path="${gen.absolute.dir}"/>
             <!-- test src -->
             <src path="${tested.project.test.absolute.dir}"/>
             <classpath>
@@ -158,9 +156,9 @@
             </classpath>
         </javac>
     </target>
-    
+
     <target name="coverage-report">
-        <cobertura-report format="html" destdir="${coveragereport.dir}" srcdir="${src.dir}" />
+        <cobertura-report format="html" destdir="${coveragereport.dir}" srcdir="${src.dir}"/>
     </target>
 
     <target name="-pre-clean" description="cleanup module">
@@ -169,27 +167,28 @@
     </target>
 
     <target name="test" depends="compile.tests" description="test all">
-        
-        
-        <delete file="${cobertura.absolute}" />
+
+
+        <delete file="${cobertura.absolute}"/>
         <delete dir="${coverate.report.absolute.dir}"/>
         <delete dir="${instrumented.absolute.dir}"/>
         <cobertura-instrument todir="${instrumented.absolute.dir}">
-            <ignore regex="com.path.android.jobqueue.log.JqLog.*" />
+            <ignore regex="com.path.android.jobqueue.log.JqLog.*"/>
             <fileset dir="${out.classes.absolute.dir}">
-                <include name="**/*.class" />
-                <exclude name="com/path/android/jobqueue/log/**/*" />
+                <include name="**/*.class"/>
+                <exclude name="com/path/android/jobqueue/log/**/*"/>
+                <exclude name="com/path/android/jobqueue/R**"/>
             </fileset>
         </cobertura-instrument>
-        
-        
+
+
         <mkdir dir="${basedir}/out/reports/tests"/>
         <junit showoutput="true" fork="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
-            <formatter type="plain" usefile="false" />
+            <formatter type="plain" usefile="false"/>
             <formatter type="plain"/>
             <sysproperty key="net.sourceforge.cobertura.datafile"
-            		file="${cobertura.absolute}" />
-            <classpath location="${instrumented.absolute.dir}" />    
+                         file="${cobertura.absolute}"/>
+            <classpath location="${instrumented.absolute.dir}"/>
             <classpath>
                 <pathelement path="${out.classes.absolute.dir}"/>
                 <pathelement path="${out.test-classes.absolute.dir}"/>
@@ -198,7 +197,7 @@
                 <path refid="project.target.class.path"/>
                 <pathelement path="${sdk.dir}/extras/android/support/v4/android-support-v4.jar"/>
             </classpath>
-            <classpath refid="cobertura.classpath" />
+            <classpath refid="cobertura.classpath"/>
             <batchtest todir="${basedir}/out/reports/tests">
                 <fileset dir="${test.absolute.dir}">
                     <include name="**/*Test.java"/>
@@ -207,7 +206,8 @@
         </junit>
         <!-- Generate Cobertura html file report  containing the coverage data
      -->
-            <cobertura-report format="html" srcdir="${source.absolute.dir}" destdir="${coverate.report.absolute.dir}" datafile="${cobertura.absolute}" />
+        <cobertura-report format="html" srcdir="${source.absolute.dir}" destdir="${coverate.report.absolute.dir}"
+                          datafile="${cobertura.absolute}"/>
         <fail if="junit.failure" message="Unit test(s) failed.  See reports!"/>
     </target>
 </project>
