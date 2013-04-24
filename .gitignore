@@ -24,3 +24,6 @@ local.properties
 .img
 .DS_Store
 jobqueue/out
+coverage-report
+junitvmwatcher*.properties
+jobqueue/cobertura.ser
