@@ -139,11 +139,11 @@ public abstract class JobQueueTestBase {
     }
 
     private JobHolder createNewJobHolder() {
-        return new JobHolder(null, 0, 0, new DummyJob(), System.nanoTime(), JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, 0, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithPriority(int priority) {
-        return new JobHolder(null, priority, 0, new DummyJob(), System.nanoTime(), JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, priority, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobQueue createNewJobQueue() {

@@ -3,6 +3,7 @@ package com.path.android.jobqueue.persistentQueue.sqlite;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
@@ -20,7 +21,6 @@ public class SqliteJobQueue implements JobQueue {
     private final long sessionId;
     SQLiteDatabase db;
     SqlHelper sqlHelper;
-    String selectQuery;
 
     /**
      * @param context application context
@@ -31,14 +31,7 @@ public class SqliteJobQueue implements JobQueue {
         this.sessionId = sessionId;
         dbOpenHelper = new DbOpenHelper(context, "db_" + id);
         db = dbOpenHelper.getWritableDatabase();
-        sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT);
-        selectQuery = sqlHelper.createSelect(
-                DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId,
-                1,
-                new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
-                new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
-                new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
-        );
+        sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT, sessionId);
     }
 
     /**
@@ -58,16 +51,17 @@ public class SqliteJobQueue implements JobQueue {
 
     private void bindValues(SQLiteStatement stmt, JobHolder jobHolder) {
         if (jobHolder.getId() != null) {
-            stmt.bindLong(1, jobHolder.getId());
+            stmt.bindLong(DbOpenHelper.ID_COLUMN.columnIndex + 1, jobHolder.getId());
         }
-        stmt.bindLong(2, jobHolder.getPriority());
-        stmt.bindLong(3, jobHolder.getRunCount());
+        stmt.bindLong(DbOpenHelper.PRIORITY_COLUMN.columnIndex + 1, jobHolder.getPriority());
+        stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
         byte[] baseJob = getSerializeBaseJob(jobHolder);
         if (baseJob != null) {
-            stmt.bindBlob(4, baseJob);
+            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, baseJob);
         }
-        stmt.bindLong(5, jobHolder.getCreatedNs());
-        stmt.bindLong(6, jobHolder.getRunningSessionId());
+        stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
+        stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
+        stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
     }
 
     /**
@@ -113,11 +107,11 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public long count() {
+    public int count() {
         SQLiteStatement stmt = sqlHelper.getCountStatement();
         synchronized (stmt) {
             stmt.bindLong(1, sessionId);
-            return stmt.simpleQueryForLong();
+            return (int) stmt.simpleQueryForLong();
         }
     }
 
@@ -126,7 +120,17 @@ public class SqliteJobQueue implements JobQueue {
      */
     @Override
     public JobHolder nextJobAndIncRunCount() {
-        Cursor cursor = db.rawQuery(selectQuery, null);
+        //TODO
+        //see if we can avoid creating a new query all the time
+        String selectQuery = sqlHelper.createSelect(
+                DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
+                        + " AND " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " <= ? ",
+                1,
+                new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
+                new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
+                new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
+        );
+        Cursor cursor = db.rawQuery(selectQuery, new String[]{Long.toString(System.nanoTime())});
         try {
             if (!cursor.moveToNext()) {
                 return null;
@@ -141,6 +145,19 @@ public class SqliteJobQueue implements JobQueue {
             return nextJobAndIncRunCount();
         } finally {
             cursor.close();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long getNextJobDelayUntilNs() {
+        SQLiteStatement stmt = sqlHelper.getNextJobDelayedUntilStatement();
+        try {
+            return stmt.simpleQueryForLong();
+        } catch (SQLiteDoneException e){
+            return null;
         }
     }
 
@@ -167,6 +184,7 @@ public class SqliteJobQueue implements JobQueue {
                 cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
                 job,
                 cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),
+                cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex),
                 cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex)
         );
 

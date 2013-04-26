@@ -8,6 +8,10 @@ public class JobHolder {
     protected int priority;
     protected int runCount;
     /**
+     * job will be delayed until this nanotime
+     */
+    protected long delayUntilNs;
+    /**
      * When job is created, System.nanoTime() is assigned to {@code createdNs} value so that we know when job is created
      * in relation to others
      */
@@ -20,20 +24,26 @@ public class JobHolder {
      * @param priority         Higher is better
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
      * @param baseJob          Actual job to run
-     * @param createdNs        System.nanotim
+     * @param createdNs        System.nanotime
+     * @param delayUntilNs     System.nanotime value where job can be run the very first time
      * @param runningSessionId
      */
-    public JobHolder(Long id, int priority, int runCount, BaseJob baseJob, long createdNs, long runningSessionId) {
+    public JobHolder(Long id, int priority, int runCount, BaseJob baseJob, long createdNs, long delayUntilNs, long runningSessionId) {
         this.id = id;
         this.priority = priority;
         this.runCount = runCount;
         this.createdNs = createdNs;
+        this.delayUntilNs = delayUntilNs;
         this.baseJob = baseJob;
         this.runningSessionId = runningSessionId;
     }
 
     public JobHolder(int priority, BaseJob baseJob, long runningSessionId) {
-        this(null, priority, 0, baseJob, System.nanoTime(), runningSessionId);
+        this(null, priority, 0, baseJob, System.nanoTime(), Long.MIN_VALUE, runningSessionId);
+    }
+
+    public JobHolder(int priority, BaseJob baseJob, long delayUntilNs, long runningSessionId) {
+        this(null, priority, 0, baseJob, System.nanoTime(), delayUntilNs, runningSessionId);
     }
 
     /**
@@ -83,6 +93,10 @@ public class JobHolder {
 
     public void setRunningSessionId(long runningSessionId) {
         this.runningSessionId = runningSessionId;
+    }
+
+    public long getDelayUntilNs() {
+        return delayUntilNs;
     }
 
     public BaseJob getBaseJob() {

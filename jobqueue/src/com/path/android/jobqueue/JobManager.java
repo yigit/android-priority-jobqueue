@@ -5,6 +5,8 @@ import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -19,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * -> Stats like waiting Job Count
  */
 public class JobManager {
-
+    private static final long NS_PER_MS= 1000000;
     private static final int DEFAULT_MAX_EXECUTOR_COUNT = 6;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     private AtomicInteger runningConsumerCount = new AtomicInteger(0);
@@ -96,7 +98,7 @@ public class JobManager {
      * This might be a good place to decide whether you should wake your app up on boot etc. to complete pending jobs.
      * @return
      */
-    public long count() {
+    public int count() {
         return nonPersistentJobQueue.count() + persistentJobQueue.count();
     }
 
@@ -107,7 +109,18 @@ public class JobManager {
      * @return
      */
     public long addJob(int priority, BaseJob baseJob) {
-        JobHolder jobHolder = new JobHolder(priority, baseJob, NOT_RUNNING_SESSION_ID);
+        return addJob(priority, 0, baseJob);
+    }
+
+    /**
+     * Adds a job with given priority and returns the JobId.
+     * @param priority Higher runs first
+     * @param delay number of milliseconds that this job should be delayed
+     * @param baseJob The actual job to run
+     * @return
+     */
+    public long addJob(int priority, long delay, BaseJob baseJob) {
+        JobHolder jobHolder = new JobHolder(priority, baseJob, delay > 0 ? System.nanoTime() + delay * NS_PER_MS : Long.MIN_VALUE, NOT_RUNNING_SESSION_ID);
         long id;
         if (baseJob.shouldPersist()) {
             id = persistentJobQueue.insert(jobHolder);
@@ -119,6 +132,44 @@ public class JobManager {
             addConsumer();
         }
         return id;
+    }
+
+    private void ensureConsumerWhenNeeded() {
+        //this method is called when there are jobs but job consumer was not given any
+        //this may happen in a race condition or when the latest job is a delayed job
+        Long nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs();
+        if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
+            addConsumer();
+            return;
+        }
+        Long persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs();
+        if(persistedJobRunNs != null) {
+            if(nextRunNs == null) {
+                nextRunNs = persistedJobRunNs;
+            } else if(persistedJobRunNs < nextRunNs) {
+                nextRunNs = persistedJobRunNs;
+            }
+        }
+        if(nextRunNs != null) {
+            long waitNs = nextRunNs - System.nanoTime();
+            if(waitNs <= 0) {
+                addConsumer();
+            } else {
+                ensureConsumerOnTime(waitNs);
+            }
+        }
+    }
+
+    private void ensureConsumerOnTime(long waitNs) {
+        long delay = (long)Math.ceil((double)(waitNs) / NS_PER_MS);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if(runningConsumerCount.get() == 0) {
+                    addConsumer();
+                }
+            }
+        }, delay);
     }
 
     private void addConsumer() {
@@ -175,9 +226,7 @@ public class JobManager {
             } finally {
                 if (runningConsumerCount.decrementAndGet() == 0 && running) {
                     //check count for race conditions
-                    if (count() > 0) {
-                        addConsumer();
-                    }
+                    ensureConsumerWhenNeeded();
                 }
             }
         }

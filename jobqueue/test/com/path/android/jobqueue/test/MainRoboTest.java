@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 
 @RunWith(RobolectricTestRunner.class)
 public class MainRoboTest {
@@ -68,6 +70,58 @@ public class MainRoboTest {
         });
         latch.await(10, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) latch.getCount(), equalTo(0));
+    }
+
+    @Test
+    public void testDelay() throws Exception {
+        testDelay(false);
+        testDelay(true);
+    }
+
+    public void testDelay(boolean persist) throws Exception {
+        JobManager jobManager = createNewJobManager();
+        jobManager.stop();
+        DummyJob delayedJob = persist ? new PersistentDummyJob() : new DummyJob();
+        DummyJob nonDelayedJob = persist ? new PersistentDummyJob() : new DummyJob();
+        long jobId = jobManager.addJob(10, 1000, delayedJob);
+        long nonDelayedJobId = jobManager.addJob(0, 0, nonDelayedJob);
+
+        Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
+        Invoker<Void> removeJobMethod = getRemoveJobMethod(jobManager);
+
+        JobHolder receivedJob = nextJobMethod.invoke();
+        MatcherAssert.assertThat("non-delayed job should be served",  receivedJob, notNullValue());
+        MatcherAssert.assertThat("non-delayed job should id should match",  receivedJob.getId(), equalTo(nonDelayedJobId));
+        removeJobMethod.invoke(receivedJob);
+        MatcherAssert.assertThat("delayed job should not be served",  nextJobMethod.invoke(), nullValue());
+        MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
+        Thread.sleep(500);
+        MatcherAssert.assertThat("delayed job should not be served",  nextJobMethod.invoke(), nullValue());
+        MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
+        Thread.sleep(1000);
+        receivedJob = nextJobMethod.invoke();
+        MatcherAssert.assertThat("now should be able to receive the delayed job", receivedJob, notNullValue());
+        if(receivedJob != null) {
+            MatcherAssert.assertThat("received job should be the delayed job", receivedJob.getId(), equalTo(jobId));
+        }
+    }
+
+    @Test
+    public void testDelayedRun() throws Exception {
+        testDelayedRun(false);
+        testDelayedRun(true);
+    }
+    public void testDelayedRun(boolean persist) throws Exception {
+        JobManager jobManager = createNewJobManager();
+        DummyJob delayedJob = persist ? new PersistentDummyJob() : new DummyJob();
+        DummyJob nonDelayedJob = persist ? new PersistentDummyJob() : new DummyJob();
+        jobManager.addJob(10, 2000, delayedJob);
+        jobManager.addJob(0, 0, nonDelayedJob);
+        Thread.sleep(500);
+        MatcherAssert.assertThat("there should be 1 delayed job waiting to be run", jobManager.count(), equalTo(1));
+        Thread.sleep(3000);
+        MatcherAssert.assertThat("all jobs should be completed", jobManager.count(), equalTo(0));
+
     }
 
     public static CountDownLatch persistentRunLatch = new CountDownLatch(1);
@@ -130,11 +184,19 @@ public class MainRoboTest {
             jobManager.addJob(0, job);
         }
 
-        Invoker<JobHolder> nextJobMethod = Reflection.method("getNextJob").withReturnType(JobHolder.class).in(jobManager);
+        Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
         for (int i = 0; i < jobs.length; i++) {
             JobHolder jobHolder = nextJobMethod.invoke();
             MatcherAssert.assertThat("session id should be correct for job " + i, jobHolder.getRunningSessionId(), equalTo(sessionId));
         }
+    }
+
+    private Invoker<JobHolder> getNextJobMethod(JobManager jobManager) {
+        return Reflection.method("getNextJob").withReturnType(JobHolder.class).in(jobManager);
+    }
+
+    private Invoker<Void> getRemoveJobMethod(JobManager jobManager) {
+        return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
     }
 
     private JobManager createNewJobManager(String id) {

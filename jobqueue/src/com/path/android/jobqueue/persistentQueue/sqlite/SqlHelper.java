@@ -13,16 +13,19 @@ public class SqlHelper {
     private SQLiteStatement deleteStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
+    private SQLiteStatement nextJobDelayedUntilStatement;
     final SQLiteDatabase db;
     final String tableName;
     final String primaryKeyColumnName;
     final int columnCount;
+    final long sessionId;
 
-    public SqlHelper(SQLiteDatabase db, String tableName, String primaryKeyColumnName, int columnCount) {
+    public SqlHelper(SQLiteDatabase db, String tableName, String primaryKeyColumnName, int columnCount, long sessionId) {
         this.db = db;
         this.tableName = tableName;
         this.columnCount = columnCount;
         this.primaryKeyColumnName = primaryKeyColumnName;
+        this.sessionId = sessionId;
     }
 
     public static String create(String tableName, Property primaryKey, Property... properties) {
@@ -99,6 +102,18 @@ public class SqlHelper {
             onJobFetchedForRunningStatement = db.compileStatement(sql);
         }
         return onJobFetchedForRunningStatement;
+    }
+
+    public SQLiteStatement getNextJobDelayedUntilStatement() {
+        if(nextJobDelayedUntilStatement == null) {
+            String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
+                    + " FROM " + tableName + " WHERE "
+                    + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
+                    + " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " DESC"
+                    + " LIMIT 1";
+            nextJobDelayedUntilStatement = db.compileStatement(sql);
+        }
+        return nextJobDelayedUntilStatement;
     }
 
     public String createSelect(String where, Integer limit, Order... orders) {

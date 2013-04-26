@@ -36,7 +36,7 @@ public interface JobQueue {
      * Returns the # of jobs that are waiting to be run
      * @return
      */
-    long count();
+    int count();
 
     /**
      * Returns the next available job in the data set
@@ -45,4 +45,10 @@ public interface JobQueue {
      * @return
      */
     JobHolder nextJobAndIncRunCount();
+
+    /**
+     * returns when the next job should run, should return null if there are no jobs to run.
+     * @return
+     */
+    Long getNextJobDelayUntilNs();
 }
