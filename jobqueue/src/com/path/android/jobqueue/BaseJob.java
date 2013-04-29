@@ -6,6 +6,12 @@ import java.io.Serializable;
 
 abstract public class BaseJob implements Serializable {
     public static final int DEFAULT_RETRY_LIMIT = 20;
+    private final boolean requiresNetwork;
+
+    protected BaseJob(boolean requiresNetwork) {
+        this.requiresNetwork = requiresNetwork;
+    }
+
     /**
      * called when the job is added to disk and committed.
      * this means job will eventually run. this is a good time to update local database and dispatch events
@@ -69,6 +75,10 @@ abstract public class BaseJob implements Serializable {
             }
         }
         return true;
+    }
+
+    public boolean requiresNetwork() {
+        return requiresNetwork;
     }
 
     /**

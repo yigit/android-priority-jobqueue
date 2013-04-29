@@ -2,6 +2,8 @@ package com.path.android.jobqueue;
 
 import android.content.Context;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.network.NetworkUtil;
+import com.path.android.jobqueue.network.NetworkUtilImpl;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
@@ -24,6 +26,7 @@ public class JobManager {
     private static final long NS_PER_MS= 1000000;
     private static final int DEFAULT_MAX_EXECUTOR_COUNT = 6;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
+    public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
     private AtomicInteger runningConsumerCount = new AtomicInteger(0);
     private final long sessionId;
     private final Executor executor;
@@ -31,6 +34,7 @@ public class JobManager {
     private JobQueue persistentJobQueue;
     private JobQueue nonPersistentJobQueue;
     private boolean running;
+    private NetworkUtil networkUtil;
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -61,7 +65,17 @@ public class JobManager {
         executor = new ThreadPoolExecutor(0, maxConsumerCount, 15, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(true));
         this.persistentJobQueue = queueFactory.createPersistentQueue(context, sessionId, id);
         this.nonPersistentJobQueue = queueFactory.createNonPersistent(context, sessionId, id);
+        networkUtil = new NetworkUtilImpl();
         start();
+    }
+
+    /**
+     * Set the {@link NetworkUtil} class to be used by the job manager.
+     * By default {@link com.path.android.jobqueue.network.NetworkUtilImpl} will be used.
+     * @param networkUtil
+     */
+    public void setNetworkUtil(NetworkUtil networkUtil) {
+        this.networkUtil = networkUtil;
     }
 
     /**
@@ -120,7 +134,7 @@ public class JobManager {
      * @return
      */
     public long addJob(int priority, long delay, BaseJob baseJob) {
-        JobHolder jobHolder = new JobHolder(priority, baseJob, delay > 0 ? System.nanoTime() + delay * NS_PER_MS : Long.MIN_VALUE, NOT_RUNNING_SESSION_ID);
+        JobHolder jobHolder = new JobHolder(priority, baseJob, delay > 0 ? System.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY, NOT_RUNNING_SESSION_ID);
         long id;
         if (baseJob.shouldPersist()) {
             id = persistentJobQueue.insert(jobHolder);
@@ -186,10 +200,10 @@ public class JobManager {
     }
 
     private synchronized JobHolder getNextJob(boolean nonPersistentOnly) {
-        JobHolder jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount();
+        JobHolder jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(true);
         if (jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
-            jobHolder = persistentJobQueue.nextJobAndIncRunCount();
+            jobHolder = persistentJobQueue.nextJobAndIncRunCount(true);
         }
         return jobHolder;
     }

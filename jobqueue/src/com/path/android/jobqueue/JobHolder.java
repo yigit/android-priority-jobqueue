@@ -17,6 +17,7 @@ public class JobHolder {
      */
     protected long createdNs;
     protected long runningSessionId;
+    protected boolean requiresNetwork;
     transient BaseJob baseJob;
 
     /**
@@ -36,6 +37,7 @@ public class JobHolder {
         this.delayUntilNs = delayUntilNs;
         this.baseJob = baseJob;
         this.runningSessionId = runningSessionId;
+        this.requiresNetwork = baseJob.requiresNetwork();
     }
 
     public JobHolder(int priority, BaseJob baseJob, long runningSessionId) {
@@ -61,6 +63,10 @@ public class JobHolder {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public boolean requiresNetwork() {
+        return requiresNetwork;
     }
 
     public int getPriority() {

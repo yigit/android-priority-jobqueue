@@ -44,7 +44,7 @@ public interface JobQueue {
      * It should filter out all running jobs and
      * @return
      */
-    JobHolder nextJobAndIncRunCount();
+    JobHolder nextJobAndIncRunCount(boolean hasNetwork);
 
     /**
      * returns when the next job should run, should return null if there are no jobs to run.

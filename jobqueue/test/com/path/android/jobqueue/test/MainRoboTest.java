@@ -24,6 +24,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 
 @RunWith(RobolectricTestRunner.class)
 public class MainRoboTest {
+    //TEST parallel running
     @Test
     public void runManyNonPersistentJobs() throws Exception {
         JobManager jobManager = new JobManager(Robolectric.application, "test1");
@@ -42,7 +43,7 @@ public class MainRoboTest {
     public void runFailingJob() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         JobManager jobManager = new JobManager(Robolectric.application, "test2");
-        jobManager.addJob(0, new BaseJob() {
+        jobManager.addJob(0, new BaseJob(true) {
             @Override
             public void onAdded() {
 
@@ -302,6 +303,7 @@ public class MainRoboTest {
         private boolean persist;
 
         public DummyJobWithRunOrderAssert(int expectedRunOrder, boolean persist) {
+            super(true);
             this.expectedRunOrder = expectedRunOrder;
             this.persist = persist;
         }

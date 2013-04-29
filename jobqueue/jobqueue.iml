@@ -15,6 +15,7 @@
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/test-libs" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/coverage-report" />
+      <excludeFolder url="file://$MODULE_DIR$/javadoc" />
     </content>
     <orderEntry type="module-library">
       <library>

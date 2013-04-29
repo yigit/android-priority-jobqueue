@@ -8,6 +8,14 @@ public class DummyJob extends BaseJob {
     int onCancelCnt = 0;
     int shouldReRunOnThrowableCnt = 0;
 
+    public DummyJob() {
+        super(false);
+    }
+
+    public DummyJob(boolean requiresNetwork) {
+        super(requiresNetwork);
+    }
+
     @Override
     public void onAdded() {
         onAddedCnt++;

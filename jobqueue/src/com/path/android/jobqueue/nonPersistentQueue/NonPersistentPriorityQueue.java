@@ -4,14 +4,12 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class NonPersistentPriorityQueue implements JobQueue {
     private long nonPersistentJobIdGenerator = Integer.MIN_VALUE;
-    private PriorityQueue<JobHolder> jobs;
+    //TODO implement a more efficient priority queue where we can mark jobs as removed but don't remove for real
+    private NetworkAwarePriorityQueue jobs;
     private Map<Long, JobHolder> runningJobs;
     private final String id;
     private final long sessionId;
@@ -19,7 +17,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
     public NonPersistentPriorityQueue(long sessionId, String id) {
         this.id = id;
         this.sessionId = sessionId;
-        jobs = new PriorityQueue<JobHolder>(5, jobComparator);
+        jobs = new NetworkAwarePriorityQueue(5, jobComparator);
         runningJobs = new HashMap<Long, JobHolder>();
     }
 
@@ -51,6 +49,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
     @Override
     public void remove(JobHolder jobHolder) {
         jobs.remove(jobHolder);
+
         if (jobHolder.getId() != null) {
             runningJobs.remove(jobHolder.getId());
         }
@@ -68,16 +67,17 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount() {
-        JobHolder jobHolder = jobs.poll();
+    public JobHolder nextJobAndIncRunCount(boolean hasNetwork) {
+        JobHolder jobHolder = jobs.peek(hasNetwork);
+
         if (jobHolder != null) {
             //check if job can run
             if(jobHolder.getDelayUntilNs() > System.nanoTime()) {
-                jobs.add(jobHolder);
                 jobHolder = null;
             } else {
                 jobHolder.setRunningSessionId(sessionId);
                 jobHolder.setRunCount(jobHolder.getRunCount() + 1);
+                jobs.remove(jobHolder);
                 //add it back to the queue. it will go the end
                 runningJobs.put(jobHolder.getId(), jobHolder);
             }
@@ -90,21 +90,15 @@ public class NonPersistentPriorityQueue implements JobQueue {
      */
     @Override
     public Long getNextJobDelayUntilNs() {
-        JobHolder jobHolder = jobs.peek();
-        return jobHolder == null ? null : jobHolder.getDelayUntilNs();
+        JobHolder next = jobs.peek();
+        return next == null ? null : next.getDelayUntilNs();
     }
 
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {
         @Override
         public int compare(JobHolder holder1, JobHolder holder2) {
-            //job can run earlier first
-            int cmp = -compareLong(holder1.getDelayUntilNs(), holder2.getDelayUntilNs());
-            if(cmp != 0) {
-                return cmp;
-            }
-
             //high priority first
-            cmp = compareInt(holder1.getPriority(), holder2.getPriority());
+            int cmp = compareInt(holder1.getPriority(), holder2.getPriority());
             if(cmp != 0) {
                 return cmp;
             }

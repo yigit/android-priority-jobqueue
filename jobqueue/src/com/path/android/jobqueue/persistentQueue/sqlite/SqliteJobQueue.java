@@ -62,6 +62,7 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
+        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1, jobHolder.requiresNetwork() ? 1L : 0L);
     }
 
     /**
@@ -119,12 +120,17 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount() {
+    public JobHolder nextJobAndIncRunCount(boolean hasNetwork) {
         //TODO
         //see if we can avoid creating a new query all the time
+        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
+                + " AND " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " <= ? ";
+        if(hasNetwork == false) {
+            where += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1 ";
+        }
         String selectQuery = sqlHelper.createSelect(
-                DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
-                        + " AND " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " <= ? ",
+                where
+                ,
                 1,
                 new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
                 new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
@@ -142,7 +148,7 @@ public class SqliteJobQueue implements JobQueue {
             //delete
             Long jobId = cursor.getLong(0);
             delete(jobId);
-            return nextJobAndIncRunCount();
+            return nextJobAndIncRunCount(true);
         } finally {
             cursor.close();
         }
