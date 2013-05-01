@@ -1,4 +1,5 @@
 com.path.android.jobqueue
 com.path.android.jobqueue.log
+com.path.android.jobqueue.network
 com.path.android.jobqueue.nonPersistentQueue
 com.path.android.jobqueue.persistentQueue.sqlite
