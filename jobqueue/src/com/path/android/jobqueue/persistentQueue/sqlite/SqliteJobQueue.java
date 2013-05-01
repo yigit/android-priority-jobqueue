@@ -158,8 +158,10 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs() {
-        SQLiteStatement stmt = sqlHelper.getNextJobDelayedUntilStatement();
+    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
+        SQLiteStatement stmt =
+                hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()
+                : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
         try {
             return stmt.simpleQueryForLong();
         } catch (SQLiteDoneException e){

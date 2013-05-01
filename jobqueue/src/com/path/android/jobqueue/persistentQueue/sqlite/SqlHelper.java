@@ -13,7 +13,9 @@ public class SqlHelper {
     private SQLiteStatement deleteStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
-    private SQLiteStatement nextJobDelayedUntilStatement;
+    private SQLiteStatement nextJobDelayedUntilWithNetworkStatement;
+    private SQLiteStatement nextJobDelayedUntilWithoutNetworkStatement;
+
     final SQLiteDatabase db;
     final String tableName;
     final String primaryKeyColumnName;
@@ -104,16 +106,29 @@ public class SqlHelper {
         return onJobFetchedForRunningStatement;
     }
 
-    public SQLiteStatement getNextJobDelayedUntilStatement() {
-        if(nextJobDelayedUntilStatement == null) {
+    public SQLiteStatement getNextJobDelayedUntilWithNetworkStatement() {
+        if(nextJobDelayedUntilWithNetworkStatement == null) {
             String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
                     + " FROM " + tableName + " WHERE "
                     + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
-                    + " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " DESC"
+                    + " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " ASC"
                     + " LIMIT 1";
-            nextJobDelayedUntilStatement = db.compileStatement(sql);
+            nextJobDelayedUntilWithNetworkStatement = db.compileStatement(sql);
         }
-        return nextJobDelayedUntilStatement;
+        return nextJobDelayedUntilWithNetworkStatement;
+    }
+
+    public SQLiteStatement getNextJobDelayedUntilWithoutNetworkStatement() {
+        if(nextJobDelayedUntilWithoutNetworkStatement == null) {
+            String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
+                    + " FROM " + tableName + " WHERE "
+                    + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
+                    + " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1"
+                    + " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " ASC"
+                    + " LIMIT 1";
+            nextJobDelayedUntilWithoutNetworkStatement = db.compileStatement(sql);
+        }
+        return nextJobDelayedUntilWithoutNetworkStatement;
     }
 
     public String createSelect(String where, Integer limit, Order... orders) {

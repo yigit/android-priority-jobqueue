@@ -42,13 +42,16 @@ public interface JobQueue {
      * Returns the next available job in the data set
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
      * It should filter out all running jobs and
+     * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
      * @return
      */
     JobHolder nextJobAndIncRunCount(boolean hasNetwork);
 
     /**
-     * returns when the next job should run, should return null if there are no jobs to run.
+     * returns when the next job should run (in nanoseconds), should return null if there are no jobs to run.
+     * @param hasNetwork if true, should return nanoseconds for any job, if false, should return nanoseconds for next
+     *                   job's delay until.
      * @return
      */
-    Long getNextJobDelayUntilNs();
+    Long getNextJobDelayUntilNs(boolean hasNetwork);
 }

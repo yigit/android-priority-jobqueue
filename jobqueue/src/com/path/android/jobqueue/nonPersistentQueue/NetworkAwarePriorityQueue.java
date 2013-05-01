@@ -16,7 +16,7 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
      * @param comparator
      */
     public NetworkAwarePriorityQueue(int initialCapacity, Comparator<JobHolder> comparator) {
-        super(initialCapacity, comparator, comparator);
+        super(initialCapacity, comparator, new TimeAwareComparator(comparator));
     }
 
     /**
@@ -54,12 +54,13 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
 
     /**
      * create a {@link TimeAwarePriorityQueue}
+     * @param ignoredQueueId
      * @param initialCapacity
      * @param comparator
      * @return
      */
     @Override
-    protected Queue<JobHolder> createQueue(int initialCapacity, Comparator<JobHolder> comparator) {
+    protected Queue<JobHolder> createQueue(QeueuId ignoredQueueId, int initialCapacity, Comparator<JobHolder> comparator) {
         return new TimeAwarePriorityQueue(initialCapacity, comparator);
     }
 

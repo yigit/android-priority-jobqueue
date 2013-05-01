@@ -1,9 +1,12 @@
 package com.path.android.jobqueue.test;
 
 
+import android.content.Context;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.network.NetworkEventProvider;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.fest.reflect.core.Reflection;
@@ -123,6 +126,75 @@ public class MainRoboTest {
         Thread.sleep(3000);
         MatcherAssert.assertThat("all jobs should be completed", jobManager.count(), equalTo(0));
 
+    }
+
+    @Test
+    public void testNetworkNextJob() throws Exception {
+        DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
+        JobManager jobManager = createNewJobManager();
+        jobManager.stop();
+        jobManager.setNetworkUtil(dummyNetworkUtil);
+        DummyJob dummyJob = new DummyJob(true);
+        long dummyJobId = jobManager.addJob(0, dummyJob);
+        dummyNetworkUtil.setHasNetwork(false);
+        Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
+        MatcherAssert.assertThat("when there isn't any network, next job should return null", nextJobMethod.invoke(), nullValue());
+        MatcherAssert.assertThat("even if there is network, job manager should return correct count", jobManager.count(), equalTo(1));
+        dummyNetworkUtil.setHasNetwork(true);
+        JobHolder retrieved = nextJobMethod.invoke();
+        MatcherAssert.assertThat("when network is recovered, next job should be retrieved", retrieved, notNullValue());
+    }
+
+    @Test
+    public void testNetworkJobWithConnectivityListener() throws Exception {
+        DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
+        JobManager jobManager = createNewJobManager();
+        jobManager.setNetworkUtil(dummyNetworkUtil);
+        dummyNetworkUtil.setHasNetwork(false, true);
+        DummyJob dummyJob = new DummyJob(true);
+        long dummyJobId = jobManager.addJob(0, dummyJob);
+        Thread.sleep(2000);//sleep a while so that consumers die. they should die since we are using a network util
+                           //with event support
+        MatcherAssert.assertThat("count should be 1 as no jobs should be consumed w/o network", jobManager.count(), equalTo(1));
+        dummyNetworkUtil.setHasNetwork(true, false);
+        Thread.sleep(1000); //wait a little bit more to consumer will run
+        MatcherAssert.assertThat("even though network is recovered, job manager should not consume any job because it " +
+                "does not know (we did not inform)", jobManager.count(), equalTo(1));
+        dummyNetworkUtil.setHasNetwork(true, true);
+        Thread.sleep(1000); //wait a little bit more to consumer will run
+        MatcherAssert.assertThat("job manager should consume network job after it is informed that network is recovered"
+                , jobManager.count(), equalTo(0));
+    }
+
+    @Test
+    public void testNetworkJob() throws Exception {
+        DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
+        JobManager jobManager = createNewJobManager();
+        jobManager.stop();
+        jobManager.setNetworkUtil(dummyNetworkUtil);
+
+        DummyJob networkDummyJob = new DummyJob(true);
+        jobManager.addJob(5, networkDummyJob);
+
+        DummyJob noNetworkDummyJob = new DummyJob(false);
+        jobManager.addJob(2, noNetworkDummyJob);
+
+        PersistentDummyJob networkPersistentJob = new PersistentDummyJob(true);
+        jobManager.addJob(6, networkPersistentJob);
+
+        PersistentDummyJob noNetworkPersistentJob = new PersistentDummyJob(false);
+        jobManager.addJob(1, noNetworkPersistentJob);
+
+        MatcherAssert.assertThat("count should be correct if there are network and non-network jobs w/o network", jobManager.count(), equalTo(4));
+        dummyNetworkUtil.setHasNetwork(true);
+        MatcherAssert.assertThat("count should be correct if there is network and non-network jobs w/o network", jobManager.count(), equalTo(4));
+        dummyNetworkUtil.setHasNetwork(false);
+        jobManager.start();
+        Thread.sleep(1000);//this should be enough to consume dummy jobs
+        MatcherAssert.assertThat("no network jobs should be executed even if there is no network", jobManager.count(), equalTo(2));
+        dummyNetworkUtil.setHasNetwork(true);
+        Thread.sleep(1000);//this should be enough to consume dummy jobs
+        MatcherAssert.assertThat("when network is recovered, all network jobs should be automatically consumed", jobManager.count(), equalTo(0));
     }
 
     public static CountDownLatch persistentRunLatch = new CountDownLatch(1);
@@ -332,6 +404,41 @@ public class MainRoboTest {
         @Override
         protected boolean shouldReRunOnThrowable(Throwable throwable) {
             return false;
+        }
+    }
+
+    private static class DummyNetworkUtil implements NetworkUtil {
+        private boolean hasNetwork;
+
+        private void setHasNetwork(boolean hasNetwork) {
+            this.hasNetwork = hasNetwork;
+        }
+
+        @Override
+        public boolean isConnected(Context context) {
+            return hasNetwork;
+        }
+    }
+
+    private static class DummyNetworkUtilWithConnectivityEventSupport implements NetworkUtil, NetworkEventProvider {
+        private boolean hasNetwork;
+        private Listener listener;
+
+        private void setHasNetwork(boolean hasNetwork, boolean notifyListener) {
+            this.hasNetwork = hasNetwork;
+            if(notifyListener && listener != null) {
+                listener.onNetworkChange(hasNetwork);
+            }
+        }
+
+        @Override
+        public boolean isConnected(Context context) {
+            return hasNetwork;
+        }
+
+        @Override
+        public void setListener(Listener listener) {
+            this.listener = listener;
         }
     }
 }

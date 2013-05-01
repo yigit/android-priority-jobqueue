@@ -18,16 +18,16 @@ abstract public class MergedQueue implements Queue<JobHolder> {
 
     /**
      *
-     * @param initialCapacity paseed to {@link MergedQueue#createQueue(int, java.util.Comparator)}
-     * @param comparator paseed to {@link MergedQueue#createQueue(int, java.util.Comparator)}
+     * @param initialCapacity passed to {@link MergedQueue#createQueue(MergedQueue.QeueuId, int, java.util.Comparator)}
+     * @param comparator passed to {@link MergedQueue#createQueue(MergedQueue.QeueuId, int, java.util.Comparator)}
      * @param retrieveComparator upon retrieval, if both queues return items, this comparator is used to decide which
      *                           one should be returned
      */
     public MergedQueue(int initialCapacity, Comparator<JobHolder> comparator, Comparator<JobHolder> retrieveComparator) {
         this.comparator = comparator;
         this.retrieveComparator = retrieveComparator;
-        queue0 = createQueue(initialCapacity, comparator);
-        queue1 = createQueue(initialCapacity, comparator);
+        queue0 = createQueue(QeueuId.Q0, initialCapacity, comparator);
+        queue1 = createQueue(QeueuId.Q1, initialCapacity, comparator);
     }
 
     /**
@@ -76,10 +76,23 @@ abstract public class MergedQueue implements Queue<JobHolder> {
         if(delayed == null) {
             return queue1.poll();
         }
+        //if queue for this job has changed, re-add it and try poll from scratch
+        if(decideQueue(delayed) != QeueuId.Q0) {
+            //should be moved to the other queue
+            queue0.remove(delayed);
+            queue1.add(delayed);
+            return poll();
+        }
         JobHolder nonDelayed = queue1.peek();
         if(nonDelayed == null) {
             queue0.remove(delayed);
             return delayed;
+        }
+        //if queue for this job has changed, re-add it and try poll from scratch
+        if(decideQueue(nonDelayed) != QeueuId.Q1) {
+            queue0.add(nonDelayed);
+            queue1.remove(nonDelayed);
+            return poll();
         }
         //both are not null, need to compare and return the better
         int cmp = retrieveComparator.compare(delayed, nonDelayed);
@@ -98,7 +111,19 @@ abstract public class MergedQueue implements Queue<JobHolder> {
     @Override
     public JobHolder peek() {
         JobHolder delayed = queue0.peek();
+        //if queue for this job has changed, re-add it and try peek from scratch
+        if(delayed != null && decideQueue(delayed) != QeueuId.Q0) {
+            queue1.add(delayed);
+            queue0.remove(delayed);
+            return peek();
+        }
         JobHolder nonDelayed = queue1.peek();
+        //if queue for this job has changed, re-add it and try peek from scratch
+        if(nonDelayed != null && decideQueue(nonDelayed) != QeueuId.Q1) {
+            queue0.add(nonDelayed);
+            queue1.remove(nonDelayed);
+            return peek();
+        }
         if(delayed == null) {
             return nonDelayed;
         }
@@ -266,7 +291,7 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * @param comparator
      * @return
      */
-    abstract protected Queue<JobHolder> createQueue(int initialCapacity, Comparator<JobHolder> comparator);
+    abstract protected Queue<JobHolder> createQueue(QeueuId qeueuId, int initialCapacity, Comparator<JobHolder> comparator);
 
     /**
      * simple enum to identify queues

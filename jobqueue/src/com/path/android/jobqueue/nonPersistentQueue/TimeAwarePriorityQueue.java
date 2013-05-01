@@ -4,6 +4,12 @@ import com.path.android.jobqueue.JobHolder;
 
 import java.util.*;
 
+/**
+ * This is a {@link MergedQueue} class that can handle queue updates based on time.
+ * It uses two queues, one for jobs that can run now and the other for jobs that should wait.
+ * Upon retrieval, if it detects a job in delayed queue that can run now, it removes it from there, adds it to Q0
+ * and re-runs the operation. This is not very efficient but provides proper ordering for delayed jobs.
+ */
 public class TimeAwarePriorityQueue extends MergedQueue {
 
     /**
@@ -23,43 +29,17 @@ public class TimeAwarePriorityQueue extends MergedQueue {
 
     /**
      * create a {@link PriorityQueue} with given comparator
+     * @param qeueuId
      * @param initialCapacity
      * @param comparator
      * @return
      */
     @Override
-    protected Queue<JobHolder> createQueue(int initialCapacity, Comparator<JobHolder> comparator) {
-        return new PriorityQueue<JobHolder>(initialCapacity, comparator);
-    }
-
-    /**
-     * A real-time comparator class that checks current time to decide of both jobs are valid or not.
-     * Return values from this comparator are inconsistent as time may change.
-     */
-    private static class TimeAwareComparator implements Comparator<JobHolder> {
-        final Comparator<JobHolder> baseComparator;
-
-        public TimeAwareComparator(Comparator<JobHolder> baseComparator) {
-            this.baseComparator = baseComparator;
-        }
-
-        @Override
-        public int compare(JobHolder jobHolder, JobHolder jobHolder2) {
-            long now = System.nanoTime();
-            boolean job1Valid = jobHolder.getDelayUntilNs() <= now;
-            boolean job2Valid = jobHolder2.getDelayUntilNs() <= now;
-            if(job1Valid) {
-                return job2Valid ? baseComparator.compare(jobHolder, jobHolder2) : -1;
-            }
-            if(job2Valid) {
-                return job1Valid ? baseComparator.compare(jobHolder, jobHolder2) : 1;
-            }
-            return baseComparator.compare(jobHolder, jobHolder2);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return false;
+    protected Queue<JobHolder> createQueue(QeueuId qeueuId, int initialCapacity, Comparator<JobHolder> comparator) {
+        if(qeueuId == QeueuId.Q0) {
+            return new PriorityQueue<JobHolder>(initialCapacity, comparator);
+        } else {
+            return new PriorityQueue<JobHolder>(initialCapacity, new ConsistentTimedComparator(comparator));
         }
     }
 }

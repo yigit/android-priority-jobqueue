@@ -72,18 +72,74 @@ public abstract class JobQueueTestBase {
         MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true), nullValue());
     }
 
-    //TODO test delay until. especially with priority
+    @Test
+    public void testDelayUntilWithPriority() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        long now = System.nanoTime();
+        JobHolder lowPriorityHolder = createNewJobHolderWithDelayUntil(false, 5, now + 10000 * JobManager.NS_PER_MS);
+        JobHolder highPriorityHolder = createNewJobHolderWithDelayUntil(false, 10, now + 20000 * JobManager.NS_PER_MS);
+        jobQueue.insert(lowPriorityHolder);
+        jobQueue.insert(highPriorityHolder);
+        MatcherAssert.assertThat("when asked, if lower priority job has less delay until, we should return it",
+                jobQueue.getNextJobDelayUntilNs(true), equalTo(lowPriorityHolder.getDelayUntilNs()));
+
+    }
+
+    @Test
+    public void testDueDelayUntilWithPriority() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        long now = System.nanoTime();
+        JobHolder lowPriorityHolder = createNewJobHolderWithDelayUntil(false, 5, now - 1000 * JobManager.NS_PER_MS);
+        JobHolder highPriorityHolder = createNewJobHolderWithDelayUntil(false, 10, now - 10000 * JobManager.NS_PER_MS);
+        jobQueue.insert(lowPriorityHolder);
+        jobQueue.insert(highPriorityHolder);
+        long soonJobDelay = 2000;
+        JobHolder highestPriorityDelayedJob = createNewJobHolderWithDelayUntil(false, 12, now + soonJobDelay * JobManager.NS_PER_MS);
+        long highestPriorityDelayedJobId = jobQueue.insert(highestPriorityDelayedJob);
+        MatcherAssert.assertThat("when asked, if job's due has passed, highest priority jobs's delay until should be " +
+                "returned",
+                jobQueue.getNextJobDelayUntilNs(true), equalTo(highPriorityHolder.getDelayUntilNs()));
+        //make sure soon job is valid now
+        Thread.sleep(soonJobDelay);
+
+        MatcherAssert.assertThat("when a job's time come, it should be returned",
+                jobQueue.nextJobAndIncRunCount(true).getId(), equalTo(highestPriorityDelayedJobId));
+    }
+
+    @Test
+    public void testDelayUntil() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        long now = System.nanoTime();
+        JobHolder networkJobHolder = createNewJobHolderWithDelayUntil(true, 0, now + 200000 * JobManager.NS_PER_MS);
+
+        JobHolder noNetworkJobHolder = createNewJobHolderWithDelayUntil(false, 0, now + 500000 * JobManager.NS_PER_MS);
+
+        jobQueue.insert(networkJobHolder);
+        jobQueue.insert(noNetworkJobHolder);
+
+        MatcherAssert.assertThat("if there is no network, delay until should be provided for no network job",
+            jobQueue.getNextJobDelayUntilNs(false), equalTo(noNetworkJobHolder.getDelayUntilNs()));
+
+        MatcherAssert.assertThat("if there is network, delay until should be provided for network job because it is " +
+                "sooner", jobQueue.getNextJobDelayUntilNs(true), equalTo(networkJobHolder.getDelayUntilNs()));
+
+        JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(false, 0, now + 100000 * JobManager.NS_PER_MS);
+
+        jobQueue.insert(noNetworkJobHolder2);
+        MatcherAssert.assertThat("if there is network, any job's delay until should be returned",
+                jobQueue.getNextJobDelayUntilNs(true), equalTo(noNetworkJobHolder2.getDelayUntilNs()));
+    }
 
     @Test
     public void testPriorityWithDelayedJobs() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder delayedPriority_5 = createNewJobHolderWithPriority(5);
         org.fest.reflect.field.Invoker<Long> delayUntilField = getDelayUntilNsField(delayedPriority_5);
-        delayUntilField.set(System.nanoTime() - 10);
+        delayUntilField.set(System.nanoTime() - 1000);
 
         JobHolder delayedPriority_2 = createNewJobHolderWithPriority(2);
         delayUntilField = getDelayUntilNsField(delayedPriority_2);
-        delayUntilField.set(System.nanoTime() - 5);
+        delayUntilField.set(System.nanoTime() - 500);
 
 
 
@@ -244,6 +300,12 @@ public abstract class JobQueueTestBase {
 
     private JobHolder createNewJobHolderWithRequiresNetwork(boolean requiresNetwork) {
         return new JobHolder(null, 0, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+    }
+
+    private JobHolder createNewJobHolderWithDelayUntil(boolean requiresNetwork, int priority, long delayUntil) {
+        JobHolder jobHolder = new JobHolder(null, priority, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        getDelayUntilNsField(jobHolder).set(delayUntil);
+        return jobHolder;
     }
 
     private JobHolder createNewJobHolderWithRequiresNetworkAndPriority(boolean requiresNetwork, int priority) {

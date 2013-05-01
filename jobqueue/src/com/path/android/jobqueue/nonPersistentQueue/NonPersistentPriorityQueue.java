@@ -89,14 +89,15 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs() {
-        JobHolder next = jobs.peek();
+    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
+        JobHolder next = jobs.peek(hasNetwork);
         return next == null ? null : next.getDelayUntilNs();
     }
 
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {
         @Override
         public int compare(JobHolder holder1, JobHolder holder2) {
+            //we should not check delay here. TimeAwarePriorityQueue does it for us.
             //high priority first
             int cmp = compareInt(holder1.getPriority(), holder2.getPriority());
             if(cmp != 0) {

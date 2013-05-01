@@ -2,6 +2,7 @@ package com.path.android.jobqueue;
 
 import android.content.Context;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.network.NetworkUtilImpl;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
@@ -22,8 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * -> Running Jobs in Parallel
  * -> Stats like waiting Job Count
  */
-public class JobManager {
-    private static final long NS_PER_MS= 1000000;
+public class JobManager implements NetworkEventProvider.Listener {
+    public static final long NS_PER_MS= 1000000;
     private static final int DEFAULT_MAX_EXECUTOR_COUNT = 6;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
@@ -35,6 +36,7 @@ public class JobManager {
     private JobQueue nonPersistentJobQueue;
     private boolean running;
     private NetworkUtil networkUtil;
+    private final Context appContext;
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -60,6 +62,7 @@ public class JobManager {
      * @param queueFactory custom queue factory that can provide any implementation of {@link JobQueue}
      */
     public JobManager(Context context, String id, QueueFactory queueFactory) {
+        appContext = context.getApplicationContext();
         running = true;
         sessionId = System.nanoTime();
         executor = new ThreadPoolExecutor(0, maxConsumerCount, 15, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(true));
@@ -76,6 +79,9 @@ public class JobManager {
      */
     public void setNetworkUtil(NetworkUtil networkUtil) {
         this.networkUtil = networkUtil;
+        if(networkUtil instanceof NetworkEventProvider) {
+            ((NetworkEventProvider)networkUtil).setListener(this);
+        }
     }
 
     /**
@@ -148,15 +154,20 @@ public class JobManager {
         return id;
     }
 
-    private void ensureConsumerWhenNeeded() {
+    private void ensureConsumerWhenNeeded(Boolean hasNetwork) {
+        if(hasNetwork == null) {
+            //if network util can inform us when network is recovered, we we'll check only next job that does not
+            //require network. if it does not know how to inform us, we have to keep a busy loop.
+            hasNetwork = networkUtil instanceof NetworkEventProvider ? hasNetwork() : true;
+        }
         //this method is called when there are jobs but job consumer was not given any
         //this may happen in a race condition or when the latest job is a delayed job
-        Long nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs();
+        Long nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
         if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
             addConsumer();
             return;
         }
-        Long persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs();
+        Long persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
         if(persistedJobRunNs != null) {
             if(nextRunNs == null) {
                 nextRunNs = persistedJobRunNs;
@@ -195,15 +206,20 @@ public class JobManager {
         }
     }
 
+    private boolean hasNetwork() {
+        return networkUtil == null ? true : networkUtil.isConnected(appContext);
+    }
+
     private JobHolder getNextJob() {
         return getNextJob(false);
     }
 
     private synchronized JobHolder getNextJob(boolean nonPersistentOnly) {
-        JobHolder jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(true);
+        boolean haveNetwork = hasNetwork();
+        JobHolder jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork);
         if (jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
-            jobHolder = persistentJobQueue.nextJobAndIncRunCount(true);
+            jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork);
         }
         return jobHolder;
     }
@@ -214,6 +230,15 @@ public class JobManager {
         } else {
             nonPersistentJobQueue.remove(jobHolder);
         }
+    }
+
+    /**
+     * if {@link NetworkUtil} implements {@link NetworkEventProvider}, this method is called when network is recovered
+     * @param isConnected
+     */
+    @Override
+    public void onNetworkChange(boolean isConnected) {
+        ensureConsumerWhenNeeded(isConnected);
     }
 
     private class JobConsumer implements Runnable {
@@ -240,7 +265,7 @@ public class JobManager {
             } finally {
                 if (runningConsumerCount.decrementAndGet() == 0 && running) {
                     //check count for race conditions
-                    ensureConsumerWhenNeeded();
+                    ensureConsumerWhenNeeded(null);
                 }
             }
         }
