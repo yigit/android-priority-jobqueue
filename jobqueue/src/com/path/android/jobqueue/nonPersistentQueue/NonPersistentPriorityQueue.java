@@ -94,6 +94,12 @@ public class NonPersistentPriorityQueue implements JobQueue {
         return next == null ? null : next.getDelayUntilNs();
     }
 
+    @Override
+    public void clear() {
+        jobs = new NetworkAwarePriorityQueue(5, jobComparator);
+        runningJobs = new HashMap<Long, JobHolder>();
+    }
+
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {
         @Override
         public int compare(JobHolder holder1, JobHolder holder2) {

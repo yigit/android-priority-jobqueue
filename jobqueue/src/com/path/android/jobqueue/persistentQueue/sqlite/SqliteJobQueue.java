@@ -169,6 +169,11 @@ public class SqliteJobQueue implements JobQueue {
         }
     }
 
+    @Override
+    public void clear() {
+        sqlHelper.truncate();
+    }
+
     private void onJobFetchedForRunning(JobHolder jobHolder) {
         SQLiteStatement stmt = sqlHelper.getOnJobFetchedForRunningStatement();
         jobHolder.setRunCount(jobHolder.getRunCount() + 1);

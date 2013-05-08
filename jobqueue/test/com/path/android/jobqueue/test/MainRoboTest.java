@@ -105,6 +105,21 @@ public class MainRoboTest {
     }
 
     @Test
+    public void testClear() throws Exception {
+        JobManager jobManager = createNewJobManager();
+        final int LIMIT = 20;
+        for(int i = 0; i < LIMIT; i++) {
+            if(i % 2 == 0) {
+                jobManager.addJob(0, new DummyJob());
+            } else {
+                jobManager.addJob(0, new PersistentDummyJob());
+            }
+        }
+        jobManager.clear();
+        MatcherAssert.assertThat("after clear, count should be 0", jobManager.count(), equalTo(0));
+    }
+
+    @Test
     public void testDelay() throws Exception {
         testDelay(false);
         testDelay(true);

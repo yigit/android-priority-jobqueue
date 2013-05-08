@@ -236,6 +236,11 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
     }
 
+    public void clear() {
+        nonPersistentJobQueue.clear();
+        persistentJobQueue.clear();
+    }
+
     /**
      * if {@link NetworkUtil} implements {@link NetworkEventProvider}, this method is called when network is recovered
      * @param isConnected

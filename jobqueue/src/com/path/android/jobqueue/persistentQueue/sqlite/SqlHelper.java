@@ -153,6 +153,15 @@ public class SqlHelper {
         return builder.toString();
     }
 
+    public void truncate() {
+        db.execSQL("DELETE FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME);
+        vacuum();
+    }
+
+    public void vacuum() {
+        db.execSQL("VACUUM");
+    }
+
     public static class Property {
         /*package*/ final String columnName;
         /*package*/ final String type;

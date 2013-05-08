@@ -54,4 +54,9 @@ public interface JobQueue {
      * @return
      */
     Long getNextJobDelayUntilNs(boolean hasNetwork);
+
+    /**
+     * clear all jobs in the queue. should probably be called when user logs out.
+     */
+    void clear();
 }

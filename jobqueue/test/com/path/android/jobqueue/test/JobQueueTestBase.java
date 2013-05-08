@@ -131,6 +131,22 @@ public abstract class JobQueueTestBase {
     }
 
     @Test
+    public void testTruncate() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        final int LIMIT = 20;
+        for(int i = 0; i < LIMIT; i ++) {
+            jobQueue.insert(createNewJobHolder());
+        }
+        MatcherAssert.assertThat("queue should have all jobs", jobQueue.count(), equalTo(LIMIT));
+        jobQueue.clear();
+        MatcherAssert.assertThat("after clear, queue should be empty", jobQueue.count(), equalTo(0));
+        for(int i = 0; i < LIMIT; i ++) {
+            jobQueue.insert(createNewJobHolder());
+        }
+        MatcherAssert.assertThat("if we add jobs again, count should match", jobQueue.count(), equalTo(LIMIT));
+    }
+
+    @Test
     public void testPriorityWithDelayedJobs() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder delayedPriority_5 = createNewJobHolderWithPriority(5);
