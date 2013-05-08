@@ -1,10 +1,11 @@
 package com.path.android.jobqueue;
 
 import android.content.Context;
+import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.network.NetworkUtilImpl;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
@@ -24,19 +25,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  * -> Stats like waiting Job Count
  */
 public class JobManager implements NetworkEventProvider.Listener {
-    public static final long NS_PER_MS= 1000000;
-    private static final int DEFAULT_MAX_EXECUTOR_COUNT = 6;
+    public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
     private AtomicInteger runningConsumerCount = new AtomicInteger(0);
     private final long sessionId;
     private final Executor executor;
-    private int maxConsumerCount = DEFAULT_MAX_EXECUTOR_COUNT;
+    private int maxConsumerCount;
     private JobQueue persistentJobQueue;
     private JobQueue nonPersistentJobQueue;
     private boolean running;
     private NetworkUtil networkUtil;
     private final Context appContext;
+    private DependencyInjector dependencyInjector;
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -48,40 +49,40 @@ public class JobManager implements NetworkEventProvider.Listener {
 
 
     /**
-     * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
+     * Default constructor that will create a JobManager with a default {@link Configuration}
      * @param context application context
      * @param id an id that is unique to this JobManager
      */
     public JobManager(Context context, String id) {
-        this(context, id, new DefaultQueueFactory());
+        this(context, createDefaultConfiguration().withId(id));
     }
 
     /**
-     * @param context application context
-     * @param id an id that is unique to this JobManager
-     * @param queueFactory custom queue factory that can provide any implementation of {@link JobQueue}
+     *
+     * @param context used to acquire ApplicationContext
+     * @param config
      */
-    public JobManager(Context context, String id, QueueFactory queueFactory) {
+    public JobManager(Context context, Configuration config) {
         appContext = context.getApplicationContext();
+        maxConsumerCount = config.getMaxConsumerCount();
         running = true;
         sessionId = System.nanoTime();
-        executor = new ThreadPoolExecutor(0, maxConsumerCount, 15, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(true));
-        this.persistentJobQueue = queueFactory.createPersistentQueue(context, sessionId, id);
-        this.nonPersistentJobQueue = queueFactory.createNonPersistent(context, sessionId, id);
-        networkUtil = new NetworkUtilImpl();
+        executor = new ThreadPoolExecutor(0, maxConsumerCount, config.getThreadKeepAlive()
+                , TimeUnit.SECONDS, new SynchronousQueue<Runnable>(true));
+        this.persistentJobQueue = config.getQueueFactory().createPersistentQueue(context, sessionId, config.getId());
+        this.nonPersistentJobQueue = config.getQueueFactory().createNonPersistent(context, sessionId, config.getId());
+        networkUtil = config.getNetworkUtil();
+        dependencyInjector = config.getDependencyInjector();
+        if(networkUtil instanceof NetworkEventProvider) {
+            ((NetworkEventProvider) networkUtil).setListener(this);
+        }
         start();
     }
 
-    /**
-     * Set the {@link NetworkUtil} class to be used by the job manager.
-     * By default {@link com.path.android.jobqueue.network.NetworkUtilImpl} will be used.
-     * @param networkUtil
-     */
-    public void setNetworkUtil(NetworkUtil networkUtil) {
-        this.networkUtil = networkUtil;
-        if(networkUtil instanceof NetworkEventProvider) {
-            ((NetworkEventProvider)networkUtil).setListener(this);
-        }
+    public static Configuration createDefaultConfiguration() {
+        return new Configuration()
+                .withDefaultQueueFactory()
+                .withDefaultNetworkUtil();
     }
 
     /**
@@ -220,6 +221,9 @@ public class JobManager implements NetworkEventProvider.Listener {
         if (jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
             jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+        }
+        if(jobHolder != null && dependencyInjector != null) {
+            dependencyInjector.inject(jobHolder.getBaseJob());
         }
         return jobHolder;
     }

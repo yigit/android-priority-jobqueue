@@ -5,6 +5,8 @@ import android.content.Context;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
@@ -77,6 +79,32 @@ public class MainRoboTest {
     }
 
     @Test
+    public void testInjector() throws Exception {
+        Configuration configuration = JobManager.createDefaultConfiguration();
+        final ObjectReference injectedJobReference = new ObjectReference();
+        final AtomicInteger injectionCallCount = new AtomicInteger(0);
+        DependencyInjector dependencyInjector = new DependencyInjector() {
+            @Override
+            public void inject(BaseJob job) {
+                injectedJobReference.setObject(job);
+                injectionCallCount.incrementAndGet();
+            }
+        };
+        configuration.withInjector(dependencyInjector);
+        JobManager jobManager = createNewJobManager(configuration);
+        jobManager.stop();
+        jobManager.addJob(4, new DummyJob());
+        jobManager.addJob(1, new PersistentDummyJob());
+        JobHolder holder = getNextJobMethod(jobManager).invoke();
+        MatcherAssert.assertThat("injection should be called for non persistent job", holder.getBaseJob(), equalTo(injectedJobReference.getObject()));
+        MatcherAssert.assertThat("injection should be called only once", injectionCallCount.get(), equalTo(1));
+        holder = getNextJobMethod(jobManager).invoke();
+        MatcherAssert.assertThat("injection should be called for persistent job", holder.getBaseJob(), equalTo(injectedJobReference.getObject()));
+        MatcherAssert.assertThat("injection should be called second time", injectionCallCount.get(), equalTo(2));
+
+    }
+
+    @Test
     public void testDelay() throws Exception {
         testDelay(false);
         testDelay(true);
@@ -131,9 +159,8 @@ public class MainRoboTest {
     @Test
     public void testNetworkNextJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createNewJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
         jobManager.stop();
-        jobManager.setNetworkUtil(dummyNetworkUtil);
         DummyJob dummyJob = new DummyJob(true);
         long dummyJobId = jobManager.addJob(0, dummyJob);
         dummyNetworkUtil.setHasNetwork(false);
@@ -148,8 +175,7 @@ public class MainRoboTest {
     @Test
     public void testNetworkJobWithConnectivityListener() throws Exception {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createNewJobManager();
-        jobManager.setNetworkUtil(dummyNetworkUtil);
+        JobManager jobManager = createNewJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
         dummyNetworkUtil.setHasNetwork(false, true);
         DummyJob dummyJob = new DummyJob(true);
         long dummyJobId = jobManager.addJob(0, dummyJob);
@@ -169,9 +195,8 @@ public class MainRoboTest {
     @Test
     public void testNetworkJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createNewJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
         jobManager.stop();
-        jobManager.setNetworkUtil(dummyNetworkUtil);
 
         DummyJob networkDummyJob = new DummyJob(true);
         jobManager.addJob(5, networkDummyJob);
@@ -270,6 +295,14 @@ public class MainRoboTest {
 
     private Invoker<Void> getRemoveJobMethod(JobManager jobManager) {
         return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
+    }
+
+    private JobManager createNewJobManager(String id, Configuration configuration) {
+        return new JobManager(Robolectric.application, configuration);
+    }
+
+    private JobManager createNewJobManager(Configuration configuration) {
+        return createNewJobManager("_" + System.nanoTime(), configuration);
     }
 
     private JobManager createNewJobManager(String id) {
@@ -441,4 +474,17 @@ public class MainRoboTest {
             this.listener = listener;
         }
     }
+
+    private static class ObjectReference {
+        Object object;
+
+        private Object getObject() {
+            return object;
+        }
+
+        private void setObject(Object object) {
+            this.object = object;
+        }
+    }
+
 }
