@@ -113,6 +113,7 @@ resource heavy app like ours.
 * You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very ccommon task to acquire a GCM
 token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching
 friend list). 
+* It is fully unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
 ### License
 ```
@@ -134,3 +135,5 @@ limitations under the License.
 
 [1]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkUtil.java
 [2]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkEventProvider.java
+[3]: http://path.github.io/android-priority-jobqueue/coverage-report/index.html
+[4]: http://path.github.io/android-priority-jobqueue/javadoc/index.html
