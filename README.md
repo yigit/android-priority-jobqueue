@@ -77,12 +77,55 @@ public void onSendClick() {
     editText.setText("");
     //assume we have a ThreadUtil class to dispatch code to a shared background thread
     ThreadUtil.performOnBackgroundThread(new Runnable() {
-        jobManager.addJob(SendTweetJob.PRIORITY, new SendTweetJob(status);
+        jobManager.addJob(SendTweetJob.PRIORITY, new SendTweetJob(status));
     });
 }
 ...
 ```
 
+This is it :). No more async tasks, no more shared preferences mess. Here is what happened:
+
+### What Happened?
+* When user clicked send button, `onSendClick` method was called which creates a `SendTweetJob` and adds it to `JobManager` for execution.
+It runs on a background thread because JobManager will make a disk access to add the job.
+
+* Right after Job is syncronized to database, JobManager calls DependencyInjector (if provided) which will inject fields into our job class.
+On onAdded callback, we saved tweet into disk and dispatched necessary event so that UI can update itself. Since there is no disk
+access during this flow, it will be in a fraction of seconds so that user will see their Tweet on their UI instantly.
+
+* When the job's turn comes, job manager will call onRun (and it will only be called if there is an active network connection). 
+By default, JobManager users a simple connection utility that checks ConnectivityManager. You can provide a custom one which can
+add additional checks (e.g. your server stability)
+
+* JobManager will keep calling onRun until it succeeds (or it reaches retry limit). If an `onRun` method throws an exception,
+JobManager will call `shouldReRunOnThrowable` so that you can handle the exception and decide if you should try again or not.
+
+* If all retry attempts fail (or `shouldReRunOnThrowable` returns false), JobManager will call `onCancel` so that you can clean
+your database, inform the user etc.
+
+### Advantages of using Job Manager
+* It is very easy to extract application logic from your activites, making your code more robust, easy to refactor and easy to **test**.
+* You don't deal with asnyc tasks lifecycles etc. This is partially true assuming you use some eventbus to update your UI (you should).
+At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto)
+* Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a 
+resource heavy app like ours.
 
 
+# License
+```
+Copyright 2013 Path, Inc.
+Copyright 2010 Google, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
 
