@@ -90,12 +90,13 @@ This is it :). No more async tasks, no more shared preferences mess. Here is wha
 It runs on a background thread because JobManager will make a disk access to add the job.
 
 * Right after Job is syncronized to database, JobManager calls DependencyInjector (if provided) which will inject fields into our job class.
-On onAdded callback, we saved tweet into disk and dispatched necessary event so that UI can update itself. Since there is no disk
+On `onAdded` callback, we saved tweet into disk and dispatched necessary event so that UI can update itself. Since there is no disk
 access during this flow, it will be in a fraction of seconds so that user will see their Tweet on their UI instantly.
 
-* When the job's turn comes, job manager will call onRun (and it will only be called if there is an active network connection). 
-By default, JobManager users a simple connection utility that checks ConnectivityManager. You can provide a custom one which can
-add additional checks (e.g. your server stability)
+* When the job's turn comes, job manager will call `onRun` (and it will only be called if there is an active network connection). 
+By default, JobManager users a simple connection utility that checks ConnectivityManager. You can provide a [custom one][1] which can
+add additional checks (e.g. your server stability). You should also privde a [network util][1] which can notify JobManager when network
+is recovered so that JobManager will avoid a busy loop and can decrease # of consumers. 
 
 * JobManager will keep calling onRun until it succeeds (or it reaches retry limit). If an `onRun` method throws an exception,
 JobManager will call `shouldReRunOnThrowable` so that you can handle the exception and decide if you should try again or not.
@@ -106,12 +107,14 @@ your database, inform the user etc.
 ### Advantages of using Job Manager
 * It is very easy to extract application logic from your activites, making your code more robust, easy to refactor and easy to **test**.
 * You don't deal with asnyc tasks lifecycles etc. This is partially true assuming you use some eventbus to update your UI (you should).
-At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto)
+At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
 * Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a 
 resource heavy app like ours.
+* You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very ccommon task to acquire a GCM
+token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching
+friend list). 
 
-
-# License
+### License
 ```
 Copyright 2013 Path, Inc.
 Copyright 2010 Google, Inc.
@@ -129,3 +132,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
+[1]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkUtil.java
+[2]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkEventProvider.java
