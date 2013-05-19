@@ -3,6 +3,8 @@ android-priority-jobqueue
 
 Priority Jobqueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
 
+It is written flexibility & functionality in mind, not performance but we'll improve performance once API and functionality list gets more stable.
+
 Since an example is worth thousans of works, here it is:
 
 File: SendTweetJob.java
