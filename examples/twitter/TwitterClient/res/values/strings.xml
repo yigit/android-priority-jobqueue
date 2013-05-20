@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TwitterClient</string>
+    <string name="update_status">Update your status</string>
+    <string name="send_tweet">Send</string>
+</resources>
