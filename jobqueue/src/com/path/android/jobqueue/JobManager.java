@@ -11,10 +11,7 @@ import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executor;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -67,8 +64,10 @@ public class JobManager implements NetworkEventProvider.Listener {
         maxConsumerCount = config.getMaxConsumerCount();
         running = true;
         sessionId = System.nanoTime();
+        //by providing an array blocking queue w/ maxConsumerCount size, we let it queue new items while some are about
+        //to die.
         executor = new ThreadPoolExecutor(0, maxConsumerCount, config.getThreadKeepAlive()
-                , TimeUnit.SECONDS, new SynchronousQueue<Runnable>(true));
+                , TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(maxConsumerCount));
         this.persistentJobQueue = config.getQueueFactory().createPersistentQueue(context, sessionId, config.getId());
         this.nonPersistentJobQueue = config.getQueueFactory().createNonPersistent(context, sessionId, config.getId());
         networkUtil = config.getNetworkUtil();
@@ -177,11 +176,10 @@ public class JobManager implements NetworkEventProvider.Listener {
             }
         }
         if(nextRunNs != null) {
-            long waitNs = nextRunNs - System.nanoTime();
-            if(waitNs <= 0) {
+            if(nextRunNs <= System.nanoTime()) {
                 addConsumer();
             } else {
-                ensureConsumerOnTime(waitNs);
+                ensureConsumerOnTime(nextRunNs - System.nanoTime());
             }
         }
     }
