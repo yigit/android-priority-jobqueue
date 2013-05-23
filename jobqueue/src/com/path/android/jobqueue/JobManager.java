@@ -143,12 +143,17 @@ public class JobManager implements NetworkEventProvider.Listener {
         JobHolder jobHolder = new JobHolder(priority, baseJob, delay > 0 ? System.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY, NOT_RUNNING_SESSION_ID);
         long id;
         if (baseJob.shouldPersist()) {
-            id = persistentJobQueue.insert(jobHolder);
+            synchronized (persistentJobQueue) {
+                id = persistentJobQueue.insert(jobHolder);
+            }
         } else {
-            id = nonPersistentJobQueue.insert(jobHolder);
+            synchronized (nonPersistentJobQueue) {
+                id = nonPersistentJobQueue.insert(jobHolder);
+            }
         }
+        JqLog.d("added job %d", id);
         jobHolder.getBaseJob().onAdded();
-        if (runningConsumerCount.get() == 0) {
+        if (runningConsumerCount.get() < maxConsumerCount) {
             addConsumer();
         }
         return id;
@@ -162,12 +167,18 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         //this method is called when there are jobs but job consumer was not given any
         //this may happen in a race condition or when the latest job is a delayed job
-        Long nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
+        Long nextRunNs;
+        synchronized (nonPersistentJobQueue) {
+            nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
+        }
         if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
             addConsumer();
             return;
         }
-        Long persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
+        Long persistedJobRunNs;
+        synchronized (persistentJobQueue) {
+            persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
+        }
         if(persistedJobRunNs != null) {
             if(nextRunNs == null) {
                 nextRunNs = persistedJobRunNs;
@@ -213,12 +224,17 @@ public class JobManager implements NetworkEventProvider.Listener {
         return getNextJob(false);
     }
 
-    private synchronized JobHolder getNextJob(boolean nonPersistentOnly) {
+    private JobHolder getNextJob(boolean nonPersistentOnly) {
         boolean haveNetwork = hasNetwork();
-        JobHolder jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+        JobHolder jobHolder;
+        synchronized (nonPersistentJobQueue) {
+            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+        }
         if (jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
-            jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+            synchronized (persistentJobQueue) {
+                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+            }
         }
         if(jobHolder != null && dependencyInjector != null) {
             dependencyInjector.inject(jobHolder.getBaseJob());
@@ -228,15 +244,23 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     private synchronized void removeJob(JobHolder jobHolder) {
         if (jobHolder.getBaseJob().shouldPersist()) {
-            persistentJobQueue.remove(jobHolder);
+            synchronized (persistentJobQueue) {
+                persistentJobQueue.remove(jobHolder);
+            }
         } else {
-            nonPersistentJobQueue.remove(jobHolder);
+            synchronized (nonPersistentJobQueue) {
+                nonPersistentJobQueue.remove(jobHolder);
+            }
         }
     }
 
     public void clear() {
-        nonPersistentJobQueue.clear();
-        persistentJobQueue.clear();
+        synchronized (nonPersistentJobQueue) {
+            nonPersistentJobQueue.clear();
+        }
+        synchronized (persistentJobQueue) {
+            persistentJobQueue.clear();
+        }
     }
 
     /**
@@ -263,9 +287,13 @@ public class JobManager implements NetworkEventProvider.Listener {
                         if (nextJob.safeRun(nextJob.getRunCount())) {
                             removeJob(nextJob);
                         } else if (nextJob.getBaseJob().shouldPersist()) {
-                            persistentJobQueue.insertOrReplace(nextJob);
+                            synchronized (persistentJobQueue) {
+                                persistentJobQueue.insertOrReplace(nextJob);
+                            }
                         } else {
-                            nonPersistentJobQueue.insertOrReplace(nextJob);
+                            synchronized (nonPersistentJobQueue) {
+                                nonPersistentJobQueue.insertOrReplace(nextJob);
+                            }
                         }
                     }
                 } while (nextJob != null);

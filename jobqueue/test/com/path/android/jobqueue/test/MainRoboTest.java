@@ -2,11 +2,13 @@ package com.path.android.jobqueue.test;
 
 
 import android.content.Context;
+import android.util.Log;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
+import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
@@ -14,13 +16,17 @@ import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.fest.reflect.core.Reflection;
 import org.fest.reflect.method.Invoker;
 import org.hamcrest.MatcherAssert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.shadows.ShadowLog;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -43,6 +49,77 @@ public class MainRoboTest {
         latch.await(10, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) latch.getCount(), equalTo(0));
     }
+
+
+    @Before
+    public void setUp() throws Exception {
+        ShadowLog.stream = System.out;
+        JqLog.getConfig().setLoggingLevel(Log.DEBUG);
+    }
+
+
+    private static AtomicInteger multiThreadedJobCounter;
+    @Test
+    public void testMultiThreaded() throws Exception {
+        multiThreadedJobCounter = new AtomicInteger(0);
+        final JobManager jobManager = createNewJobManager();
+        int limit = 200;
+        ExecutorService executor = Executors.newFixedThreadPool(20);
+        Collection<Future<?>> futures = new LinkedList<Future<?>>();
+        for(int i = 0; i < limit; i++) {
+            final int id = i;
+            futures.add(executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    final boolean persistent = Math.round(Math.random()) % 2 == 0;
+                    boolean requiresNetwork = Math.round(Math.random()) % 2 == 0;
+                    int priority = (int) (Math.round(Math.random()) % 10);
+                    multiThreadedJobCounter.incrementAndGet();
+                    jobManager.addJob(priority, new DummyJobForMultiThread(id, requiresNetwork, persistent));
+                }
+            }));
+        }
+        for (Future<?> future:futures) {
+            future.get();
+        }
+        Log.d("TAG", "added all jobs");
+        //wait until all jobs are added
+        long start = System.nanoTime();
+        long timeLimit = JobManager.NS_PER_MS * 20000;//20 seconds
+        while(System.nanoTime() - start < timeLimit && multiThreadedJobCounter.get() != 0) {
+            Thread.sleep(1000);
+        }
+        Log.d("TAG", "did we reach timeout? " + (System.nanoTime() - start >= timeLimit));
+
+        MatcherAssert.assertThat("jobmanager count should be 0",
+                jobManager.count(), equalTo(0));
+
+        MatcherAssert.assertThat("multiThreadedJobCounter should be 0",
+                multiThreadedJobCounter.get(), equalTo(0));
+
+    }
+
+    public static class DummyJobForMultiThread extends DummyJob {
+        private int id;
+        private boolean persist;
+        private DummyJobForMultiThread(int id, boolean requiresNetwork, boolean persist) {
+            super(requiresNetwork);
+            this.persist = persist;
+            this.id = id;
+        }
+
+        @Override
+        public boolean shouldPersist() {
+            return persist;
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            super.onRun();
+            int remaining = multiThreadedJobCounter.decrementAndGet();
+            Log.d("DummyJobForMultiThread", "persistent:" + persist + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
+        }
+    };
 
     @Test
     public void runFailingJob() throws Exception {

@@ -10,6 +10,7 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.log.JqLog;
+import org.apache.http.util.ExceptionUtils;
 
 import java.io.*;
 
@@ -162,10 +163,12 @@ public class SqliteJobQueue implements JobQueue {
         SQLiteStatement stmt =
                 hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()
                 : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
-        try {
-            return stmt.simpleQueryForLong();
-        } catch (SQLiteDoneException e){
-            return null;
+        synchronized (stmt) {
+            try {
+                return stmt.simpleQueryForLong();
+            } catch (SQLiteDoneException e){
+                return null;
+            }
         }
     }
 
@@ -187,7 +190,7 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidBaseJobException {
-        BaseJob job = safeDeserialize(cursor.getBlob(3));
+        BaseJob job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));
         if (job == null) {
             throw new InvalidBaseJobException();
         }
