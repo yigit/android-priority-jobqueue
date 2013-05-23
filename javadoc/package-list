@@ -1,4 +1,6 @@
 com.path.android.jobqueue
+com.path.android.jobqueue.config
+com.path.android.jobqueue.di
 com.path.android.jobqueue.log
 com.path.android.jobqueue.network
 com.path.android.jobqueue.nonPersistentQueue
