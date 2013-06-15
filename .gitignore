@@ -30,3 +30,4 @@ jobqueue/cobertura.ser
 jobqueue/javadoc
 out
 *.iml
+pages
