@@ -310,7 +310,7 @@ public abstract class JobQueueTestBase {
         }
     }
 
-    private JobHolder createNewJobHolder() {
+    protected JobHolder createNewJobHolder() {
         return new JobHolder(null, 0, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 

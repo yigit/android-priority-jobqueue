@@ -22,17 +22,23 @@ public class SqliteJobQueue implements JobQueue {
     private final long sessionId;
     SQLiteDatabase db;
     SqlHelper sqlHelper;
+    JobSerializer jobSerializer;
 
     /**
      * @param context application context
      * @param sessionId session id should match {@link JobManager}
      * @param id uses this value to construct database name {@code "db_" + id}
      */
-    public SqliteJobQueue(Context context, long sessionId, String id) {
+    public SqliteJobQueue(Context context, long sessionId, String id, JobSerializer jobSerializer) {
         this.sessionId = sessionId;
         dbOpenHelper = new DbOpenHelper(context, "db_" + id);
         db = dbOpenHelper.getWritableDatabase();
         sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT, sessionId);
+        this.jobSerializer = jobSerializer;
+    }
+
+    public SqliteJobQueue(Context context, long sessionId, String id) {
+        this(context, sessionId, id, new JavaSerializer());
     }
 
     /**
@@ -208,28 +214,12 @@ public class SqliteJobQueue implements JobQueue {
 
     private BaseJob safeDeserialize(byte[] bytes) {
         try {
-            return deserialize(bytes);
+            return jobSerializer.deserialize(bytes);
         } catch (Throwable t) {
             JqLog.e(t, "error while deserializing job");
         }
         return null;
     }
-
-    private <T> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
-        if (bytes == null || bytes.length == 0) {
-            return null;
-        }
-        ObjectInputStream in = null;
-        try {
-            in = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            return (T) in.readObject();
-        } finally {
-            if (in != null) {
-                in.close();
-            }
-        }
-    }
-
 
     private byte[] getSerializeBaseJob(JobHolder jobHolder) {
         return safeSerialize(jobHolder.getBaseJob());
@@ -237,33 +227,58 @@ public class SqliteJobQueue implements JobQueue {
 
     private byte[] safeSerialize(Object object) {
         try {
-            return serialize(object);
+            return jobSerializer.serialize(object);
         } catch (Throwable t) {
             JqLog.e(t, "error while serializing object %s", object.getClass().getSimpleName());
         }
         return null;
     }
 
-    private byte[] serialize(Object object) throws IOException {
-        if (object == null) {
-            return null;
+    private static class InvalidBaseJobException extends Exception {
+
+    }
+
+    public static class JavaSerializer implements JobSerializer {
+
+        @Override
+        public byte[] serialize(Object object) throws IOException {
+            if (object == null) {
+                return null;
+            }
+            ByteArrayOutputStream bos = null;
+            try {
+                ObjectOutput out = null;
+                bos = new ByteArrayOutputStream();
+                out = new ObjectOutputStream(bos);
+                out.writeObject(object);
+                // Get the bytes of the serialized object
+                return bos.toByteArray();
+            } finally {
+                if (bos != null) {
+                    bos.close();
+                }
+            }
         }
-        ByteArrayOutputStream bos = null;
-        try {
-            ObjectOutput out = null;
-            bos = new ByteArrayOutputStream();
-            out = new ObjectOutputStream(bos);
-            out.writeObject(object);
-            // Get the bytes of the serialized object
-            return bos.toByteArray();
-        } finally {
-            if (bos != null) {
-                bos.close();
+
+        @Override
+        public <T extends BaseJob> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+            ObjectInputStream in = null;
+            try {
+                in = new ObjectInputStream(new ByteArrayInputStream(bytes));
+                return (T) in.readObject();
+            } finally {
+                if (in != null) {
+                    in.close();
+                }
             }
         }
     }
 
-    private static class InvalidBaseJobException extends Exception {
-
+    public static interface JobSerializer {
+        public byte[] serialize(Object object) throws IOException;
+        public <T extends BaseJob> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException;
     }
 }
