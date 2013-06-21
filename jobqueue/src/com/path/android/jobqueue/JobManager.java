@@ -152,6 +152,10 @@ public class JobManager implements NetworkEventProvider.Listener {
             }
         }
         JqLog.d("added job %d", id);
+        if(dependencyInjector != null) {
+            //inject members b4 calling onAdded
+            dependencyInjector.inject(baseJob);
+        }
         jobHolder.getBaseJob().onAdded();
         if (runningConsumerCount.get() < maxConsumerCount) {
             addConsumer();
