@@ -161,6 +161,15 @@
         <cobertura-report format="html" destdir="${coveragereport.dir}" srcdir="${src.dir}"/>
     </target>
 
+    <target name="build-jar" description="Depends on Eclipse to have everthing compiled into bin/">
+        <mkdir dir="release" />
+        <jar jarfile="release/android-priority-jobqueue-0.9.jar">
+            <fileset dir="${out.dir}/classes">
+                <include name="com/path/android/jobqueue/**" />
+            </fileset>
+        </jar>
+    </target>
+
     <target name="-pre-clean" description="cleanup module">
         <delete dir="${out.test-classes.absolute.dir}"/>
         <delete dir="${tmp.dir}"/>
@@ -210,7 +219,7 @@
                           datafile="${cobertura.absolute}"/>
         <fail if="junit.failure" message="Unit test(s) failed.  See reports!"/>
     </target>
-    
+
     <javadoc destdir="${basedir}/javadoc/"      additionalparam="-J-Dorg.apache.commons.attributes.javadoc.CATaglet.sources=${source.absolute.dir}">
     <taglet name="org.apache.commons.attributes.javadoc.CATaglet" path="${ant.home}/lib/commons-attributes-compiler-2.2.jar"/>
     <fileset dir="${source.absolute.dir}" includes="**/*.java"/>
