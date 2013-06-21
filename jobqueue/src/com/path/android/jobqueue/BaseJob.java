@@ -7,6 +7,7 @@ import java.io.Serializable;
 abstract public class BaseJob implements Serializable {
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private final boolean requiresNetwork;
+    private transient int currentRunCount;
 
     protected BaseJob(boolean requiresNetwork) {
         this.requiresNetwork = requiresNetwork;
@@ -53,6 +54,7 @@ abstract public class BaseJob implements Serializable {
      * @return
      */
     public final boolean safeRun(int currentRunCount) {
+        this.currentRunCount = currentRunCount;
         if (JqLog.isDebugEnabled()) {
             JqLog.d("running job %s", this.getClass().getSimpleName());
         }
@@ -75,6 +77,10 @@ abstract public class BaseJob implements Serializable {
             }
         }
         return true;
+    }
+
+    protected int getCurrentRunCount() {
+        return currentRunCount;
     }
 
     public boolean requiresNetwork() {
