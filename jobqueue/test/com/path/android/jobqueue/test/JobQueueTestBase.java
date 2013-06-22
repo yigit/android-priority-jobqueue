@@ -5,11 +5,14 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
+import edu.emory.mathcs.backport.java.util.Arrays;
 import org.fest.reflect.core.Reflection;
 import org.fest.reflect.method.Invoker;
 import org.hamcrest.MatcherAssert;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.util.ArrayList;
 
 import static org.hamcrest.CoreMatchers.*;
 
@@ -26,7 +29,7 @@ public abstract class JobQueueTestBase {
         final int ADD_COUNT = 6;
         JobQueue jobQueue = createNewJobQueue();
         MatcherAssert.assertThat((int) jobQueue.count(), equalTo(0));
-        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true), nullValue());
+        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null), nullValue());
         for (int i = 0; i < ADD_COUNT; i++) {
             JobHolder holder = createNewJobHolder();
             jobQueue.insert(holder);
@@ -35,12 +38,12 @@ public abstract class JobQueueTestBase {
             jobQueue.insertOrReplace(holder);
             MatcherAssert.assertThat((int) jobQueue.count(), equalTo(i + 1));
         }
-        JobHolder firstHolder = jobQueue.nextJobAndIncRunCount(true);
+        JobHolder firstHolder = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat(firstHolder.getRunCount(), equalTo(1));
         //size should be down 1
         MatcherAssert.assertThat((int) jobQueue.count(), equalTo(ADD_COUNT - 1));
         //should return another job
-        JobHolder secondHolder = jobQueue.nextJobAndIncRunCount(true);
+        JobHolder secondHolder = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat(secondHolder.getRunCount(), equalTo(1));
         //size should be down 2
         MatcherAssert.assertThat((int) jobQueue.count(), equalTo(ADD_COUNT - 2));
@@ -66,10 +69,10 @@ public abstract class JobQueueTestBase {
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
         for (int i = 0; i < JOB_LIMIT; i++) {
-            JobHolder holder = jobQueue.nextJobAndIncRunCount(true);
+            JobHolder holder = jobQueue.nextJobAndIncRunCount(true, null);
             MatcherAssert.assertThat(holder.getPriority() <= minPriority, is(true));
         }
-        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true), nullValue());
+        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null), nullValue());
     }
 
     @Test
@@ -83,6 +86,55 @@ public abstract class JobQueueTestBase {
         MatcherAssert.assertThat("when asked, if lower priority job has less delay until, we should return it",
                 jobQueue.getNextJobDelayUntilNs(true), equalTo(lowPriorityHolder.getDelayUntilNs()));
 
+    }
+
+    @Test
+    public void testGroupId() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        long jobId1 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group1"));
+        long jobId2 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group1"));
+        long jobId3 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group2"));
+        long jobId4 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group2"));
+        long jobId5 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group1"));
+        JobHolder holder1 = jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group2"}));
+        MatcherAssert.assertThat("first jobs should be from group group2 if group1 is excluded",
+                holder1.getBaseJob().getRunGroupId(), equalTo("group1"));
+        MatcherAssert.assertThat("correct job should be returned if groupId is provided",
+                holder1.getId(), equalTo(jobId1));
+        MatcherAssert.assertThat("no jobs should be returned if all groups are excluded",
+                jobQueue.nextJobAndIncRunCount(true,
+                        Arrays.asList(new String[]{"group1", "group2"})),
+                is(nullValue()));
+        MatcherAssert.assertThat("if group1 is excluded, next job should be from group2",
+                jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group1"})).getBaseJob().getRunGroupId()
+                , equalTo("group2"));
+
+        //to test re-run case, add the job back in
+        jobQueue.insertOrReplace(holder1);
+        //ask for it again, should return the same holder because it is grouped
+        JobHolder holder2 = jobQueue.nextJobAndIncRunCount(true, null);
+        MatcherAssert.assertThat("for grouped jobs, run count should be ignored when fetching",
+                holder2.getId(), equalTo(holder1.getId()));
+
+        JobHolder holder3 = jobQueue.nextJobAndIncRunCount(true,
+                        Arrays.asList(new String[]{"group1"}));
+        MatcherAssert.assertThat("if a group it excluded, next available from another group should be returned",
+                holder3.getId(), equalTo(jobId2));
+
+        //add two more non-grouped jobs
+        long jobId6 = jobQueue.insert(createNewJobHolderWithPriority(0));
+        long jobId7 = jobQueue.insert(createNewJobHolderWithPriority(0));
+        JobHolder holder4 = jobQueue.nextJobAndIncRunCount(true,
+                Arrays.asList(new String[]{"group1", "group2"}));
+        MatcherAssert.assertThat("if all grouped jobs are excluded, non-grouped jobs should be returned",
+                holder4.getId(),
+                equalTo(jobId6));
+        jobQueue.insertOrReplace(holder4);
+        //for non-grouped jobs, run counts should be respected
+        MatcherAssert.assertThat("if all grouped jobs are excluded, run count for non-grouped jobs should be respected",
+                jobQueue.nextJobAndIncRunCount(true,
+                        Arrays.asList(new String[]{"group1", "group2"})).getId(),
+                equalTo(jobId7));
     }
 
     @Test
@@ -103,7 +155,7 @@ public abstract class JobQueueTestBase {
         Thread.sleep(soonJobDelay);
 
         MatcherAssert.assertThat("when a job's time come, it should be returned",
-                jobQueue.nextJobAndIncRunCount(true).getId(), equalTo(highestPriorityDelayedJobId));
+                jobQueue.nextJobAndIncRunCount(true, null).getId(), equalTo(highestPriorityDelayedJobId));
     }
 
     @Test
@@ -172,7 +224,7 @@ public abstract class JobQueueTestBase {
 
         int lastPriority = Integer.MAX_VALUE;
         for(int i = 0; i < 5; i++) {
-            JobHolder next = jobQueue.nextJobAndIncRunCount(true);
+            JobHolder next = jobQueue.nextJobAndIncRunCount(true, null);
             MatcherAssert.assertThat("next job should not be null", next, notNullValue());
             MatcherAssert.assertThat("next job's priority should be lower then previous for job " + i, next.getPriority() <= lastPriority, is(true));
             lastPriority = next.getPriority();
@@ -190,7 +242,7 @@ public abstract class JobQueueTestBase {
         JobQueue jobQueue = createNewJobQueueWithSessionId(sessionId);
         JobHolder jobHolder = createNewJobHolder();
         jobQueue.insert(jobHolder);
-        jobHolder = jobQueue.nextJobAndIncRunCount(true);
+        jobHolder = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat("session id should be attached to next job",
                 jobHolder.getRunningSessionId(), equalTo(sessionId));
     }
@@ -206,11 +258,11 @@ public abstract class JobQueueTestBase {
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
         for (int i = 0; i < JOB_LIMIT; i++) {
-            JobHolder holder = jobQueue.nextJobAndIncRunCount(true);
+            JobHolder holder = jobQueue.nextJobAndIncRunCount(true, null);
             MatcherAssert.assertThat(holder.getPriority() <= minPriority, is(true));
             jobQueue.insertOrReplace(holder);
         }
-        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true), notNullValue());
+        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null), notNullValue());
     }
 
     @Test
@@ -219,10 +271,10 @@ public abstract class JobQueueTestBase {
         JobHolder holder = createNewJobHolder();
         jobQueue.insert(holder);
         Long jobId = holder.getId();
-        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true).getId(), equalTo(jobId));
-        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true), is(nullValue()));
+        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null).getId(), equalTo(jobId));
+        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null), is(nullValue()));
         jobQueue.remove(holder);
-        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true), is(nullValue()));
+        MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null), is(nullValue()));
     }
 
     @Test
@@ -231,15 +283,15 @@ public abstract class JobQueueTestBase {
         JobHolder jobHolder = createNewJobHolderWithRequiresNetwork(false);
         jobQueue.insert(jobHolder);
         MatcherAssert.assertThat("no network job should be returned even if there is no netowrk",
-                jobQueue.nextJobAndIncRunCount(false), notNullValue());
+                jobQueue.nextJobAndIncRunCount(false, null), notNullValue());
         jobQueue.remove(jobHolder);
 
         jobHolder = createNewJobHolderWithRequiresNetwork(true);
         MatcherAssert.assertThat("if there isn't any network, job with network requirement should not return",
-                jobQueue.nextJobAndIncRunCount(false), nullValue());
+                jobQueue.nextJobAndIncRunCount(false, null), nullValue());
 
         MatcherAssert.assertThat("if there is network, job with network requirement should be returned",
-                jobQueue.nextJobAndIncRunCount(true), nullValue());
+                jobQueue.nextJobAndIncRunCount(true, null), nullValue());
 
         jobQueue.remove(jobHolder);
 
@@ -247,15 +299,15 @@ public abstract class JobQueueTestBase {
         JobHolder jobHolder2 = createNewJobHolderWithRequiresNetworkAndPriority(true, 5);
         long firstJobId = jobQueue.insert(jobHolder);
         long secondJobId = jobQueue.insert(jobHolder2);
-        JobHolder retrieved = jobQueue.nextJobAndIncRunCount(false);
+        JobHolder retrieved = jobQueue.nextJobAndIncRunCount(false, null);
         MatcherAssert.assertThat("one job should be returned w/o network", retrieved, notNullValue());
         if(retrieved != null) {
             MatcherAssert.assertThat("no network job should be returned although it has lower priority", retrieved.getId(), equalTo(firstJobId));
         }
 
-        MatcherAssert.assertThat("no other job should be returned w/o network", jobQueue.nextJobAndIncRunCount(false), nullValue());
+        MatcherAssert.assertThat("no other job should be returned w/o network", jobQueue.nextJobAndIncRunCount(false, null), nullValue());
 
-        retrieved = jobQueue.nextJobAndIncRunCount(true);
+        retrieved = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat("if network is back, network requiring job should be returned", retrieved, notNullValue());
         if(retrieved != null) {
             MatcherAssert.assertThat("when there is network, network job should be returned", retrieved.getId(), equalTo(secondJobId));
@@ -265,7 +317,7 @@ public abstract class JobQueueTestBase {
         //add second job back
         jobQueue.insertOrReplace(jobHolder2);
 
-        retrieved = jobQueue.nextJobAndIncRunCount(true);
+        retrieved = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat("if network is back, job w/ higher priority should be returned", retrieved, notNullValue());
         if(retrieved != null) {
             MatcherAssert.assertThat("if network is back, job w/ higher priority should be returned", retrieved.getId(), equalTo(secondJobId));
@@ -274,7 +326,7 @@ public abstract class JobQueueTestBase {
 
         JobHolder highestPriorityJob = createNewJobHolderWithRequiresNetworkAndPriority(false, 10);
         long highestPriorityJobId = jobQueue.insert(highestPriorityJob);
-        retrieved = jobQueue.nextJobAndIncRunCount(true);
+        retrieved = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat("w/ or w/o network, highest priority should be returned", retrieved, notNullValue());
         if(retrieved != null) {
             MatcherAssert.assertThat("w/ or w/o network, highest priority should be returned", retrieved.getId(), equalTo(highestPriorityJobId));
@@ -301,7 +353,7 @@ public abstract class JobQueueTestBase {
 
 
         for (int i = 0; i < 2; i++) {
-            JobHolder received = jobQueue.nextJobAndIncRunCount(true);
+            JobHolder received = jobQueue.nextJobAndIncRunCount(true, null);
             MatcherAssert.assertThat("job id should be preserved", received.getId(), equalTo(id));
             MatcherAssert.assertThat("job priority should be preserved", received.getPriority(), equalTo(priority));
             MatcherAssert.assertThat("job session id should be assigned", received.getRunningSessionId(), equalTo(sessionId));
@@ -330,6 +382,10 @@ public abstract class JobQueueTestBase {
 
     private JobHolder createNewJobHolderWithPriority(int priority) {
         return new JobHolder(null, priority, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+    }
+
+    private JobHolder createNewJobHolderWithPriorityAndGroupId(int priority, String groupId) {
+        return new JobHolder(null, priority, 0, new DummyJob(groupId), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobQueue createNewJobQueue() {

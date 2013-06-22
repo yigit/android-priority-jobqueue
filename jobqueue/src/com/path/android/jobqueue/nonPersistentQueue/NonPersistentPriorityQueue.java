@@ -67,7 +67,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount(boolean hasNetwork) {
+    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
         JobHolder jobHolder = jobs.peek(hasNetwork);
 
         if (jobHolder != null) {

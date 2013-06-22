@@ -13,6 +13,7 @@ import com.path.android.jobqueue.log.JqLog;
 import org.apache.http.util.ExceptionUtils;
 
 import java.io.*;
+import java.util.Collection;
 
 /**
  * Persistent Job Queue that keeps its data in an sqlite database.
@@ -127,7 +128,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount(boolean hasNetwork) {
+    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
         //TODO
         //see if we can avoid creating a new query all the time
         String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
@@ -155,7 +156,7 @@ public class SqliteJobQueue implements JobQueue {
             //delete
             Long jobId = cursor.getLong(0);
             delete(jobId);
-            return nextJobAndIncRunCount(true);
+            return nextJobAndIncRunCount(true, null);
         } finally {
             cursor.close();
         }

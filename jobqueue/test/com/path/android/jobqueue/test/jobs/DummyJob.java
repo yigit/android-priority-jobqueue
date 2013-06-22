@@ -16,6 +16,10 @@ public class DummyJob extends BaseJob {
         super(requiresNetwork);
     }
 
+    public DummyJob(String groupId) {
+        super(false, groupId);
+    }
+
     @Override
     public void onAdded() {
         onAddedCnt++;

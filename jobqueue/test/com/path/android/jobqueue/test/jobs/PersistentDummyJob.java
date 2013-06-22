@@ -9,6 +9,10 @@ public class PersistentDummyJob extends DummyJob {
         super(requiresNetwork);
     }
 
+    public PersistentDummyJob(String groupId) {
+        super(groupId);
+    }
+
     @Override
     public boolean shouldPersist() {
         return true;

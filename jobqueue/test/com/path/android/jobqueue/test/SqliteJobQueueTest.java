@@ -49,7 +49,7 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         calledForSerialize.await(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat("custom serializer should be called for serialize", (int) calledForSerialize.getCount(), CoreMatchers.equalTo(0));
         MatcherAssert.assertThat("custom serializer should NOT be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(1));
-        jobQueue.nextJobAndIncRunCount(true);
+        jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat("custom serializer should be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(0));
 
     }

@@ -7,10 +7,20 @@ import java.io.Serializable;
 abstract public class BaseJob implements Serializable {
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private final boolean requiresNetwork;
+    private final String groupId;
     private transient int currentRunCount;
 
     protected BaseJob(boolean requiresNetwork) {
+        this(requiresNetwork, null);
+    }
+
+    protected BaseJob(String groupId) {
+        this(false, groupId);
+    }
+
+    protected BaseJob(boolean requiresNetwork, String groupId) {
         this.requiresNetwork = requiresNetwork;
+        this.groupId = groupId;
     }
 
     /**
@@ -79,12 +89,34 @@ abstract public class BaseJob implements Serializable {
         return true;
     }
 
+    /**
+     * before each run, JobManager sets this number. Might be useful for the {@link com.path.android.jobqueue.BaseJob#onRun()}
+     * method
+     * @return
+     */
     protected int getCurrentRunCount() {
         return currentRunCount;
     }
 
-    public boolean requiresNetwork() {
+    /**
+     * if job is set to require network, it will not be called unless {@link com.path.android.jobqueue.network.NetworkUtil}
+     * reports that there is a network connection
+     * @return
+     */
+    public final boolean requiresNetwork() {
         return requiresNetwork;
+    }
+
+    /**
+     * Some jobs may require being run synchronously. For instance, if it is a job like sending a comment, we should
+     * never run them in parallel (unless they are being sent to different conversations).
+     * By assigning same groupId to jobs, you can ensure that that type of jobs will be run in the order they were given
+     * (if their priority is the same). Keep in mind that, withing group, {@link JobManager} will ignore {@link JobHolder#runCount}
+     * and will always do first in first out (assuming priority is the same)
+     * @return
+     */
+    public final String getRunGroupId() {
+        return groupId;
     }
 
     /**

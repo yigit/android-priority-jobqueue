@@ -1,5 +1,7 @@
 package com.path.android.jobqueue;
 
+import java.util.Collection;
+
 /**
  * Interface that any JobQueue should implement
  * These job queues can be given to JobManager.
@@ -43,9 +45,10 @@ public interface JobQueue {
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
      * It should filter out all running jobs and
      * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
+     * @param excludeGroups if provided, jobs from these groups will NOT be returned
      * @return
      */
-    JobHolder nextJobAndIncRunCount(boolean hasNetwork);
+    JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups);
 
     /**
      * returns when the next job should run (in nanoseconds), should return null if there are no jobs to run.

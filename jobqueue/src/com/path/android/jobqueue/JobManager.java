@@ -232,12 +232,12 @@ public class JobManager implements NetworkEventProvider.Listener {
         boolean haveNetwork = hasNetwork();
         JobHolder jobHolder;
         synchronized (nonPersistentJobQueue) {
-            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, null);
         }
         if (jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
             synchronized (persistentJobQueue) {
-                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork);
+                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, null);
             }
         }
         if(jobHolder != null && dependencyInjector != null) {
