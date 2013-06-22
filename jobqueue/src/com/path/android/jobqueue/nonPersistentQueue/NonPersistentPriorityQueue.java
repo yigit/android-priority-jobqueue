@@ -110,12 +110,6 @@ public class NonPersistentPriorityQueue implements JobQueue {
                 return cmp;
             }
 
-            //if priorities are equal, less running job first
-            cmp = -compareInt(holder1.getRunCount(), holder2.getRunCount());
-            if(cmp != 0) {
-                return cmp;
-            }
-
             //if run counts are also equal, older job first
             cmp = -compareLong(holder1.getCreatedNs(), holder2.getCreatedNs());
             if(cmp != 0) {

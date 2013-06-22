@@ -111,8 +111,7 @@ abstract public class BaseJob implements Serializable {
      * Some jobs may require being run synchronously. For instance, if it is a job like sending a comment, we should
      * never run them in parallel (unless they are being sent to different conversations).
      * By assigning same groupId to jobs, you can ensure that that type of jobs will be run in the order they were given
-     * (if their priority is the same). Keep in mind that, withing group, {@link JobManager} will ignore {@link JobHolder#runCount}
-     * and will always do first in first out (assuming priority is the same)
+     * (if their priority is the same).
      * @return
      */
     public final String getRunGroupId() {

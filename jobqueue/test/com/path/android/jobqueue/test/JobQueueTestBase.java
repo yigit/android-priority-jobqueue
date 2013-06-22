@@ -5,7 +5,6 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import org.fest.reflect.core.Reflection;
 import org.fest.reflect.method.Invoker;
 import org.hamcrest.MatcherAssert;
@@ -13,6 +12,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.*;
 
@@ -105,6 +105,11 @@ public abstract class JobQueueTestBase {
                 jobQueue.nextJobAndIncRunCount(true,
                         Arrays.asList(new String[]{"group1", "group2"})),
                 is(nullValue()));
+        long jobId6 = jobQueue.insert(createNewJobHolderWithPriority(0));
+        MatcherAssert.assertThat("both groups are disabled, null group job should be returned",
+                jobQueue.nextJobAndIncRunCount(true,
+                        Arrays.asList(new String[]{"group1", "group2"})).getId(),
+                is(jobId6));
         MatcherAssert.assertThat("if group1 is excluded, next job should be from group2",
                 jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group1"})).getBaseJob().getRunGroupId()
                 , equalTo("group2"));
@@ -113,25 +118,25 @@ public abstract class JobQueueTestBase {
         jobQueue.insertOrReplace(holder1);
         //ask for it again, should return the same holder because it is grouped
         JobHolder holder2 = jobQueue.nextJobAndIncRunCount(true, null);
-        MatcherAssert.assertThat("for grouped jobs, run count should be ignored when fetching",
+        MatcherAssert.assertThat("for grouped jobs, re-fetching job should work fine",
                 holder2.getId(), equalTo(holder1.getId()));
 
         JobHolder holder3 = jobQueue.nextJobAndIncRunCount(true,
                         Arrays.asList(new String[]{"group1"}));
         MatcherAssert.assertThat("if a group it excluded, next available from another group should be returned",
-                holder3.getId(), equalTo(jobId2));
+                holder3.getId(), equalTo(jobId4));
 
         //add two more non-grouped jobs
-        long jobId6 = jobQueue.insert(createNewJobHolderWithPriority(0));
         long jobId7 = jobQueue.insert(createNewJobHolderWithPriority(0));
+        long jobId8 = jobQueue.insert(createNewJobHolderWithPriority(0));
         JobHolder holder4 = jobQueue.nextJobAndIncRunCount(true,
                 Arrays.asList(new String[]{"group1", "group2"}));
         MatcherAssert.assertThat("if all grouped jobs are excluded, non-grouped jobs should be returned",
                 holder4.getId(),
-                equalTo(jobId6));
+                equalTo(jobId7));
         jobQueue.insertOrReplace(holder4);
         //for non-grouped jobs, run counts should be respected
-        MatcherAssert.assertThat("if all grouped jobs are excluded, run count for non-grouped jobs should be respected",
+        MatcherAssert.assertThat("if all grouped jobs are excluded, re-inserted highest priority job should still be returned",
                 jobQueue.nextJobAndIncRunCount(true,
                         Arrays.asList(new String[]{"group1", "group2"})).getId(),
                 equalTo(jobId7));
@@ -363,29 +368,29 @@ public abstract class JobQueueTestBase {
     }
 
     protected JobHolder createNewJobHolder() {
-        return new JobHolder(null, 0, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, 0, null, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithRequiresNetwork(boolean requiresNetwork) {
-        return new JobHolder(null, 0, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, 0, null, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithDelayUntil(boolean requiresNetwork, int priority, long delayUntil) {
-        JobHolder jobHolder = new JobHolder(null, priority, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        JobHolder jobHolder = new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
         getDelayUntilNsField(jobHolder).set(delayUntil);
         return jobHolder;
     }
 
     private JobHolder createNewJobHolderWithRequiresNetworkAndPriority(boolean requiresNetwork, int priority) {
-        return new JobHolder(null, priority, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithPriority(int priority) {
-        return new JobHolder(null, priority, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, priority, null, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithPriorityAndGroupId(int priority, String groupId) {
-        return new JobHolder(null, priority, 0, new DummyJob(groupId), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, priority, groupId, 0, new DummyJob(groupId), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobQueue createNewJobQueue() {

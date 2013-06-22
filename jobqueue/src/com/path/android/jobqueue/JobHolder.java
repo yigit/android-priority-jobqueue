@@ -6,6 +6,7 @@ package com.path.android.jobqueue;
 public class JobHolder {
     protected Long id;
     protected int priority;
+    protected String groupId;
     protected int runCount;
     /**
      * job will be delayed until this nanotime
@@ -23,15 +24,17 @@ public class JobHolder {
     /**
      * @param id               Unique ID for the job. Should be unique per queue
      * @param priority         Higher is better
+     * @param groupId          which group does this job belong to? default null
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
      * @param baseJob          Actual job to run
      * @param createdNs        System.nanotime
      * @param delayUntilNs     System.nanotime value where job can be run the very first time
      * @param runningSessionId
      */
-    public JobHolder(Long id, int priority, int runCount, BaseJob baseJob, long createdNs, long delayUntilNs, long runningSessionId) {
+    public JobHolder(Long id, int priority, String groupId, int runCount, BaseJob baseJob, long createdNs, long delayUntilNs, long runningSessionId) {
         this.id = id;
         this.priority = priority;
+        this.groupId = groupId;
         this.runCount = runCount;
         this.createdNs = createdNs;
         this.delayUntilNs = delayUntilNs;
@@ -41,11 +44,11 @@ public class JobHolder {
     }
 
     public JobHolder(int priority, BaseJob baseJob, long runningSessionId) {
-        this(null, priority, 0, baseJob, System.nanoTime(), Long.MIN_VALUE, runningSessionId);
+        this(null, priority, null, 0, baseJob, System.nanoTime(), Long.MIN_VALUE, runningSessionId);
     }
 
     public JobHolder(int priority, BaseJob baseJob, long delayUntilNs, long runningSessionId) {
-        this(null, priority, 0, baseJob, System.nanoTime(), delayUntilNs, runningSessionId);
+        this(null, priority, baseJob.getRunGroupId(), 0, baseJob, System.nanoTime(), delayUntilNs, runningSessionId);
     }
 
     /**
@@ -111,5 +114,9 @@ public class JobHolder {
 
     public void setBaseJob(BaseJob baseJob) {
         this.baseJob = baseJob;
+    }
+
+    public String getGroupId() {
+        return groupId;
     }
 }

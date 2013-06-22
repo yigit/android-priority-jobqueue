@@ -50,6 +50,7 @@ public class SqliteJobQueue implements JobQueue {
         SQLiteStatement stmt = sqlHelper.getInsertStatement();
         long id;
         synchronized (stmt) {
+            stmt.clearBindings();
             bindValues(stmt, jobHolder);
             id = stmt.executeInsert();
         }
@@ -62,6 +63,9 @@ public class SqliteJobQueue implements JobQueue {
             stmt.bindLong(DbOpenHelper.ID_COLUMN.columnIndex + 1, jobHolder.getId());
         }
         stmt.bindLong(DbOpenHelper.PRIORITY_COLUMN.columnIndex + 1, jobHolder.getPriority());
+        if(jobHolder.getGroupId() != null) {
+            stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
+        }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
         byte[] baseJob = getSerializeBaseJob(jobHolder);
         if (baseJob != null) {
@@ -85,6 +89,7 @@ public class SqliteJobQueue implements JobQueue {
         SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();
         long id;
         synchronized (stmt) {
+            stmt.clearBindings();
             bindValues(stmt, jobHolder);
             id = stmt.executeInsert();
         }
@@ -136,9 +141,16 @@ public class SqliteJobQueue implements JobQueue {
         if(hasNetwork == false) {
             where += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1 ";
         }
+        boolean test = false;
+        if(test) {
+            where += " AND " + DbOpenHelper.ID_COLUMN.columnName + " = 6";
+        } else if(excludeGroups != null && excludeGroups.size() > 0) {
+            //we don't dare to escape strings. no one will do it right? :)
+            where += " AND (" + DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
+                    DbOpenHelper.GROUP_ID_COLUMN.columnName + " NOT IN('" + joinStrings("','", excludeGroups) + "'))";
+        }
         String selectQuery = sqlHelper.createSelect(
-                where
-                ,
+                where,
                 1,
                 new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
                 new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
@@ -160,6 +172,17 @@ public class SqliteJobQueue implements JobQueue {
         } finally {
             cursor.close();
         }
+    }
+
+    private static String joinStrings(String glue, Collection<String> strings) {
+        StringBuilder builder = new StringBuilder();
+        for(String str : strings) {
+            if(builder.length() != 0) {
+                builder.append(glue);
+            }
+            builder.append(str);
+        }
+        return builder.toString();
     }
 
     /**
@@ -204,6 +227,7 @@ public class SqliteJobQueue implements JobQueue {
         return new JobHolder(
                 cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
                 cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex),
+                cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex),
                 cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
                 job,
                 cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),
