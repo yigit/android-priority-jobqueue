@@ -231,6 +231,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private JobHolder getNextJob(boolean nonPersistentOnly) {
         boolean haveNetwork = hasNetwork();
         JobHolder jobHolder;
+        boolean persistent = false;
         synchronized (nonPersistentJobQueue) {
             jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, null);
         }
@@ -238,9 +239,10 @@ public class JobManager implements NetworkEventProvider.Listener {
             //go to disk, there aren't any non-persistent jobs
             synchronized (persistentJobQueue) {
                 jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, null);
+                persistent = true;
             }
         }
-        if(jobHolder != null && dependencyInjector != null) {
+        if(persistent && jobHolder != null && dependencyInjector != null) {
             dependencyInjector.inject(jobHolder.getBaseJob());
         }
         return jobHolder;

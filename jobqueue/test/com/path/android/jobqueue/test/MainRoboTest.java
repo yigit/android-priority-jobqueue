@@ -31,9 +31,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class MainRoboTest {
@@ -173,13 +171,15 @@ public class MainRoboTest {
         JobManager jobManager = createNewJobManager(configuration);
         jobManager.stop();
         jobManager.addJob(4, new DummyJob());
+        MatcherAssert.assertThat("injection should be called after adding a non-persistent job", injectionCallCount.get(), equalTo(1));
         jobManager.addJob(1, new PersistentDummyJob());
+        MatcherAssert.assertThat("injection should be called after adding a persistent job", injectionCallCount.get(), equalTo(2));
         JobHolder holder = getNextJobMethod(jobManager).invoke();
-        MatcherAssert.assertThat("injection should be called for non persistent job", holder.getBaseJob(), equalTo(injectedJobReference.getObject()));
-        MatcherAssert.assertThat("injection should be called only once", injectionCallCount.get(), equalTo(1));
+        MatcherAssert.assertThat("injection should NOT be called for non persistent job", holder.getBaseJob(), not(injectedJobReference.getObject()));
+        MatcherAssert.assertThat("injection should be called once for non persistent job", injectionCallCount.get(), equalTo(2));
         holder = getNextJobMethod(jobManager).invoke();
         MatcherAssert.assertThat("injection should be called for persistent job", holder.getBaseJob(), equalTo(injectedJobReference.getObject()));
-        MatcherAssert.assertThat("injection should be called second time", injectionCallCount.get(), equalTo(2));
+        MatcherAssert.assertThat("injection should be called two times for persistent job", injectionCallCount.get(), equalTo(3));
 
     }
 
