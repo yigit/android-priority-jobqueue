@@ -10,7 +10,6 @@ public class NonPersistentPriorityQueue implements JobQueue {
     private long nonPersistentJobIdGenerator = Integer.MIN_VALUE;
     //TODO implement a more efficient priority queue where we can mark jobs as removed but don't remove for real
     private NetworkAwarePriorityQueue jobs;
-    private Map<Long, JobHolder> runningJobs;
     private final String id;
     private final long sessionId;
 
@@ -18,7 +17,6 @@ public class NonPersistentPriorityQueue implements JobQueue {
         this.id = id;
         this.sessionId = sessionId;
         jobs = new NetworkAwarePriorityQueue(5, jobComparator);
-        runningJobs = new HashMap<Long, JobHolder>();
     }
 
     /**
@@ -49,10 +47,6 @@ public class NonPersistentPriorityQueue implements JobQueue {
     @Override
     public void remove(JobHolder jobHolder) {
         jobs.remove(jobHolder);
-
-        if (jobHolder.getId() != null) {
-            runningJobs.remove(jobHolder.getId());
-        }
     }
 
     /**
@@ -78,8 +72,6 @@ public class NonPersistentPriorityQueue implements JobQueue {
                 jobHolder.setRunningSessionId(sessionId);
                 jobHolder.setRunCount(jobHolder.getRunCount() + 1);
                 jobs.remove(jobHolder);
-                //add it back to the queue. it will go the end
-                runningJobs.put(jobHolder.getId(), jobHolder);
             }
         }
         return jobHolder;
@@ -96,8 +88,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
 
     @Override
     public void clear() {
-        jobs = new NetworkAwarePriorityQueue(5, jobComparator);
-        runningJobs = new HashMap<Long, JobHolder>();
+        jobs.clear();
     }
 
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {
