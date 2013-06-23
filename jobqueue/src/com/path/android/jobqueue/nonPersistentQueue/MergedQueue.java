@@ -9,25 +9,25 @@ import java.util.*;
  * While retrieving items, it uses a different comparison method to handle dynamic comparisons (e.g. time)
  * between two queues
  */
-abstract public class MergedQueue implements Queue<JobHolder> {
-    Queue<JobHolder> queue0;
-    Queue<JobHolder> queue1;
+abstract public class MergedQueue implements JobSet {
+    JobSet queue0;
+    JobSet queue1;
 
     final Comparator<JobHolder> comparator;
     final Comparator<JobHolder> retrieveComparator;
 
     /**
      *
-     * @param initialCapacity passed to {@link MergedQueue#createQueue(MergedQueue.QeueuId, int, java.util.Comparator)}
-     * @param comparator passed to {@link MergedQueue#createQueue(MergedQueue.QeueuId, int, java.util.Comparator)}
+     * @param initialCapacity passed to {@link MergedQueue#createQueue(com.path.android.jobqueue.nonPersistentQueue.MergedQueue.SetId, int, java.util.Comparator)}
+     * @param comparator passed to {@link MergedQueue#createQueue(com.path.android.jobqueue.nonPersistentQueue.MergedQueue.SetId, int, java.util.Comparator)}
      * @param retrieveComparator upon retrieval, if both queues return items, this comparator is used to decide which
      *                           one should be returned
      */
     public MergedQueue(int initialCapacity, Comparator<JobHolder> comparator, Comparator<JobHolder> retrieveComparator) {
         this.comparator = comparator;
         this.retrieveComparator = retrieveComparator;
-        queue0 = createQueue(QeueuId.Q0, initialCapacity, comparator);
-        queue1 = createQueue(QeueuId.Q1, initialCapacity, comparator);
+        queue0 = createQueue(SetId.S0, initialCapacity, comparator);
+        queue1 = createQueue(SetId.S1, initialCapacity, comparator);
     }
 
     /**
@@ -35,11 +35,11 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * @param queueId
      * @return
      */
-    protected JobHolder pollFromQueue(QeueuId queueId) {
-        if(queueId == QeueuId.Q0) {
-            return queue0.poll();
+    protected JobHolder pollFromQueue(SetId queueId, Collection<String> excludeGroupIds) {
+        if(queueId == SetId.S0) {
+            return queue0.poll(excludeGroupIds);
         }
-        return queue1.poll();
+        return queue1.poll(excludeGroupIds);
     }
 
     /**
@@ -47,11 +47,11 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * @param queueId
      * @return
      */
-    protected JobHolder peekFromQueue(QeueuId queueId) {
-        if(queueId == QeueuId.Q0) {
-            return queue0.peek();
+    protected JobHolder peekFromQueue(SetId queueId, Collection<String> excludeGroupIds) {
+        if(queueId == SetId.S0) {
+            return queue0.peek(excludeGroupIds);
         }
-        return queue1.peek();
+        return queue1.peek(excludeGroupIds);
     }
 
     /**
@@ -59,8 +59,8 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      */
     @Override
     public boolean offer(JobHolder jobHolder) {
-        QeueuId queueId = decideQueue(jobHolder);
-        if(queueId == QeueuId.Q0) {
+        SetId queueId = decideQueue(jobHolder);
+        if(queueId == SetId.S0) {
             return queue0.offer(jobHolder);
 
         }
@@ -71,28 +71,28 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder poll() {
-        JobHolder delayed = queue0.peek();
+    public JobHolder poll(Collection<String> excludeGroupIds) {
+        JobHolder delayed = queue0.peek(excludeGroupIds);
         if(delayed == null) {
-            return queue1.poll();
+            return queue1.poll(excludeGroupIds);
         }
         //if queue for this job has changed, re-add it and try poll from scratch
-        if(decideQueue(delayed) != QeueuId.Q0) {
+        if(decideQueue(delayed) != SetId.S0) {
             //should be moved to the other queue
             queue0.remove(delayed);
-            queue1.add(delayed);
-            return poll();
+            queue1.offer(delayed);
+            return poll(excludeGroupIds);
         }
-        JobHolder nonDelayed = queue1.peek();
+        JobHolder nonDelayed = queue1.peek(excludeGroupIds);
         if(nonDelayed == null) {
             queue0.remove(delayed);
             return delayed;
         }
         //if queue for this job has changed, re-add it and try poll from scratch
-        if(decideQueue(nonDelayed) != QeueuId.Q1) {
-            queue0.add(nonDelayed);
+        if(decideQueue(nonDelayed) != SetId.S1) {
+            queue0.offer(nonDelayed);
             queue1.remove(nonDelayed);
-            return poll();
+            return poll(excludeGroupIds);
         }
         //both are not null, need to compare and return the better
         int cmp = retrieveComparator.compare(delayed, nonDelayed);
@@ -109,20 +109,20 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder peek() {
-        JobHolder delayed = queue0.peek();
+    public JobHolder peek(Collection<String> excludeGroupIds) {
+        JobHolder delayed = queue0.peek(excludeGroupIds);
         //if queue for this job has changed, re-add it and try peek from scratch
-        if(delayed != null && decideQueue(delayed) != QeueuId.Q0) {
-            queue1.add(delayed);
+        if(delayed != null && decideQueue(delayed) != SetId.S0) {
+            queue1.offer(delayed);
             queue0.remove(delayed);
-            return peek();
+            return peek(excludeGroupIds);
         }
-        JobHolder nonDelayed = queue1.peek();
+        JobHolder nonDelayed = queue1.peek(excludeGroupIds);
         //if queue for this job has changed, re-add it and try peek from scratch
-        if(nonDelayed != null && decideQueue(nonDelayed) != QeueuId.Q1) {
-            queue0.add(nonDelayed);
+        if(nonDelayed != null && decideQueue(nonDelayed) != SetId.S1) {
+            queue0.offer(nonDelayed);
             queue1.remove(nonDelayed);
-            return peek();
+            return peek(excludeGroupIds);
         }
         if(delayed == null) {
             return nonDelayed;
@@ -137,47 +137,7 @@ abstract public class MergedQueue implements Queue<JobHolder> {
         return nonDelayed;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public JobHolder remove() {
-        JobHolder poll = poll();
-        if(poll == null) {
-            throw new NoSuchElementException();
-        }
-        return poll;
-    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public JobHolder element() {
-        JobHolder peek = peek();
-        if(peek == null) {
-            throw new NoSuchElementException();
-        }
-        return peek;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean add(JobHolder jobHolder) {
-        //does not affect our case
-        return offer(jobHolder);
-    }
-
-    /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public boolean addAll(Collection<? extends JobHolder> jobHolders) {
-        throw new UnsupportedOperationException();
-    }
 
     /**
      * {@inheritDoc}
@@ -192,61 +152,9 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * {@inheritDoc}
      */
     @Override
-    public boolean contains(Object o) {
-        return queue1.contains(o) || queue0.contains(o);
-    }
-
-    /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public boolean containsAll(Collection<?> objects) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isEmpty() {
-        return queue1.isEmpty() && queue0.isEmpty();
-    }
-
-    /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public Iterator<JobHolder> iterator() {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean remove(Object o) {
+    public boolean remove(JobHolder holder) {
         //we cannot check queue here, might be dynamic
-        return queue1.remove(o) || queue0.remove(o);
-    }
-
-    /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public boolean removeAll(Collection<?> objects) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public boolean retainAll(Collection<?> objects) {
-        throw new UnsupportedOperationException();
+        return queue1.remove(holder) || queue0.remove(holder);
     }
 
     /**
@@ -258,24 +166,6 @@ abstract public class MergedQueue implements Queue<JobHolder> {
     }
 
     /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public Object[] toArray() {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * this method is not supported
-     * @throws UnsupportedOperationException
-     */
-    @Override
-    public Object[] toArray(Object[] ts) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
      * decides which queue should the job holder go
      * if first queue, should return 0
      * if second queue, should return 1
@@ -283,7 +173,7 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * @param jobHolder
      * @return
      */
-    abstract protected QeueuId decideQueue(JobHolder jobHolder);
+    abstract protected SetId decideQueue(JobHolder jobHolder);
 
     /**
      * called when we want to create the subsequent queues
@@ -291,13 +181,13 @@ abstract public class MergedQueue implements Queue<JobHolder> {
      * @param comparator
      * @return
      */
-    abstract protected Queue<JobHolder> createQueue(QeueuId qeueuId, int initialCapacity, Comparator<JobHolder> comparator);
+    abstract protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator);
 
     /**
      * simple enum to identify queues
      */
-    protected static enum QeueuId {
-        Q0,
-        Q1
+    protected static enum SetId {
+        S0,
+        S1
     }
 }

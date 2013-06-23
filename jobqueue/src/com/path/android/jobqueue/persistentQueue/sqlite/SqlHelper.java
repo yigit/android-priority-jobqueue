@@ -37,7 +37,7 @@ public class SqlHelper {
         builder.append(primaryKey.type);
         builder.append("  primary key autoincrement ");
         for (Property property : properties) {
-            builder.append(", ").append(property.columnName).append(" ").append(property.type);
+            builder.append(", `").append(property.columnName).append("` ").append(property.type);
         }
         builder.append(" );");
         JqLog.d(builder.toString());

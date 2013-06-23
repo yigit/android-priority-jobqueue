@@ -2,6 +2,7 @@ package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Queue;
 
@@ -25,11 +26,11 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
      *                      no network queue
      * @return
      */
-    public JobHolder peek(boolean canUseNetwork) {
+    public JobHolder peek(boolean canUseNetwork, Collection<String> excludeGroupIds) {
         if(canUseNetwork) {
-            return super.peek();
+            return super.peek(excludeGroupIds);
         } else {
-            return super.peekFromQueue(QeueuId.Q1);
+            return super.peekFromQueue(SetId.S1, excludeGroupIds);
         }
     }
 
@@ -39,17 +40,17 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
      *                      no network queue
      * @return
      */
-    public JobHolder poll(boolean canUseNetwork) {
+    public JobHolder poll(boolean canUseNetwork, Collection<String> excludeGroupIds) {
         if(canUseNetwork) {
-            return super.peek();
+            return super.peek(excludeGroupIds);
         } else {
-            return super.peekFromQueue(QeueuId.Q1);
+            return super.peekFromQueue(SetId.S1, excludeGroupIds);
         }
     }
 
     @Override
-    protected QeueuId decideQueue(JobHolder jobHolder) {
-        return jobHolder.requiresNetwork() ? QeueuId.Q0 : QeueuId.Q1;
+    protected SetId decideQueue(JobHolder jobHolder) {
+        return jobHolder.requiresNetwork() ? SetId.S0 : SetId.S1;
     }
 
     /**
@@ -60,7 +61,7 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
      * @return
      */
     @Override
-    protected Queue<JobHolder> createQueue(QeueuId ignoredQueueId, int initialCapacity, Comparator<JobHolder> comparator) {
+    protected JobSet createQueue(SetId ignoredQueueId, int initialCapacity, Comparator<JobHolder> comparator) {
         return new TimeAwarePriorityQueue(initialCapacity, comparator);
     }
 

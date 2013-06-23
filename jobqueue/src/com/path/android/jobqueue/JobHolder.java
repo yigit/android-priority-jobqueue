@@ -119,4 +119,25 @@ public class JobHolder {
     public String getGroupId() {
         return groupId;
     }
+
+    @Override
+    public int hashCode() {
+        //we don't really care about overflow.
+        if(id == null) {
+            return super.hashCode();
+        }
+        return id.intValue();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o instanceof JobHolder == false) {
+            return false;
+        }
+        JobHolder other = (JobHolder) o;
+        if(id == null || other.id == null) {
+            return false;
+        }
+        return id.equals(other.id);
+    }
 }

@@ -155,8 +155,7 @@ public class JqLog {
 
     public static class BaseConfig implements Config {
         protected int minimumLogLevel = Log.VERBOSE;
-        protected String packageName = "com.path.messaging";
-        protected String scope = "COM.PATH.MESSAGING";
+        protected String scope = "COM.PATH.ANDROID.JOBQUEUE";
 
         protected BaseConfig() {
             minimumLogLevel = Log.ASSERT;

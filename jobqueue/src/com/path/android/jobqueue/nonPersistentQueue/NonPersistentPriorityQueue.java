@@ -28,7 +28,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
     public synchronized long insert(JobHolder jobHolder) {
         nonPersistentJobIdGenerator++;
         jobHolder.setId(nonPersistentJobIdGenerator);
-        jobs.add(jobHolder);
+        jobs.offer(jobHolder);
         return jobHolder.getId();
     }
 
@@ -39,7 +39,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
     public long insertOrReplace(JobHolder jobHolder) {
         remove(jobHolder);
         jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);
-        jobs.add(jobHolder);
+        jobs.offer(jobHolder);
         return jobHolder.getId();
     }
 
@@ -68,7 +68,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
      */
     @Override
     public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
-        JobHolder jobHolder = jobs.peek(hasNetwork);
+        JobHolder jobHolder = jobs.peek(hasNetwork, excludeGroups);
 
         if (jobHolder != null) {
             //check if job can run
@@ -90,7 +90,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
      */
     @Override
     public Long getNextJobDelayUntilNs(boolean hasNetwork) {
-        JobHolder next = jobs.peek(hasNetwork);
+        JobHolder next = jobs.peek(hasNetwork, null);
         return next == null ? null : next.getDelayUntilNs();
     }
 

@@ -27,6 +27,7 @@ import org.robolectric.shadows.ShadowLog;
 
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,7 +39,7 @@ public class MainRoboTest {
     //TEST parallel running
     @Test
     public void runManyNonPersistentJobs() throws Exception {
-        JobManager jobManager = new JobManager(Robolectric.application, "test1");
+        JobManager jobManager = createJobManager();
         jobManager.stop();
         int limit = 2;
         final CountDownLatch latch = new CountDownLatch(limit);
@@ -48,6 +49,14 @@ public class MainRoboTest {
         jobManager.start();
         latch.await(10, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) latch.getCount(), equalTo(0));
+    }
+
+    private JobManager createJobManager() {
+        return new JobManager(Robolectric.application, UUID.randomUUID().toString());
+    }
+
+    private JobManager createJobManager(Configuration configuration) {
+        return new JobManager(Robolectric.application, configuration.withId(UUID.randomUUID().toString()));
     }
 
 
@@ -62,7 +71,7 @@ public class MainRoboTest {
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
-        final JobManager jobManager = createNewJobManager();
+        final JobManager jobManager = createJobManager();
         int limit = 200;
         ExecutorService executor = Executors.newFixedThreadPool(20);
         Collection<Future<?>> futures = new LinkedList<Future<?>>();
@@ -124,7 +133,7 @@ public class MainRoboTest {
     @Test
     public void runFailingJob() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
-        JobManager jobManager = new JobManager(Robolectric.application, "test2");
+        JobManager jobManager = createJobManager();
         jobManager.addJob(0, new BaseJob(true) {
             @Override
             public void onAdded() {
@@ -168,7 +177,7 @@ public class MainRoboTest {
             }
         };
         configuration.withInjector(dependencyInjector);
-        JobManager jobManager = createNewJobManager(configuration);
+        JobManager jobManager = createJobManager(configuration);
         jobManager.stop();
         jobManager.addJob(4, new DummyJob());
         MatcherAssert.assertThat("injection should be called after adding a non-persistent job", injectionCallCount.get(), equalTo(1));
@@ -185,7 +194,7 @@ public class MainRoboTest {
 
     @Test
     public void testClear() throws Exception {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         final int LIMIT = 20;
         for(int i = 0; i < LIMIT; i++) {
             if(i % 2 == 0) {
@@ -205,7 +214,7 @@ public class MainRoboTest {
     }
 
     public void testDelay(boolean persist) throws Exception {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         jobManager.stop();
         DummyJob delayedJob = persist ? new PersistentDummyJob() : new DummyJob();
         DummyJob nonDelayedJob = persist ? new PersistentDummyJob() : new DummyJob();
@@ -238,7 +247,7 @@ public class MainRoboTest {
         testDelayedRun(true);
     }
     public void testDelayedRun(boolean persist) throws Exception {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         DummyJob delayedJob = persist ? new PersistentDummyJob() : new DummyJob();
         DummyJob nonDelayedJob = persist ? new PersistentDummyJob() : new DummyJob();
         jobManager.addJob(10, 2000, delayedJob);
@@ -253,7 +262,7 @@ public class MainRoboTest {
     @Test
     public void testNetworkNextJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createNewJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
         jobManager.stop();
         DummyJob dummyJob = new DummyJob(true);
         long dummyJobId = jobManager.addJob(0, dummyJob);
@@ -266,10 +275,11 @@ public class MainRoboTest {
         MatcherAssert.assertThat("when network is recovered, next job should be retrieved", retrieved, notNullValue());
     }
 
+
     @Test
     public void testNetworkJobWithConnectivityListener() throws Exception {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createNewJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
         dummyNetworkUtil.setHasNetwork(false, true);
         DummyJob dummyJob = new DummyJob(true);
         long dummyJobId = jobManager.addJob(0, dummyJob);
@@ -289,7 +299,7 @@ public class MainRoboTest {
     @Test
     public void testNetworkJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createNewJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
         jobManager.stop();
 
         DummyJob networkDummyJob = new DummyJob(true);
@@ -320,8 +330,7 @@ public class MainRoboTest {
 
     @Test
     public void testPersistentJob() throws Exception {
-        String managerId = "persistentTest";
-        JobManager jobManager = new JobManager(Robolectric.application, managerId);
+        JobManager jobManager = createJobManager();
         jobManager.addJob(0, new DummyPersistentLatchJob());
         persistentRunLatch.await(5, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
@@ -331,7 +340,7 @@ public class MainRoboTest {
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         jobManager.setMaxConsumerCount(1);
         testPriority(jobManager, false);
     }
@@ -352,7 +361,7 @@ public class MainRoboTest {
 
     @Test
     public void testCount() throws Exception {
-        JobManager jobManager = new JobManager(Robolectric.application, "count" + System.nanoTime());
+        JobManager jobManager = createJobManager();
         jobManager.stop();
         for (int i = 0; i < 10; i++) {
             jobManager.addJob(0, new PersistentDummyJob());
@@ -367,7 +376,7 @@ public class MainRoboTest {
 
     @Test
     public void testSessionId() throws Exception {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         Long sessionId = Reflection.field("sessionId").ofType(long.class)
                 .in(jobManager).get();
         jobManager.stop();
@@ -391,22 +400,6 @@ public class MainRoboTest {
         return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
     }
 
-    private JobManager createNewJobManager(String id, Configuration configuration) {
-        return new JobManager(Robolectric.application, configuration);
-    }
-
-    private JobManager createNewJobManager(Configuration configuration) {
-        return createNewJobManager("_" + System.nanoTime(), configuration);
-    }
-
-    private JobManager createNewJobManager(String id) {
-        return new JobManager(Robolectric.application, id);
-    }
-
-    private JobManager createNewJobManager() {
-        return createNewJobManager("_" + System.nanoTime());
-    }
-
     @Test
     public void testAddedCount() throws Exception {
         testAddedCount(new DummyJob());
@@ -415,7 +408,7 @@ public class MainRoboTest {
     }
 
     private void testAddedCount(DummyJob dummyJob) {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         jobManager.stop();
         jobManager.addJob(0, dummyJob);
         MatcherAssert.assertThat(1, equalTo(dummyJob.getOnAddedCnt()));
@@ -424,7 +417,7 @@ public class MainRoboTest {
 
     @Test
     public void testReRunWithLimit() throws Exception {
-        JobManager jobManager = createNewJobManager();
+        JobManager jobManager = createJobManager();
         testReRun(jobManager, false);
         testReRun(jobManager, true);
     }
