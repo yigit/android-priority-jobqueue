@@ -9,8 +9,7 @@ import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,7 +24,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
-    private AtomicInteger runningConsumerCount = new AtomicInteger(0);
+    private final AtomicInteger runningConsumerCount;
     private final long sessionId;
     private final Executor executor;
     private int maxConsumerCount;
@@ -35,6 +34,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private NetworkUtil networkUtil;
     private final Context appContext;
     private DependencyInjector dependencyInjector;
+    private final List<String> runningJobGroups;
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -63,6 +63,8 @@ public class JobManager implements NetworkEventProvider.Listener {
         appContext = context.getApplicationContext();
         maxConsumerCount = config.getMaxConsumerCount();
         running = true;
+        runningConsumerCount = new AtomicInteger(0);
+        runningJobGroups = new ArrayList<String>();//no reason to use a hashMap, this list is very small
         sessionId = System.nanoTime();
         //by providing an array blocking queue w/ maxConsumerCount size, we let it queue new items while some are about
         //to die.
@@ -233,17 +235,20 @@ public class JobManager implements NetworkEventProvider.Listener {
         JobHolder jobHolder;
         boolean persistent = false;
         synchronized (nonPersistentJobQueue) {
-            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, null);
+            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
         }
         if (jobHolder == null && nonPersistentOnly == false) {
             //go to disk, there aren't any non-persistent jobs
             synchronized (persistentJobQueue) {
-                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, null);
+                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
                 persistent = true;
             }
         }
         if(persistent && jobHolder != null && dependencyInjector != null) {
             dependencyInjector.inject(jobHolder.getBaseJob());
+        }
+        if(jobHolder != null && jobHolder.getGroupId() != null) {
+            runningJobGroups.add(jobHolder.getGroupId());
         }
         return jobHolder;
     }
@@ -258,6 +263,9 @@ public class JobManager implements NetworkEventProvider.Listener {
                 nonPersistentJobQueue.remove(jobHolder);
             }
         }
+        if(jobHolder.getGroupId() != null) {
+            runningJobGroups.remove(jobHolder.getGroupId());
+        }
     }
 
     public void clear() {
@@ -267,6 +275,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         synchronized (persistentJobQueue) {
             persistentJobQueue.clear();
         }
+        runningJobGroups.clear();
     }
 
     /**
