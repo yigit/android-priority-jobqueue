@@ -6,13 +6,11 @@ import android.util.Log;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.fest.reflect.core.Reflection;
@@ -29,13 +27,12 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.UUID;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(RobolectricTestRunner.class)
-public class MainRoboTest {
+public class JobManagerTest {
     //TEST parallel running
     @Test
     public void runManyNonPersistentJobs() throws Exception {
@@ -438,7 +435,7 @@ public class MainRoboTest {
 
         @Override
         public void onRun() throws Throwable {
-            MainRoboTest.persistentRunLatch.countDown();
+            JobManagerTest.persistentRunLatch.countDown();
         }
     }
 
