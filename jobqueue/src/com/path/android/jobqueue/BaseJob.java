@@ -72,6 +72,9 @@ abstract public class BaseJob implements Serializable {
         boolean failed = false;
         try {
             onRun();
+            if (JqLog.isDebugEnabled()) {
+                JqLog.d("finished job %s", this.getClass().getSimpleName());
+            }
         } catch (Throwable t) {
             failed = true;
             JqLog.e(t, "error while executing job");

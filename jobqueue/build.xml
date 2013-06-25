@@ -161,9 +161,11 @@
         <cobertura-report format="html" destdir="${coveragereport.dir}" srcdir="${src.dir}"/>
     </target>
 
-    <target name="build-jar" description="Depends on Eclipse to have everthing compiled into bin/">
+    <target name="build-jar" depends="release" description="builds jar from compiled code">
         <mkdir dir="release" />
-        <jar jarfile="release/android-priority-jobqueue-0.9.jar">
+        <xpath input="AndroidManifest.xml" expression="/manifest/@android:versionName"
+               output="versionName" default="unknown"/>
+        <jar jarfile="release/android-priority-jobqueue-${versionName}.jar">
             <fileset dir="${out.dir}/classes">
                 <include name="com/path/android/jobqueue/**" />
             </fileset>

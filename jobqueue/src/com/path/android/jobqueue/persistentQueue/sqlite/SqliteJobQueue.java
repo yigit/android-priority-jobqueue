@@ -112,6 +112,7 @@ public class SqliteJobQueue implements JobQueue {
     private void delete(Long id) {
         SQLiteStatement stmt = sqlHelper.getDeleteStatement();
         synchronized (stmt) {
+            stmt.clearBindings();
             stmt.bindLong(1, id);
             stmt.execute();
         }
@@ -124,6 +125,7 @@ public class SqliteJobQueue implements JobQueue {
     public int count() {
         SQLiteStatement stmt = sqlHelper.getCountStatement();
         synchronized (stmt) {
+            stmt.clearBindings();
             stmt.bindLong(1, sessionId);
             return (int) stmt.simpleQueryForLong();
         }
@@ -195,6 +197,7 @@ public class SqliteJobQueue implements JobQueue {
                 : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
         synchronized (stmt) {
             try {
+                stmt.clearBindings();
                 return stmt.simpleQueryForLong();
             } catch (SQLiteDoneException e){
                 return null;
@@ -212,6 +215,7 @@ public class SqliteJobQueue implements JobQueue {
         jobHolder.setRunCount(jobHolder.getRunCount() + 1);
         jobHolder.setRunningSessionId(sessionId);
         synchronized (stmt) {
+            stmt.clearBindings();
             stmt.bindLong(1, jobHolder.getRunCount());
             stmt.bindLong(2, sessionId);
             stmt.bindLong(3, jobHolder.getId());
