@@ -8,6 +8,7 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
+import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
@@ -60,7 +61,28 @@ public class JobManagerTest {
     @Before
     public void setUp() throws Exception {
         ShadowLog.stream = System.out;
-        JqLog.getConfig().setLoggingLevel(Log.DEBUG);
+        JqLog.setCustomLogger(new CustomLogger() {
+            private String TAG = "test_logger";
+            @Override
+            public boolean isDebugEnabled() {
+                return true;
+            }
+
+            @Override
+            public void d(String text, Object... args) {
+                Log.d(TAG, String.format(text, args));
+            }
+
+            @Override
+            public void e(Throwable t, String text, Object... args) {
+                Log.e(TAG, String.format(text, args), t);
+            }
+
+            @Override
+            public void e(String text, Object... args) {
+                Log.e(TAG, String.format(text, args));
+            }
+        });
     }
 
 

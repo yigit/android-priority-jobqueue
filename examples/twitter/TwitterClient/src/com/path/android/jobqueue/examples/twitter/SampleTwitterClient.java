@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
-import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.examples.twitter.activities.BaseActivity;
 import com.path.android.jobqueue.examples.twitter.adapters.LazyListAdapter;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
@@ -19,7 +18,7 @@ import com.path.android.jobqueue.examples.twitter.jobs.FetchTweetsJob;
 import com.path.android.jobqueue.examples.twitter.jobs.PostTweetJob;
 import com.path.android.jobqueue.examples.twitter.models.TweetModel;
 import com.path.android.jobqueue.examples.twitter.tasks.SimpleBackgroundTask;
-import com.path.android.jobqueue.log.Strings;
+import com.path.android.jobqueue.examples.twitter.util.Strings;
 import de.greenrobot.dao.LazyList;
 import de.greenrobot.event.EventBus;
 

@@ -103,7 +103,7 @@ public class SqliteJobQueue implements JobQueue {
     @Override
     public void remove(JobHolder jobHolder) {
         if (jobHolder.getId() == null) {
-            JqLog.w("called remove with null job id.");
+            JqLog.e("called remove with null job id.");
             return;
         }
         delete(jobHolder.getId());

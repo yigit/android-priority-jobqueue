@@ -2,6 +2,7 @@ package com.path.android.jobqueue.config;
 
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.di.DependencyInjector;
+import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.network.NetworkUtilImpl;
 
@@ -19,6 +20,7 @@ public class Configuration {
     private JobManager.QueueFactory queueFactory;
     private DependencyInjector dependencyInjector;
     private NetworkUtil networkUtil;
+    private CustomLogger customLogger;
 
     public Configuration withId(String id) {
         this.id = id;
@@ -60,6 +62,11 @@ public class Configuration {
         return this;
     }
 
+    public Configuration withCustomLogger(CustomLogger logger) {
+        this.customLogger = logger;
+        return this;
+    }
+
     public String getId() {
         return id;
     }
@@ -82,5 +89,9 @@ public class Configuration {
 
     public int getMaxConsumerCount() {
         return maxConsumerCount;
+    }
+
+    public CustomLogger getCustomLogger() {
+        return customLogger;
     }
 }

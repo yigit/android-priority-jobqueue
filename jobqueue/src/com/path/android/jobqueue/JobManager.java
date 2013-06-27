@@ -1,5 +1,6 @@
 package com.path.android.jobqueue;
 
+import android.app.Activity;
 import android.content.Context;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * -> Persistent / Non Persistent Jobs
  * -> Job Priority
  * -> Running Jobs in Parallel
+ * -> Grouping jobs so that they won't run at the same time
  * -> Stats like waiting Job Count
  */
 public class JobManager implements NetworkEventProvider.Listener {
@@ -62,6 +64,9 @@ public class JobManager implements NetworkEventProvider.Listener {
      * @param config
      */
     public JobManager(Context context, Configuration config) {
+        if(config.getCustomLogger() != null) {
+            JqLog.setCustomLogger(config.getCustomLogger());
+        }
         appContext = context.getApplicationContext();
         maxConsumerCount = config.getMaxConsumerCount();
         running = true;
