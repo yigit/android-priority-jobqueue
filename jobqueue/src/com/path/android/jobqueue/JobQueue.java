@@ -41,6 +41,13 @@ public interface JobQueue {
     int count();
 
     /**
+     * counts the # of jobs that can run now. if there are more jobs from the same group, they are count as 1 since
+     * they cannot be run in parallel
+     * @return
+     */
+    int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups);
+
+    /**
      * Returns the next available job in the data set
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
      * It should filter out all running jobs and
@@ -62,4 +69,5 @@ public interface JobQueue {
      * clear all jobs in the queue. should probably be called when user logs out.
      */
     void clear();
+
 }

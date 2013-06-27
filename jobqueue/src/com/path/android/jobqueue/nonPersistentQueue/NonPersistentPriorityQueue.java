@@ -57,6 +57,11 @@ public class NonPersistentPriorityQueue implements JobQueue {
         return jobs.size();
     }
 
+    @Override
+    public int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
+        return jobs.countReadyJobs(hasNetwork, excludeGroups).getCount();
+    }
+
     /**
      * {@inheritDoc}
      */

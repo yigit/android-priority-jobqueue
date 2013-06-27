@@ -15,4 +15,6 @@ public interface JobSet {
     public boolean remove(JobHolder holder);
     public void clear();
     public int size();
+    public CountWithGroupIdsResult countReadyJobs(long now, Collection<String> excludeGroups);
+    public CountWithGroupIdsResult countReadyJobs(Collection<String> excludeGroups);
 }

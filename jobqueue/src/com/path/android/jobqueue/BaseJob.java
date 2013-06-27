@@ -78,7 +78,14 @@ abstract public class BaseJob implements Serializable {
         } catch (Throwable t) {
             failed = true;
             JqLog.e(t, "error while executing job");
-            reRun = currentRunCount < getRetryLimit() && shouldReRunOnThrowable(t);
+            reRun = currentRunCount < getRetryLimit();
+            if(reRun) {
+                try {
+                    reRun = shouldReRunOnThrowable(t);
+                } catch (Throwable t2) {
+                    JqLog.e(t2, "shouldReRunOnThrowable did throw an exception");
+                }
+            }
         } finally {
             if (reRun) {
                 return false;

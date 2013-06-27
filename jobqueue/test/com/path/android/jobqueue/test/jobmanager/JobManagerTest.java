@@ -1,4 +1,4 @@
-package com.path.android.jobqueue.test;
+package com.path.android.jobqueue.test.jobmanager;
 
 
 import android.content.Context;
@@ -8,6 +8,7 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
+import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
@@ -16,6 +17,7 @@ import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.fest.reflect.core.Reflection;
 import org.fest.reflect.method.Invoker;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,16 +26,14 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowLog;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(RobolectricTestRunner.class)
-public class JobManagerTest {
+public class JobManagerTest extends JobManagerTestBase {
     //TEST parallel running
     @Test
     public void runManyNonPersistentJobs() throws Exception {
@@ -48,15 +48,6 @@ public class JobManagerTest {
         latch.await(10, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) latch.getCount(), equalTo(0));
     }
-
-    private JobManager createJobManager() {
-        return new JobManager(Robolectric.application, UUID.randomUUID().toString());
-    }
-
-    private JobManager createJobManager(Configuration configuration) {
-        return new JobManager(Robolectric.application, configuration.withId(UUID.randomUUID().toString()));
-    }
-
 
     @Before
     public void setUp() throws Exception {
@@ -86,68 +77,7 @@ public class JobManagerTest {
     }
 
 
-    private static AtomicInteger multiThreadedJobCounter;
-    @Test
-    public void testMultiThreaded() throws Exception {
-        multiThreadedJobCounter = new AtomicInteger(0);
-        final JobManager jobManager = createJobManager();
-        int limit = 200;
-        ExecutorService executor = Executors.newFixedThreadPool(20);
-        Collection<Future<?>> futures = new LinkedList<Future<?>>();
-        for(int i = 0; i < limit; i++) {
-            final int id = i;
-            futures.add(executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    final boolean persistent = Math.round(Math.random()) % 2 == 0;
-                    boolean requiresNetwork = Math.round(Math.random()) % 2 == 0;
-                    int priority = (int) (Math.round(Math.random()) % 10);
-                    multiThreadedJobCounter.incrementAndGet();
-                    jobManager.addJob(priority, new DummyJobForMultiThread(id, requiresNetwork, persistent));
-                }
-            }));
-        }
-        for (Future<?> future:futures) {
-            future.get();
-        }
-        Log.d("TAG", "added all jobs");
-        //wait until all jobs are added
-        long start = System.nanoTime();
-        long timeLimit = JobManager.NS_PER_MS * 20000;//20 seconds
-        while(System.nanoTime() - start < timeLimit && multiThreadedJobCounter.get() != 0) {
-            Thread.sleep(1000);
-        }
-        Log.d("TAG", "did we reach timeout? " + (System.nanoTime() - start >= timeLimit));
 
-        MatcherAssert.assertThat("jobmanager count should be 0",
-                jobManager.count(), equalTo(0));
-
-        MatcherAssert.assertThat("multiThreadedJobCounter should be 0",
-                multiThreadedJobCounter.get(), equalTo(0));
-
-    }
-
-    public static class DummyJobForMultiThread extends DummyJob {
-        private int id;
-        private boolean persist;
-        private DummyJobForMultiThread(int id, boolean requiresNetwork, boolean persist) {
-            super(requiresNetwork);
-            this.persist = persist;
-            this.id = id;
-        }
-
-        @Override
-        public boolean shouldPersist() {
-            return persist;
-        }
-
-        @Override
-        public void onRun() throws Throwable {
-            super.onRun();
-            int remaining = multiThreadedJobCounter.decrementAndGet();
-            Log.d("DummyJobForMultiThread", "persistent:" + persist + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
-        }
-    };
 
     @Test
     public void runFailingJob() throws Exception {
@@ -195,7 +125,7 @@ public class JobManagerTest {
                 injectionCallCount.incrementAndGet();
             }
         };
-        configuration.withInjector(dependencyInjector);
+        configuration.injector(dependencyInjector);
         JobManager jobManager = createJobManager(configuration);
         jobManager.stop();
         jobManager.addJob(4, new DummyJob());
@@ -252,9 +182,10 @@ public class JobManagerTest {
         Thread.sleep(500);
         MatcherAssert.assertThat("delayed job should not be served",  nextJobMethod.invoke(), nullValue());
         MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
-        Thread.sleep(1000);
+        Thread.sleep(2000);
+        MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
         receivedJob = nextJobMethod.invoke();
-        MatcherAssert.assertThat("now should be able to receive the delayed job", receivedJob, notNullValue());
+        MatcherAssert.assertThat("now should be able to receive the delayed job.", receivedJob, notNullValue());
         if(receivedJob != null) {
             MatcherAssert.assertThat("received job should be the delayed job", receivedJob.getId(), equalTo(jobId));
         }
@@ -281,7 +212,7 @@ public class JobManagerTest {
     @Test
     public void testNetworkNextJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
         jobManager.stop();
         DummyJob dummyJob = new DummyJob(true);
         long dummyJobId = jobManager.addJob(0, dummyJob);
@@ -298,7 +229,7 @@ public class JobManagerTest {
     @Test
     public void testNetworkJobWithConnectivityListener() throws Exception {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
         dummyNetworkUtil.setHasNetwork(false, true);
         DummyJob dummyJob = new DummyJob(true);
         long dummyJobId = jobManager.addJob(0, dummyJob);
@@ -318,7 +249,7 @@ public class JobManagerTest {
     @Test
     public void testNetworkJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().withNetworkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
         jobManager.stop();
 
         DummyJob networkDummyJob = new DummyJob(true);
@@ -419,6 +350,16 @@ public class JobManagerTest {
         return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
     }
 
+    private JobConsumerExecutor getConsumerExecutor(JobManager jobManager) {
+        return Reflection.field("jobConsumerExecutor").ofType(JobConsumerExecutor.class).in(jobManager).get();
+    }
+
+    private org.fest.reflect.field.Invoker<AtomicInteger> getActiveConsumerCount(JobConsumerExecutor jobConsumerExecutor) {
+        return Reflection.field("activeConsumerCount").ofType(AtomicInteger.class).in(jobConsumerExecutor);
+    }
+
+
+
     @Test
     public void testAddedCount() throws Exception {
         testAddedCount(new DummyJob());
@@ -433,6 +374,190 @@ public class JobManagerTest {
         MatcherAssert.assertThat(1, equalTo(dummyJob.getOnAddedCnt()));
     }
 
+    public static class NeverEndingDummyJob extends DummyJob {
+        final Object lock;
+        final Semaphore semaphore;
+        public NeverEndingDummyJob(Object lock, Semaphore semaphore) {
+            this.lock = lock;
+            this.semaphore = semaphore;
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            super.onRun();
+            MatcherAssert.assertThat("job should be able to acquire a semaphore",
+                    semaphore.tryAcquire(), equalTo(true));
+            synchronized (lock) {
+                lock.wait();
+            }
+            semaphore.release();
+        }
+    }
+
+    @Test
+    public void testMaxConsumerCount() throws Exception {
+        int maxConsumerCount = 2;
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
+                .maxConsumerCount(maxConsumerCount)
+                .loadFactor(maxConsumerCount));
+        Object runLock = new Object();
+        Semaphore semaphore = new Semaphore(maxConsumerCount);
+        int totalJobCount = maxConsumerCount * 3;
+        List<DummyJob> runningJobs = new ArrayList<DummyJob>(totalJobCount);
+        for(int i = 0; i < totalJobCount; i ++) {
+            DummyJob job = new NeverEndingDummyJob(runLock, semaphore);
+            runningJobs.add(job);
+            jobManager.addJob((int)(Math.random() * 3), job);
+        }
+        //wait till enough jobs start
+        long now = System.nanoTime();
+        long waitTill = now + TimeUnit.SECONDS.toNanos(10);
+        while(System.nanoTime() < waitTill) {
+            if(semaphore.availablePermits() == 0) {
+                //enough # of jobs started
+                break;
+            }
+        }
+        //wait some more to ensure no more jobs are started
+        Thread.sleep(TimeUnit.SECONDS.toMillis(3));
+        int totalRunningCount = 0;
+        for(DummyJob job : runningJobs) {
+            totalRunningCount += job.getOnRunCnt();
+        }
+        MatcherAssert.assertThat("only maxConsumerCount jobs should start", totalRunningCount, equalTo(maxConsumerCount));
+        //try to finish all jobs
+        //wait till enough jobs start
+        now = System.nanoTime();
+        waitTill = now + TimeUnit.SECONDS.toNanos(10);
+        while(System.nanoTime() < waitTill) {
+            synchronized (runLock) {
+                runLock.notifyAll();
+            }
+            totalRunningCount = 0;
+            for(DummyJob job : runningJobs) {
+                totalRunningCount += job.getOnRunCnt();
+            }
+            if(totalJobCount == totalRunningCount) {
+                //cool!
+                break;
+            }
+        }
+        MatcherAssert.assertThat("no jobs should remain", jobManager.count(), equalTo(0));
+
+    }
+
+    @Test
+    public void testLoadFactor() throws Exception {
+        //test adding zillions of jobs from the same group and ensure no more than 1 thread is created
+        int maxConsumerCount = 2;
+        int loadFactor = 5;
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
+                .maxConsumerCount(maxConsumerCount)
+                .loadFactor(loadFactor));
+        JobConsumerExecutor consumerExecutor = getConsumerExecutor(jobManager);
+        org.fest.reflect.field.Invoker<AtomicInteger> activeConsumerCnt = getActiveConsumerCount(consumerExecutor);
+        Object runLock = new Object();
+        Semaphore semaphore = new Semaphore(maxConsumerCount);
+        int totalJobCount = loadFactor * maxConsumerCount * 5;
+        List<DummyJob> runningJobs = new ArrayList<DummyJob>(totalJobCount);
+        for(int i = 0; i < totalJobCount; i ++) {
+            DummyJob job = new NeverEndingDummyJob(runLock, semaphore);
+            runningJobs.add(job);
+            jobManager.addJob((int)(Math.random() * 3), job);
+
+            int expectedConsumerCount = Math.min(maxConsumerCount, (int)Math.ceil((float)i / loadFactor));
+            //wait till enough jobs start
+            long now = System.nanoTime();
+            long waitTill = now + TimeUnit.SECONDS.toNanos(10);
+            while(System.nanoTime() < waitTill) {
+                if(semaphore.availablePermits() == maxConsumerCount - expectedConsumerCount) {
+                    //enough # of jobs started
+                    break;
+                }
+            }
+            if(i < loadFactor) {
+                //make sure there is only 1 job running
+                MatcherAssert.assertThat("while below load factor, active consumer count should be <= 1",
+                        activeConsumerCnt.get().get() <= 1, is(true));
+            }
+            if(i > loadFactor) {
+                //make sure there is only 1 job running
+                MatcherAssert.assertThat("while above load factor. there should be more job consumers",
+                        activeConsumerCnt.get().get(), equalTo(expectedConsumerCount));
+            }
+        }
+
+        //finish all jobs
+        long now = System.nanoTime();
+        long waitTill = now + TimeUnit.SECONDS.toNanos(10);
+        while(System.nanoTime() < waitTill) {
+            synchronized (runLock) {
+                runLock.notifyAll();
+            }
+            long totalRunningCount = 0;
+            for(DummyJob job : runningJobs) {
+                totalRunningCount += job.getOnRunCnt();
+            }
+            if(totalJobCount == totalRunningCount) {
+                //cool!
+                break;
+            }
+        }
+        MatcherAssert.assertThat("no jobs should remain", jobManager.count(), equalTo(0));
+
+    }
+
+    @Test
+    public void testKeepAlive() throws Exception {
+        int keepAlive = 3 + (int)(Math.random() * 5);
+        long id = System.nanoTime();
+        DummyNetworkUtil networkUtilWithoutEventSupport = new DummyNetworkUtil();
+        DummyNetworkUtilWithConnectivityEventSupport networkUtilWithEventSupport = new DummyNetworkUtilWithConnectivityEventSupport();
+        JobManager jobManager1 = createJobManager(JobManager.createDefaultConfiguration()
+                .consumerKeepAlive(keepAlive).id(id + "a").networkUtil(networkUtilWithoutEventSupport));
+        JobManager jobManager2 = createJobManager(JobManager.createDefaultConfiguration()
+                .consumerKeepAlive(keepAlive).id(id + "b")
+                .networkUtil(networkUtilWithEventSupport));
+        //give it a little time to create first consumer
+        jobManager1.addJob(0, new DummyJob());
+        jobManager2.addJob(0, new DummyJob());
+        AtomicInteger activeThreadCount1 = getActiveConsumerCount(getConsumerExecutor(jobManager1)).get();
+        AtomicInteger activeThreadCount2 = getActiveConsumerCount(getConsumerExecutor(jobManager2)).get();
+
+        Thread.sleep(1000);
+        MatcherAssert.assertThat("there should be 1 thread  actively waiting for jobs",
+                activeThreadCount1.get(), equalTo(1));
+        MatcherAssert.assertThat("there should be one thread actively waiting for jobs",
+                activeThreadCount2.get(), equalTo(1));
+        //sleep till it dies
+        Thread.sleep((long) (TimeUnit.SECONDS.toMillis(keepAlive) * 1.33));
+        MatcherAssert.assertThat("after keep alive timeout, there should NOT be any threads waiting",
+                activeThreadCount1.get(), equalTo(0));
+        MatcherAssert.assertThat("after keep alive timeout, there should NOT be any threads waiting",
+                activeThreadCount2.get(), equalTo(0));
+
+
+        //disable network and add a network bound job
+        networkUtilWithoutEventSupport.setHasNetwork(false);
+        networkUtilWithEventSupport.setHasNetwork(false, true);
+        jobManager1.addJob(0, new DummyJob(true));
+        jobManager2.addJob(0, new DummyJob(true));
+        Thread.sleep(1000 + (long) (TimeUnit.SECONDS.toMillis(keepAlive) * 2));
+        MatcherAssert.assertThat("when network changes cannot be detected, there should be a consumer waiting alive",
+                activeThreadCount1.get(), equalTo(1));
+        MatcherAssert.assertThat("when network changes can be detected, there should not be a consumer waiting alive",
+                activeThreadCount2.get(), equalTo(0));
+        networkUtilWithEventSupport.setHasNetwork(true, true);
+        networkUtilWithoutEventSupport.setHasNetwork(true);
+        Thread.sleep(500);
+        MatcherAssert.assertThat("when network is recovered, job should be handled",
+                jobManager2.count(), equalTo(0));
+        Thread.sleep(1000);
+        MatcherAssert.assertThat("when network is recovered, job should be handled",
+                jobManager1.count(), equalTo(0));
+
+
+    }
 
     @Test
     public void testReRunWithLimit() throws Exception {
@@ -476,61 +601,6 @@ public class JobManagerTest {
         MatcherAssert.assertThat("even after group2 job is complete, no jobs should be returned since we only have group1 jobs left", nextJobMethod.invoke(), is(nullValue()));
     }
 
-    private static class DummyPersistentLatchJob extends PersistentDummyJob {
-
-        @Override
-        public void onRun() throws Throwable {
-            JobManagerTest.persistentRunLatch.countDown();
-        }
-    }
-
-    private static class DummyLatchJob extends DummyJob {
-        private final CountDownLatch latch;
-
-        private DummyLatchJob(CountDownLatch latch) {
-            this.latch = latch;
-        }
-
-        @Override
-        public void onRun() throws Throwable {
-            super.onRun();
-            latch.countDown();
-        }
-    }
-
-
-    private static class DummyJobWithRunCount extends DummyJob {
-        public static int runCount;
-        private boolean persist;
-
-        private DummyJobWithRunCount(boolean persist) {
-            this.persist = persist;
-        }
-
-        @Override
-        public void onRun() throws Throwable {
-            runCount++;
-            super.onRun();
-            throw new RuntimeException("i am dummy, i throw exception when running");
-        }
-
-        @Override
-        public boolean shouldPersist() {
-            return persist;
-        }
-
-        @Override
-        protected boolean shouldReRunOnThrowable(Throwable throwable) {
-            return true;
-        }
-
-        @Override
-        protected int getRetryLimit() {
-            return 5;
-        }
-    }
-
-
     public static class DummyJobWithRunOrderAssert extends BaseJob {
         transient public static AtomicInteger globalRunCount;
         private int expectedRunOrder;
@@ -566,53 +636,6 @@ public class JobManagerTest {
         @Override
         protected boolean shouldReRunOnThrowable(Throwable throwable) {
             return false;
-        }
-    }
-
-    private static class DummyNetworkUtil implements NetworkUtil {
-        private boolean hasNetwork;
-
-        private void setHasNetwork(boolean hasNetwork) {
-            this.hasNetwork = hasNetwork;
-        }
-
-        @Override
-        public boolean isConnected(Context context) {
-            return hasNetwork;
-        }
-    }
-
-    private static class DummyNetworkUtilWithConnectivityEventSupport implements NetworkUtil, NetworkEventProvider {
-        private boolean hasNetwork;
-        private Listener listener;
-
-        private void setHasNetwork(boolean hasNetwork, boolean notifyListener) {
-            this.hasNetwork = hasNetwork;
-            if(notifyListener && listener != null) {
-                listener.onNetworkChange(hasNetwork);
-            }
-        }
-
-        @Override
-        public boolean isConnected(Context context) {
-            return hasNetwork;
-        }
-
-        @Override
-        public void setListener(Listener listener) {
-            this.listener = listener;
-        }
-    }
-
-    private static class ObjectReference {
-        Object object;
-
-        private Object getObject() {
-            return object;
-        }
-
-        private void setObject(Object object) {
-            this.object = object;
         }
     }
 

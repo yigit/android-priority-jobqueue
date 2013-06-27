@@ -66,4 +66,22 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
     }
 
 
+    public CountWithGroupIdsResult countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
+        long now = System.nanoTime();
+        if(hasNetwork) {
+            return super.countReadyJobs(SetId.S0, now, excludeGroups).mergeWith(super.countReadyJobs(SetId.S1, now, excludeGroups));
+        } else {
+            return super.countReadyJobs(SetId.S1, now, excludeGroups);
+        }
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(long now, Collection<String> excludeGroups) {
+        throw new UnsupportedOperationException("cannot call network aware priority queue count w/o providing network status");
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(Collection<String> excludeGroups) {
+        throw new UnsupportedOperationException("cannot call network aware priority queue count w/o providing network status");
+    }
 }

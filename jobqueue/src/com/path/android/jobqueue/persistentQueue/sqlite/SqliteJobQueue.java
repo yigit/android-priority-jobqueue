@@ -13,6 +13,7 @@ import com.path.android.jobqueue.log.JqLog;
 import org.apache.http.util.ExceptionUtils;
 
 import java.io.*;
+import java.sql.SQLException;
 import java.util.Collection;
 
 /**
@@ -131,6 +132,25 @@ public class SqliteJobQueue implements JobQueue {
         }
     }
 
+    @Override
+    public int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
+        String where = createReadyJobWhereSql(hasNetwork, excludeGroups, true);
+        String subSelect = "SELECT count(*) group_cnt, " + DbOpenHelper.GROUP_ID_COLUMN.columnName
+                + " FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME
+                + " WHERE " + where;
+        String sql = "SELECT SUM(case WHEN " + DbOpenHelper.GROUP_ID_COLUMN.columnName
+                + " is null then group_cnt else 1 end) from (" + subSelect + ")";
+        Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});
+        try {
+            if(!cursor.moveToNext()) {
+                return 0;
+            }
+            return cursor.getInt(0);
+        } finally {
+            cursor.close();
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -138,19 +158,7 @@ public class SqliteJobQueue implements JobQueue {
     public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
         //TODO
         //see if we can avoid creating a new query all the time
-        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
-                + " AND " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " <= ? ";
-        if(hasNetwork == false) {
-            where += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1 ";
-        }
-        boolean test = false;
-        if(test) {
-            where += " AND " + DbOpenHelper.ID_COLUMN.columnName + " = 6";
-        } else if(excludeGroups != null && excludeGroups.size() > 0) {
-            //we don't dare to escape strings. no one will do it right? :)
-            where += " AND (" + DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
-                    DbOpenHelper.GROUP_ID_COLUMN.columnName + " NOT IN('" + joinStrings("','", excludeGroups) + "'))";
-        }
+        String where = createReadyJobWhereSql(hasNetwork, excludeGroups, false);
         String selectQuery = sqlHelper.createSelect(
                 where,
                 1,
@@ -158,7 +166,7 @@ public class SqliteJobQueue implements JobQueue {
                 new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
                 new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
         );
-        Cursor cursor = db.rawQuery(selectQuery, new String[]{Long.toString(System.nanoTime())});
+        Cursor cursor = db.rawQuery(selectQuery, new String[]{Long.toString(sessionId),Long.toString(System.nanoTime())});
         try {
             if (!cursor.moveToNext()) {
                 return null;
@@ -174,6 +182,28 @@ public class SqliteJobQueue implements JobQueue {
         } finally {
             cursor.close();
         }
+    }
+
+    private String createReadyJobWhereSql(boolean hasNetwork, Collection<String> excludeGroups, boolean groupByRunningGroup) {
+        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != ? "
+                + " AND " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " <= ? ";
+        if(hasNetwork == false) {
+            where += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1 ";
+        }
+        String groupConstraint = null;
+        if(excludeGroups != null && excludeGroups.size() > 0) {
+            groupConstraint = DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
+                    DbOpenHelper.GROUP_ID_COLUMN.columnName + " NOT IN('" + joinStrings("','", excludeGroups) + "')";
+        }
+        if(groupByRunningGroup) {
+            where += " GROUP BY " + DbOpenHelper.GROUP_ID_COLUMN.columnName;
+            if(groupConstraint != null) {
+                where += " HAVING " + groupConstraint;
+            }
+        } else if(groupConstraint != null) {
+            where += " AND ( " + groupConstraint + " )";
+        }
+        return where;
     }
 
     private static String joinStrings(String glue, Collection<String> strings) {

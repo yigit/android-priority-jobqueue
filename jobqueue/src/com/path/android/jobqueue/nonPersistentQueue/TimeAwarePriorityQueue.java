@@ -42,4 +42,14 @@ public class TimeAwarePriorityQueue extends MergedQueue {
             return new NonPersistentJobSet(new ConsistentTimedComparator(comparator));
         }
     }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(long now, Collection<String> excludeGroups) {
+        return super.countReadyJobs(SetId.S0, excludeGroups).mergeWith(super.countReadyJobs(SetId.S1, now, excludeGroups));
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(Collection<String> excludeGroups) {
+        throw new UnsupportedOperationException("cannot call time aware priority queue's count ready jobs w/o providing a time");
+    }
 }

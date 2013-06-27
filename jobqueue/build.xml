@@ -195,6 +195,7 @@
 
         <mkdir dir="${basedir}/out/reports/tests"/>
         <junit showoutput="true" fork="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
+            <jvmarg value="-Xmx2g"/>
             <formatter type="plain" usefile="false"/>
             <formatter type="plain"/>
             <sysproperty key="net.sourceforge.cobertura.datafile"
@@ -226,4 +227,34 @@
     <taglet name="org.apache.commons.attributes.javadoc.CATaglet" path="${ant.home}/lib/commons-attributes-compiler-2.2.jar"/>
     <fileset dir="${source.absolute.dir}" includes="**/*.java"/>
     </javadoc>
+
+    <target name="ensure-test-name" unless="test">
+        <fail message="You must run this target with -Dtest=TestName"/>
+    </target>
+
+    <target name="runtest" description="Runs the test you specify on the command
+    line with -Dtest=" depends="compile.tests, ensure-test-name">
+        <junit showoutput="true" fork="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
+            <formatter type="plain" usefile="false"/>
+            <formatter type="plain"/>
+            <sysproperty key="net.sourceforge.cobertura.datafile"
+                         file="${cobertura.absolute}"/>
+            <sysproperty key="tests" value="${tests}"/>
+            <classpath location="${instrumented.absolute.dir}"/>
+            <classpath>
+                <pathelement path="${out.classes.absolute.dir}"/>
+                <pathelement path="${out.test-classes.absolute.dir}"/>
+                <fileset dir="${test.external.libs.absolute.dir}" includes="*.jar"/>
+                <fileset dir="${jar.libs.dir}" includes="*.jar"/>
+                <path refid="project.target.class.path"/>
+                <pathelement path="${sdk.dir}/extras/android/support/v4/android-support-v4.jar"/>
+            </classpath>
+            <classpath refid="cobertura.classpath"/>
+            <batchtest>
+                <fileset dir="${test.absolute.dir}">
+                    <include name="**/${test}.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
 </project>

@@ -1,10 +1,9 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.log.JqLog;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * This is the default implementation of JobSet.
@@ -13,9 +12,12 @@ import java.util.TreeSet;
  */
 public class NonPersistentJobSet implements JobSet {
     TreeSet<JobHolder> set;
+    //groupId -> # of jobs in that group
+    Map<String, Integer> existingGroups;
 
     public NonPersistentJobSet(Comparator<JobHolder> comparator) {
         this.set = new TreeSet<JobHolder>(comparator);
+        this.existingGroups = new HashMap<String, Integer>();
     }
 
     private JobHolder safeFirst() {
@@ -68,24 +70,115 @@ public class NonPersistentJobSet implements JobSet {
         boolean result = set.add(holder);
         if(result == false) {
             //remove the existing element and add new one
-            set.remove(holder);
-            return set.add(holder);
+            remove(holder);
+            result = set.add(holder);
         }
-        return true;
+        if(result && holder.getGroupId() != null) {
+            incGroupCount(holder.getGroupId());
+        }
+        return result;
+    }
+
+    private void incGroupCount(String groupId) {
+        if(existingGroups.containsKey(groupId) == false) {
+            existingGroups.put(groupId, 1);
+        } else {
+            existingGroups.put(groupId, existingGroups.get(groupId) + 1);
+        }
+    }
+
+    private void decGroupCount(String groupId) {
+        Integer val = existingGroups.get(groupId);
+        if(val == null || val == 0) {
+            //TODO should we crash?
+            JqLog.e("detected inconsistency in NonPersistentJobSet's group id hash");
+            return;
+        }
+        val -= 1;
+        if(val == 0) {
+            existingGroups.remove(groupId);
+        }
     }
 
     @Override
     public boolean remove(JobHolder holder) {
-        return set.remove(holder);
+        boolean removed = set.remove(holder);
+        if(removed && holder.getGroupId() != null) {
+            decGroupCount(holder.getGroupId());
+        }
+        return removed;
     }
+
+
 
     @Override
     public void clear() {
         set.clear();
+        existingGroups.clear();
     }
 
     @Override
     public int size() {
         return set.size();
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(long now, Collection<String> excludeGroups) {
+        //TODO we can cache most of this
+        int total = 0;
+        int groupCnt = existingGroups.keySet().size();
+        Set<String> groupIdSet = null;
+        if(groupCnt > 0) {
+            groupIdSet = new HashSet<String>();//we have to track :/
+        }
+        for(JobHolder holder : set) {
+            if(holder.getDelayUntilNs() < now) {
+                //we should not need to check groupCnt but what if sth is wrong in hashmap, be defensive till
+                //we write unit tests around NonPersistentJobSet
+                if(holder.getGroupId() != null) {
+                    if(excludeGroups != null && excludeGroups.contains(holder.getGroupId())) {
+                        continue;
+                    }
+                    //we should not need to check groupCnt but what if sth is wrong in hashmap, be defensive till
+                    //we write unit tests around NonPersistentJobSet
+                    if(groupCnt > 0) {
+                        if(groupIdSet.add(holder.getGroupId())) {
+                            total++;
+                        }
+                    }
+                    //else skip, we already counted this group
+                } else {
+                    total ++;
+                }
+            }
+        }
+        return new CountWithGroupIdsResult(total, groupIdSet);
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(Collection <String> excludeGroups) {
+        if(existingGroups.size() == 0) {
+            return new CountWithGroupIdsResult(set.size(), null);
+        } else {
+            //todo we can actually count from existingGroups set if we start counting numbers there as well
+            int total = 0;
+            Set<String> existingGroupIds = null;
+            for(JobHolder holder : set) {
+                if(holder.getGroupId() != null) {
+                    if(excludeGroups != null && excludeGroups.contains(holder.getGroupId())) {
+                        continue;
+                    } else if(existingGroupIds == null) {
+                        existingGroupIds = new HashSet<String>();
+                        existingGroupIds.add(holder.getGroupId());
+                    } else if(existingGroupIds.add(holder.getGroupId()) == false) {
+                        continue;
+                    }
+
+                }
+                total ++;
+            }
+            return new CountWithGroupIdsResult(total, existingGroupIds);
+        }
+
     }
 }

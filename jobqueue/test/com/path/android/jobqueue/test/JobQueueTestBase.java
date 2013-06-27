@@ -4,6 +4,7 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.test.jobs.DummyJob;
+import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.fest.reflect.core.Reflection;
 import org.fest.reflect.method.Invoker;
@@ -13,6 +14,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.*;
 
@@ -341,6 +343,59 @@ public abstract class JobQueueTestBase {
     }
 
     @Test
+    public void testCountReadyJobs() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        MatcherAssert.assertThat("initial count should be 0 for ready jobs", jobQueue.countReadyJobs(true, null), equalTo(0));
+        //add some jobs
+        jobQueue.insert(createNewJobHolder());
+        jobQueue.insert(createNewJobHolderWithRequiresNetwork(true));
+        long now = System.nanoTime();
+        long delay = 1000;
+        jobQueue.insert(createNewJobHolderWithDelayUntil(false, 0, now + TimeUnit.MILLISECONDS.toNanos(delay)));
+        MatcherAssert.assertThat("ready count should be 1 if there is no network", jobQueue.countReadyJobs(false, null), equalTo(1));
+        MatcherAssert.assertThat("ready count should be 2 if there is network", jobQueue.countReadyJobs(true, null), equalTo(2));
+        Thread.sleep(delay);
+        MatcherAssert.assertThat("when needed delay time passes, ready count should be 3", jobQueue.countReadyJobs(true, null), equalTo(3));
+        MatcherAssert.assertThat("when needed delay time passes but no network, ready count should be 2", jobQueue.countReadyJobs(false, null), equalTo(2));
+        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(5, "group1"));
+        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(5, "group1"));
+        MatcherAssert.assertThat("when more than 1 job from same group is created, ready jobs should increment only by 1",
+                jobQueue.countReadyJobs(true, null), equalTo(4));
+        MatcherAssert.assertThat("excluding groups should work",
+                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1"})), equalTo(3));
+        MatcherAssert.assertThat("giving a non-existing group should not fool the count",
+                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group3423"})), equalTo(4));
+        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(3, "group2"));
+        MatcherAssert.assertThat("when a job from another group is added, ready job count should inc",
+                jobQueue.countReadyJobs(true, null), equalTo(5));
+        now = System.nanoTime();
+        jobQueue.insert(createNewJobHolderWithPriorityAndGroupIdAndDelayUntil(3, "group3", now + TimeUnit.MILLISECONDS.toNanos(delay)));
+        MatcherAssert.assertThat("when a delayed job from another group is added, ready count should not change",
+                jobQueue.countReadyJobs(true, null), equalTo(5));
+        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(3, "group3"));
+        MatcherAssert.assertThat("when another job from delayed group is added, ready job count should inc",
+                jobQueue.countReadyJobs(true, null), equalTo(6));
+        Thread.sleep(delay);
+        MatcherAssert.assertThat("when delay passes and a job from existing group becomes available, ready job count should not change",
+                jobQueue.countReadyJobs(true, null), equalTo(6));
+        MatcherAssert.assertThat("when some groups are excluded, count should be correct",
+                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1", "group3"})), equalTo(4));
+
+        //jobs w/ same group id but with different persistence constraints should not fool the count
+        now = System.nanoTime();
+        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(true, "group10", now + 1000));
+        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(false, "group10", now + 1000));
+        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(true, "group10", now - 1000));
+        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(false, "group10", now - 1000));
+        MatcherAssert.assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
+                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1", "group3"})), equalTo(5));
+        MatcherAssert.assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
+                jobQueue.countReadyJobs(true, null), equalTo(7));
+        MatcherAssert.assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
+                jobQueue.countReadyJobs(false, Arrays.asList(new String[]{"group1", "group3"})), equalTo(4));
+    }
+
+    @Test
     public void testJobFields() throws Exception {
         long sessionId = (long) (Math.random() * 1000);
         JobQueue jobQueue = createNewJobQueueWithSessionId(sessionId);
@@ -391,6 +446,14 @@ public abstract class JobQueueTestBase {
 
     private JobHolder createNewJobHolderWithPriorityAndGroupId(int priority, String groupId) {
         return new JobHolder(null, priority, groupId, 0, new DummyJob(groupId), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+    }
+
+    private JobHolder createNewJobHolderWithGroupIdAndDelayUntil(boolean persistent, String groupId, long delayUntil) {
+        return new JobHolder(null, 0, groupId, 0, persistent ? new PersistentDummyJob(groupId) : new DummyJob(groupId), System.nanoTime(), delayUntil, JobManager.NOT_RUNNING_SESSION_ID);
+    }
+
+    private JobHolder createNewJobHolderWithPriorityAndGroupIdAndDelayUntil(int priority, String groupId, long delayUntilNs) {
+        return new JobHolder(null, priority, groupId, 0, new DummyJob(groupId), System.nanoTime(), delayUntilNs, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobQueue createNewJobQueue() {

@@ -183,6 +183,22 @@ abstract public class MergedQueue implements JobSet {
      */
     abstract protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator);
 
+    public CountWithGroupIdsResult countReadyJobs(SetId setId, long now, Collection<String> excludeGroups) {
+        if(setId == SetId.S0) {
+            return queue0.countReadyJobs(now, excludeGroups);
+        } else {
+            return queue1.countReadyJobs(now, excludeGroups);
+        }
+    }
+
+    public CountWithGroupIdsResult countReadyJobs(SetId setId, Collection<String> excludeGroups) {
+        if(setId == SetId.S0) {
+            return queue0.countReadyJobs(excludeGroups);
+        } else {
+            return queue1.countReadyJobs(excludeGroups);
+        }
+    }
+
     /**
      * simple enum to identify queues
      */

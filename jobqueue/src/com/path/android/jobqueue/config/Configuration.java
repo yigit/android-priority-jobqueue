@@ -12,58 +12,65 @@ import com.path.android.jobqueue.network.NetworkUtilImpl;
 public class Configuration {
     public static final String DEFAULT_ID = "default_job_manager";
     public static int DEFAULT_THREAD_KEEP_ALIVE_SECONDS = 15;
+    public static int DEFAULT_LOAD_FACTOR_PER_CONSUMER = 3;
     public static int MAX_CONSUMER_COUNT = 5;
 
     private String id = DEFAULT_ID;
     private int maxConsumerCount = MAX_CONSUMER_COUNT;
-    private long threadKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
+    private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
+    private int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;
     private JobManager.QueueFactory queueFactory;
     private DependencyInjector dependencyInjector;
     private NetworkUtil networkUtil;
     private CustomLogger customLogger;
 
-    public Configuration withId(String id) {
+    public Configuration id(String id) {
         this.id = id;
         return this;
     }
 
-    public Configuration withThreadKeepAlive(int keepAlive) {
-        this.threadKeepAlive = keepAlive;
+    public Configuration consumerKeepAlive(int keepAlive) {
+        this.consumerKeepAlive = keepAlive;
         return this;
     }
 
-    public Configuration withQueueFactory(JobManager.QueueFactory queueFactory) {
+    public Configuration queueFactory(JobManager.QueueFactory queueFactory) {
         this.queueFactory = queueFactory;
         return this;
     }
 
-    public Configuration withDefaultQueueFactory() {
+    public Configuration defaultQueueFactory() {
         this.queueFactory = new JobManager.DefaultQueueFactory();
         return this;
     }
 
-    public Configuration withDefaultNetworkUtil() {
+    public Configuration defaultNetworkUtil() {
         this.networkUtil = new NetworkUtilImpl();
         return this;
     }
 
-    public Configuration withNetworkUtil(NetworkUtil networkUtil) {
+    public Configuration networkUtil(NetworkUtil networkUtil) {
         this.networkUtil = networkUtil;
         return this;
     }
 
-    public Configuration withInjector(DependencyInjector injector) {
+    public Configuration injector(DependencyInjector injector) {
         this.dependencyInjector = injector;
         return this;
     }
 
-    public Configuration withMaxConsumerCount(int count) {
+    public Configuration maxConsumerCount(int count) {
         this.maxConsumerCount = count;
         return this;
     }
 
-    public Configuration withCustomLogger(CustomLogger logger) {
+    public Configuration customLogger(CustomLogger logger) {
         this.customLogger = logger;
+        return this;
+    }
+
+    public Configuration loadFactor(int loadFactor) {
+        this.loadFactor = loadFactor;
         return this;
     }
 
@@ -79,8 +86,8 @@ public class Configuration {
         return dependencyInjector;
     }
 
-    public long getThreadKeepAlive() {
-        return threadKeepAlive;
+    public int getConsumerKeepAlive() {
+        return consumerKeepAlive;
     }
 
     public NetworkUtil getNetworkUtil() {
@@ -93,5 +100,9 @@ public class Configuration {
 
     public CustomLogger getCustomLogger() {
         return customLogger;
+    }
+
+    public int getLoadFactor() {
+        return loadFactor;
     }
 }
