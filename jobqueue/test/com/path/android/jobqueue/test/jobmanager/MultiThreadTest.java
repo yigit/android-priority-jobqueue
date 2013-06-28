@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
-public class JobManagerMultiThreadTest extends JobManagerTestBase {
+public class MultiThreadTest extends JobManagerTestBase {
     private static AtomicInteger multiThreadedJobCounter;
     @Test
     public void testMultiThreaded() throws Exception {

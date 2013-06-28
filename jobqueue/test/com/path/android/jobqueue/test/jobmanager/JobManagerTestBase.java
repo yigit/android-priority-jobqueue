@@ -1,17 +1,26 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import android.content.Context;
+import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
+import org.fest.reflect.core.Reflection;
+import org.fest.reflect.method.Invoker;
+import org.hamcrest.MatcherAssert;
 import org.robolectric.Robolectric;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.hamcrest.CoreMatchers.equalTo;
 
 public class JobManagerTestBase extends TestBase {
     protected JobManager createJobManager() {
@@ -23,15 +32,6 @@ public class JobManagerTestBase extends TestBase {
     }
 
 
-
-
-    protected static class DummyPersistentLatchJob extends PersistentDummyJob {
-
-        @Override
-        public void onRun() throws Throwable {
-            JobManagerTest.persistentRunLatch.countDown();
-        }
-    }
 
     protected static class DummyLatchJob extends DummyJob {
         private final CountDownLatch latch;
@@ -126,6 +126,42 @@ public class JobManagerTestBase extends TestBase {
 
         void setObject(Object object) {
             this.object = object;
+        }
+    }
+
+    protected Invoker<JobHolder> getNextJobMethod(JobManager jobManager) {
+        return Reflection.method("getNextJob").withReturnType(JobHolder.class).in(jobManager);
+    }
+
+    protected Invoker<Void> getRemoveJobMethod(JobManager jobManager) {
+        return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
+    }
+
+    protected JobConsumerExecutor getConsumerExecutor(JobManager jobManager) {
+        return Reflection.field("jobConsumerExecutor").ofType(JobConsumerExecutor.class).in(jobManager).get();
+    }
+
+    protected org.fest.reflect.field.Invoker<AtomicInteger> getActiveConsumerCount(JobConsumerExecutor jobConsumerExecutor) {
+        return Reflection.field("activeConsumerCount").ofType(AtomicInteger.class).in(jobConsumerExecutor);
+    }
+
+    public static class NeverEndingDummyJob extends DummyJob {
+        final Object lock;
+        final Semaphore semaphore;
+        public NeverEndingDummyJob(Object lock, Semaphore semaphore) {
+            this.lock = lock;
+            this.semaphore = semaphore;
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            super.onRun();
+            MatcherAssert.assertThat("job should be able to acquire a semaphore",
+                    semaphore.tryAcquire(), equalTo(true));
+            synchronized (lock) {
+                lock.wait();
+            }
+            semaphore.release();
         }
     }
 }

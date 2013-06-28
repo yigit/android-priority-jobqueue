@@ -179,7 +179,13 @@ public class JobManager implements NetworkEventProvider.Listener {
         return id;
     }
 
-    private boolean ensureConsumerWhenNeeded(Boolean hasNetwork) {
+    /**
+     * checks next available job and returns when it will be available (if it will, otherwise returns {@link Long.MAX_VALUE})
+     * also creates a timer to notify listeners at that time
+     * @param hasNetwork
+     * @return time wait until next job (in milliseconds)
+     */
+    private long ensureConsumerWhenNeeded(Boolean hasNetwork) {
         if(hasNetwork == null) {
             //if network util can inform us when network is recovered, we we'll check only next job that does not
             //require network. if it does not know how to inform us, we have to keep a busy loop.
@@ -193,7 +199,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
             notifyJobConsumer();
-            return true;
+            return 0L;
         }
         Long persistedJobRunNs;
         synchronized (persistentJobQueue) {
@@ -207,14 +213,16 @@ public class JobManager implements NetworkEventProvider.Listener {
             }
         }
         if(nextRunNs != null) {
-            if(nextRunNs <= System.nanoTime()) {
+            long diff = (long)Math.ceil((double)(nextRunNs - System.nanoTime()) / NS_PER_MS);
+            if(diff <= 0) {
                 notifyJobConsumer();
-                return true;
+                return 0L;
             } else {
-                ensureConsumerOnTime(nextRunNs - System.nanoTime());
+                ensureConsumerOnTime(diff);
+                return diff;
             }
         }
-        return false;
+        return Long.MAX_VALUE;
     }
 
     private void notifyJobConsumer() {
@@ -224,14 +232,13 @@ public class JobManager implements NetworkEventProvider.Listener {
         jobConsumerExecutor.considerAddingConsumer();
     }
 
-    private void ensureConsumerOnTime(long waitNs) {
-        long delay = (long)Math.ceil((double)(waitNs) / NS_PER_MS);
+    private void ensureConsumerOnTime(long waitMs) {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 notifyJobConsumer();
             }
-        }, delay);
+        }, waitMs);
     }
 
     private boolean hasNetwork() {
@@ -330,38 +337,47 @@ public class JobManager implements NetworkEventProvider.Listener {
 
         @Override
         public JobHolder getNextJob(int wait, TimeUnit waitDuration) {
+            //be optimistic
+            JobHolder nextJob = JobManager.this.getNextJob();
+            if(nextJob != null) {
+                return nextJob;
+            }
             long start = System.nanoTime();
             long remainingWait = waitDuration.toNanos(wait);
             long waitUntil = remainingWait + start;
-            JobHolder nextJob = null;
+            //for delayed jobs,
+            long nextJobDelay = ensureConsumerWhenNeeded(null);
             while (nextJob == null && waitUntil > System.nanoTime()) {
                 nextJob = JobManager.this.getNextJob();
                 if(nextJob == null) {
                     long remaining = waitUntil - System.nanoTime();
                     if(remaining > 0) {
-                        synchronized (newJobListeners) {
-                            try {
-                                //if we can't detect network changes, we won't be notified.
-                                //to avoid waiting up to give time, wait in chunks of 500 ms max
-                                long maxWait = TimeUnit.NANOSECONDS.toMillis(remaining);
-                                if(networkUtil instanceof NetworkEventProvider) {
-                                    //to handle delayed jobs, make sure we trigger this first
-                                    if(ensureConsumerWhenNeeded(null)) {
-                                        continue;
-                                    }
+                        //if we can't detect network changes, we won't be notified.
+                        //to avoid waiting up to give time, wait in chunks of 500 ms max
+                        long maxWait = Math.min(nextJobDelay, TimeUnit.NANOSECONDS.toMillis(remaining));
+                        if(maxWait < 1) {
+                            continue;//wait(0) will cause infinite wait.
+                        }
+                        if(networkUtil instanceof NetworkEventProvider) {
+                            //to handle delayed jobs, make sure we trigger this first
+                            //looks like there is no job available right now, wait for an event.
+                            //there is a chance that if it triggers a timer and it gets called before I enter
+                            //sync block, i am going to lose it
+                            //TODO fix above case where we may wait unnecessarily long if a job is about to become available
+                            synchronized (newJobListeners) {
+                                try {
                                     newJobListeners.wait(maxWait);
-                                } else {
-                                    //we cannot detect network changes. our best option is to wait for some time
-                                    //then trigger {@link ensureConsumerWhenNeeded)
-                                    newJobListeners.wait(Math.min(500, maxWait));
-                                    if(ensureConsumerWhenNeeded(null)) {
-                                        continue;
-                                    }
-                                    newJobListeners.wait(Math.min(500, Math.max(maxWait - 500, 500)));
+                                } catch (InterruptedException e) {
                                 }
-
-                            } catch (InterruptedException e) {
-                                //
+                            }
+                        } else {
+                            //we cannot detect network changes. our best option is to wait for some time and try again
+                            //then trigger {@link ensureConsumerWhenNeeded)
+                            synchronized (newJobListeners) {
+                                try {
+                                    newJobListeners.wait(Math.min(500, maxWait));
+                                } catch (InterruptedException e) {
+                                }
                             }
                         }
                     }

@@ -7,8 +7,15 @@ import org.junit.Before;
 import org.robolectric.shadows.ShadowLog;
 
 public class TestBase {
+    protected static boolean ENABLE_DEBUG = false;
     @Before
     public void setUp() throws Exception {
+        if(ENABLE_DEBUG) {
+            enableDebug();
+        }
+    }
+
+    private void enableDebug() {
         ShadowLog.stream = System.out;
         JqLog.setCustomLogger(new CustomLogger() {
             private String TAG = "test_logger";

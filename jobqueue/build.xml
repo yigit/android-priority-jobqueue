@@ -178,8 +178,6 @@
     </target>
 
     <target name="test" depends="compile.tests" description="test all">
-
-
         <delete file="${cobertura.absolute}"/>
         <delete dir="${coverate.report.absolute.dir}"/>
         <delete dir="${instrumented.absolute.dir}"/>
@@ -194,7 +192,7 @@
 
 
         <mkdir dir="${basedir}/out/reports/tests"/>
-        <junit showoutput="true" fork="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
+        <junit showoutput="true" fork="yes" haltonfailure="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
             <jvmarg value="-Xmx2g"/>
             <formatter type="plain" usefile="false"/>
             <formatter type="plain"/>
@@ -223,10 +221,12 @@
         <fail if="junit.failure" message="Unit test(s) failed.  See reports!"/>
     </target>
 
-    <javadoc destdir="${basedir}/javadoc/"      additionalparam="-J-Dorg.apache.commons.attributes.javadoc.CATaglet.sources=${source.absolute.dir}">
-    <taglet name="org.apache.commons.attributes.javadoc.CATaglet" path="${ant.home}/lib/commons-attributes-compiler-2.2.jar"/>
-    <fileset dir="${source.absolute.dir}" includes="**/*.java"/>
-    </javadoc>
+    <target name="javadoc">
+        <javadoc destdir="${basedir}/javadoc/"      additionalparam="-J-Dorg.apache.commons.attributes.javadoc.CATaglet.sources=${source.absolute.dir}">
+        <taglet name="org.apache.commons.attributes.javadoc.CATaglet" path="${ant.home}/lib/commons-attributes-compiler-2.2.jar"/>
+        <fileset dir="${source.absolute.dir}" includes="**/*.java"/>
+        </javadoc>
+    </target>
 
     <target name="ensure-test-name" unless="test">
         <fail message="You must run this target with -Dtest=TestName"/>
