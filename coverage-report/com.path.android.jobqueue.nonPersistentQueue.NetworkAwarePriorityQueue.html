@@ -73,11 +73,11 @@
   <td class="src"><pre class="src">&nbsp;<span class="comment">     */</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;29</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> JobHolder peek(<span class="keyword">boolean</span> canUseNetwork, Collection&lt;String&gt; excludeGroupIds) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;30</td>  <td class="nbHitsCovered"><a title="Line 30: Conditional coverage 100% (2/2).">&nbsp;628</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 30: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(canUseNetwork) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;31</td>  <td class="nbHitsCovered">&nbsp;580</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.peek(excludeGroupIds);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;30</td>  <td class="nbHitsCovered"><a title="Line 30: Conditional coverage 100% (2/2).">&nbsp;38654</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 30: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(canUseNetwork) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;31</td>  <td class="nbHitsCovered">&nbsp;543</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.peek(excludeGroupIds);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;32</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;33</td>  <td class="nbHitsCovered">&nbsp;48</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.peekFromQueue(SetId.S1, excludeGroupIds);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;33</td>  <td class="nbHitsCovered">&nbsp;38112</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.peekFromQueue(SetId.S1, excludeGroupIds);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;34</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;35</td>  <td class="nbHits">&nbsp;</td>
@@ -113,7 +113,7 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;52</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">protected</span> SetId decideQueue(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;53</td>  <td class="nbHitsCovered"><a title="Line 53: Conditional coverage 100% (2/2).">&nbsp;763</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 53: Conditional coverage 100% (2/2).">        <span class="keyword">return</span> jobHolder.requiresNetwork() ? SetId.S0 : SetId.S1;</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;53</td>  <td class="nbHitsCovered"><a title="Line 53: Conditional coverage 100% (2/2).">&nbsp;743</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 53: Conditional coverage 100% (2/2).">        <span class="keyword">return</span> jobHolder.requiresNetwork() ? SetId.S0 : SetId.S1;</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;54</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;55</td>  <td class="nbHits">&nbsp;</td>
@@ -145,12 +145,12 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;69</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> CountWithGroupIdsResult countReadyJobs(<span class="keyword">boolean</span> hasNetwork, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;70</td>  <td class="nbHitsCovered">&nbsp;776</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">long</span> now = System.nanoTime();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;71</td>  <td class="nbHitsCovered"><a title="Line 71: Conditional coverage 100% (2/2).">&nbsp;776</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 71: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(hasNetwork) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;72</td>  <td class="nbHitsCovered">&nbsp;765</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.countReadyJobs(SetId.S0, now, excludeGroups).mergeWith(<span class="keyword">super</span>.countReadyJobs(SetId.S1, now, excludeGroups));</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;70</td>  <td class="nbHitsCovered">&nbsp;348</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">long</span> now = System.nanoTime();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;71</td>  <td class="nbHitsCovered"><a title="Line 71: Conditional coverage 100% (2/2).">&nbsp;348</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 71: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(hasNetwork) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;72</td>  <td class="nbHitsCovered">&nbsp;341</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.countReadyJobs(SetId.S0, now, excludeGroups).mergeWith(<span class="keyword">super</span>.countReadyJobs(SetId.S1, now, excludeGroups));</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;73</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;74</td>  <td class="nbHitsCovered">&nbsp;11</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.countReadyJobs(SetId.S1, now, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;74</td>  <td class="nbHitsCovered">&nbsp;7</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> <span class="keyword">super</span>.countReadyJobs(SetId.S1, now, excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;75</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;76</td>  <td class="nbHits">&nbsp;</td>
@@ -177,6 +177,6 @@
   <td class="src"><pre class="src">&nbsp;}</pre></td></tr>
 </table>
 
-<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 6/27/13 6:05 PM.</div>
+<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 6/28/13 3:12 AM.</div>
 </body>
 </html>

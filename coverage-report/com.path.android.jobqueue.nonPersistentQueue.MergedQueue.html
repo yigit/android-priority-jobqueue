@@ -109,11 +109,11 @@
   <td class="src"><pre class="src">&nbsp;<span class="comment">     */</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;50</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">protected</span> JobHolder peekFromQueue(SetId queueId, Collection&lt;String&gt; excludeGroupIds) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;51</td>  <td class="nbHitsUncovered"><a title="Line 51: Conditional coverage 50% (1/2).">&nbsp;48</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 51: Conditional coverage 50% (1/2).">        <span class="keyword">if</span>(queueId == SetId.S0) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;51</td>  <td class="nbHitsUncovered"><a title="Line 51: Conditional coverage 50% (1/2).">&nbsp;38112</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 51: Conditional coverage 50% (1/2).">        <span class="keyword">if</span>(queueId == SetId.S0) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;52</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            <span class="keyword">return</span> queue0.peek(excludeGroupIds);</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;53</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;54</td>  <td class="nbHitsCovered">&nbsp;48</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> queue1.peek(excludeGroupIds);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;54</td>  <td class="nbHitsCovered">&nbsp;38112</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> queue1.peek(excludeGroupIds);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;55</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;56</td>  <td class="nbHits">&nbsp;</td>
@@ -128,14 +128,14 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;61</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">boolean</span> offer(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;62</td>  <td class="nbHitsCovered">&nbsp;712</td>  <td class="src"><pre class="src">&nbsp;        SetId queueId = decideQueue(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;63</td>  <td class="nbHitsCovered"><a title="Line 63: Conditional coverage 100% (2/2).">&nbsp;712</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 63: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(queueId == SetId.S0) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;64</td>  <td class="nbHitsCovered">&nbsp;404</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue0.offer(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;62</td>  <td class="nbHitsCovered">&nbsp;718</td>  <td class="src"><pre class="src">&nbsp;        SetId queueId = decideQueue(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;63</td>  <td class="nbHitsCovered"><a title="Line 63: Conditional coverage 100% (2/2).">&nbsp;718</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 63: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(queueId == SetId.S0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;64</td>  <td class="nbHitsCovered">&nbsp;417</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue0.offer(jobHolder);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;65</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;66</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;67</td>  <td class="nbHitsCovered">&nbsp;308</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> queue1.offer(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;67</td>  <td class="nbHitsCovered">&nbsp;301</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> queue1.offer(jobHolder);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;68</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;69</td>  <td class="nbHits">&nbsp;</td>
@@ -205,38 +205,38 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;112</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> JobHolder peek(Collection&lt;String&gt; excludeGroupIds) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;113</td>  <td class="nbHitsCovered">&nbsp;1791</td>  <td class="src"><pre class="src">&nbsp;        JobHolder delayed = queue0.peek(excludeGroupIds);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;113</td>  <td class="nbHitsCovered">&nbsp;39741</td>  <td class="src"><pre class="src">&nbsp;        JobHolder delayed = queue0.peek(excludeGroupIds);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;114</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="comment">//if queue for this job has changed, re-add it and try peek from scratch</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;115</td>  <td class="nbHitsUncovered"><a title="Line 115: Conditional coverage 75% (3/4) [each condition: 100%, 50%].">&nbsp;1791</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 115: Conditional coverage 75% (3/4) [each condition: 100%, 50%].">        <span class="keyword">if</span>(delayed != <span class="keyword">null</span> &amp;&amp; decideQueue(delayed) != SetId.S0) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;115</td>  <td class="nbHitsUncovered"><a title="Line 115: Conditional coverage 75% (3/4) [each condition: 100%, 50%].">&nbsp;39744</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 115: Conditional coverage 75% (3/4) [each condition: 100%, 50%].">        <span class="keyword">if</span>(delayed != <span class="keyword">null</span> &amp;&amp; decideQueue(delayed) != SetId.S0) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;116</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            queue1.offer(delayed);</span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;117</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            queue0.remove(delayed);</span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;118</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            <span class="keyword">return</span> peek(excludeGroupIds);</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;119</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;120</td>  <td class="nbHitsCovered">&nbsp;1791</td>  <td class="src"><pre class="src">&nbsp;        JobHolder nonDelayed = queue1.peek(excludeGroupIds);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;120</td>  <td class="nbHitsCovered">&nbsp;39738</td>  <td class="src"><pre class="src">&nbsp;        JobHolder nonDelayed = queue1.peek(excludeGroupIds);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;121</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="comment">//if queue for this job has changed, re-add it and try peek from scratch</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;122</td>  <td class="nbHitsCovered"><a title="Line 122: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;1794</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 122: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(nonDelayed != <span class="keyword">null</span> &amp;&amp; decideQueue(nonDelayed) != SetId.S1) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;122</td>  <td class="nbHitsCovered"><a title="Line 122: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;39744</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 122: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(nonDelayed != <span class="keyword">null</span> &amp;&amp; decideQueue(nonDelayed) != SetId.S1) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;123</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;            queue0.offer(nonDelayed);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;124</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;            queue1.remove(nonDelayed);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;125</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> peek(excludeGroupIds);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;126</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;127</td>  <td class="nbHitsCovered"><a title="Line 127: Conditional coverage 100% (2/2).">&nbsp;1791</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 127: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(delayed == <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;128</td>  <td class="nbHitsCovered">&nbsp;1241</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> nonDelayed;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;127</td>  <td class="nbHitsCovered"><a title="Line 127: Conditional coverage 100% (2/2).">&nbsp;39741</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 127: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(delayed == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;128</td>  <td class="nbHitsCovered">&nbsp;39235</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> nonDelayed;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;129</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;130</td>  <td class="nbHitsCovered"><a title="Line 130: Conditional coverage 100% (2/2).">&nbsp;547</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 130: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(nonDelayed == <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;131</td>  <td class="nbHitsCovered">&nbsp;437</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> delayed;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;130</td>  <td class="nbHitsCovered"><a title="Line 130: Conditional coverage 100% (2/2).">&nbsp;500</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 130: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(nonDelayed == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;131</td>  <td class="nbHitsCovered">&nbsp;390</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> delayed;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;132</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;133</td>  <td class="nbHitsCovered">&nbsp;110</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">int</span> cmp = retrieveComparator.compare(delayed, nonDelayed);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;134</td>  <td class="nbHitsCovered"><a title="Line 134: Conditional coverage 100% (2/2).">&nbsp;110</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 134: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(cmp == -1) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;50</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> delayed;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;58</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> delayed;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;136</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;60</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> nonDelayed;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;52</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> nonDelayed;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;138</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;139</td>  <td class="nbHits">&nbsp;</td>
@@ -272,7 +272,7 @@
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">boolean</span> remove(JobHolder holder) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;156</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="comment">//we cannot check queue here, might be dynamic</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;157</td>  <td class="nbHitsCovered"><a title="Line 157: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;1255</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 157: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">return</span> queue1.remove(holder) || queue0.remove(holder);</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;157</td>  <td class="nbHitsCovered"><a title="Line 157: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;1280</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 157: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">return</span> queue1.remove(holder) || queue0.remove(holder);</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;158</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;159</td>  <td class="nbHits">&nbsp;</td>
@@ -330,11 +330,11 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;186</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> CountWithGroupIdsResult countReadyJobs(SetId setId, <span class="keyword">long</span> now, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;187</td>  <td class="nbHitsCovered"><a title="Line 187: Conditional coverage 100% (2/2).">&nbsp;3082</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 187: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(setId == SetId.S0) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;188</td>  <td class="nbHitsCovered">&nbsp;765</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue0.countReadyJobs(now, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;187</td>  <td class="nbHitsCovered"><a title="Line 187: Conditional coverage 100% (2/2).">&nbsp;1378</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 187: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(setId == SetId.S0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;188</td>  <td class="nbHitsCovered">&nbsp;341</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue0.countReadyJobs(now, excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;189</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;190</td>  <td class="nbHitsCovered">&nbsp;2317</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue1.countReadyJobs(now, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;190</td>  <td class="nbHitsCovered">&nbsp;1037</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue1.countReadyJobs(now, excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;191</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;192</td>  <td class="nbHits">&nbsp;</td>
@@ -343,8 +343,8 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;194</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> CountWithGroupIdsResult countReadyJobs(SetId setId, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;195</td>  <td class="nbHitsUncovered"><a title="Line 195: Conditional coverage 50% (1/2).">&nbsp;1541</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 195: Conditional coverage 50% (1/2).">        <span class="keyword">if</span>(setId == SetId.S0) {</a></span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;196</td>  <td class="nbHitsCovered">&nbsp;1541</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue0.countReadyJobs(excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;195</td>  <td class="nbHitsUncovered"><a title="Line 195: Conditional coverage 50% (1/2).">&nbsp;689</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 195: Conditional coverage 50% (1/2).">        <span class="keyword">if</span>(setId == SetId.S0) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;196</td>  <td class="nbHitsCovered">&nbsp;689</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> queue0.countReadyJobs(excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;197</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;198</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            <span class="keyword">return</span> queue1.countReadyJobs(excludeGroups);</span></pre></td></tr>
@@ -360,15 +360,15 @@
   <td class="src"><pre class="src">&nbsp;<span class="comment">     * simple enum to identify queues</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;204</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;<span class="comment">     */</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;205</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;    <span class="keyword">protected</span> <span class="keyword">static</span> enum SetId {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;206</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;        S0,</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;207</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;        S1</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;205</td>  <td class="nbHitsCovered">&nbsp;63</td>  <td class="src"><pre class="src">&nbsp;    <span class="keyword">protected</span> <span class="keyword">static</span> enum SetId {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;206</td>  <td class="nbHitsCovered">&nbsp;21</td>  <td class="src"><pre class="src">&nbsp;        S0,</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;207</td>  <td class="nbHitsCovered">&nbsp;21</td>  <td class="src"><pre class="src">&nbsp;        S1</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;208</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;209</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;}</pre></td></tr>
 </table>
 
-<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 6/27/13 6:05 PM.</div>
+<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 6/28/13 3:12 AM.</div>
 </body>
 </html>
