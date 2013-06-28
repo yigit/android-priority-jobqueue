@@ -49,36 +49,6 @@ public class JobManagerTest extends JobManagerTestBase {
         MatcherAssert.assertThat((int) latch.getCount(), equalTo(0));
     }
 
-    @Before
-    public void setUp() throws Exception {
-        ShadowLog.stream = System.out;
-        JqLog.setCustomLogger(new CustomLogger() {
-            private String TAG = "test_logger";
-            @Override
-            public boolean isDebugEnabled() {
-                return true;
-            }
-
-            @Override
-            public void d(String text, Object... args) {
-                Log.d(TAG, String.format(text, args));
-            }
-
-            @Override
-            public void e(Throwable t, String text, Object... args) {
-                Log.e(TAG, String.format(text, args), t);
-            }
-
-            @Override
-            public void e(String text, Object... args) {
-                Log.e(TAG, String.format(text, args));
-            }
-        });
-    }
-
-
-
-
     @Test
     public void runFailingJob() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);

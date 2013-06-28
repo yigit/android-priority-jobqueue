@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.*;
 
 @Ignore
-public abstract class JobQueueTestBase {
+public abstract class JobQueueTestBase extends TestBase {
     JobQueueFactory currentFactory;
 
     public JobQueueTestBase(JobQueueFactory factory) {

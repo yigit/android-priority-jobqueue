@@ -23,7 +23,8 @@ public class JobManagerMultiThreadTest extends JobManagerTestBase {
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
-        final JobManager jobManager = createJobManager();
+        final JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
+            .loadFactor(3).maxConsumerCount(10));
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));
         Collection<Future<?>> futures = new LinkedList<Future<?>>();
@@ -77,6 +78,12 @@ public class JobManagerMultiThreadTest extends JobManagerTestBase {
         public void onRun() throws Throwable {
             super.onRun();
             int remaining = multiThreadedJobCounter.decrementAndGet();
+            //take some time
+            Thread.sleep((long) (Math.random() * 1000));
+            //throw exception w/ small change
+            if(Math.random() < .1) {
+                throw new Exception("decided to die, will retry");
+            }
             Log.d("DummyJobForMultiThread", "persistent:" + persist + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
         }
 

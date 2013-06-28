@@ -5,6 +5,7 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
+import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.robolectric.Robolectric;
@@ -12,7 +13,7 @@ import org.robolectric.Robolectric;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-public class JobManagerTestBase {
+public class JobManagerTestBase extends TestBase {
     protected JobManager createJobManager() {
         return new JobManager(Robolectric.application, UUID.randomUUID().toString());
     }
