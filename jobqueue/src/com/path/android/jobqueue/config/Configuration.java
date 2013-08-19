@@ -14,9 +14,11 @@ public class Configuration {
     public static int DEFAULT_THREAD_KEEP_ALIVE_SECONDS = 15;
     public static int DEFAULT_LOAD_FACTOR_PER_CONSUMER = 3;
     public static int MAX_CONSUMER_COUNT = 5;
+    public static int MIN_CONSUMER_COUNT = 0;
 
     private String id = DEFAULT_ID;
     private int maxConsumerCount = MAX_CONSUMER_COUNT;
+    private int minConsumerCount = MIN_CONSUMER_COUNT;
     private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
     private int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;
     private JobManager.QueueFactory queueFactory;
@@ -59,8 +61,21 @@ public class Configuration {
         return this;
     }
 
+    /**
+     * calculated by # of jobs (running+waiting) per thread
+     * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
+     * (10/2) =5
+     * if
+     * @param count
+     * @return
+     */
     public Configuration maxConsumerCount(int count) {
         this.maxConsumerCount = count;
+        return this;
+    }
+
+    public Configuration minConsumerCount(int count) {
+        this.minConsumerCount = count;
         return this;
     }
 
@@ -96,6 +111,10 @@ public class Configuration {
 
     public int getMaxConsumerCount() {
         return maxConsumerCount;
+    }
+
+    public int getMinConsumerCount() {
+        return minConsumerCount;
     }
 
     public CustomLogger getCustomLogger() {

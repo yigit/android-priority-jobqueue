@@ -4,22 +4,25 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.log.JqLog;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.path.android.jobqueue.config.Configuration;
 
 public class JobConsumerExecutor {
     private int maxConsumerSize;
+    private int minConsumerSize;
     private final ThreadGroup threadGroup;
     private int loadFactor;
     private final Contract contract;
     private final int keepAliveSeconds;
     private final AtomicInteger activeConsumerCount = new AtomicInteger(0);
-    private int maxConsumerCount;
+    private final AtomicInteger runningJobCount = new AtomicInteger(0);
 
 
-    public JobConsumerExecutor(int maxConsumerSize, int loadFactor, int consumerKeepAlive, Contract contract) {
-        this.loadFactor = loadFactor;
+    public JobConsumerExecutor(Configuration config, Contract contract) {
+        this.loadFactor = config.getLoadFactor();
+        this.maxConsumerSize = config.getMaxConsumerCount();
+        this.minConsumerSize = config.getMinConsumerCount();
+        this.keepAliveSeconds = config.getConsumerKeepAlive();
         this.contract = contract;
-        this.maxConsumerSize = maxConsumerSize;
-        this.keepAliveSeconds = consumerKeepAlive;
         threadGroup = new ThreadGroup("JobConsumers");
     }
 
@@ -76,18 +79,18 @@ public class JobConsumerExecutor {
     private boolean isAboveLoadFactor(boolean inConsumerThread) {
         synchronized (threadGroup) {
             //if i am called from a consumer thread, don't count me
-            boolean res = (activeConsumerCount.intValue() - (inConsumerThread ? 1 : 0)) * loadFactor < contract.countRemainingReadyJobs();
+            int consumerCnt = activeConsumerCount.intValue() - (inConsumerThread ? 1 : 0);
+            boolean res =
+                    consumerCnt < minConsumerSize ||
+                    consumerCnt * loadFactor < contract.countRemainingReadyJobs() + runningJobCount.get();
             if(JqLog.isDebugEnabled()) {
-                JqLog.d("%s: load factor check. %s = %d * %d < %s. consumer thread: %s", Thread.currentThread().getName(), res,
-                        activeConsumerCount.intValue() - (inConsumerThread ? 1 : 0), loadFactor, contract.countRemainingReadyJobs(), inConsumerThread);
+                JqLog.d("%s: load factor check. %s = (%d < %d)|| (%d * %d < %d + %d). consumer thread: %s", Thread.currentThread().getName(), res,
+                        consumerCnt, minConsumerSize,
+                        consumerCnt, loadFactor, contract.countRemainingReadyJobs(), runningJobCount.get(), inConsumerThread);
             }
             return res;
         }
 
-    }
-
-    public void setMaxConsumerCount(int maxConsumerCount) {
-        this.maxConsumerCount = maxConsumerCount;
     }
 
     public static interface Contract {
@@ -109,41 +112,43 @@ public class JobConsumerExecutor {
 
         @Override
         public void run() {
-            try {
-                if(JqLog.isDebugEnabled()) {
-                    if(didRunOnce == false) {
-                        JqLog.d("starting consumer %s", Thread.currentThread().getName());
-                        didRunOnce = true;
-                    } else {
-                        JqLog.d("re-running consumer %s", Thread.currentThread().getName());
-                    }
-                }
-                JobHolder nextJob;
-                do {
-                    nextJob = contract.isRunning() ? contract.getNextJob(executor.keepAliveSeconds, TimeUnit.SECONDS) : null;
-                    if (nextJob != null) {
-                        if (nextJob.safeRun(nextJob.getRunCount())) {
-                            contract.removeJob(nextJob);
+            boolean canDie;
+            do {
+                try {
+                    if(JqLog.isDebugEnabled()) {
+                        if(didRunOnce == false) {
+                            JqLog.d("starting consumer %s", Thread.currentThread().getName());
+                            didRunOnce = true;
                         } else {
-                            contract.insertOrReplace(nextJob);
+                            JqLog.d("re-running consumer %s", Thread.currentThread().getName());
                         }
                     }
-                } while (nextJob != null);
-            } finally {
-                //to avoid creating a new thread for no reason, consider not killing this one first
-                //if all threads die at the same time, this may cause a problem
-                if(executor.canIDie()) {
-                    //to avoid race conditions, we count active consumers ourselves
+                    JobHolder nextJob;
+                    do {
+                        nextJob = contract.isRunning() ? contract.getNextJob(executor.keepAliveSeconds, TimeUnit.SECONDS) : null;
+                        if (nextJob != null) {
+                            executor.runningJobCount.incrementAndGet();
+                            if (nextJob.safeRun(nextJob.getRunCount())) {
+                                contract.removeJob(nextJob);
+                            } else {
+                                contract.insertOrReplace(nextJob);
+                            }
+                            executor.runningJobCount.decrementAndGet();
+                        }
+                    } while (nextJob != null);
+                } finally {
+                    //to avoid creating a new thread for no reason, consider not killing this one first
+                    //if all threads die at the same time, this may cause a problem
+                    canDie = executor.canIDie();
                     if(JqLog.isDebugEnabled()) {
-                        JqLog.d("finishing consumer %s", Thread.currentThread().getName());
+                        if(canDie) {
+                            JqLog.d("finishing consumer %s", Thread.currentThread().getName());
+                        } else {
+                            JqLog.d("didn't allow me to die, re-running %s", Thread.currentThread().getName());
+                        }
                     }
-                } else {
-                    if(JqLog.isDebugEnabled()) {
-                        JqLog.d("didn't allow me to die, re-running %s", Thread.currentThread().getName());
-                    }
-                    run();
                 }
-            }
+            } while (!canDie);
         }
     }
 }

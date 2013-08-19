@@ -76,8 +76,7 @@ public class JobManager implements NetworkEventProvider.Listener {
             ((NetworkEventProvider) networkUtil).setListener(this);
         }
         //is important to initialize consumers last so that they can start running
-        jobConsumerExecutor = new JobConsumerExecutor(config.getMaxConsumerCount(), config.getLoadFactor(),
-                config.getConsumerKeepAlive() ,consumerContract);
+        jobConsumerExecutor = new JobConsumerExecutor(config,consumerContract);
         start();
     }
 
@@ -87,15 +86,6 @@ public class JobManager implements NetworkEventProvider.Listener {
                 .defaultQueueFactory()
                 .defaultNetworkUtil();
     }
-
-    /**
-     * Sets the max # of consumers. Existing consumers will NOT be killed until queue is empty.
-     * @param maxConsumerCount
-     */
-    public void setMaxConsumerCount(int maxConsumerCount) {
-        jobConsumerExecutor.setMaxConsumerCount(maxConsumerCount);
-    }
-
 
     /**
      * Stops consuming jobs. Currently running jobs will be finished but no new jobs will be run.
@@ -282,7 +272,6 @@ public class JobManager implements NetworkEventProvider.Listener {
         if(jobHolder.getGroupId() != null) {
             runningJobGroups.remove(jobHolder.getGroupId());
         }
-        notifyJobConsumer();
     }
 
     private void removeJob(JobHolder jobHolder) {

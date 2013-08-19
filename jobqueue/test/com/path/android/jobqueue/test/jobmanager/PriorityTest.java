@@ -19,8 +19,7 @@ public class PriorityTest extends JobManagerTestBase {
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createJobManager();
-        jobManager.setMaxConsumerCount(1);
+        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().maxConsumerCount(1).id("" + System.nanoTime()));
         testPriority(jobManager, false);
     }
 

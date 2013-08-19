@@ -3,29 +3,36 @@ package com.path.android.jobqueue.test.jobmanager;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
+import com.path.android.jobqueue.log.CustomLogger;
 
 @RunWith(RobolectricTestRunner.class)
 public class LoadFactorTest extends JobManagerTestBase {
     @Test
     public void testLoadFactor() throws Exception {
         //test adding zillions of jobs from the same group and ensure no more than 1 thread is created
-        int maxConsumerCount = 2;
+        int maxConsumerCount = 5;
+        int minConsumerCount = 2;
         int loadFactor = 5;
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
+        com.path.android.jobqueue.JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
                 .maxConsumerCount(maxConsumerCount)
+                .minConsumerCount(minConsumerCount)
+                .customLogger(new CustomLogger() {
+                    public boolean isDebugEnabled() {return true;}
+                    public void d(String text, Object... args) {System.out.println(String.format(text, args));}
+                    public void e(Throwable t, String text, Object... args) {t.printStackTrace(); System.out.println(String.format(text, args));}
+                    public void e(String text, Object... args) {System.out.println(String.format(text, args));}
+                })
                 .loadFactor(loadFactor));
         JobConsumerExecutor consumerExecutor = getConsumerExecutor(jobManager);
         org.fest.reflect.field.Invoker<AtomicInteger> activeConsumerCnt = getActiveConsumerCount(consumerExecutor);
@@ -38,7 +45,10 @@ public class LoadFactorTest extends JobManagerTestBase {
             runningJobs.add(job);
             jobManager.addJob((int)(Math.random() * 3), job);
 
-            int expectedConsumerCount = Math.min(maxConsumerCount, (int)Math.ceil((float)i / loadFactor));
+            int expectedConsumerCount = Math.min(maxConsumerCount, (int)Math.ceil((float)(i+1) / loadFactor));
+            if(i >= minConsumerCount) {
+                expectedConsumerCount = Math.max(minConsumerCount, expectedConsumerCount);
+            }
             //wait till enough jobs start
             long now = System.nanoTime();
             long waitTill = now + TimeUnit.SECONDS.toNanos(10);
@@ -49,13 +59,13 @@ public class LoadFactorTest extends JobManagerTestBase {
                 }
             }
             if(i < loadFactor) {
-                //make sure there is only 1 job running
-                MatcherAssert.assertThat("while below load factor, active consumer count should be <= 1",
-                        activeConsumerCnt.get().get() <= 1, is(true));
+                //make sure there is only min job running
+                MatcherAssert.assertThat("while below load factor, active consumer count should be = min",
+                        activeConsumerCnt.get().get(), equalTo(Math.min(i + 1, minConsumerCount)));
             }
             if(i > loadFactor) {
                 //make sure there is only 1 job running
-                MatcherAssert.assertThat("while above load factor. there should be more job consumers",
+                MatcherAssert.assertThat("while above load factor. there should be more job consumers. i=" + i,
                         activeConsumerCnt.get().get(), equalTo(expectedConsumerCount));
             }
         }
