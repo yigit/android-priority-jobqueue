@@ -37,6 +37,9 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final JobConsumerExecutor jobConsumerExecutor;
     private final Object newJobListeners = new Object();
 
+    private ConcurrentHashMap<Long, CountDownLatch> persistentOnAddedLocks;
+    private ConcurrentHashMap<Long, CountDownLatch> nonPersistentOnAddedLocks;
+
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
      * @param context
@@ -70,6 +73,9 @@ public class JobManager implements NetworkEventProvider.Listener {
         sessionId = System.nanoTime();
         this.persistentJobQueue = config.getQueueFactory().createPersistentQueue(context, sessionId, config.getId());
         this.nonPersistentJobQueue = config.getQueueFactory().createNonPersistent(context, sessionId, config.getId());
+        persistentOnAddedLocks = new ConcurrentHashMap<Long, CountDownLatch>();
+        nonPersistentOnAddedLocks = new ConcurrentHashMap<Long, CountDownLatch>();
+
         networkUtil = config.getNetworkUtil();
         dependencyInjector = config.getDependencyInjector();
         if(networkUtil instanceof NetworkEventProvider) {
@@ -149,10 +155,12 @@ public class JobManager implements NetworkEventProvider.Listener {
         if (baseJob.shouldPersist()) {
             synchronized (persistentJobQueue) {
                 id = persistentJobQueue.insert(jobHolder);
+                addOnAddedLock(persistentOnAddedLocks, id);
             }
         } else {
             synchronized (nonPersistentJobQueue) {
                 id = nonPersistentJobQueue.insert(jobHolder);
+                addOnAddedLock(nonPersistentOnAddedLocks, id);
             }
         }
         if(JqLog.isDebugEnabled()) {
@@ -165,8 +173,44 @@ public class JobManager implements NetworkEventProvider.Listener {
             dependencyInjector.inject(baseJob);
         }
         jobHolder.getBaseJob().onAdded();
+        if(baseJob.shouldPersist()) {
+            synchronized (persistentJobQueue) {
+                clearOnAddedLock(persistentOnAddedLocks, id);
+            }
+        } else {
+            synchronized (nonPersistentJobQueue) {
+                clearOnAddedLock(nonPersistentOnAddedLocks, id);
+            }
+        }
         notifyJobConsumer();
         return id;
+    }
+
+    //need to sync on related job queue before calling this
+    private void addOnAddedLock(ConcurrentHashMap<Long, CountDownLatch> lockMap, long id) {
+        lockMap.put(id, new CountDownLatch(1));
+    }
+
+    //need to sync on related job queue before calling this
+    private void waitForOnAddedLock(ConcurrentHashMap<Long, CountDownLatch> lockMap, long id) {
+        CountDownLatch latch = lockMap.get(id);
+        if(latch == null) {
+            return;
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            JqLog.e(e, "could not wait for onAdded lock");
+        }
+    }
+
+    //need to sync on related job queue before calling this
+    private void clearOnAddedLock(ConcurrentHashMap<Long, CountDownLatch> lockMap, long id) {
+        CountDownLatch latch = lockMap.get(id);
+        if(latch != null) {
+            latch.countDown();
+        }
+        lockMap.remove(id);
     }
 
     /**
@@ -249,6 +293,14 @@ public class JobManager implements NetworkEventProvider.Listener {
                 persistent = true;
             }
         }
+        if(jobHolder != null) {
+            //wait for onAdded locks
+            if(persistent) {
+                waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());
+            } else {
+                waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());
+            }
+        }
         if(persistent && jobHolder != null && dependencyInjector != null) {
             dependencyInjector.inject(jobHolder.getBaseJob());
         }
@@ -292,9 +344,11 @@ public class JobManager implements NetworkEventProvider.Listener {
     public synchronized void clear() {
         synchronized (nonPersistentJobQueue) {
             nonPersistentJobQueue.clear();
+            nonPersistentOnAddedLocks.clear();
         }
         synchronized (persistentJobQueue) {
             persistentJobQueue.clear();
+            persistentOnAddedLocks.clear();
         }
         runningJobGroups.clear();
     }
