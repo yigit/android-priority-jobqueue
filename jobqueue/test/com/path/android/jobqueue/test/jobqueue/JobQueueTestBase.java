@@ -1,22 +1,20 @@
-package com.path.android.jobqueue.test;
+package com.path.android.jobqueue.test.jobqueue;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
-import org.fest.reflect.core.Reflection;
-import org.fest.reflect.method.Invoker;
-import org.hamcrest.MatcherAssert;
+import org.fest.reflect.core.*;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.CoreMatchers.*;
 
 @Ignore
 public abstract class JobQueueTestBase extends TestBase {

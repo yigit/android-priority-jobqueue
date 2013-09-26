@@ -1,6 +1,7 @@
 package com.path.android.jobqueue;
 
 import android.content.Context;
+import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
@@ -438,15 +439,16 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     /**
      * Default implementation of QueueFactory that creates one {@link SqliteJobQueue} and one {@link NonPersistentPriorityQueue}
+     * both are wrapped inside a {@link CachedJobQueue} to improve performance
      */
     public static class DefaultQueueFactory implements QueueFactory {
         @Override
         public JobQueue createPersistentQueue(Context context, Long sessionId, String id) {
-            return new SqliteJobQueue(context, sessionId, id);
+            return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id));
         }
         @Override
         public JobQueue createNonPersistent(Context context, Long sessionId, String id) {
-            return new NonPersistentPriorityQueue(sessionId, id);
+            return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id));
         }
     }
 

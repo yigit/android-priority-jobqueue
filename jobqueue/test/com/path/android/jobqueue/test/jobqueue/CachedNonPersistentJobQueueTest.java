@@ -1,18 +1,20 @@
-package com.path.android.jobqueue.test;
+package com.path.android.jobqueue.test.jobqueue;
+
 
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 @RunWith(RobolectricTestRunner.class)
-public class NonPersistentJobQueueTest extends JobQueueTestBase {
-    public NonPersistentJobQueueTest() {
+public class CachedNonPersistentJobQueueTest extends JobQueueTestBase {
+    public CachedNonPersistentJobQueueTest() {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id) {
-                return new NonPersistentPriorityQueue(sessionId, id);
+                return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id));
             }
         });
     }
