@@ -34,7 +34,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final Context appContext;
     private DependencyInjector dependencyInjector;
     //all access to this object should be synchronized around JobManager.this
-    private final Collection<String> runningJobGroups;
+    private final CopyOnWriteGroupSet runningJobGroups;
     private final JobConsumerExecutor jobConsumerExecutor;
     private final Object newJobListeners = new Object();
 
@@ -70,7 +70,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         appContext = context.getApplicationContext();
         running = true;
-        runningJobGroups = new CopyOnWriteArraySet<String>();
+        runningJobGroups = new CopyOnWriteGroupSet();
         sessionId = System.nanoTime();
         this.persistentJobQueue = config.getQueueFactory().createPersistentQueue(context, sessionId, config.getId());
         this.nonPersistentJobQueue = config.getQueueFactory().createNonPersistent(context, sessionId, config.getId());
@@ -118,17 +118,24 @@ public class JobManager implements NetworkEventProvider.Listener {
      * @return
      */
     public int count() {
-        return nonPersistentJobQueue.count() + persistentJobQueue.count();
+        int cnt = 0;
+        synchronized (nonPersistentJobQueue) {
+            cnt += nonPersistentJobQueue.count();
+        }
+        synchronized (persistentJobQueue) {
+            cnt += persistentJobQueue.count();
+        }
+        return cnt;
     }
 
     private int countReadyJobs(boolean hasNetwork) {
         //TODO we can cache this
         int total = 0;
         synchronized (nonPersistentJobQueue) {
-            total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups);
+            total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());
         }
         synchronized (persistentJobQueue) {
-            total += persistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups);
+            total += persistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());
         }
         return total;
     }
@@ -285,12 +292,12 @@ public class JobManager implements NetworkEventProvider.Listener {
         JobHolder jobHolder;
         boolean persistent = false;
         synchronized (nonPersistentJobQueue) {
-            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
+            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());
         }
         if (jobHolder == null) {
             //go to disk, there aren't any non-persistent jobs
             synchronized (persistentJobQueue) {
-                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
+                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());
                 persistent = true;
             }
         }

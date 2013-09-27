@@ -10,10 +10,13 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.log.JqLog;
-import org.apache.http.util.ExceptionUtils;
 
-import java.io.*;
-import java.sql.SQLException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.util.Collection;
 
 /**
@@ -25,6 +28,8 @@ public class SqliteJobQueue implements JobQueue {
     SQLiteDatabase db;
     SqlHelper sqlHelper;
     JobSerializer jobSerializer;
+    QueryCache readyJobsQueryCache;
+    QueryCache nextJobsQueryCache;
 
     /**
      * @param context application context
@@ -37,6 +42,8 @@ public class SqliteJobQueue implements JobQueue {
         db = dbOpenHelper.getWritableDatabase();
         sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT, sessionId);
         this.jobSerializer = jobSerializer;
+        readyJobsQueryCache = new QueryCache();
+        nextJobsQueryCache = new QueryCache();
     }
 
     public SqliteJobQueue(Context context, long sessionId, String id) {
@@ -134,12 +141,16 @@ public class SqliteJobQueue implements JobQueue {
 
     @Override
     public int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
-        String where = createReadyJobWhereSql(hasNetwork, excludeGroups, true);
-        String subSelect = "SELECT count(*) group_cnt, " + DbOpenHelper.GROUP_ID_COLUMN.columnName
-                + " FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME
-                + " WHERE " + where;
-        String sql = "SELECT SUM(case WHEN " + DbOpenHelper.GROUP_ID_COLUMN.columnName
-                + " is null then group_cnt else 1 end) from (" + subSelect + ")";
+        String sql = readyJobsQueryCache.get(hasNetwork, excludeGroups);
+        if(sql == null) {
+            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, true);
+            String subSelect = "SELECT count(*) group_cnt, " + DbOpenHelper.GROUP_ID_COLUMN.columnName
+                    + " FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME
+                    + " WHERE " + where;
+            sql = "SELECT SUM(case WHEN " + DbOpenHelper.GROUP_ID_COLUMN.columnName
+                    + " is null then group_cnt else 1 end) from (" + subSelect + ")";
+            readyJobsQueryCache.set(sql, hasNetwork, excludeGroups);
+        }
         Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});
         try {
             if(!cursor.moveToNext()) {
@@ -156,16 +167,19 @@ public class SqliteJobQueue implements JobQueue {
      */
     @Override
     public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
-        //TODO
-        //see if we can avoid creating a new query all the time
-        String where = createReadyJobWhereSql(hasNetwork, excludeGroups, false);
-        String selectQuery = sqlHelper.createSelect(
-                where,
-                1,
-                new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
-                new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
-                new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
-        );
+        //we can even keep these prepared but not sure the cost of them in db layer
+        String selectQuery = nextJobsQueryCache.get(hasNetwork, excludeGroups);
+        if(selectQuery == null) {
+            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, false);
+            selectQuery = sqlHelper.createSelect(
+                    where,
+                    1,
+                    new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
+                    new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
+                    new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
+            );
+            nextJobsQueryCache.set(selectQuery, hasNetwork, excludeGroups);
+        }
         Cursor cursor = db.rawQuery(selectQuery, new String[]{Long.toString(sessionId),Long.toString(System.nanoTime())});
         try {
             if (!cursor.moveToNext()) {
@@ -238,6 +252,8 @@ public class SqliteJobQueue implements JobQueue {
     @Override
     public void clear() {
         sqlHelper.truncate();
+        readyJobsQueryCache.clear();
+        nextJobsQueryCache.clear();
     }
 
     private void onJobFetchedForRunning(JobHolder jobHolder) {

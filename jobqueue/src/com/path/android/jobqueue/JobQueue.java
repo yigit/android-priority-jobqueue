@@ -43,6 +43,7 @@ public interface JobQueue {
     /**
      * counts the # of jobs that can run now. if there are more jobs from the same group, they are count as 1 since
      * they cannot be run in parallel
+     * exclude groups are guaranteed to be ordered in natural order
      * @return
      */
     int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups);
@@ -51,6 +52,7 @@ public interface JobQueue {
      * Returns the next available job in the data set
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
      * It should filter out all running jobs and
+     * exclude groups are guaranteed to be ordered in natural order
      * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
      * @param excludeGroups if provided, jobs from these groups will NOT be returned
      * @return
