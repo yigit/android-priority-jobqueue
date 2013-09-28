@@ -2,12 +2,15 @@ package com.path.android.jobqueue;
 
 import com.path.android.jobqueue.log.JqLog;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 abstract public class BaseJob implements Serializable {
     public static final int DEFAULT_RETRY_LIMIT = 20;
-    private final boolean requiresNetwork;
-    private final String groupId;
+    private boolean requiresNetwork;
+    private String groupId;
     private transient int currentRunCount;
 
     protected BaseJob(boolean requiresNetwork) {
@@ -21,6 +24,17 @@ abstract public class BaseJob implements Serializable {
     protected BaseJob(boolean requiresNetwork, String groupId) {
         this.requiresNetwork = requiresNetwork;
         this.groupId = groupId;
+    }
+
+    private void writeObject(ObjectOutputStream oos) throws IOException {
+        oos.writeBoolean(requiresNetwork);
+        oos.writeObject(groupId);
+    }
+
+
+    private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+        requiresNetwork = ois.readBoolean();
+        groupId = (String) ois.readObject();
     }
 
     /**
