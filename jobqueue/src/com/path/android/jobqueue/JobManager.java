@@ -40,6 +40,7 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     private ConcurrentHashMap<Long, CountDownLatch> persistentOnAddedLocks;
     private ConcurrentHashMap<Long, CountDownLatch> nonPersistentOnAddedLocks;
+    private ScheduledExecutorService timedExecutor;
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -84,6 +85,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         //is important to initialize consumers last so that they can start running
         jobConsumerExecutor = new JobConsumerExecutor(config,consumerContract);
+        timedExecutor = Executors.newSingleThreadScheduledExecutor();
         start();
     }
 
@@ -274,13 +276,15 @@ public class JobManager implements NetworkEventProvider.Listener {
         jobConsumerExecutor.considerAddingConsumer();
     }
 
+    private final Runnable notifyRunnable = new Runnable() {
+        @Override
+        public void run() {
+            notifyJobConsumer();
+        }
+    };
+
     private void ensureConsumerOnTime(long waitMs) {
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                notifyJobConsumer();
-            }
-        }, waitMs);
+        timedExecutor.schedule(notifyRunnable, waitMs, TimeUnit.MILLISECONDS);
     }
 
     private boolean hasNetwork() {
