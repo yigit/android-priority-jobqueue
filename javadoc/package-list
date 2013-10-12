@@ -1,4 +1,5 @@
 com.path.android.jobqueue
+com.path.android.jobqueue.cachedQueue
 com.path.android.jobqueue.config
 com.path.android.jobqueue.di
 com.path.android.jobqueue.executor
