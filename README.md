@@ -5,82 +5,104 @@ Priority Jobqueue is an implementation of [Job Queue](http://en.wikipedia.org/wi
 
 It is written flexibility & functionality in mind, not performance but we'll improve performance once API and functionality list gets more stable.
 
-Since an example is worth thousans of works, here it is:
+Since an example is worth thousands of words, here it is:
 
 File: SendTweetJob.java
 ``` java
 // a job to send out a tweet
-public class SendTweetJob extends BaseJob {
-    public static final int PRIORITY = 5;//so custom priority depending on your codebase
-    //you can injections on your jobs
-    //we keep then transient because we don't want these methods serialized into databse
+public class PostTweetJob extends BaseJob implements Serializeable {
+    //if you are using dependency injection, you can configure JobManager to use it :)
+    //since this job uses default Java Serialization for persistence, we marked injected fields as transient.
+    //you can also provide your own serialization-deserialization logic.
     @Inject transient TweetModel tweetModel;
-    @Inject transient EventBus eventbus;
-    @Inject transient TwitterClient twitterClient;
-    private Tweet tweet;
-    public SendTweetJob(String status) {
-        super(true);//true-> requires network. This job should not run if we don't have network connection
-        tweet = new Tweet(status);
-        tweet.setLocalId(generateLocalId());
-        tweet.setPending(true);
+    @Inject transient Webservice webservice;
+    @Inject transient UserModel userModel;
+    @Inject transient EventBus eventBus;
+    
+    
+    private long localId;
+    private String text;
+    public PostTweetJob(String text) {
+        super(true, true);
+        //use a negative id so that it cannot collide w/ twitter ids
+        localId = -System.currentTimeMillis();
+        this.text = text;
     }
 
     @Override
     public void onAdded() {
-        //called when job is syncronized to disk. This means it will eventually run so we can update database here and
-        //show tweet to the user as if it went out
-        tweetModel.save(tweet);
-        //dispatch an envet so that if user is viewing tweets, activity will listen to this event and refresh itself
-        eventbus.post(new SendingTweetEvent(tweet));
+        //job has been secured to disk, add item to database so that we can display it to the user.
+        Tweet tweet = new Tweet(
+                localId,
+                null,
+                text,
+                userModel.getMyUserId(),
+                new Date(System.currentTimeMillis())
+        );
+        tweetModel.insert(tweet);
+        eventBus.post(new PostingTweetEvent(tweet));
     }
 
     @Override
     public void onRun() throws Throwable {
-        twitterClient.postStatus(tweet);
-        tweet.setPending(false);
-        tweetModel.save(tweet);
-        //since twitter request succeeded (otherwise it would dispatch an error) notify eventbus so that UI can update itself.
-        eventbus.post(new SentTweetEvent(tweet));
-    }
-
-    @Override
-    public boolean shouldPersist() {
-        return true;//this job should be persisted into databse because we don't want to lose user's tweet
+        Status status = webservice.postTweet(text);
+        Tweet newTweet = new Tweet(status);
+        Tweet existingTweet = tweetModel.getTweetByLocalId(localId);
+        if(existingTweet != null) {
+            existingTweet.updateNotNull(newTweet);
+            tweetModel.inserOrReplace(existingTweet);
+        } else {
+            //somewhat local tweet does not exist. we might have crashed before onAdded is called.
+            //just insert as if it is a new tweet
+            tweetModel.insertOrReplace(newTweet);
+        }
+        eventBus.post(new PostedTweetEvent(newTweet, localId));
     }
 
     @Override
     protected void onCancel() {
-        //for some reason, tweet should not be sycned to twitter. we should delete the local one
-        //might be nice to show a notification etc to the user to retry their tweet (or maybe re-authenticate)
-        tweetModel.delete(tweet);
-        eventbus.post(new FaliedToSendTweet(tweet));
+        //delete local tweet. we could not complete job successfully
+        Tweet localTweet = tweetModel.getTweetByLocalId(localId);
+        if(localTweet != null) {
+            tweetModel.deleteTweetById(localId);
+            eventBus.post(new DeletedTweetEvent(localId));
+        }
     }
 
     @Override
     protected boolean shouldReRunOnThrowable(Throwable throwable) {
-        //onRun method did throw and error. we should handle what it is and see if we can try to re-send
-        if (throwable instanceof HttpResponseException) {
-            int statusCode = ((HttpResponseException) e).getStatusCode();
-            if(statusCode < 500 && statusCode >=400) {
-                return false;//wen cannot recover from 4xx error
-            }
+        if(throwable instanceof TwitterException) {
+            //if it is a 4xx error, stop. job manager will call `onCancel`
+            TwitterException twitterException = (TwitterException) throwable;
+            return twitterException.getErrorCode() < 400 || twitterException.getErrorCode() > 499;
         }
-        return true; //retry. a more complete example would check more error conditions
+        return true;
     }
 }
+
 
 ```
 
 File: TweetActivity.java
 ``` java
-...
+//...
 public void onSendClick() {
     final String status = editText.getText();
     editText.setText("");
-    //assume we have a ThreadUtil class to dispatch code to a shared background thread
+    //assume we have a ThreadUtil class to dispatch code to a shared background thread.
+    //this avoids making a disk write on main thread.
     ThreadUtil.performOnBackgroundThread(new Runnable() {
-        jobManager.addJob(SendTweetJob.PRIORITY, new SendTweetJob(status));
+        jobManager.addJob(1, new PostTweetJob(status));
     });
+}
+
+//....
+public void onEventMainThread(PostingTweetEvent ignored) {
+    //add tweet to list
+}
+
+public void onEventMainThread(PostedTweetEvent ignored) {
+    //refresh tweet list
 }
 ...
 ```
@@ -88,16 +110,15 @@ public void onSendClick() {
 This is it :). No more async tasks, no more shared preferences mess. Here is what happened:
 
 ### What Happened?
-* When user clicked send button, `onSendClick` method was called which creates a `SendTweetJob` and adds it to `JobManager` for execution.
-It runs on a background thread because JobManager will make a disk access to add the job.
+* When user clicked send button, `onSendClick` method was called which creates a `PostTweetJob` and adds it to `JobManager` for execution.
+It runs on a background thread because JobManager will make a disk access to persist the job.
 
-* Right after Job is syncronized to database, JobManager calls DependencyInjector (if provided) which will inject fields into our job class.
-On `onAdded` callback, we saved tweet into disk and dispatched necessary event so that UI can update itself. Since there is no disk
-access during this flow, it will be in a fraction of seconds so that user will see their Tweet on their UI instantly.
+* Right after Job is syncronized to database, JobManager calls DependencyInjector (if provided) which will inject fields into our job instance. 
+On `onAdded` callback, we saved tweet into disk and dispatched necessary event so that UI can update itself. Since there is no network access during this flow, it will be in a fraction of seconds so that user will see their Tweet on their UI instantly.
 
 * When the job's turn comes, job manager will call `onRun` (and it will only be called if there is an active network connection). 
-By default, JobManager users a simple connection utility that checks ConnectivityManager. You can provide a [custom one][1] which can
-add additional checks (e.g. your server stability). You should also privde a [network util][1] which can notify JobManager when network
+By default, JobManager users a simple connection utility that checks ConnectivityManager (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom one][1] which can
+add additional checks (e.g. your server stability). You should also provide a [network util][1] which can notify JobManager when network
 is recovered so that JobManager will avoid a busy loop and can decrease # of consumers. 
 
 * JobManager will keep calling onRun until it succeeds (or it reaches retry limit). If an `onRun` method throws an exception,
@@ -107,15 +128,14 @@ JobManager will call `shouldReRunOnThrowable` so that you can handle the excepti
 your database, inform the user etc.
 
 ### Advantages of using Job Manager
-* It is very easy to extract application logic from your activites, making your code more robust, easy to refactor and easy to **test**.
-* You don't deal with asnyc tasks lifecycles etc. This is partially true assuming you use some eventbus to update your UI (you should).
+* It is very easy to de-couple application logic from your activites, making your code more robust, easy to refactor and easy to **test**.
+* You don't deal with asnyc tasks lifecycles etc. This is partially true assuming that you use some eventbus to update your UI (you should).
 At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
-* Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a 
-resource heavy app like ours.
-* You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very ccommon task to acquire a GCM
-token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching
-friend list). 
-* It is fully unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
+* Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a resource heavy app like ours.
+* You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very common task to acquire a GCM token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching important content updates).
+* You can group jobs to ensure their serial execution, if necessary. For instance at Path, we group jobs related to a moment with moment's id so that we won't hit any concurrency problems due to editing same moment in multiple threads.
+
+* It is fairly unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
 ### License
 ```
