@@ -1,0 +1,69 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.6.1'
+    }
+}
+
+apply plugin: 'android'
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+    }
+}
+
+class RunApk extends DefaultTask {
+    def adbExec;
+    @TaskAction
+    def runApp() {
+        println "running path on device or emulator"
+        println "adb:" + adbExec
+        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.path.android.jobqueue.examples.twitter/com.path.android.jobqueue.examples.twitter.SampleTwitterClient"
+        println cmd
+        def proc = cmd.execute()
+        proc.in.eachLine {line -> println line}
+        proc.err.eachLine {line -> println 'ERROR: ' + line}
+        proc.waitFor()
+    }
+}
+
+def Properties localProps = new Properties()
+localProps.load(new FileInputStream(file('local.properties')))
+println localProps["sdk.dir"]
+def adb = localProps['sdk.dir'] + "/platform-tools/adb"
+
+
+tasks.create(name: "run", type: RunApk){
+    adbExec = adb
+}
+
+android {
+    compileSdkVersion 17
+    buildToolsVersion "18.1.0"
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 17
+    }
+
+    dependencies {
+        compile 'de.greenrobot:eventbus:2.1.0-beta-1'
+        compile 'org.twitter4j:twitter4j-core:3.0.3'
+        compile files('external-libs/greenDAO.jar')
+        compile files('external-libs/android-priority-jobqueue-0.9.7.1.jar')
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src', 'src-gen']
+            resources.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+    }
+}

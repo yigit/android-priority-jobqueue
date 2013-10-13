@@ -14,7 +14,7 @@ public class TwitterApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        jobManager = new JobManager(this, JobManager.createDefaultConfiguration().maxConsumerCount(1));
+        jobManager = new JobManager(this, JobManager.createDefaultConfiguration().maxConsumerCount(2));
     }
 
     public JobManager getJobManager() {

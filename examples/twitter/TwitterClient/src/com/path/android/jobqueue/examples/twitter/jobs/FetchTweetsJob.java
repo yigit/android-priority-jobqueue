@@ -1,6 +1,5 @@
 package com.path.android.jobqueue.examples.twitter.jobs;
 
-import android.util.Log;
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.examples.twitter.controllers.TwitterController;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
@@ -12,11 +11,16 @@ import twitter4j.TwitterException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class FetchTweetsJob extends BaseJob {
+    private static final AtomicInteger jobCounter = new AtomicInteger(0);
+
+    private final int id;
     public FetchTweetsJob() {
-        super(true);
+        super(true, false, "fetch-tweets");
+        id = jobCounter.incrementAndGet();
     }
 
     @Override
@@ -26,7 +30,12 @@ public class FetchTweetsJob extends BaseJob {
 
     @Override
     public void onRun() throws Throwable {
-        TweetModel tweetModel = new TweetModel();
+        if(id != jobCounter.get()) {
+            //looks like other fetch jobs has been added after me. no reason to keep fetching
+            //many times, cancel me, let the other one fetch tweets.
+            return;
+        }
+        TweetModel tweetModel = TweetModel.getInstance();
         Tweet lastTweet = tweetModel.getLastTweet();
         List<Status> statusList = TwitterController.getInstance().loadTweets(lastTweet == null ? null : lastTweet.getServerId());
         if(statusList.size() > 0) {
@@ -38,11 +47,6 @@ public class FetchTweetsJob extends BaseJob {
             tweetModel.insertOrReplaceAll(tweets);
             EventBus.getDefault().post(new FetchedNewTweetsEvent());
         }
-    }
-
-    @Override
-    public boolean shouldPersist() {
-        return false;
     }
 
     @Override

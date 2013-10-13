@@ -17,7 +17,7 @@ public class PostTweetJob extends BaseJob {
     private long localId;
     private String text;
     public PostTweetJob(String text) {
-        super(true);
+        super(true, true);
         //use a negative id so that it cannot collide w/ twitter ids
         localId = -System.currentTimeMillis();
         this.text = text;
@@ -57,11 +57,6 @@ public class PostTweetJob extends BaseJob {
             tweetModel.insertOrReplace(newTweet);
         }
         EventBus.getDefault().post(new PostedTweetEvent(newTweet, localId));
-    }
-
-    @Override
-    public boolean shouldPersist() {
-        return true;
     }
 
     @Override

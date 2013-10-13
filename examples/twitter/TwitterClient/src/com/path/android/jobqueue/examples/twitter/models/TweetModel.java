@@ -1,6 +1,5 @@
 package com.path.android.jobqueue.examples.twitter.models;
 
-import com.path.android.jobqueue.examples.twitter.dao.DaoSession;
 import com.path.android.jobqueue.examples.twitter.dao.TweetDao;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
 import de.greenrobot.dao.LazyList;
@@ -18,7 +17,7 @@ public class TweetModel {
         return instance;
     }
 
-    public TweetModel() {
+    private TweetModel() {
         tweetDao = DbHelper.getInstance().getDaoSession().getTweetDao();
     }
 

@@ -31,3 +31,5 @@ jobqueue/javadoc
 out
 *.iml
 pages
+.gradle
+build
