@@ -9,18 +9,16 @@ import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
-import org.fest.reflect.core.Reflection;
-import org.fest.reflect.method.Invoker;
-import org.hamcrest.MatcherAssert;
-import org.robolectric.Robolectric;
+import org.fest.reflect.core.*;
+import org.fest.reflect.method.*;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
+import org.robolectric.*;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 public class JobManagerTestBase extends TestBase {
     protected JobManager createJobManager() {
@@ -50,10 +48,8 @@ public class JobManagerTestBase extends TestBase {
 
     protected static class DummyJobWithRunCount extends DummyJob {
         public static int runCount;
-        private boolean persist;
-
-        protected DummyJobWithRunCount(boolean persist) {
-            this.persist = persist;
+        protected DummyJobWithRunCount(boolean persistent) {
+            super(false, persistent);
         }
 
         @Override
@@ -61,11 +57,6 @@ public class JobManagerTestBase extends TestBase {
             runCount++;
             super.onRun();
             throw new RuntimeException("i am dummy, i throw exception when running");
-        }
-
-        @Override
-        public boolean shouldPersist() {
-            return persist;
         }
 
         @Override

@@ -2,15 +2,14 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 public class KeepAliveTest extends JobManagerTestBase {
@@ -47,8 +46,8 @@ public class KeepAliveTest extends JobManagerTestBase {
         //disable network and add a network bound job
         networkUtilWithoutEventSupport.setHasNetwork(false);
         networkUtilWithEventSupport.setHasNetwork(false, true);
-        jobManager1.addJob(0, new DummyJob(true));
-        jobManager2.addJob(0, new DummyJob(true));
+        jobManager1.addJob(0, new DummyJob(true, false));
+        jobManager2.addJob(0, new DummyJob(true, false));
         Thread.sleep(1000 + (long) (TimeUnit.SECONDS.toMillis(keepAlive) * 2));
         MatcherAssert.assertThat("when network changes cannot be detected, there should be a consumer waiting alive",
                 activeThreadCount1.get(), equalTo(1));

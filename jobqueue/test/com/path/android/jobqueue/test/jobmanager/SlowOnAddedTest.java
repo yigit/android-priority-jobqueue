@@ -46,7 +46,7 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         private static int onAddedCountWhenOnRun = -1;
 
         protected MyDummyPersistentJob() {
-            super(false);
+            super(false, true);
         }
 
         @Override
@@ -63,11 +63,6 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         public void onRun() throws Throwable {
             onAddedCountWhenOnRun = persistentOnAdded;
             persistentJobLatch.countDown();
-        }
-
-        @Override
-        public boolean shouldPersist() {
-            return true;
         }
 
         @Override

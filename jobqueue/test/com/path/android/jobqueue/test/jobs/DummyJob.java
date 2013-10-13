@@ -9,11 +9,11 @@ public class DummyJob extends BaseJob {
     int shouldReRunOnThrowableCnt = 0;
 
     public DummyJob() {
-        super(false);
+        super(false, false);
     }
 
-    public DummyJob(boolean requiresNetwork) {
-        super(requiresNetwork);
+    public DummyJob(boolean requiresNetwork, boolean persistent) {
+        super(requiresNetwork, persistent);
     }
 
     public DummyJob(String groupId) {
@@ -28,11 +28,6 @@ public class DummyJob extends BaseJob {
     @Override
     public void onRun() throws Throwable {
         onRunCnt++;
-    }
-
-    @Override
-    public boolean shouldPersist() {
-        return false;
     }
 
     @Override

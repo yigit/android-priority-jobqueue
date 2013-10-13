@@ -7,34 +7,59 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+/**
+ * base class for any job to extend from.
+ *
+ */
 abstract public class BaseJob implements Serializable {
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private boolean requiresNetwork;
     private String groupId;
+    private boolean persistent;
     private transient int currentRunCount;
 
     protected BaseJob(boolean requiresNetwork) {
-        this(requiresNetwork, null);
+        this(requiresNetwork, false, null);
     }
 
     protected BaseJob(String groupId) {
-        this(false, groupId);
+        this(false, false, groupId);
     }
 
     protected BaseJob(boolean requiresNetwork, String groupId) {
+        this(requiresNetwork, false, groupId);
+    }
+
+    public BaseJob(boolean requiresNetwork, boolean persistent) {
+        this(requiresNetwork, persistent, null);
+    }
+
+    protected BaseJob(boolean requiresNetwork, boolean persistent, String groupId) {
         this.requiresNetwork = requiresNetwork;
+        this.persistent = persistent;
         this.groupId = groupId;
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
         oos.writeBoolean(requiresNetwork);
         oos.writeObject(groupId);
+        oos.writeBoolean(persistent);
     }
 
 
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         requiresNetwork = ois.readBoolean();
         groupId = (String) ois.readObject();
+        persistent = ois.readBoolean();
+    }
+
+    /**
+     * defines if we should add this job to disk or non-persistent queue
+     *
+     * @return
+     */
+    public final boolean shouldPersist() {
+        return persistent;
     }
 
     /**
@@ -52,13 +77,6 @@ abstract public class BaseJob implements Serializable {
      * @throws Throwable
      */
     abstract public void onRun() throws Throwable;
-
-    /**
-     * defines if we should add this job to disk or non-persistent queue
-     *
-     * @return
-     */
-    abstract public boolean shouldPersist();
 
     /**
      * called when a job is cancelled.

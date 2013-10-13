@@ -3,19 +3,20 @@ package com.path.android.jobqueue.test.jobmanager;
 import android.util.Log;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 public class MultiThreadTest extends JobManagerTestBase {
@@ -62,16 +63,9 @@ public class MultiThreadTest extends JobManagerTestBase {
     }
     public static class DummyJobForMultiThread extends DummyJob {
         private int id;
-        private boolean persist;
         private DummyJobForMultiThread(int id, boolean requiresNetwork, boolean persist) {
-            super(requiresNetwork);
-            this.persist = persist;
+            super(requiresNetwork, persist);
             this.id = id;
-        }
-
-        @Override
-        public boolean shouldPersist() {
-            return persist;
         }
 
         @Override
@@ -84,7 +78,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             if(Math.random() < .1) {
                 throw new Exception("decided to die, will retry");
             }
-            Log.d("DummyJobForMultiThread", "persistent:" + persist + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
+            Log.d("DummyJobForMultiThread", "persistent:" + shouldPersist() + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
         }
 
         @Override

@@ -1,6 +1,5 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
-import java.util.Collection;
 import java.util.Set;
 
 public class CountWithGroupIdsResult {

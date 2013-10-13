@@ -2,7 +2,7 @@ package com.path.android.jobqueue.log;
 
 /**
  * You can provide your own logger implementation to {@link com.path.android.jobqueue.JobManager}
- * it is very similar to roboguice's logger
+ * it is very similar to Roboguice's logger
  */
 public interface CustomLogger {
     /**

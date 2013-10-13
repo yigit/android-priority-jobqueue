@@ -16,7 +16,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
         JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
         dummyNetworkUtil.setHasNetwork(false, true);
-        DummyJob dummyJob = new DummyJob(true);
+        DummyJob dummyJob = new DummyJob(true, false);
         long dummyJobId = jobManager.addJob(0, dummyJob);
         Thread.sleep(2000);//sleep a while so that consumers die. they should die since we are using a network util
         //with event support

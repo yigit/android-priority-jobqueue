@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.examples.twitter.activities.BaseActivity;
 import com.path.android.jobqueue.examples.twitter.adapters.LazyListAdapter;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
@@ -18,29 +19,26 @@ import com.path.android.jobqueue.examples.twitter.jobs.FetchTweetsJob;
 import com.path.android.jobqueue.examples.twitter.jobs.PostTweetJob;
 import com.path.android.jobqueue.examples.twitter.models.TweetModel;
 import com.path.android.jobqueue.examples.twitter.tasks.SimpleBackgroundTask;
-import com.path.android.jobqueue.examples.twitter.util.Strings;
 import de.greenrobot.dao.LazyList;
 import de.greenrobot.event.EventBus;
 
 public class SampleTwitterClient extends BaseActivity {
-    /**
-     * Called when the activity is first created.
-     */
-    private ListView listView;
     private TweetAdapter tweetAdapter;
     private boolean dataDirty = true;
+    JobManager jobManager;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         dataDirty = true;
         setContentView(R.layout.main);
-        listView = (ListView) findViewById(R.id.tweet_list);
+        jobManager = TwitterApplication.getInstance().getJobManager();
+        ListView listView = (ListView) findViewById(R.id.tweet_list);
         tweetAdapter = new TweetAdapter(getLayoutInflater());
         findViewById(R.id.send_tweet).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 EditText text = (EditText) findViewById(R.id.edit_status);
-                if(!Strings.isEmpty(text.getText().toString())) {
+                if(text.getText().toString().trim().length() > 0) {
                     sendTweet(text.getText().toString());
                     text.setText("");
 
@@ -55,7 +53,7 @@ public class SampleTwitterClient extends BaseActivity {
         new SimpleBackgroundTask<Void>(this) {
             @Override
             protected Void onRun() {
-                TwitterApplication.getInstance().getJobManager().addJob(1, new PostTweetJob(text));
+                jobManager.addJob(1, new PostTweetJob(text));
                 return null;
             }
 
@@ -104,7 +102,7 @@ public class SampleTwitterClient extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        TwitterApplication.getInstance().getJobManager().addJob(0, new FetchTweetsJob());
+        jobManager.addJob(0, new FetchTweetsJob());
         if(dataDirty) {
             refreshList();
             dataDirty = false;

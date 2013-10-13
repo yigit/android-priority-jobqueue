@@ -6,8 +6,9 @@ import com.path.android.jobqueue.JobQueue;
 import java.util.Collection;
 
 /**
- * a class that implements {@link JobQueue} interface and caches results to avoid unnecessary queries to underlying
- * does very basic caching but should be sufficient for most of the cases
+ * a class that implements {@link JobQueue} interface, wraps another {@link JobQueue} and caches
+ * results to avoid unnecessary queries to wrapped JobQueue.
+ * does very basic caching but should be sufficient for most of the repeated cases
  * element
  */
 public class CachedJobQueue implements JobQueue {

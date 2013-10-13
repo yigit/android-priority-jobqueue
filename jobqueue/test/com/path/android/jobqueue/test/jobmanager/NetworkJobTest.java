@@ -18,10 +18,10 @@ public class NetworkJobTest extends JobManagerTestBase {
         JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
         jobManager.stop();
 
-        DummyJob networkDummyJob = new DummyJob(true);
+        DummyJob networkDummyJob = new DummyJob(true, false);
         jobManager.addJob(5, networkDummyJob);
 
-        DummyJob noNetworkDummyJob = new DummyJob(false);
+        DummyJob noNetworkDummyJob = new DummyJob(false, false);
         jobManager.addJob(2, noNetworkDummyJob);
 
         PersistentDummyJob networkPersistentJob = new PersistentDummyJob(true);

@@ -425,17 +425,17 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     private JobHolder createNewJobHolderWithRequiresNetwork(boolean requiresNetwork) {
-        return new JobHolder(null, 0, null, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, 0, null, 0, new DummyJob(requiresNetwork, false), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithDelayUntil(boolean requiresNetwork, int priority, long delayUntil) {
-        JobHolder jobHolder = new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        JobHolder jobHolder = new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork, false), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
         getDelayUntilNsField(jobHolder).set(delayUntil);
         return jobHolder;
     }
 
     private JobHolder createNewJobHolderWithRequiresNetworkAndPriority(boolean requiresNetwork, int priority) {
-        return new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork, false), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithPriority(int priority) {

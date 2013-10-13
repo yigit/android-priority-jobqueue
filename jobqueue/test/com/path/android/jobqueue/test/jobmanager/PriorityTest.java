@@ -2,16 +2,15 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobManager;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 public class PriorityTest extends JobManagerTestBase {
@@ -40,12 +39,10 @@ public class PriorityTest extends JobManagerTestBase {
     public static class DummyJobWithRunOrderAssert extends BaseJob {
         transient public static AtomicInteger globalRunCount;
         private int expectedRunOrder;
-        private boolean persist;
 
         public DummyJobWithRunOrderAssert(int expectedRunOrder, boolean persist) {
-            super(true);
+            super(true, persist);
             this.expectedRunOrder = expectedRunOrder;
-            this.persist = persist;
         }
 
         @Override
@@ -57,11 +54,6 @@ public class PriorityTest extends JobManagerTestBase {
             final int cnt = globalRunCount.incrementAndGet();
             MatcherAssert.assertThat(expectedRunOrder, equalTo(cnt));
             priorityRunLatch.countDown();
-        }
-
-        @Override
-        public boolean shouldPersist() {
-            return persist;
         }
 
         @Override

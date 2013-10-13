@@ -20,7 +20,7 @@ public class NetworkNextJobTest extends JobManagerTestBase {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
         JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
         jobManager.stop();
-        DummyJob dummyJob = new DummyJob(true);
+        DummyJob dummyJob = new DummyJob(true, false);
         long dummyJobId = jobManager.addJob(0, dummyJob);
         dummyNetworkUtil.setHasNetwork(false);
         Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
