@@ -69,7 +69,7 @@
   <td class="src"><pre class="src">&nbsp;<span class="comment"> * -&gt; Stats like waiting Job Count</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;24</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;<span class="comment"> */</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;25</td>  <td class="nbHitsCovered">&nbsp;2478940</td>  <td class="src"><pre class="src">&nbsp;<span class="keyword">public</span> <span class="keyword">class</span> JobManager <span class="keyword">implements</span> NetworkEventProvider.Listener {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;25</td>  <td class="nbHitsCovered">&nbsp;2330460</td>  <td class="src"><pre class="src">&nbsp;<span class="keyword">public</span> <span class="keyword">class</span> JobManager <span class="keyword">implements</span> NetworkEventProvider.Listener {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;26</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> NS_PER_MS = 1000000;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;27</td>  <td class="nbHits">&nbsp;</td>
@@ -248,14 +248,14 @@
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">int</span> countReadyJobs(<span class="keyword">boolean</span> hasNetwork) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;134</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="comment">//TODO we can cache this</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">int</span> total = 0;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;136</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;            total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;138</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;139</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;140</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;            total += persistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;141</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;142</td>  <td class="nbHitsCovered">&nbsp;609</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> total;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">int</span> total = 0;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;136</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;            total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;138</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;139</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;140</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;            total += persistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;141</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;142</td>  <td class="nbHitsCovered">&nbsp;608</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> total;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;143</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;144</td>  <td class="nbHits">&nbsp;</td>
@@ -299,16 +299,16 @@
 <tr>  <td class="numLine">&nbsp;164</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">long</span> id;</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;165</td>  <td class="nbHitsCovered"><a title="Line 165: Conditional coverage 100% (2/2).">&nbsp;509</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 165: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (baseJob.shouldPersist()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;166</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;167</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;                id = persistentJobQueue.insert(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;168</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;                addOnAddedLock(persistentOnAddedLocks, id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;169</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;166</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;167</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;                id = persistentJobQueue.insert(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;168</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;                addOnAddedLock(persistentOnAddedLocks, id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;169</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;170</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;171</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;172</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;                id = nonPersistentJobQueue.insert(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;173</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;                addOnAddedLock(nonPersistentOnAddedLocks, id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;174</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;171</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;172</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;                id = nonPersistentJobQueue.insert(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;173</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;                addOnAddedLock(nonPersistentOnAddedLocks, id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;174</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;175</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;176</td>  <td class="nbHitsCovered"><a title="Line 176: Conditional coverage 100% (2/2).">&nbsp;509</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 176: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(JqLog.isDebugEnabled()) {</a></pre></td></tr>
@@ -327,14 +327,14 @@
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;185</td>  <td class="nbHitsCovered">&nbsp;509</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.getBaseJob().onAdded();</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;186</td>  <td class="nbHitsCovered"><a title="Line 186: Conditional coverage 100% (2/2).">&nbsp;509</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 186: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(baseJob.shouldPersist()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;187</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;188</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;                clearOnAddedLock(persistentOnAddedLocks, id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;189</td>  <td class="nbHitsCovered">&nbsp;199</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;187</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;188</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;                clearOnAddedLock(persistentOnAddedLocks, id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;189</td>  <td class="nbHitsCovered">&nbsp;193</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;190</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;191</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;192</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;                clearOnAddedLock(nonPersistentOnAddedLocks, id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;193</td>  <td class="nbHitsCovered">&nbsp;310</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;191</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;192</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;                clearOnAddedLock(nonPersistentOnAddedLocks, id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;193</td>  <td class="nbHitsCovered">&nbsp;316</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;194</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;195</td>  <td class="nbHitsCovered">&nbsp;509</td>  <td class="src"><pre class="src">&nbsp;        notifyJobConsumer();</pre></td></tr>
@@ -397,12 +397,12 @@
   <td class="src"><pre class="src">&nbsp;<span class="comment">     */</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;232</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">long</span> ensureConsumerWhenNeeded(Boolean hasNetwork) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;233</td>  <td class="nbHitsCovered"><a title="Line 233: Conditional coverage 100% (2/2).">&nbsp;61</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 233: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(hasNetwork == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;233</td>  <td class="nbHitsCovered"><a title="Line 233: Conditional coverage 100% (2/2).">&nbsp;63</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 233: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(hasNetwork == <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;234</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//if network util can inform us when network is recovered, we we'll check only next job that does not</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;235</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//require network. if it does not know how to inform us, we have to keep a busy loop.</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;236</td>  <td class="nbHitsCovered"><a title="Line 236: Conditional coverage 100% (2/2).">&nbsp;57</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 236: Conditional coverage 100% (2/2).">            hasNetwork = networkUtil <span class="keyword">instanceof</span> NetworkEventProvider ? hasNetwork() : <span class="keyword">true</span>;</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;236</td>  <td class="nbHitsCovered"><a title="Line 236: Conditional coverage 100% (2/2).">&nbsp;59</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 236: Conditional coverage 100% (2/2).">            hasNetwork = networkUtil <span class="keyword">instanceof</span> NetworkEventProvider ? hasNetwork() : <span class="keyword">true</span>;</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;237</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;238</td>  <td class="nbHits">&nbsp;</td>
@@ -411,53 +411,53 @@
   <td class="src"><pre class="src">&nbsp;        <span class="comment">//this may happen in a race condition or when the latest job is a delayed job</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;240</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        Long nextRunNs;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;241</td>  <td class="nbHitsCovered">&nbsp;61</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;242</td>  <td class="nbHitsCovered">&nbsp;61</td>  <td class="src"><pre class="src">&nbsp;            nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;243</td>  <td class="nbHitsCovered">&nbsp;61</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;244</td>  <td class="nbHitsCovered"><a title="Line 244: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;61</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 244: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(nextRunNs != <span class="keyword">null</span> &amp;&amp; nextRunNs &lt;= System.nanoTime()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;245</td>  <td class="nbHitsCovered">&nbsp;10</td>  <td class="src"><pre class="src">&nbsp;            notifyJobConsumer();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;246</td>  <td class="nbHitsCovered">&nbsp;10</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> 0L;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;241</td>  <td class="nbHitsCovered">&nbsp;63</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;242</td>  <td class="nbHitsCovered">&nbsp;63</td>  <td class="src"><pre class="src">&nbsp;            nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;243</td>  <td class="nbHitsCovered">&nbsp;63</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;244</td>  <td class="nbHitsCovered"><a title="Line 244: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;63</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 244: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(nextRunNs != <span class="keyword">null</span> &amp;&amp; nextRunNs &lt;= System.nanoTime()) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;245</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;            notifyJobConsumer();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;246</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> 0L;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;247</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;248</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        Long persistedJobRunNs;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;249</td>  <td class="nbHitsCovered">&nbsp;51</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;250</td>  <td class="nbHitsCovered">&nbsp;51</td>  <td class="src"><pre class="src">&nbsp;            persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;251</td>  <td class="nbHitsCovered">&nbsp;51</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;252</td>  <td class="nbHitsCovered"><a title="Line 252: Conditional coverage 100% (2/2).">&nbsp;51</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 252: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(persistedJobRunNs != <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;253</td>  <td class="nbHitsUncovered"><a title="Line 253: Conditional coverage 50% (1/2).">&nbsp;1</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 253: Conditional coverage 50% (1/2).">            <span class="keyword">if</span>(nextRunNs == <span class="keyword">null</span>) {</a></span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;254</td>  <td class="nbHitsCovered">&nbsp;1</td>  <td class="src"><pre class="src">&nbsp;                nextRunNs = persistedJobRunNs;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;249</td>  <td class="nbHitsCovered">&nbsp;54</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;250</td>  <td class="nbHitsCovered">&nbsp;54</td>  <td class="src"><pre class="src">&nbsp;            persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;251</td>  <td class="nbHitsCovered">&nbsp;54</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;252</td>  <td class="nbHitsCovered"><a title="Line 252: Conditional coverage 100% (2/2).">&nbsp;54</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 252: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(persistedJobRunNs != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;253</td>  <td class="nbHitsUncovered"><a title="Line 253: Conditional coverage 50% (1/2).">&nbsp;8</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 253: Conditional coverage 50% (1/2).">            <span class="keyword">if</span>(nextRunNs == <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;254</td>  <td class="nbHitsCovered">&nbsp;8</td>  <td class="src"><pre class="src">&nbsp;                nextRunNs = persistedJobRunNs;</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;255</td>  <td class="nbHitsUncovered"><a title="Line 255: Conditional coverage 0% (0/2).">&nbsp;0</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 255: Conditional coverage 0% (0/2).">            } <span class="keyword">else</span> <span class="keyword">if</span>(persistedJobRunNs &lt; nextRunNs) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;256</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                nextRunNs = persistedJobRunNs;</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;257</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;258</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;259</td>  <td class="nbHitsCovered"><a title="Line 259: Conditional coverage 100% (2/2).">&nbsp;51</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 259: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(nextRunNs != <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;260</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> diff = (<span class="keyword">long</span>)Math.ceil((<span class="keyword">double</span>)(nextRunNs - System.nanoTime()) / NS_PER_MS);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;261</td>  <td class="nbHitsUncovered"><a title="Line 261: Conditional coverage 50% (1/2).">&nbsp;2</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 261: Conditional coverage 50% (1/2).">            <span class="keyword">if</span>(diff &lt;= 0) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;259</td>  <td class="nbHitsCovered"><a title="Line 259: Conditional coverage 100% (2/2).">&nbsp;54</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 259: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(nextRunNs != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;260</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> diff = (<span class="keyword">long</span>)Math.ceil((<span class="keyword">double</span>)(nextRunNs - System.nanoTime()) / NS_PER_MS);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;261</td>  <td class="nbHitsUncovered"><a title="Line 261: Conditional coverage 50% (1/2).">&nbsp;9</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 261: Conditional coverage 50% (1/2).">            <span class="keyword">if</span>(diff &lt;= 0) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;262</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                notifyJobConsumer();</span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;263</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                <span class="keyword">return</span> 0L;</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;264</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;265</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;                ensureConsumerOnTime(diff);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;266</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> diff;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;265</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;                ensureConsumerOnTime(diff);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;266</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> diff;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;267</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;268</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;269</td>  <td class="nbHitsCovered">&nbsp;49</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> Long.MAX_VALUE;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;269</td>  <td class="nbHitsCovered">&nbsp;45</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> Long.MAX_VALUE;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;270</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;271</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;272</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> notifyJobConsumer() {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;273</td>  <td class="nbHitsCovered">&nbsp;525</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (newJobListeners) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;274</td>  <td class="nbHitsCovered">&nbsp;525</td>  <td class="src"><pre class="src">&nbsp;            newJobListeners.notifyAll();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;275</td>  <td class="nbHitsCovered">&nbsp;525</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;276</td>  <td class="nbHitsCovered">&nbsp;525</td>  <td class="src"><pre class="src">&nbsp;        jobConsumerExecutor.considerAddingConsumer();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;277</td>  <td class="nbHitsCovered">&nbsp;525</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;273</td>  <td class="nbHitsCovered">&nbsp;524</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (newJobListeners) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;274</td>  <td class="nbHitsCovered">&nbsp;524</td>  <td class="src"><pre class="src">&nbsp;            newJobListeners.notifyAll();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;275</td>  <td class="nbHitsCovered">&nbsp;524</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;276</td>  <td class="nbHitsCovered">&nbsp;524</td>  <td class="src"><pre class="src">&nbsp;        jobConsumerExecutor.considerAddingConsumer();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;277</td>  <td class="nbHitsCovered">&nbsp;524</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;278</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;279</td>  <td class="nbHitsCovered">&nbsp;26</td>  <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">final</span> Runnable notifyRunnable = <span class="keyword">new</span> Runnable() {</pre></td></tr>
@@ -473,67 +473,67 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;286</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> ensureConsumerOnTime(<span class="keyword">long</span> waitMs) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;287</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;        timedExecutor.schedule(notifyRunnable, waitMs, TimeUnit.MILLISECONDS);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;288</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;287</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;        timedExecutor.schedule(notifyRunnable, waitMs, TimeUnit.MILLISECONDS);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;288</td>  <td class="nbHitsCovered">&nbsp;9</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;289</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;290</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">boolean</span> hasNetwork() {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;291</td>  <td class="nbHitsUncovered"><a title="Line 291: Conditional coverage 50% (1/2).">&nbsp;2475602</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 291: Conditional coverage 50% (1/2).">        <span class="keyword">return</span> networkUtil == <span class="keyword">null</span> ? <span class="keyword">true</span> : networkUtil.isConnected(appContext);</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;291</td>  <td class="nbHitsUncovered"><a title="Line 291: Conditional coverage 50% (1/2).">&nbsp;2327137</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 291: Conditional coverage 50% (1/2).">        <span class="keyword">return</span> networkUtil == <span class="keyword">null</span> ? <span class="keyword">true</span> : networkUtil.isConnected(appContext);</a></span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;292</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;293</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;294</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> JobHolder getNextJob() {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;295</td>  <td class="nbHitsCovered">&nbsp;2475592</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">boolean</span> haveNetwork = hasNetwork();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;295</td>  <td class="nbHitsCovered">&nbsp;2327128</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">boolean</span> haveNetwork = hasNetwork();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;296</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        JobHolder jobHolder;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;297</td>  <td class="nbHitsCovered">&nbsp;2475592</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">boolean</span> persistent = <span class="keyword">false</span>;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;298</td>  <td class="nbHitsCovered">&nbsp;2475592</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;299</td>  <td class="nbHitsCovered">&nbsp;2475593</td>  <td class="src"><pre class="src">&nbsp;            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;300</td>  <td class="nbHitsCovered">&nbsp;2475593</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;301</td>  <td class="nbHitsCovered"><a title="Line 301: Conditional coverage 100% (2/2).">&nbsp;2475592</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 301: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;297</td>  <td class="nbHitsCovered">&nbsp;2327128</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">boolean</span> persistent = <span class="keyword">false</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;298</td>  <td class="nbHitsCovered">&nbsp;2327128</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;299</td>  <td class="nbHitsCovered">&nbsp;2327128</td>  <td class="src"><pre class="src">&nbsp;            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;300</td>  <td class="nbHitsCovered">&nbsp;2327128</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;301</td>  <td class="nbHitsCovered"><a title="Line 301: Conditional coverage 100% (2/2).">&nbsp;2327128</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 301: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder == <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;302</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//go to disk, there aren't any non-persistent jobs</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;303</td>  <td class="nbHitsCovered">&nbsp;2475269</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;304</td>  <td class="nbHitsCovered">&nbsp;2475269</td>  <td class="src"><pre class="src">&nbsp;                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;305</td>  <td class="nbHitsCovered">&nbsp;2475269</td>  <td class="src"><pre class="src">&nbsp;                persistent = <span class="keyword">true</span>;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;306</td>  <td class="nbHitsCovered">&nbsp;2475269</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;303</td>  <td class="nbHitsCovered">&nbsp;2326800</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;304</td>  <td class="nbHitsCovered">&nbsp;2326800</td>  <td class="src"><pre class="src">&nbsp;                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;305</td>  <td class="nbHitsCovered">&nbsp;2326800</td>  <td class="src"><pre class="src">&nbsp;                persistent = <span class="keyword">true</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;306</td>  <td class="nbHitsCovered">&nbsp;2326800</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;307</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;308</td>  <td class="nbHitsCovered"><a title="Line 308: Conditional coverage 100% (2/2).">&nbsp;2475593</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 308: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(jobHolder != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;308</td>  <td class="nbHitsCovered"><a title="Line 308: Conditional coverage 100% (2/2).">&nbsp;2327128</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 308: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(jobHolder != <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;309</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//wait for onAdded locks</span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;310</td>  <td class="nbHitsCovered"><a title="Line 310: Conditional coverage 100% (2/2).">&nbsp;535</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 310: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(persistent) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;311</td>  <td class="nbHitsCovered">&nbsp;212</td>  <td class="src"><pre class="src">&nbsp;                waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;311</td>  <td class="nbHitsCovered">&nbsp;207</td>  <td class="src"><pre class="src">&nbsp;                waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;312</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;313</td>  <td class="nbHitsCovered">&nbsp;323</td>  <td class="src"><pre class="src">&nbsp;                waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;313</td>  <td class="nbHitsCovered">&nbsp;328</td>  <td class="src"><pre class="src">&nbsp;                waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;314</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;315</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;316</td>  <td class="nbHitsCovered"><a title="Line 316: Conditional coverage 100% (6/6) [each condition: 100%, 100%, 100%].">&nbsp;2475592</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 316: Conditional coverage 100% (6/6) [each condition: 100%, 100%, 100%].">        <span class="keyword">if</span>(persistent &amp;&amp; jobHolder != <span class="keyword">null</span> &amp;&amp; dependencyInjector != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;316</td>  <td class="nbHitsCovered"><a title="Line 316: Conditional coverage 100% (6/6) [each condition: 100%, 100%, 100%].">&nbsp;2327128</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 316: Conditional coverage 100% (6/6) [each condition: 100%, 100%, 100%].">        <span class="keyword">if</span>(persistent &amp;&amp; jobHolder != <span class="keyword">null</span> &amp;&amp; dependencyInjector != <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;317</td>  <td class="nbHitsCovered">&nbsp;1</td>  <td class="src"><pre class="src">&nbsp;            dependencyInjector.inject(jobHolder.getBaseJob());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;318</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;319</td>  <td class="nbHitsCovered"><a title="Line 319: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;2475592</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 319: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(jobHolder != <span class="keyword">null</span> &amp;&amp; jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;319</td>  <td class="nbHitsCovered"><a title="Line 319: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;2327128</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 319: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(jobHolder != <span class="keyword">null</span> &amp;&amp; jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;320</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;            runningJobGroups.add(jobHolder.getGroupId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;321</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;322</td>  <td class="nbHitsCovered">&nbsp;2475593</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobHolder;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;322</td>  <td class="nbHitsCovered">&nbsp;2327128</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobHolder;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;323</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;324</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;325</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> reAddJob(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;326</td>  <td class="nbHitsCovered">&nbsp;31</td>  <td class="src"><pre class="src">&nbsp;        JqLog.d(<span class="string">"re-adding job %s"</span>, jobHolder.getId());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;327</td>  <td class="nbHitsCovered"><a title="Line 327: Conditional coverage 100% (2/2).">&nbsp;31</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 327: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getBaseJob().shouldPersist()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;328</td>  <td class="nbHitsCovered">&nbsp;17</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;329</td>  <td class="nbHitsCovered">&nbsp;17</td>  <td class="src"><pre class="src">&nbsp;                persistentJobQueue.insertOrReplace(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;330</td>  <td class="nbHitsCovered">&nbsp;17</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;326</td>  <td class="nbHitsCovered">&nbsp;29</td>  <td class="src"><pre class="src">&nbsp;        JqLog.d(<span class="string">"re-adding job %s"</span>, jobHolder.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;327</td>  <td class="nbHitsCovered"><a title="Line 327: Conditional coverage 100% (2/2).">&nbsp;29</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 327: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getBaseJob().shouldPersist()) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;328</td>  <td class="nbHitsCovered">&nbsp;15</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;329</td>  <td class="nbHitsCovered">&nbsp;15</td>  <td class="src"><pre class="src">&nbsp;                persistentJobQueue.insertOrReplace(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;330</td>  <td class="nbHitsCovered">&nbsp;15</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;331</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;332</td>  <td class="nbHitsCovered">&nbsp;14</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
@@ -541,31 +541,31 @@
 <tr>  <td class="numLineCover">&nbsp;334</td>  <td class="nbHitsCovered">&nbsp;14</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;335</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;336</td>  <td class="nbHitsUncovered"><a title="Line 336: Conditional coverage 50% (1/2).">&nbsp;31</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 336: Conditional coverage 50% (1/2).">        <span class="keyword">if</span>(jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;336</td>  <td class="nbHitsUncovered"><a title="Line 336: Conditional coverage 50% (1/2).">&nbsp;29</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 336: Conditional coverage 50% (1/2).">        <span class="keyword">if</span>(jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;337</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            runningJobGroups.remove(jobHolder.getGroupId());</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;338</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;339</td>  <td class="nbHitsCovered">&nbsp;31</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;339</td>  <td class="nbHitsCovered">&nbsp;29</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;340</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;341</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> removeJob(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;342</td>  <td class="nbHitsCovered"><a title="Line 342: Conditional coverage 100% (2/2).">&nbsp;488</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 342: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getBaseJob().shouldPersist()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;343</td>  <td class="nbHitsCovered">&nbsp;186</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;344</td>  <td class="nbHitsCovered">&nbsp;186</td>  <td class="src"><pre class="src">&nbsp;                persistentJobQueue.remove(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;345</td>  <td class="nbHitsCovered">&nbsp;186</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;342</td>  <td class="nbHitsCovered"><a title="Line 342: Conditional coverage 100% (2/2).">&nbsp;489</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 342: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getBaseJob().shouldPersist()) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;343</td>  <td class="nbHitsCovered">&nbsp;182</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (persistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;344</td>  <td class="nbHitsCovered">&nbsp;182</td>  <td class="src"><pre class="src">&nbsp;                persistentJobQueue.remove(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;345</td>  <td class="nbHitsCovered">&nbsp;182</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;346</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;347</td>  <td class="nbHitsCovered">&nbsp;302</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;348</td>  <td class="nbHitsCovered">&nbsp;302</td>  <td class="src"><pre class="src">&nbsp;                nonPersistentJobQueue.remove(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;349</td>  <td class="nbHitsCovered">&nbsp;302</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;347</td>  <td class="nbHitsCovered">&nbsp;307</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">synchronized</span> (nonPersistentJobQueue) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;348</td>  <td class="nbHitsCovered">&nbsp;307</td>  <td class="src"><pre class="src">&nbsp;                nonPersistentJobQueue.remove(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;349</td>  <td class="nbHitsCovered">&nbsp;307</td>  <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;350</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;351</td>  <td class="nbHitsCovered"><a title="Line 351: Conditional coverage 100% (2/2).">&nbsp;488</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 351: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;351</td>  <td class="nbHitsCovered"><a title="Line 351: Conditional coverage 100% (2/2).">&nbsp;489</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 351: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;352</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;            runningJobGroups.remove(jobHolder.getGroupId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;353</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;354</td>  <td class="nbHitsCovered">&nbsp;488</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;354</td>  <td class="nbHitsCovered">&nbsp;489</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;355</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;356</td>  <td class="nbHits">&nbsp;</td>
@@ -603,7 +603,7 @@
   <td class="src"><pre class="src">&nbsp;        @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;379</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> <span class="keyword">boolean</span> isRunning() {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;380</td>  <td class="nbHitsCovered">&nbsp;1086</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> running;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;380</td>  <td class="nbHitsCovered">&nbsp;1083</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> running;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;381</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;382</td>  <td class="nbHits">&nbsp;</td>
@@ -612,16 +612,16 @@
   <td class="src"><pre class="src">&nbsp;        @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;384</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> <span class="keyword">void</span> insertOrReplace(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;385</td>  <td class="nbHitsCovered">&nbsp;31</td>  <td class="src"><pre class="src">&nbsp;            reAddJob(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;386</td>  <td class="nbHitsCovered">&nbsp;31</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;385</td>  <td class="nbHitsCovered">&nbsp;29</td>  <td class="src"><pre class="src">&nbsp;            reAddJob(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;386</td>  <td class="nbHitsCovered">&nbsp;29</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;387</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;388</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;389</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> <span class="keyword">void</span> removeJob(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;390</td>  <td class="nbHitsCovered">&nbsp;484</td>  <td class="src"><pre class="src">&nbsp;            JobManager.<span class="keyword">this</span>.removeJob(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;391</td>  <td class="nbHitsCovered">&nbsp;484</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;390</td>  <td class="nbHitsCovered">&nbsp;485</td>  <td class="src"><pre class="src">&nbsp;            JobManager.<span class="keyword">this</span>.removeJob(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;391</td>  <td class="nbHitsCovered">&nbsp;485</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;392</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;393</td>  <td class="nbHits">&nbsp;</td>
@@ -630,32 +630,32 @@
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> JobHolder getNextJob(<span class="keyword">int</span> wait, TimeUnit waitDuration) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;395</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//be optimistic</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;396</td>  <td class="nbHitsCovered">&nbsp;557</td>  <td class="src"><pre class="src">&nbsp;            JobHolder nextJob = JobManager.<span class="keyword">this</span>.getNextJob();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;397</td>  <td class="nbHitsCovered"><a title="Line 397: Conditional coverage 100% (2/2).">&nbsp;557</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 397: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(nextJob != <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;398</td>  <td class="nbHitsCovered">&nbsp;500</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> nextJob;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;396</td>  <td class="nbHitsCovered">&nbsp;555</td>  <td class="src"><pre class="src">&nbsp;            JobHolder nextJob = JobManager.<span class="keyword">this</span>.getNextJob();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;397</td>  <td class="nbHitsCovered"><a title="Line 397: Conditional coverage 100% (2/2).">&nbsp;555</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 397: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(nextJob != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;398</td>  <td class="nbHitsCovered">&nbsp;496</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> nextJob;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;399</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;400</td>  <td class="nbHitsCovered">&nbsp;57</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> start = System.nanoTime();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;401</td>  <td class="nbHitsCovered">&nbsp;57</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> remainingWait = waitDuration.toNanos(wait);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;402</td>  <td class="nbHitsCovered">&nbsp;57</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> waitUntil = remainingWait + start;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;400</td>  <td class="nbHitsCovered">&nbsp;59</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> start = System.nanoTime();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;401</td>  <td class="nbHitsCovered">&nbsp;59</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> remainingWait = waitDuration.toNanos(wait);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;402</td>  <td class="nbHitsCovered">&nbsp;59</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> waitUntil = remainingWait + start;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;403</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//for delayed jobs,</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;404</td>  <td class="nbHitsCovered">&nbsp;57</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> nextJobDelay = ensureConsumerWhenNeeded(<span class="keyword">null</span>);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;405</td>  <td class="nbHitsCovered"><a title="Line 405: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;2475043</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 405: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">            <span class="keyword">while</span> (nextJob == <span class="keyword">null</span> &amp;&amp; waitUntil &gt; System.nanoTime()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;406</td>  <td class="nbHitsCovered">&nbsp;2475017</td>  <td class="src"><pre class="src">&nbsp;                nextJob = JobManager.<span class="keyword">this</span>.getNextJob();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;407</td>  <td class="nbHitsCovered"><a title="Line 407: Conditional coverage 100% (2/2).">&nbsp;2475016</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 407: Conditional coverage 100% (2/2).">                <span class="keyword">if</span>(nextJob == <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;408</td>  <td class="nbHitsCovered">&nbsp;2474992</td>  <td class="src"><pre class="src">&nbsp;                    <span class="keyword">long</span> remaining = waitUntil - System.nanoTime();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;409</td>  <td class="nbHitsCovered"><a title="Line 409: Conditional coverage 100% (2/2).">&nbsp;2474992</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 409: Conditional coverage 100% (2/2).">                    <span class="keyword">if</span>(remaining &gt; 0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;404</td>  <td class="nbHitsCovered">&nbsp;59</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">long</span> nextJobDelay = ensureConsumerWhenNeeded(<span class="keyword">null</span>);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;405</td>  <td class="nbHitsCovered"><a title="Line 405: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;2326585</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 405: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">            <span class="keyword">while</span> (nextJob == <span class="keyword">null</span> &amp;&amp; waitUntil &gt; System.nanoTime()) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;406</td>  <td class="nbHitsCovered">&nbsp;2326554</td>  <td class="src"><pre class="src">&nbsp;                nextJob = JobManager.<span class="keyword">this</span>.getNextJob();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;407</td>  <td class="nbHitsCovered"><a title="Line 407: Conditional coverage 100% (2/2).">&nbsp;2326554</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 407: Conditional coverage 100% (2/2).">                <span class="keyword">if</span>(nextJob == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;408</td>  <td class="nbHitsCovered">&nbsp;2326527</td>  <td class="src"><pre class="src">&nbsp;                    <span class="keyword">long</span> remaining = waitUntil - System.nanoTime();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;409</td>  <td class="nbHitsCovered"><a title="Line 409: Conditional coverage 100% (2/2).">&nbsp;2326527</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 409: Conditional coverage 100% (2/2).">                    <span class="keyword">if</span>(remaining &gt; 0) {</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;410</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                        <span class="comment">//if we can't detect network changes, we won't be notified.</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;411</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                        <span class="comment">//to avoid waiting up to give time, wait in chunks of 500 ms max</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;412</td>  <td class="nbHitsCovered">&nbsp;2474989</td>  <td class="src"><pre class="src">&nbsp;                        <span class="keyword">long</span> maxWait = Math.min(nextJobDelay, TimeUnit.NANOSECONDS.toMillis(remaining));</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;413</td>  <td class="nbHitsCovered"><a title="Line 413: Conditional coverage 100% (2/2).">&nbsp;2474989</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 413: Conditional coverage 100% (2/2).">                        <span class="keyword">if</span>(maxWait &lt; 1) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;414</td>  <td class="nbHitsCovered">&nbsp;2474828</td>  <td class="src"><pre class="src">&nbsp;                            <span class="keyword">continue</span>;<span class="comment">//wait(0) will cause infinite wait.</span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;412</td>  <td class="nbHitsCovered">&nbsp;2326525</td>  <td class="src"><pre class="src">&nbsp;                        <span class="keyword">long</span> maxWait = Math.min(nextJobDelay, TimeUnit.NANOSECONDS.toMillis(remaining));</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;413</td>  <td class="nbHitsCovered"><a title="Line 413: Conditional coverage 100% (2/2).">&nbsp;2326525</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 413: Conditional coverage 100% (2/2).">                        <span class="keyword">if</span>(maxWait &lt; 1) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;414</td>  <td class="nbHitsCovered">&nbsp;2326368</td>  <td class="src"><pre class="src">&nbsp;                            <span class="keyword">continue</span>;<span class="comment">//wait(0) will cause infinite wait.</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;415</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;416</td>  <td class="nbHitsCovered"><a title="Line 416: Conditional coverage 100% (2/2).">&nbsp;161</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 416: Conditional coverage 100% (2/2).">                        <span class="keyword">if</span>(networkUtil <span class="keyword">instanceof</span> NetworkEventProvider) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;416</td>  <td class="nbHitsCovered"><a title="Line 416: Conditional coverage 100% (2/2).">&nbsp;157</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 416: Conditional coverage 100% (2/2).">                        <span class="keyword">if</span>(networkUtil <span class="keyword">instanceof</span> NetworkEventProvider) {</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;417</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                            <span class="comment">//to handle delayed jobs, make sure we trigger this first</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;418</td>  <td class="nbHits">&nbsp;</td>
@@ -679,21 +679,21 @@
   <td class="src"><pre class="src">&nbsp;                            <span class="comment">//we cannot detect network changes. our best option is to wait for some time and try again</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;430</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                            <span class="comment">//then trigger {@link ensureConsumerWhenNeeded)</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;431</td>  <td class="nbHitsCovered">&nbsp;158</td>  <td class="src"><pre class="src">&nbsp;                            <span class="keyword">synchronized</span> (newJobListeners) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;431</td>  <td class="nbHitsCovered">&nbsp;154</td>  <td class="src"><pre class="src">&nbsp;                            <span class="keyword">synchronized</span> (newJobListeners) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;432</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                                <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;433</td>  <td class="nbHitsCovered">&nbsp;158</td>  <td class="src"><pre class="src">&nbsp;                                    newJobListeners.wait(Math.min(500, maxWait));</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;433</td>  <td class="nbHitsCovered">&nbsp;154</td>  <td class="src"><pre class="src">&nbsp;                                    newJobListeners.wait(Math.min(500, maxWait));</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;434</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                                } <span class="keyword">catch</span> (InterruptedException e) {</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;435</td>  <td class="nbHitsCovered">&nbsp;132</td>  <td class="src"><pre class="src">&nbsp;                                }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;436</td>  <td class="nbHitsCovered">&nbsp;131</td>  <td class="src"><pre class="src">&nbsp;                            }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;435</td>  <td class="nbHitsCovered">&nbsp;128</td>  <td class="src"><pre class="src">&nbsp;                                }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;436</td>  <td class="nbHitsCovered">&nbsp;128</td>  <td class="src"><pre class="src">&nbsp;                            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;437</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;438</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                    }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;439</td>  <td class="nbHitsCovered">&nbsp;135</td>  <td class="src"><pre class="src">&nbsp;                }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;439</td>  <td class="nbHitsCovered">&nbsp;131</td>  <td class="src"><pre class="src">&nbsp;                }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;440</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;441</td>  <td class="nbHitsCovered">&nbsp;27</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> nextJob;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;441</td>  <td class="nbHitsCovered">&nbsp;31</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> nextJob;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;442</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;443</td>  <td class="nbHits">&nbsp;</td>
@@ -704,7 +704,7 @@
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> <span class="keyword">int</span> countRemainingReadyJobs() {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;446</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//if we can't detect network changes, assume we have network otherwise nothing will trigger a consumer</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;447</td>  <td class="nbHitsCovered"><a title="Line 447: Conditional coverage 100% (2/2).">&nbsp;609</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 447: Conditional coverage 100% (2/2).">            <span class="keyword">return</span> countReadyJobs(networkUtil <span class="keyword">instanceof</span> NetworkEventProvider ? hasNetwork() : <span class="keyword">true</span>);</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;447</td>  <td class="nbHitsCovered"><a title="Line 447: Conditional coverage 100% (2/2).">&nbsp;608</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 447: Conditional coverage 100% (2/2).">            <span class="keyword">return</span> countReadyJobs(networkUtil <span class="keyword">instanceof</span> NetworkEventProvider ? hasNetwork() : <span class="keyword">true</span>);</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;448</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;449</td>  <td class="nbHits">&nbsp;</td>
@@ -756,6 +756,6 @@
   <td class="src"><pre class="src">&nbsp;}</pre></td></tr>
 </table>
 
-<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 10/11/13 3:06 PM.</div>
+<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 10/13/13 11:54 AM.</div>
 </body>
 </html>

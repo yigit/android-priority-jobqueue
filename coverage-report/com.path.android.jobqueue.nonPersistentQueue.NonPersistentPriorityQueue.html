@@ -34,7 +34,7 @@
   <td class="src"><pre class="src">&nbsp;<span class="keyword">import</span> java.util.*;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;8</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;9</td>  <td class="nbHitsCovered">&nbsp;10213</td>  <td class="src"><pre class="src">&nbsp;<span class="keyword">public</span> <span class="keyword">class</span> NonPersistentPriorityQueue <span class="keyword">implements</span> JobQueue {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;9</td>  <td class="nbHitsCovered">&nbsp;10571</td>  <td class="src"><pre class="src">&nbsp;<span class="keyword">public</span> <span class="keyword">class</span> NonPersistentPriorityQueue <span class="keyword">implements</span> JobQueue {</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;10</td>  <td class="nbHitsCovered">&nbsp;54</td>  <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">long</span> nonPersistentJobIdGenerator = Integer.MIN_VALUE;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;11</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="comment">//TODO implement a more efficient priority queue where we can mark jobs as removed but don't remove for real</span></pre></td></tr>
@@ -63,10 +63,10 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;26</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">long</span> insert(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;27</td>  <td class="nbHitsCovered">&nbsp;562</td>  <td class="src"><pre class="src">&nbsp;        nonPersistentJobIdGenerator++;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;28</td>  <td class="nbHitsCovered">&nbsp;562</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setId(nonPersistentJobIdGenerator);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;29</td>  <td class="nbHitsCovered">&nbsp;562</td>  <td class="src"><pre class="src">&nbsp;        jobs.offer(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;30</td>  <td class="nbHitsCovered">&nbsp;562</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobHolder.getId();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;27</td>  <td class="nbHitsCovered">&nbsp;568</td>  <td class="src"><pre class="src">&nbsp;        nonPersistentJobIdGenerator++;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;28</td>  <td class="nbHitsCovered">&nbsp;568</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setId(nonPersistentJobIdGenerator);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;29</td>  <td class="nbHitsCovered">&nbsp;568</td>  <td class="src"><pre class="src">&nbsp;        jobs.offer(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;30</td>  <td class="nbHitsCovered">&nbsp;568</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobHolder.getId();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;31</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;32</td>  <td class="nbHits">&nbsp;</td>
@@ -99,8 +99,8 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;48</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">void</span> remove(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;49</td>  <td class="nbHitsCovered">&nbsp;394</td>  <td class="src"><pre class="src">&nbsp;        jobs.remove(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;50</td>  <td class="nbHitsCovered">&nbsp;394</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;49</td>  <td class="nbHitsCovered">&nbsp;399</td>  <td class="src"><pre class="src">&nbsp;        jobs.remove(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;50</td>  <td class="nbHitsCovered">&nbsp;399</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;51</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;52</td>  <td class="nbHits">&nbsp;</td>
@@ -113,7 +113,7 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;56</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">int</span> count() {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;57</td>  <td class="nbHitsCovered">&nbsp;120</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobs.size();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;57</td>  <td class="nbHitsCovered">&nbsp;123</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobs.size();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;58</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;59</td>  <td class="nbHits">&nbsp;</td>
@@ -122,7 +122,7 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;61</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">int</span> countReadyJobs(<span class="keyword">boolean</span> hasNetwork, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;62</td>  <td class="nbHitsCovered">&nbsp;566</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobs.countReadyJobs(hasNetwork, excludeGroups).getCount();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;62</td>  <td class="nbHitsCovered">&nbsp;565</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobs.countReadyJobs(hasNetwork, excludeGroups).getCount();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;63</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;64</td>  <td class="nbHits">&nbsp;</td>
@@ -137,24 +137,24 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;69</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> JobHolder nextJobAndIncRunCount(<span class="keyword">boolean</span> hasNetwork, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;70</td>  <td class="nbHitsCovered">&nbsp;2475213</td>  <td class="src"><pre class="src">&nbsp;        JobHolder jobHolder = jobs.peek(hasNetwork, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;70</td>  <td class="nbHitsCovered">&nbsp;2326909</td>  <td class="src"><pre class="src">&nbsp;        JobHolder jobHolder = jobs.peek(hasNetwork, excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;71</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;72</td>  <td class="nbHitsCovered"><a title="Line 72: Conditional coverage 100% (2/2).">&nbsp;2475213</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 72: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;72</td>  <td class="nbHitsCovered"><a title="Line 72: Conditional coverage 100% (2/2).">&nbsp;2326909</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 72: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder != <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;73</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//check if job can run</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;74</td>  <td class="nbHitsCovered"><a title="Line 74: Conditional coverage 100% (2/2).">&nbsp;460</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 74: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(jobHolder.getDelayUntilNs() &gt; System.nanoTime()) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;74</td>  <td class="nbHitsCovered"><a title="Line 74: Conditional coverage 100% (2/2).">&nbsp;465</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 74: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(jobHolder.getDelayUntilNs() &gt; System.nanoTime()) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;75</td>  <td class="nbHitsCovered">&nbsp;7</td>  <td class="src"><pre class="src">&nbsp;                jobHolder = <span class="keyword">null</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;76</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            } <span class="keyword">else</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;77</td>  <td class="nbHitsCovered">&nbsp;453</td>  <td class="src"><pre class="src">&nbsp;                jobHolder.setRunningSessionId(sessionId);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;78</td>  <td class="nbHitsCovered">&nbsp;453</td>  <td class="src"><pre class="src">&nbsp;                jobHolder.setRunCount(jobHolder.getRunCount() + 1);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;79</td>  <td class="nbHitsCovered">&nbsp;453</td>  <td class="src"><pre class="src">&nbsp;                jobs.remove(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;77</td>  <td class="nbHitsCovered">&nbsp;458</td>  <td class="src"><pre class="src">&nbsp;                jobHolder.setRunningSessionId(sessionId);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;78</td>  <td class="nbHitsCovered">&nbsp;458</td>  <td class="src"><pre class="src">&nbsp;                jobHolder.setRunCount(jobHolder.getRunCount() + 1);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;79</td>  <td class="nbHitsCovered">&nbsp;458</td>  <td class="src"><pre class="src">&nbsp;                jobs.remove(jobHolder);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;80</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;81</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;82</td>  <td class="nbHitsCovered">&nbsp;2475213</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobHolder;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;82</td>  <td class="nbHitsCovered">&nbsp;2326909</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> jobHolder;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;83</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;84</td>  <td class="nbHits">&nbsp;</td>
@@ -183,7 +183,7 @@
 <tr>  <td class="numLineCover">&nbsp;97</td>  <td class="nbHitsCovered">&nbsp;3</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;98</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;99</td>  <td class="nbHitsCovered">&nbsp;5799</td>  <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">final</span> Comparator&lt;JobHolder&gt; jobComparator = <span class="keyword">new</span> Comparator&lt;JobHolder&gt;() {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;99</td>  <td class="nbHitsCovered">&nbsp;5909</td>  <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">final</span> Comparator&lt;JobHolder&gt; jobComparator = <span class="keyword">new</span> Comparator&lt;JobHolder&gt;() {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;100</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;101</td>  <td class="nbHits">&nbsp;</td>
@@ -192,25 +192,25 @@
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//we should not check delay here. TimeAwarePriorityQueue does it for us.</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;103</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//high priority first</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;104</td>  <td class="nbHitsCovered">&nbsp;5745</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">int</span> cmp = compareInt(holder1.getPriority(), holder2.getPriority());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;105</td>  <td class="nbHitsCovered"><a title="Line 105: Conditional coverage 100% (2/2).">&nbsp;5745</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 105: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(cmp != 0) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;106</td>  <td class="nbHitsCovered">&nbsp;1746</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> cmp;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;104</td>  <td class="nbHitsCovered">&nbsp;5855</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">int</span> cmp = compareInt(holder1.getPriority(), holder2.getPriority());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;105</td>  <td class="nbHitsCovered"><a title="Line 105: Conditional coverage 100% (2/2).">&nbsp;5855</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 105: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(cmp != 0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;106</td>  <td class="nbHitsCovered">&nbsp;1613</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> cmp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;107</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;108</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;109</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//if run counts are also equal, older job first</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;110</td>  <td class="nbHitsCovered">&nbsp;3999</td>  <td class="src"><pre class="src">&nbsp;            cmp = -compareLong(holder1.getCreatedNs(), holder2.getCreatedNs());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;111</td>  <td class="nbHitsCovered"><a title="Line 111: Conditional coverage 100% (2/2).">&nbsp;3999</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 111: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(cmp != 0) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;112</td>  <td class="nbHitsCovered">&nbsp;3530</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> cmp;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;110</td>  <td class="nbHitsCovered">&nbsp;4242</td>  <td class="src"><pre class="src">&nbsp;            cmp = -compareLong(holder1.getCreatedNs(), holder2.getCreatedNs());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;111</td>  <td class="nbHitsCovered"><a title="Line 111: Conditional coverage 100% (2/2).">&nbsp;4242</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 111: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(cmp != 0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;112</td>  <td class="nbHitsCovered">&nbsp;3768</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> cmp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;113</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;114</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;115</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//if jobs were created at the same time, smaller id first</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;116</td>  <td class="nbHitsCovered">&nbsp;469</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> -compareLong(holder1.getId(), holder2.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;116</td>  <td class="nbHitsCovered">&nbsp;474</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> -compareLong(holder1.getId(), holder2.getId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;117</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;118</td>  <td class="nbHits">&nbsp;</td>
@@ -219,30 +219,30 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;120</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> compareInt(<span class="keyword">int</span> i1, <span class="keyword">int</span> i2) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;121</td>  <td class="nbHitsCovered"><a title="Line 121: Conditional coverage 100% (2/2).">&nbsp;5745</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 121: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (i1 &gt; i2) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;122</td>  <td class="nbHitsCovered">&nbsp;1536</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> -1;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;121</td>  <td class="nbHitsCovered"><a title="Line 121: Conditional coverage 100% (2/2).">&nbsp;5855</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 121: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (i1 &gt; i2) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;122</td>  <td class="nbHitsCovered">&nbsp;1391</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> -1;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;123</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;124</td>  <td class="nbHitsCovered"><a title="Line 124: Conditional coverage 100% (2/2).">&nbsp;4209</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 124: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (i2 &gt; i1) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;125</td>  <td class="nbHitsCovered">&nbsp;210</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> 1;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;124</td>  <td class="nbHitsCovered"><a title="Line 124: Conditional coverage 100% (2/2).">&nbsp;4464</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 124: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (i2 &gt; i1) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;125</td>  <td class="nbHitsCovered">&nbsp;222</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> 1;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;126</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;127</td>  <td class="nbHitsCovered">&nbsp;3999</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> 0;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;127</td>  <td class="nbHitsCovered">&nbsp;4242</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> 0;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;128</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;129</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;130</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> compareLong(<span class="keyword">long</span> l1, <span class="keyword">long</span> l2) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;131</td>  <td class="nbHitsCovered"><a title="Line 131: Conditional coverage 100% (2/2).">&nbsp;4468</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 131: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (l1 &gt; l2) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;132</td>  <td class="nbHitsCovered">&nbsp;1800</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> -1;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;131</td>  <td class="nbHitsCovered"><a title="Line 131: Conditional coverage 100% (2/2).">&nbsp;4716</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 131: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (l1 &gt; l2) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;132</td>  <td class="nbHitsCovered">&nbsp;1867</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> -1;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;133</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;134</td>  <td class="nbHitsCovered"><a title="Line 134: Conditional coverage 100% (2/2).">&nbsp;2668</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 134: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (l2 &gt; l1) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;1730</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> 1;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;134</td>  <td class="nbHitsCovered"><a title="Line 134: Conditional coverage 100% (2/2).">&nbsp;2849</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 134: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (l2 &gt; l1) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;1901</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> 1;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;136</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;938</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> 0;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;948</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> 0;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;138</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;139</td>  <td class="nbHits">&nbsp;</td>
@@ -253,6 +253,6 @@
   <td class="src"><pre class="src">&nbsp;}</pre></td></tr>
 </table>
 
-<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 10/11/13 3:06 PM.</div>
+<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 10/13/13 11:54 AM.</div>
 </body>
 </html>

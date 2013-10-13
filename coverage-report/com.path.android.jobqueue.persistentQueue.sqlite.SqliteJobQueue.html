@@ -124,42 +124,42 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;57</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">long</span> insert(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;58</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getInsertStatement();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;58</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getInsertStatement();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;59</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">long</span> id;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;60</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;61</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;62</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;            bindValues(stmt, jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;63</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;            id = stmt.executeInsert();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;64</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;65</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setId(id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;66</td>  <td class="nbHitsCovered">&nbsp;452</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> id;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;60</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;61</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;62</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;            bindValues(stmt, jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;63</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;            id = stmt.executeInsert();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;64</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;65</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setId(id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;66</td>  <td class="nbHitsCovered">&nbsp;446</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> id;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;67</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;68</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;69</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> bindValues(SQLiteStatement stmt, JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;70</td>  <td class="nbHitsCovered"><a title="Line 70: Conditional coverage 100% (2/2).">&nbsp;535</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 70: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getId() != <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;71</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(DbOpenHelper.ID_COLUMN.columnIndex + 1, jobHolder.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;70</td>  <td class="nbHitsCovered"><a title="Line 70: Conditional coverage 100% (2/2).">&nbsp;527</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 70: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getId() != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;71</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(DbOpenHelper.ID_COLUMN.columnIndex + 1, jobHolder.getId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;72</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;73</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.PRIORITY_COLUMN.columnIndex + 1, jobHolder.getPriority());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;74</td>  <td class="nbHitsCovered"><a title="Line 74: Conditional coverage 100% (2/2).">&nbsp;535</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 74: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;75</td>  <td class="nbHitsCovered">&nbsp;32</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;73</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.PRIORITY_COLUMN.columnIndex + 1, jobHolder.getPriority());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;74</td>  <td class="nbHitsCovered"><a title="Line 74: Conditional coverage 100% (2/2).">&nbsp;527</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 74: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(jobHolder.getGroupId() != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;75</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;76</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;77</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;78</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">byte</span>[] baseJob = getSerializeBaseJob(jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;79</td>  <td class="nbHitsUncovered"><a title="Line 79: Conditional coverage 50% (1/2).">&nbsp;535</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 79: Conditional coverage 50% (1/2).">        <span class="keyword">if</span> (baseJob != <span class="keyword">null</span>) {</a></span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;80</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, baseJob);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;77</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;78</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">byte</span>[] baseJob = getSerializeBaseJob(jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;79</td>  <td class="nbHitsUncovered"><a title="Line 79: Conditional coverage 50% (1/2).">&nbsp;527</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 79: Conditional coverage 50% (1/2).">        <span class="keyword">if</span> (baseJob != <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;80</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, baseJob);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;81</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;82</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;83</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;84</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;85</td>  <td class="nbHitsCovered"><a title="Line 85: Conditional coverage 100% (2/2).">&nbsp;535</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 85: Conditional coverage 100% (2/2).">        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1, jobHolder.requiresNetwork() ? 1L : 0L);</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;86</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;82</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;83</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;84</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;85</td>  <td class="nbHitsCovered"><a title="Line 85: Conditional coverage 100% (2/2).">&nbsp;527</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 85: Conditional coverage 100% (2/2).">        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1, jobHolder.requiresNetwork() ? 1L : 0L);</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;86</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;87</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;88</td>  <td class="nbHits">&nbsp;</td>
@@ -172,21 +172,21 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;92</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">long</span> insertOrReplace(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;93</td>  <td class="nbHitsUncovered"><a title="Line 93: Conditional coverage 50% (1/2).">&nbsp;83</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 93: Conditional coverage 50% (1/2).">        <span class="keyword">if</span> (jobHolder.getId() == <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;93</td>  <td class="nbHitsUncovered"><a title="Line 93: Conditional coverage 50% (1/2).">&nbsp;81</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 93: Conditional coverage 50% (1/2).">        <span class="keyword">if</span> (jobHolder.getId() == <span class="keyword">null</span>) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;94</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            <span class="keyword">return</span> insert(jobHolder);</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;95</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;96</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;97</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;96</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;97</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;98</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">long</span> id;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;99</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;100</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;101</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;            bindValues(stmt, jobHolder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;102</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;            id = stmt.executeInsert();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;103</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;104</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setId(id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;105</td>  <td class="nbHitsCovered">&nbsp;83</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> id;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;99</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;100</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;101</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;            bindValues(stmt, jobHolder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;102</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;            id = stmt.executeInsert();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;103</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;104</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setId(id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;105</td>  <td class="nbHitsCovered">&nbsp;81</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> id;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;106</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;107</td>  <td class="nbHits">&nbsp;</td>
@@ -201,24 +201,24 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;112</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">void</span> remove(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;113</td>  <td class="nbHitsCovered"><a title="Line 113: Conditional coverage 100% (2/2).">&nbsp;198</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 113: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getId() == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;113</td>  <td class="nbHitsCovered"><a title="Line 113: Conditional coverage 100% (2/2).">&nbsp;194</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 113: Conditional coverage 100% (2/2).">        <span class="keyword">if</span> (jobHolder.getId() == <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;114</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;            JqLog.e(<span class="string">"called remove with null job id."</span>);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;115</td>  <td class="nbHitsCovered">&nbsp;2</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;116</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;117</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;        delete(jobHolder.getId());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;118</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;117</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;        delete(jobHolder.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;118</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;119</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;120</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> delete(Long id) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;121</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getDeleteStatement();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;122</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;123</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;124</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(1, id);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;125</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;            stmt.execute();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;126</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;127</td>  <td class="nbHitsCovered">&nbsp;196</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;121</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getDeleteStatement();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;122</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;123</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;124</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(1, id);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;125</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;            stmt.execute();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;126</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;127</td>  <td class="nbHitsCovered">&nbsp;192</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;128</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;129</td>  <td class="nbHits">&nbsp;</td>
@@ -231,11 +231,11 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;133</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">int</span> count() {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;134</td>  <td class="nbHitsCovered">&nbsp;116</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getCountStatement();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;116</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;136</td>  <td class="nbHitsCovered">&nbsp;116</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;116</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(1, sessionId);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;138</td>  <td class="nbHitsCovered">&nbsp;116</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> (<span class="keyword">int</span>) stmt.simpleQueryForLong();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;134</td>  <td class="nbHitsCovered">&nbsp;136</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getCountStatement();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;135</td>  <td class="nbHitsCovered">&nbsp;136</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;136</td>  <td class="nbHitsCovered">&nbsp;136</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;137</td>  <td class="nbHitsCovered">&nbsp;136</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(1, sessionId);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;138</td>  <td class="nbHitsCovered">&nbsp;136</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> (<span class="keyword">int</span>) stmt.simpleQueryForLong();</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;139</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;        }</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;140</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
@@ -245,8 +245,8 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;143</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> <span class="keyword">int</span> countReadyJobs(<span class="keyword">boolean</span> hasNetwork, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;144</td>  <td class="nbHitsCovered">&nbsp;314</td>  <td class="src"><pre class="src">&nbsp;        String sql = readyJobsQueryCache.get(hasNetwork, excludeGroups);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;145</td>  <td class="nbHitsCovered"><a title="Line 145: Conditional coverage 100% (2/2).">&nbsp;314</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 145: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(sql == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;144</td>  <td class="nbHitsCovered">&nbsp;306</td>  <td class="src"><pre class="src">&nbsp;        String sql = readyJobsQueryCache.get(hasNetwork, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;145</td>  <td class="nbHitsCovered"><a title="Line 145: Conditional coverage 100% (2/2).">&nbsp;306</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 145: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(sql == <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;146</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, <span class="keyword">true</span>);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;147</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;            String subSelect = <span class="string">"SELECT count(*) group_cnt, "</span> + DbOpenHelper.GROUP_ID_COLUMN.columnName</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;148</td>  <td class="nbHits">&nbsp;</td>
@@ -259,17 +259,17 @@
 <tr>  <td class="numLineCover">&nbsp;152</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;            readyJobsQueryCache.set(sql, hasNetwork, excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;153</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;154</td>  <td class="nbHitsCovered">&nbsp;314</td>  <td class="src"><pre class="src">&nbsp;        Cursor cursor = db.rawQuery(sql, <span class="keyword">new</span> String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;154</td>  <td class="nbHitsCovered">&nbsp;306</td>  <td class="src"><pre class="src">&nbsp;        Cursor cursor = db.rawQuery(sql, <span class="keyword">new</span> String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;155</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;156</td>  <td class="nbHitsUncovered"><a title="Line 156: Conditional coverage 50% (1/2).">&nbsp;314</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 156: Conditional coverage 50% (1/2).">            <span class="keyword">if</span>(!cursor.moveToNext()) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;156</td>  <td class="nbHitsUncovered"><a title="Line 156: Conditional coverage 50% (1/2).">&nbsp;306</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 156: Conditional coverage 50% (1/2).">            <span class="keyword">if</span>(!cursor.moveToNext()) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;157</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                <span class="keyword">return</span> 0;</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;158</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;159</td>  <td class="nbHitsCovered">&nbsp;314</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> cursor.getInt(0);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;159</td>  <td class="nbHitsCovered">&nbsp;306</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> cursor.getInt(0);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;160</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">finally</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;161</td>  <td class="nbHitsCovered">&nbsp;314</td>  <td class="src"><pre class="src">&nbsp;            cursor.close();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;161</td>  <td class="nbHitsCovered">&nbsp;306</td>  <td class="src"><pre class="src">&nbsp;            cursor.close();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;162</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;163</td>  <td class="nbHits">&nbsp;</td>
@@ -288,10 +288,10 @@
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> JobHolder nextJobAndIncRunCount(<span class="keyword">boolean</span> hasNetwork, Collection&lt;String&gt; excludeGroups) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;170</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="comment">//we can even keep these prepared but not sure the cost of them in db layer</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;171</td>  <td class="nbHitsCovered">&nbsp;1372</td>  <td class="src"><pre class="src">&nbsp;        String selectQuery = nextJobsQueryCache.get(hasNetwork, excludeGroups);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;172</td>  <td class="nbHitsCovered"><a title="Line 172: Conditional coverage 100% (2/2).">&nbsp;1372</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 172: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(selectQuery == <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;173</td>  <td class="nbHitsCovered">&nbsp;46</td>  <td class="src"><pre class="src">&nbsp;            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, <span class="keyword">false</span>);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;174</td>  <td class="nbHitsCovered">&nbsp;46</td>  <td class="src"><pre class="src">&nbsp;            selectQuery = sqlHelper.createSelect(</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;171</td>  <td class="nbHitsCovered">&nbsp;1366</td>  <td class="src"><pre class="src">&nbsp;        String selectQuery = nextJobsQueryCache.get(hasNetwork, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;172</td>  <td class="nbHitsCovered"><a title="Line 172: Conditional coverage 100% (2/2).">&nbsp;1366</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 172: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(selectQuery == <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;173</td>  <td class="nbHitsCovered">&nbsp;45</td>  <td class="src"><pre class="src">&nbsp;            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, <span class="keyword">false</span>);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;174</td>  <td class="nbHitsCovered">&nbsp;45</td>  <td class="src"><pre class="src">&nbsp;            selectQuery = sqlHelper.createSelect(</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;175</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                    where,</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;176</td>  <td class="nbHits">&nbsp;</td>
@@ -304,19 +304,19 @@
   <td class="src"><pre class="src">&nbsp;                    <span class="keyword">new</span> SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;180</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            );</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;181</td>  <td class="nbHitsCovered">&nbsp;46</td>  <td class="src"><pre class="src">&nbsp;            nextJobsQueryCache.set(selectQuery, hasNetwork, excludeGroups);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;181</td>  <td class="nbHitsCovered">&nbsp;45</td>  <td class="src"><pre class="src">&nbsp;            nextJobsQueryCache.set(selectQuery, hasNetwork, excludeGroups);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;182</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;183</td>  <td class="nbHitsCovered">&nbsp;1372</td>  <td class="src"><pre class="src">&nbsp;        Cursor cursor = db.rawQuery(selectQuery, <span class="keyword">new</span> String[]{Long.toString(sessionId),Long.toString(System.nanoTime())});</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;183</td>  <td class="nbHitsCovered">&nbsp;1366</td>  <td class="src"><pre class="src">&nbsp;        Cursor cursor = db.rawQuery(selectQuery, <span class="keyword">new</span> String[]{Long.toString(sessionId),Long.toString(System.nanoTime())});</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;184</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;185</td>  <td class="nbHitsCovered"><a title="Line 185: Conditional coverage 100% (2/2).">&nbsp;1372</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 185: Conditional coverage 100% (2/2).">            <span class="keyword">if</span> (!cursor.moveToNext()) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;186</td>  <td class="nbHitsCovered">&nbsp;1029</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> <span class="keyword">null</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;185</td>  <td class="nbHitsCovered"><a title="Line 185: Conditional coverage 100% (2/2).">&nbsp;1366</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 185: Conditional coverage 100% (2/2).">            <span class="keyword">if</span> (!cursor.moveToNext()) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;186</td>  <td class="nbHitsCovered">&nbsp;1028</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> <span class="keyword">null</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;187</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;188</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            JobHolder holder = createJobHolderFromCursor(cursor);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;189</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            onJobFetchedForRunning(holder);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;190</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> holder;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;188</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            JobHolder holder = createJobHolderFromCursor(cursor);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;189</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            onJobFetchedForRunning(holder);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;190</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> holder;</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;191</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;        } <span class="keyword">catch</span> (InvalidBaseJobException e) {</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;192</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="comment">//delete</span></pre></td></tr>
@@ -325,7 +325,7 @@
 <tr>  <td class="numLineCover">&nbsp;195</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            <span class="keyword">return</span> nextJobAndIncRunCount(<span class="keyword">true</span>, <span class="keyword">null</span>);</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;196</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        } <span class="keyword">finally</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;197</td>  <td class="nbHitsCovered">&nbsp;1372</td>  <td class="src"><pre class="src">&nbsp;            cursor.close();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;197</td>  <td class="nbHitsCovered">&nbsp;1366</td>  <td class="src"><pre class="src">&nbsp;            cursor.close();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;198</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;199</td>  <td class="nbHits">&nbsp;</td>
@@ -334,47 +334,47 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;201</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> String createReadyJobWhereSql(<span class="keyword">boolean</span> hasNetwork, Collection&lt;String&gt; excludeGroups, <span class="keyword">boolean</span> groupByRunningGroup) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;202</td>  <td class="nbHitsCovered">&nbsp;76</td>  <td class="src"><pre class="src">&nbsp;        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + <span class="string">" != ? "</span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;202</td>  <td class="nbHitsCovered">&nbsp;75</td>  <td class="src"><pre class="src">&nbsp;        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + <span class="string">" != ? "</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;203</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                + <span class="string">" AND "</span> + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + <span class="string">" &lt;= ? "</span>;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;204</td>  <td class="nbHitsCovered"><a title="Line 204: Conditional coverage 100% (2/2).">&nbsp;76</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 204: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(hasNetwork == <span class="keyword">false</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;204</td>  <td class="nbHitsCovered"><a title="Line 204: Conditional coverage 100% (2/2).">&nbsp;75</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 204: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(hasNetwork == <span class="keyword">false</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;205</td>  <td class="nbHitsCovered">&nbsp;10</td>  <td class="src"><pre class="src">&nbsp;            where += <span class="string">" AND "</span> + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + <span class="string">" != 1 "</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;206</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;207</td>  <td class="nbHitsCovered">&nbsp;76</td>  <td class="src"><pre class="src">&nbsp;        String groupConstraint = <span class="keyword">null</span>;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;208</td>  <td class="nbHitsCovered"><a title="Line 208: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;76</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 208: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(excludeGroups != <span class="keyword">null</span> &amp;&amp; excludeGroups.size() &gt; 0) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;209</td>  <td class="nbHitsCovered">&nbsp;16</td>  <td class="src"><pre class="src">&nbsp;            groupConstraint = DbOpenHelper.GROUP_ID_COLUMN.columnName + <span class="string">" IS NULL OR "</span> +</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;207</td>  <td class="nbHitsCovered">&nbsp;75</td>  <td class="src"><pre class="src">&nbsp;        String groupConstraint = <span class="keyword">null</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;208</td>  <td class="nbHitsCovered"><a title="Line 208: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">&nbsp;75</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 208: Conditional coverage 100% (4/4) [each condition: 100%, 100%].">        <span class="keyword">if</span>(excludeGroups != <span class="keyword">null</span> &amp;&amp; excludeGroups.size() &gt; 0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;209</td>  <td class="nbHitsCovered">&nbsp;15</td>  <td class="src"><pre class="src">&nbsp;            groupConstraint = DbOpenHelper.GROUP_ID_COLUMN.columnName + <span class="string">" IS NULL OR "</span> +</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;210</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                    DbOpenHelper.GROUP_ID_COLUMN.columnName + <span class="string">" NOT IN('"</span> + joinStrings(<span class="string">"','"</span>, excludeGroups) + <span class="string">"')"</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;211</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;212</td>  <td class="nbHitsCovered"><a title="Line 212: Conditional coverage 100% (2/2).">&nbsp;76</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 212: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(groupByRunningGroup) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;212</td>  <td class="nbHitsCovered"><a title="Line 212: Conditional coverage 100% (2/2).">&nbsp;75</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 212: Conditional coverage 100% (2/2).">        <span class="keyword">if</span>(groupByRunningGroup) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;213</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;            where += <span class="string">" GROUP BY "</span> + DbOpenHelper.GROUP_ID_COLUMN.columnName;</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;214</td>  <td class="nbHitsCovered"><a title="Line 214: Conditional coverage 100% (2/2).">&nbsp;30</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 214: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(groupConstraint != <span class="keyword">null</span>) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;215</td>  <td class="nbHitsCovered">&nbsp;8</td>  <td class="src"><pre class="src">&nbsp;                where += <span class="string">" HAVING "</span> + groupConstraint;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;216</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;217</td>  <td class="nbHitsCovered"><a title="Line 217: Conditional coverage 100% (2/2).">&nbsp;46</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 217: Conditional coverage 100% (2/2).">        } <span class="keyword">else</span> <span class="keyword">if</span>(groupConstraint != <span class="keyword">null</span>) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;218</td>  <td class="nbHitsCovered">&nbsp;8</td>  <td class="src"><pre class="src">&nbsp;            where += <span class="string">" AND ( "</span> + groupConstraint + <span class="string">" )"</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;217</td>  <td class="nbHitsCovered"><a title="Line 217: Conditional coverage 100% (2/2).">&nbsp;45</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 217: Conditional coverage 100% (2/2).">        } <span class="keyword">else</span> <span class="keyword">if</span>(groupConstraint != <span class="keyword">null</span>) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;218</td>  <td class="nbHitsCovered">&nbsp;7</td>  <td class="src"><pre class="src">&nbsp;            where += <span class="string">" AND ( "</span> + groupConstraint + <span class="string">" )"</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;219</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;220</td>  <td class="nbHitsCovered">&nbsp;76</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> where;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;220</td>  <td class="nbHitsCovered">&nbsp;75</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> where;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;221</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;222</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;223</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">static</span> String joinStrings(String glue, Collection&lt;String&gt; strings) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;224</td>  <td class="nbHitsCovered">&nbsp;16</td>  <td class="src"><pre class="src">&nbsp;        StringBuilder builder = <span class="keyword">new</span> StringBuilder();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;225</td>  <td class="nbHitsCovered"><a title="Line 225: Conditional coverage 100% (2/2).">&nbsp;16</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 225: Conditional coverage 100% (2/2).">        <span class="keyword">for</span>(String str : strings) {</a></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;226</td>  <td class="nbHitsCovered"><a title="Line 226: Conditional coverage 100% (2/2).">&nbsp;23</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 226: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(builder.length() != 0) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;224</td>  <td class="nbHitsCovered">&nbsp;15</td>  <td class="src"><pre class="src">&nbsp;        StringBuilder builder = <span class="keyword">new</span> StringBuilder();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;225</td>  <td class="nbHitsCovered"><a title="Line 225: Conditional coverage 100% (2/2).">&nbsp;15</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 225: Conditional coverage 100% (2/2).">        <span class="keyword">for</span>(String str : strings) {</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;226</td>  <td class="nbHitsCovered"><a title="Line 226: Conditional coverage 100% (2/2).">&nbsp;22</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 226: Conditional coverage 100% (2/2).">            <span class="keyword">if</span>(builder.length() != 0) {</a></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;227</td>  <td class="nbHitsCovered">&nbsp;7</td>  <td class="src"><pre class="src">&nbsp;                builder.append(glue);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;228</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;229</td>  <td class="nbHitsCovered">&nbsp;23</td>  <td class="src"><pre class="src">&nbsp;            builder.append(str);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;229</td>  <td class="nbHitsCovered">&nbsp;22</td>  <td class="src"><pre class="src">&nbsp;            builder.append(str);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;230</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;231</td>  <td class="nbHitsCovered">&nbsp;16</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> builder.toString();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;231</td>  <td class="nbHitsCovered">&nbsp;15</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> builder.toString();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;232</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;233</td>  <td class="nbHits">&nbsp;</td>
@@ -389,18 +389,18 @@
   <td class="src"><pre class="src">&nbsp;    @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;238</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">public</span> Long getNextJobDelayUntilNs(<span class="keyword">boolean</span> hasNetwork) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;239</td>  <td class="nbHitsCovered"><a title="Line 239: Conditional coverage 100% (2/2).">&nbsp;44</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 239: Conditional coverage 100% (2/2).">        SQLiteStatement stmt =</a></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;239</td>  <td class="nbHitsCovered"><a title="Line 239: Conditional coverage 100% (2/2).">&nbsp;47</a></td>  <td class="src"><pre class="src">&nbsp;<a title="Line 239: Conditional coverage 100% (2/2).">        SQLiteStatement stmt =</a></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;240</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;241</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;242</td>  <td class="nbHitsCovered">&nbsp;44</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;242</td>  <td class="nbHitsCovered">&nbsp;47</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;243</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;244</td>  <td class="nbHitsCovered">&nbsp;44</td>  <td class="src"><pre class="src">&nbsp;                stmt.clearBindings();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;245</td>  <td class="nbHitsCovered">&nbsp;44</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> stmt.simpleQueryForLong();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;246</td>  <td class="nbHitsCovered">&nbsp;33</td>  <td class="src"><pre class="src">&nbsp;            } <span class="keyword">catch</span> (SQLiteDoneException e){</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;247</td>  <td class="nbHitsCovered">&nbsp;33</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> <span class="keyword">null</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;244</td>  <td class="nbHitsCovered">&nbsp;47</td>  <td class="src"><pre class="src">&nbsp;                stmt.clearBindings();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;245</td>  <td class="nbHitsCovered">&nbsp;47</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> stmt.simpleQueryForLong();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;246</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;            } <span class="keyword">catch</span> (SQLiteDoneException e){</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;247</td>  <td class="nbHitsCovered">&nbsp;30</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> <span class="keyword">null</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;248</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;249</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;        }</span></pre></td></tr>
@@ -420,27 +420,27 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;259</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">void</span> onJobFetchedForRunning(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;260</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getOnJobFetchedForRunningStatement();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;261</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setRunCount(jobHolder.getRunCount() + 1);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;262</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setRunningSessionId(sessionId);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;263</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;264</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;265</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(1, jobHolder.getRunCount());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;266</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(2, sessionId);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;267</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(3, jobHolder.getId());</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;268</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            stmt.execute();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;269</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;270</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;260</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        SQLiteStatement stmt = sqlHelper.getOnJobFetchedForRunningStatement();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;261</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setRunCount(jobHolder.getRunCount() + 1);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;262</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        jobHolder.setRunningSessionId(sessionId);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;263</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">synchronized</span> (stmt) {</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;264</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            stmt.clearBindings();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;265</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(1, jobHolder.getRunCount());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;266</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(2, sessionId);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;267</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            stmt.bindLong(3, jobHolder.getId());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;268</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            stmt.execute();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;269</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;270</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;271</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;272</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> JobHolder createJobHolderFromCursor(Cursor cursor) <span class="keyword">throws</span> InvalidBaseJobException {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;273</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        BaseJob job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;274</td>  <td class="nbHitsUncovered"><a title="Line 274: Conditional coverage 50% (1/2).">&nbsp;343</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 274: Conditional coverage 50% (1/2).">        <span class="keyword">if</span> (job == <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;273</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        BaseJob job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;274</td>  <td class="nbHitsUncovered"><a title="Line 274: Conditional coverage 50% (1/2).">&nbsp;338</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 274: Conditional coverage 50% (1/2).">        <span class="keyword">if</span> (job == <span class="keyword">null</span>) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;275</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;            <span class="keyword">throw</span> <span class="keyword">new</span> InvalidBaseJobException();</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;276</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;277</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> <span class="keyword">new</span> JobHolder(</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;277</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> <span class="keyword">new</span> JobHolder(</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;278</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;279</td>  <td class="nbHits">&nbsp;</td>
@@ -469,7 +469,7 @@
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> BaseJob safeDeserialize(<span class="keyword">byte</span>[] bytes) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;291</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;292</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> jobSerializer.deserialize(bytes);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;292</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> jobSerializer.deserialize(bytes);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;293</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;        } <span class="keyword">catch</span> (Throwable t) {</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;294</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            JqLog.e(t, <span class="string">"error while deserializing job"</span>);</pre></td></tr>
@@ -482,7 +482,7 @@
   <td class="src"><pre class="src">&nbsp;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;299</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">byte</span>[] getSerializeBaseJob(JobHolder jobHolder) {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;300</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> safeSerialize(jobHolder.getBaseJob());</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;300</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;        <span class="keyword">return</span> safeSerialize(jobHolder.getBaseJob());</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;301</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;    }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;302</td>  <td class="nbHits">&nbsp;</td>
@@ -491,7 +491,7 @@
   <td class="src"><pre class="src">&nbsp;    <span class="keyword">private</span> <span class="keyword">byte</span>[] safeSerialize(Object object) {</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;304</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;305</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> jobSerializer.serialize(object);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;305</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;            <span class="keyword">return</span> jobSerializer.serialize(object);</pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;306</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;        } <span class="keyword">catch</span> (Throwable t) {</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;307</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            JqLog.e(t, <span class="string">"error while serializing object %s"</span>, object.getClass().getSimpleName());</pre></td></tr>
@@ -516,24 +516,24 @@
   <td class="src"><pre class="src">&nbsp;        @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;319</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> <span class="keyword">byte</span>[] serialize(Object object) <span class="keyword">throws</span> IOException {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;320</td>  <td class="nbHitsUncovered"><a title="Line 320: Conditional coverage 50% (1/2).">&nbsp;535</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 320: Conditional coverage 50% (1/2).">            <span class="keyword">if</span> (object == <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;320</td>  <td class="nbHitsUncovered"><a title="Line 320: Conditional coverage 50% (1/2).">&nbsp;527</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 320: Conditional coverage 50% (1/2).">            <span class="keyword">if</span> (object == <span class="keyword">null</span>) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;321</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                <span class="keyword">return</span> <span class="keyword">null</span>;</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;322</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;323</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;            ByteArrayOutputStream bos = <span class="keyword">null</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;323</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;            ByteArrayOutputStream bos = <span class="keyword">null</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;324</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;325</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;                ObjectOutput out = <span class="keyword">null</span>;</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;326</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;                bos = <span class="keyword">new</span> ByteArrayOutputStream();</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;327</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;                out = <span class="keyword">new</span> ObjectOutputStream(bos);</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;328</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;                out.writeObject(object);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;325</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;                ObjectOutput out = <span class="keyword">null</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;326</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;                bos = <span class="keyword">new</span> ByteArrayOutputStream();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;327</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;                out = <span class="keyword">new</span> ObjectOutputStream(bos);</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;328</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;                out.writeObject(object);</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;329</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                <span class="comment">// Get the bytes of the serialized object</span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;330</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> bos.toByteArray();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;330</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> bos.toByteArray();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;331</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            } <span class="keyword">finally</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;332</td>  <td class="nbHitsUncovered"><a title="Line 332: Conditional coverage 50% (1/2).">&nbsp;535</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 332: Conditional coverage 50% (1/2).">                <span class="keyword">if</span> (bos != <span class="keyword">null</span>) {</a></span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;333</td>  <td class="nbHitsCovered">&nbsp;535</td>  <td class="src"><pre class="src">&nbsp;                    bos.close();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;332</td>  <td class="nbHitsUncovered"><a title="Line 332: Conditional coverage 50% (1/2).">&nbsp;527</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 332: Conditional coverage 50% (1/2).">                <span class="keyword">if</span> (bos != <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;333</td>  <td class="nbHitsCovered">&nbsp;527</td>  <td class="src"><pre class="src">&nbsp;                    bos.close();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;334</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;335</td>  <td class="nbHits">&nbsp;</td>
@@ -546,19 +546,19 @@
   <td class="src"><pre class="src">&nbsp;        @Override</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;339</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;        <span class="keyword">public</span> &lt;T <span class="keyword">extends</span> BaseJob&gt; T deserialize(<span class="keyword">byte</span>[] bytes) <span class="keyword">throws</span> IOException, ClassNotFoundException {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;340</td>  <td class="nbHitsUncovered"><a title="Line 340: Conditional coverage 50% (2/4) [each condition: 50%, 50%].">&nbsp;343</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 340: Conditional coverage 50% (2/4) [each condition: 50%, 50%].">            <span class="keyword">if</span> (bytes == <span class="keyword">null</span> || bytes.length == 0) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;340</td>  <td class="nbHitsUncovered"><a title="Line 340: Conditional coverage 50% (2/4) [each condition: 50%, 50%].">&nbsp;338</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 340: Conditional coverage 50% (2/4) [each condition: 50%, 50%].">            <span class="keyword">if</span> (bytes == <span class="keyword">null</span> || bytes.length == 0) {</a></span></pre></td></tr>
 <tr>  <td class="numLineCover">&nbsp;341</td>  <td class="nbHitsUncovered">&nbsp;0</td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;                <span class="keyword">return</span> <span class="keyword">null</span>;</span></pre></td></tr>
 <tr>  <td class="numLine">&nbsp;342</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            }</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;343</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;            ObjectInputStream in = <span class="keyword">null</span>;</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;343</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;            ObjectInputStream in = <span class="keyword">null</span>;</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;344</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            <span class="keyword">try</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;345</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;                in = <span class="keyword">new</span> ObjectInputStream(<span class="keyword">new</span> ByteArrayInputStream(bytes));</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;346</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> (T) in.readObject();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;345</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;                in = <span class="keyword">new</span> ObjectInputStream(<span class="keyword">new</span> ByteArrayInputStream(bytes));</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;346</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;                <span class="keyword">return</span> (T) in.readObject();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;347</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;            } <span class="keyword">finally</span> {</pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;348</td>  <td class="nbHitsUncovered"><a title="Line 348: Conditional coverage 50% (1/2).">&nbsp;343</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 348: Conditional coverage 50% (1/2).">                <span class="keyword">if</span> (in != <span class="keyword">null</span>) {</a></span></pre></td></tr>
-<tr>  <td class="numLineCover">&nbsp;349</td>  <td class="nbHitsCovered">&nbsp;343</td>  <td class="src"><pre class="src">&nbsp;                    in.close();</pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;348</td>  <td class="nbHitsUncovered"><a title="Line 348: Conditional coverage 50% (1/2).">&nbsp;338</a></td>  <td class="src"><pre class="src"><span class="srcUncovered">&nbsp;<a title="Line 348: Conditional coverage 50% (1/2).">                <span class="keyword">if</span> (in != <span class="keyword">null</span>) {</a></span></pre></td></tr>
+<tr>  <td class="numLineCover">&nbsp;349</td>  <td class="nbHitsCovered">&nbsp;338</td>  <td class="src"><pre class="src">&nbsp;                    in.close();</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;350</td>  <td class="nbHits">&nbsp;</td>
   <td class="src"><pre class="src">&nbsp;                }</pre></td></tr>
 <tr>  <td class="numLine">&nbsp;351</td>  <td class="nbHits">&nbsp;</td>
@@ -581,6 +581,6 @@
   <td class="src"><pre class="src">&nbsp;}</pre></td></tr>
 </table>
 
-<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 10/11/13 3:06 PM.</div>
+<div class="footer">Report generated by <a href="http://cobertura.sourceforge.net/" target="_top">Cobertura</a> 1.9.4.1 on 10/13/13 11:54 AM.</div>
 </body>
 </html>
