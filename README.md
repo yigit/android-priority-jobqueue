@@ -137,6 +137,24 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can
 
 * It is fairly unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
+### Building
+* checkout the repo
+* > cd jobqueue
+* > ant clean build-jar
+this will create a jar file under release folder.
+
+# Running Tests
+* > cd jobqueue
+* > ant clean test
+
+# getting coverage report
+
+### TODO
+* move to gradle.
+* ability to cancel jobs by id
+* change default network utility to listen for network events by default
+
+
 ### License
 ```
 Copyright 2013 Path, Inc.
