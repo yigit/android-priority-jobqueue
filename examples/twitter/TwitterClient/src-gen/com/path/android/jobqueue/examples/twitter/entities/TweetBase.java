@@ -18,6 +18,7 @@ abstract public class TweetBase {
     protected Long serverId;
     protected String text;
     protected Long userId;
+    protected Boolean isLocal;
     protected java.util.Date createdAt;
 
 
@@ -33,11 +34,12 @@ abstract public class TweetBase {
         this.localId = localId;
     }
 
-    public TweetBase(Long localId, Long serverId, String text, Long userId, java.util.Date createdAt) {
+    public TweetBase(Long localId, Long serverId, String text, Long userId, Boolean isLocal, java.util.Date createdAt) {
         this.localId = localId;
         this.serverId = serverId;
         this.text = text;
         this.userId = userId;
+        this.isLocal = isLocal;
         this.createdAt = createdAt;
     }
 
@@ -73,6 +75,14 @@ abstract public class TweetBase {
         this.userId = userId;
     }
 
+    public Boolean getIsLocal() {
+        return isLocal;
+    }
+
+    public void setIsLocal(Boolean isLocal) {
+        this.isLocal = isLocal;
+    }
+
     public java.util.Date getCreatedAt() {
         return createdAt;
     }
@@ -85,21 +95,31 @@ abstract public class TweetBase {
         if(this == other) {
             return;//both came from db, no need to run this.
         }
+
         if(other.localId != null) {
             this.localId = other.localId;
         }
+
 
         if(other.serverId != null) {
             this.serverId = other.serverId;
         }
 
+
         if(other.text != null) {
             this.text = other.text;
         }
 
+
         if(other.userId != null) {
             this.userId = other.userId;
         }
+
+
+        if(other.isLocal != null) {
+            this.isLocal = other.isLocal;
+        }
+
 
         if(other.createdAt != null) {
             this.createdAt = other.createdAt;

@@ -27,7 +27,8 @@ public class TweetDao extends AbstractDao<Tweet, Long> {
         public final static Property ServerId =new Property(1, Long.class , "serverId", false, "SERVER_ID");
         public final static Property Text =new Property(2, String.class , "text", false, "TEXT");
         public final static Property UserId =new Property(3, Long.class , "userId", false, "USER_ID");
-        public final static Property CreatedAt =new Property(4, java.util.Date.class , "createdAt", false, "CREATED_AT");
+        public final static Property IsLocal =new Property(4, Boolean.class , "isLocal", false, "IS_LOCAL");
+        public final static Property CreatedAt =new Property(5, java.util.Date.class , "createdAt", false, "CREATED_AT");
     };
 
 
@@ -47,7 +48,8 @@ public class TweetDao extends AbstractDao<Tweet, Long> {
                 "'SERVER_ID' INTEGER UNIQUE ," + // 1: serverId
                 "'TEXT' TEXT," + // 2: text
                 "'USER_ID' INTEGER," + // 3: userId
-                "'CREATED_AT' INTEGER);"); // 4: createdAt
+                "'IS_LOCAL' INTEGER," + // 4: isLocal
+                "'CREATED_AT' INTEGER);"); // 5: createdAt
     }
 
     /** Drops the underlying database table. */
@@ -86,9 +88,15 @@ public class TweetDao extends AbstractDao<Tweet, Long> {
 
         }
  
+        Boolean isLocal = entity.getIsLocal();
+        if (isLocal != null) {
+            stmt.bindLong(5, isLocal ? 1l: 0l);
+
+        }
+ 
         java.util.Date createdAt = entity.getCreatedAt();
         if (createdAt != null) {
-            stmt.bindLong(5, createdAt.getTime());
+            stmt.bindLong(6, createdAt.getTime());
 
         }
     }
@@ -108,7 +116,8 @@ public class TweetDao extends AbstractDao<Tweet, Long> {
             cursor.isNull(offset + 1) ? null : cursor.getLong(offset + 1) , // serverId
             cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2) , // text
             cursor.isNull(offset + 3) ? null : cursor.getLong(offset + 3) , // userId
-            cursor.isNull(offset + 4) ? null : new java.util.Date( cursor.getLong(offset + 4) ) // createdAt
+            cursor.isNull(offset + 4) ? null : cursor.getShort(offset + 4) != 0 , // isLocal
+            cursor.isNull(offset + 5) ? null : new java.util.Date( cursor.getLong(offset + 5) ) // createdAt
         );
         return entity;
     }
@@ -120,7 +129,8 @@ public class TweetDao extends AbstractDao<Tweet, Long> {
         entity.setServerId(cursor.isNull(offset + 1) ? null : cursor.getLong(offset + 1) );
         entity.setText(cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2) );
         entity.setUserId(cursor.isNull(offset + 3) ? null : cursor.getLong(offset + 3) );
-        entity.setCreatedAt(cursor.isNull(offset + 4) ? null : new java.util.Date( cursor.getLong(offset + 4) ) );
+        entity.setIsLocal(cursor.isNull(offset + 4) ? null : cursor.getShort(offset + 4) != 0 );
+        entity.setCreatedAt(cursor.isNull(offset + 5) ? null : new java.util.Date( cursor.getLong(offset + 5) ) );
      }
 
     /** @inheritdoc */

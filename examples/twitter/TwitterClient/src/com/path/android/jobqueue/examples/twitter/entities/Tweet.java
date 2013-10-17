@@ -20,13 +20,19 @@ public class Tweet extends TweetBase  {
         super(localId);
     }
 
-    public Tweet(Long localId, Long serverId, String text, Long userId, java.util.Date createdAt) {
-        super(localId, serverId, text, userId, createdAt);
+    public Tweet(Long localId, Long serverId, String text, Long userId, Boolean isLocal, java.util.Date createdAt) {
+        super(localId, serverId, text, userId, isLocal, createdAt);
     }
 
     // KEEP METHODS - put your custom methods here
     public Tweet(Status status) {
-        super(null, status.getId(), status.getText(), status.getUser().getId(), status.getCreatedAt());
+        super(null, status.getId(), status.getText(), status.getUser().getId(), false, status.getCreatedAt());
+    }
+
+    @Override
+    public void onBeforeSave() {
+        isLocal = serverId == null;
+        super.onBeforeSave();
     }
     // KEEP METHODS END
 

@@ -17,8 +17,9 @@ public class PostTweetJob extends BaseJob {
     private long localId;
     private String text;
     public PostTweetJob(String text) {
-        super(true, true);
+        super(true, true, "post_tweet");//order of tweets matter, we don't want to send two in parallel
         //use a negative id so that it cannot collide w/ twitter ids
+        //we have to set local id here so it gets serialized into job (to find tweet later on)
         localId = -System.currentTimeMillis();
         this.text = text;
     }
@@ -32,6 +33,7 @@ public class PostTweetJob extends BaseJob {
                     null,
                     text,
                     TwitterController.getInstance().getUserId(),
+                    null,
                     new Date(System.currentTimeMillis())
             );
             TweetModel.getInstance().insertOrReplace(tweet);

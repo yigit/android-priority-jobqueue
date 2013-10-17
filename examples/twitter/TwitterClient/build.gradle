@@ -38,7 +38,7 @@ println localProps["sdk.dir"]
 def adb = localProps['sdk.dir'] + "/platform-tools/adb"
 
 
-tasks.create(name: "run", type: RunApk){
+tasks.create(name: "runTwitter", type: RunApk){
     adbExec = adb
 }
 

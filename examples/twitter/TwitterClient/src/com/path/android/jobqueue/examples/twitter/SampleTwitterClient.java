@@ -41,7 +41,6 @@ public class SampleTwitterClient extends BaseActivity {
                 if(text.getText().toString().trim().length() > 0) {
                     sendTweet(text.getText().toString());
                     text.setText("");
-
                 }
             }
         });
@@ -111,7 +110,6 @@ public class SampleTwitterClient extends BaseActivity {
 
     private void refreshList() {
         new SimpleBackgroundTask<LazyList<Tweet>>(this) {
-
             @Override
             protected LazyList<Tweet> onRun() {
                 return TweetModel.getInstance().lazyLoadTweets();

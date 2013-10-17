@@ -36,7 +36,7 @@ public class TweetModel {
     }
 
     public LazyList<Tweet> lazyLoadTweets() {
-        return tweetDao.queryBuilder().orderDesc(TweetDao.Properties.CreatedAt).listLazy();
+        return tweetDao.queryBuilder().orderDesc(TweetDao.Properties.IsLocal, TweetDao.Properties.CreatedAt).listLazy();
 
     }
 
