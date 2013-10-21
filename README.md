@@ -137,6 +137,12 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can
 
 * It is fairly unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
+
+### Getting Started
+* [Download latest jar][5]
+* [check sample app][6]
+* [check sample configuration][7]
+
 ### Building
 * checkout the repo
 * > cd jobqueue
@@ -177,3 +183,6 @@ limitations under the License.
 [2]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkEventProvider.java
 [3]: http://path.github.io/android-priority-jobqueue/coverage-report/index.html
 [4]: http://path.github.io/android-priority-jobqueue/javadoc/index.html
+[5]: https://github.com/path/android-priority-jobqueue/releases
+[6]: https://github.com/path/android-priority-jobqueue/tree/master/examples
+[7]: https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/TwitterApplication.java#L26
