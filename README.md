@@ -5,6 +5,14 @@ Priority Jobqueue is an implementation of [Job Queue](http://en.wikipedia.org/wi
 
 It is written [flexibility](https://github.com/path/android-priority-jobqueue/wiki/configuration) & functionality in mind, not performance but we'll improve performance once API and functionality list gets more stable.
 
+### Why ?
+Good client applications cache as much data as possible on the client side to provide best user experience. They make changes locally to reflect user actions instantly in a consistent way and sync data with server silently, whenever possible. 
+This creates a case where you have a bunch of resource heavy operations (web requests, post processing etc) fighing for network and CPU on the device. After a while, it becomes really hard to schedule and prioritize all of these tasks. Job Queue comes handy in these cases where you can schedule your operations (jobs) with great flexibility.
+
+Most of the idea is based on [Google IO 2010 talk on REST client applications][8].
+
+### show me the code
+
 Since an example is worth thousands of words, here it is:
 
 File: SendTweetJob.java
@@ -186,3 +194,4 @@ limitations under the License.
 [5]: https://github.com/path/android-priority-jobqueue/releases
 [6]: https://github.com/path/android-priority-jobqueue/tree/master/examples
 [7]: https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/TwitterApplication.java#L26
+[8]: http://www.youtube.com/watch?v=xHXn3Kg2IQE
