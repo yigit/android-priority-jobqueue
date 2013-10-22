@@ -1,7 +1,7 @@
-android-priority-jobqueue
+android-priority-jobqueue (Job Manager)
 =========================
 
-Priority Jobqueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
+Priority JobQueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
 
 It is written [flexibility](https://github.com/path/android-priority-jobqueue/wiki/configuration) & functionality in mind, not performance but we'll improve performance once API and functionality list gets more stable.
 
