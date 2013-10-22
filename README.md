@@ -10,6 +10,7 @@ Good client applications cache as much data as possible on the client side to pr
 This creates a case where you have a bunch of resource heavy operations (web requests, post processing etc) fighing for network and CPU on the device. After a while, it becomes really hard to schedule and prioritize all of these tasks. Job Queue comes handy in these cases where you can schedule your operations (jobs) with great flexibility.
 
 Most of the idea is based on [Google IO 2010 talk on REST client applications][8].
+Although it is not required, it is most useful when used with an EventBus and a dependency injection framework.
 
 ### show me the code
 
