@@ -154,13 +154,13 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can
 
 ### Building
 * checkout the repo
-* > cd jobqueue
-* > ant clean build-jar
-this will create a jar file under release folder.
+* `> cd jobqueue`
+* `> ant clean build-jar`
+this will create a jar file under _release_ folder.
 
 #### Running Tests
-* > cd jobqueue
-* > ant clean test
+* > `cd jobqueue`
+* > `ant clean test`
 
 # getting coverage report
 
