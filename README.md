@@ -154,8 +154,7 @@ your database, inform the user etc.
 At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
 * Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a resource heavy app like ours.
 * You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very common task to acquire a GCM token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching important content updates).
-* You can group jobs to ensure their serial execution, if necessary. For instance at Path, we group jobs related to a moment with moment's id so that we won't hit any concurrency problems due to editing same moment in multiple threads.
-
+* You can group jobs to ensure their serial execution, if necessary. For example, assume you have a messaging client and your user sent a bunch of messages when their phone had no coverage. When creating `SendMessageToNetwork` jobs, you can group them by conversation id (or receiver id). This way, messages sent to the same conversation will go in the order they are enqueued while messages sent to different conversations can still be sent it parallel. This will let you maximize network utilization and ensure data integrity w/o any effort on your side.
 * It is fairly unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
 
