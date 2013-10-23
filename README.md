@@ -1,3 +1,17 @@
+**Table of Contents**  *generated with [DocToc](http://doctoc.herokuapp.com/)*
+
+- [android-priority-jobqueue (Job Manager)](#android-priority-jobqueue-job-manager)
+		- [Why ?](#why-)
+		- [show me the code](#show-me-the-code)
+		- [What Happened?](#what-happened)
+		- [Advantages of using Job Manager](#advantages-of-using-job-manager)
+		- [Getting Started](#getting-started)
+		- [Building](#building)
+			- [Running Tests](#running-tests)
+- [getting coverage report](#getting-coverage-report)
+		- [TODO](#todo)
+		- [License](#license)
+
 android-priority-jobqueue (Job Manager)
 =========================
 
