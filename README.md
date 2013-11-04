@@ -82,8 +82,11 @@ public void onSendClick() {
 ```
 
 
-This is it :). No more async tasks, no more serialization mess, no more network check, no more logic to re-try async tasks if it fails etc.
-Here is what happened:
+This is it :). 
+
+* No network call in activity bound async tasks
+* No serialization mess for important requests
+* No network check or retry logic
 
 ### What Happened?
 * When user clicked send button, `onSendClick` method was called which creates a `PostTweetJob` and adds it to `JobManager` for execution.
