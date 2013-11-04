@@ -26,78 +26,38 @@ Although it is not required, it is most useful when used with an event bus and a
 
 ### show me the code
 
-Since an example is worth thousands of words, here it is:
+Since an example is worth thousands of words, here is a simplified example. ([full version](https://github.com/path/android-priority-jobqueue/wiki/complete-job-example))
 
 File: SendTweetJob.java
 ``` java
 // a job to send out a tweet
 public class PostTweetJob extends BaseJob implements Serializeable {
-    //if you are using dependency injection, you can configure JobManager to use it :)
-    //since this job uses default Java Serialization for persistence, we marked injected fields as transient.
-    //you can also provide your own serialization-deserialization logic.
-    @Inject transient TweetModel tweetModel;
-    @Inject transient Webservice webservice;
-    @Inject transient UserModel userModel;
-    @Inject transient EventBus eventBus;
-    
-    
-    private long localId;
     private String text;
     public PostTweetJob(String text) {
+        //requires network to run & persistent
         super(true, true);
-        //use a negative id so that it cannot collide w/ twitter ids
-        localId = -System.currentTimeMillis();
-        this.text = text;
     }
 
     @Override
     public void onAdded() {
-        //job has been secured to disk, add item to database so that we can display it to the user.
-        Tweet tweet = new Tweet(
-                localId,
-                null,
-                text,
-                userModel.getMyUserId(),
-                new Date(System.currentTimeMillis())
-        );
-        tweetModel.insert(tweet);
-        eventBus.post(new PostingTweetEvent(tweet));
+        //job has been secured to disk. here is a good time to update UI
     }
 
     @Override
     public void onRun() throws Throwable {
-        Status status = webservice.postTweet(text);
-        Tweet newTweet = new Tweet(status);
-        Tweet existingTweet = tweetModel.getTweetByLocalId(localId);
-        if(existingTweet != null) {
-            existingTweet.updateNotNull(newTweet);
-            tweetModel.inserOrReplace(existingTweet);
-        } else {
-            //somewhat local tweet does not exist. we might have crashed before onAdded is called.
-            //just insert as if it is a new tweet
-            tweetModel.insertOrReplace(newTweet);
-        }
-        eventBus.post(new PostedTweetEvent(newTweet, localId));
+        webservice.postTweet(text);
+        //tweet has been sent to twitter, a good time to update UI
+    }
+    
+    @Override
+    protected boolean shouldReRunOnThrowable(Throwable throwable) {
+        //some exception happened in onRun, lets handle it and decide if we want to retry
     }
 
     @Override
     protected void onCancel() {
-        //delete local tweet. we could not complete job successfully
-        Tweet localTweet = tweetModel.getTweetByLocalId(localId);
-        if(localTweet != null) {
-            tweetModel.deleteTweetById(localId);
-            eventBus.post(new DeletedTweetEvent(localId));
-        }
-    }
-
-    @Override
-    protected boolean shouldReRunOnThrowable(Throwable throwable) {
-        if(throwable instanceof TwitterException) {
-            //if it is a 4xx error, stop. job manager will call `onCancel`
-            TwitterException twitterException = (TwitterException) throwable;
-            return twitterException.getErrorCode() < 400 || twitterException.getErrorCode() > 499;
-        }
-        return true;
+        //callback if job is dismissed due to failures.
+        //it might have reached retry limit or shouldReRunOnThrowable might have returned false
     }
 }
 
@@ -110,23 +70,11 @@ File: TweetActivity.java
 public void onSendClick() {
     final String status = editText.getText();
     editText.setText("");
-    //assume we have a ThreadUtil class to dispatch code to a shared background thread.
-    //this avoids making a disk write on main thread.
-    ThreadUtil.performOnBackgroundThread(new Runnable() {
-        jobManager.addJob(1, new PostTweetJob(status));
-    });
-}
-
-//....
-public void onEventMainThread(PostingTweetEvent ignored) {
-    //add tweet to list
-}
-
-public void onEventMainThread(PostedTweetEvent ignored) {
-    //refresh tweet list
+    jobManager.addJob(1, new PostTweetJob(status)); 
 }
 ...
 ```
+
 
 This is it :). No more async tasks, no more shared preferences mess. Here is what happened:
 
