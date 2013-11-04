@@ -40,13 +40,13 @@ public class PostTweetJob extends BaseJob implements Serializeable {
 
     @Override
     public void onAdded() {
-        //job has been secured to disk. here is a good time to update UI
+        //job has been secured to disk. a good time to dispatch an event
     }
 
     @Override
     public void onRun() throws Throwable {
         webservice.postTweet(text);
-        //tweet has been sent to twitter, a good time to update UI
+        //tweet has been sent to twitter, a good time to dispatch an event to update
     }
     
     @Override
@@ -70,13 +70,20 @@ File: TweetActivity.java
 public void onSendClick() {
     final String status = editText.getText();
     editText.setText("");
-    jobManager.addJob(1, new PostTweetJob(status)); 
+    //we still call job manager in an async task because it will sync job to disk.
+    new AsyncTask<Void, Void, Void>() {
+        @Override
+        protected Void doInBackground(Void... params) {
+            jobManager.addJob(1, new PostTweetJob(status)); 
+        }
+    }.execute();
 }
 ...
 ```
 
 
-This is it :). No more async tasks, no more shared preferences mess. Here is what happened:
+This is it :). No more async tasks, no more serialization mess, no more network check, no more logic to re-try async tasks if it fails etc.
+Here is what happened:
 
 ### What Happened?
 * When user clicked send button, `onSendClick` method was called which creates a `PostTweetJob` and adds it to `JobManager` for execution.
