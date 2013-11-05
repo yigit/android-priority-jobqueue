@@ -162,7 +162,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     public long addJob(int priority, long delay, BaseJob baseJob) {
         JobHolder jobHolder = new JobHolder(priority, baseJob, delay > 0 ? System.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY, NOT_RUNNING_SESSION_ID);
         long id;
-        if (baseJob.shouldPersist()) {
+        if (baseJob.isPersistent()) {
             synchronized (persistentJobQueue) {
                 id = persistentJobQueue.insert(jobHolder);
                 addOnAddedLock(persistentOnAddedLocks, id);
@@ -176,14 +176,14 @@ public class JobManager implements NetworkEventProvider.Listener {
         if(JqLog.isDebugEnabled()) {
             JqLog.d("added job id: %d class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
                     , id, baseJob.getClass().getSimpleName(), priority, delay, baseJob.getRunGroupId()
-                    , baseJob.shouldPersist(), baseJob.requiresNetwork());
+                    , baseJob.isPersistent(), baseJob.requiresNetwork());
         }
         if(dependencyInjector != null) {
             //inject members b4 calling onAdded
             dependencyInjector.inject(baseJob);
         }
         jobHolder.getBaseJob().onAdded();
-        if(baseJob.shouldPersist()) {
+        if(baseJob.isPersistent()) {
             synchronized (persistentJobQueue) {
                 clearOnAddedLock(persistentOnAddedLocks, id);
             }
@@ -324,7 +324,7 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     private void reAddJob(JobHolder jobHolder) {
         JqLog.d("re-adding job %s", jobHolder.getId());
-        if (jobHolder.getBaseJob().shouldPersist()) {
+        if (jobHolder.getBaseJob().isPersistent()) {
             synchronized (persistentJobQueue) {
                 persistentJobQueue.insertOrReplace(jobHolder);
             }
@@ -339,7 +339,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     }
 
     private void removeJob(JobHolder jobHolder) {
-        if (jobHolder.getBaseJob().shouldPersist()) {
+        if (jobHolder.getBaseJob().isPersistent()) {
             synchronized (persistentJobQueue) {
                 persistentJobQueue.remove(jobHolder);
             }

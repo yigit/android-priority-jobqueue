@@ -58,7 +58,7 @@ abstract public class BaseJob implements Serializable {
      *
      * @return
      */
-    public final boolean shouldPersist() {
+    public final boolean isPersistent() {
         return persistent;
     }
 

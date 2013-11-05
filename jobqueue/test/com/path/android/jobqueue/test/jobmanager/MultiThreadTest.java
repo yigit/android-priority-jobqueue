@@ -78,7 +78,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             if(Math.random() < .1) {
                 throw new Exception("decided to die, will retry");
             }
-            Log.d("DummyJobForMultiThread", "persistent:" + shouldPersist() + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
+            Log.d("DummyJobForMultiThread", "persistent:" + isPersistent() + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
         }
 
         @Override
