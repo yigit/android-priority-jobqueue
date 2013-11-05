@@ -37,23 +37,19 @@ public class PostTweetJob extends BaseJob implements Serializeable {
         //requires network to run & persistent
         super(true, true);
     }
-
     @Override
     public void onAdded() {
-        //job has been secured to disk. a good time to dispatch an event
+        //job has been secured to disk. a good time to dispatch an event for UI
     }
-
     @Override
     public void onRun() throws Throwable {
         webservice.postTweet(text);
-        //tweet has been sent to twitter, a good time to dispatch an event to update
+        //tweet has been sent to Twitter, a good time to dispatch an event for UI
     }
-    
     @Override
     protected boolean shouldReRunOnThrowable(Throwable throwable) {
         //some exception happened in onRun, lets handle it and decide if we want to retry
     }
-
     @Override
     protected void onCancel() {
         //callback if job is dismissed due to failures.
