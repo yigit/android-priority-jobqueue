@@ -4,7 +4,6 @@ import android.app.Application;
 import android.util.Log;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.examples.twitter.util.MyNetworkUtil;
 import com.path.android.jobqueue.log.CustomLogger;
 
 public class TwitterApplication extends Application {
@@ -23,8 +22,8 @@ public class TwitterApplication extends Application {
     }
 
     private void configureJobManager() {
-        Configuration configuration = JobManager.createDefaultConfiguration();
-        configuration.customLogger(new CustomLogger() {
+        Configuration configuration = new Configuration.Builder(this)
+        .customLogger(new CustomLogger() {
             private static final String TAG = "JOBS";
             @Override
             public boolean isDebugEnabled() {
@@ -45,15 +44,13 @@ public class TwitterApplication extends Application {
             public void e(String text, Object... args) {
                 Log.e(TAG, String.format(text, args));
             }
-        });
-
-        configuration.minConsumerCount(1);//always keep at least one consumer alive
-        configuration.maxConsumerCount(3);//up to 3 consumers at a time
-        configuration.loadFactor(3);//3 jobs per consumer
-        configuration.consumerKeepAlive(30);//wait 30 secs before killing a consumer
-        configuration.networkUtil(new MyNetworkUtil(this));
+        })
+        .minConsumerCount(1)//always keep at least one consumer alive
+        .maxConsumerCount(3)//up to 3 consumers at a time
+        .loadFactor(3)//3 jobs per consumer
+        .consumerKeepAlive(120)//wait 2 minute
+        .build();
         jobManager = new JobManager(this, configuration);
-
     }
 
     public JobManager getJobManager() {

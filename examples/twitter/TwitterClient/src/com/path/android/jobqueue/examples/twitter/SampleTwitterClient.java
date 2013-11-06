@@ -8,10 +8,12 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.examples.twitter.activities.BaseActivity;
 import com.path.android.jobqueue.examples.twitter.adapters.LazyListAdapter;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
+import com.path.android.jobqueue.examples.twitter.events.DeletedTweetEvent;
 import com.path.android.jobqueue.examples.twitter.events.FetchedNewTweetsEvent;
 import com.path.android.jobqueue.examples.twitter.events.PostedTweetEvent;
 import com.path.android.jobqueue.examples.twitter.events.PostingTweetEvent;
@@ -87,6 +89,13 @@ public class SampleTwitterClient extends BaseActivity {
     @SuppressWarnings("UnusedDeclaration")
     public void onEventMainThread(PostedTweetEvent ignored) {
         //we could just add this to top or replace element instead of refreshing whole list
+        onUpdateEvent();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public void onEventMainThread(DeletedTweetEvent ignored) {
+        //we could just add this to top or replace element instead of refreshing whole list
+        Toast.makeText(this, "cannot send the tweet", Toast.LENGTH_SHORT).show();
         onUpdateEvent();
     }
 

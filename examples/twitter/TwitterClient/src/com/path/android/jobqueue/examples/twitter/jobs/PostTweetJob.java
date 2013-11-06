@@ -76,7 +76,7 @@ public class PostTweetJob extends BaseJob {
         if(throwable instanceof TwitterException) {
             //if it is a 4xx error, stop
             TwitterException twitterException = (TwitterException) throwable;
-            return twitterException.getErrorCode() < 400 || twitterException.getErrorCode() > 499;
+            return twitterException.getStatusCode() < 400 || twitterException.getStatusCode() > 499;
         }
         return true;
     }
