@@ -3,6 +3,7 @@ package com.path.android.jobqueue.config;
 import android.net.ConnectivityManager;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.QueueFactory;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.network.NetworkUtil;
@@ -25,7 +26,7 @@ public class Configuration {
     private int minConsumerCount = MIN_CONSUMER_COUNT;
     private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
     private int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;
-    private JobManager.QueueFactory queueFactory;
+    private QueueFactory queueFactory;
     private DependencyInjector dependencyInjector;
     private NetworkUtil networkUtil;
     private CustomLogger customLogger;
@@ -60,7 +61,7 @@ public class Configuration {
      * @param queueFactory
      * @return
      */
-    public Configuration queueFactory(JobManager.QueueFactory queueFactory) {
+    public Configuration queueFactory(QueueFactory queueFactory) {
         this.queueFactory = queueFactory;
         return this;
     }
@@ -146,7 +147,7 @@ public class Configuration {
         return id;
     }
 
-    public JobManager.QueueFactory getQueueFactory() {
+    public QueueFactory getQueueFactory() {
         return queueFactory;
     }
 
