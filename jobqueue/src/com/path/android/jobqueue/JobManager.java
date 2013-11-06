@@ -56,7 +56,7 @@ public class JobManager implements NetworkEventProvider.Listener {
      * @param id an id that is unique to this JobManager
      */
     public JobManager(Context context, String id) {
-        this(context, createDefaultConfiguration().id(id));
+        this(context, new Configuration.Builder().id(id).build());
     }
 
     /**
@@ -88,12 +88,6 @@ public class JobManager implements NetworkEventProvider.Listener {
         start();
     }
 
-
-    public static Configuration createDefaultConfiguration() {
-        return new Configuration()
-                .defaultQueueFactory()
-                .defaultNetworkUtil();
-    }
 
     /**
      * Stops consuming jobs. Currently running jobs will be finished but no new jobs will be run.

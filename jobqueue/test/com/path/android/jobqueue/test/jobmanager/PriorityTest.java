@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.Test;
@@ -18,7 +19,7 @@ public class PriorityTest extends JobManagerTestBase {
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().maxConsumerCount(1).id("" + System.nanoTime()));
+        JobManager jobManager = createJobManager(new Configuration.Builder().maxConsumerCount(1));
         testPriority(jobManager, false);
     }
 

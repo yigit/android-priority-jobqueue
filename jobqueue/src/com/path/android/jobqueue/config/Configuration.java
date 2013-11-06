@@ -31,116 +31,8 @@ public class Configuration {
     private NetworkUtil networkUtil;
     private CustomLogger customLogger;
 
-    /**
-     * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
-     * create multiple instances of it.
-     * default id is {@value #DEFAULT_ID}
-     * @param id
-     * @return
-     */
-    public Configuration id(String id) {
-        this.id = id;
-        return this;
-    }
-
-    /**
-     * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration. it defaults to {@value #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
-     * @param keepAlive in seconds
-     * @return
-     */
-    public Configuration consumerKeepAlive(int keepAlive) {
-        this.consumerKeepAlive = keepAlive;
-        return this;
-    }
-
-    /**
-     * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
-     * By default, it will use {@link SqliteJobQueue} and {@link NonPersistentPriorityQueue}
-     * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
-     * {@link JobQueueTestBase} to ensure it will work fine.
-     * @param queueFactory
-     * @return
-     */
-    public Configuration queueFactory(QueueFactory queueFactory) {
-        this.queueFactory = queueFactory;
-        return this;
-    }
-
-    /**
-     * By default, Job Manager comes with a simple {@link NetworkUtilImpl} that queries {@link ConnectivityManager}
-     * to check if network connection exists. You can provide your own if you need a custom logic (e.g. check your
-     * server health etc).
-     * @param networkUtil
-     * @return
-     */
-    public Configuration networkUtil(NetworkUtil networkUtil) {
-        this.networkUtil = networkUtil;
-        return this;
-    }
-
-    /**
-     * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
-     * before running jobs.
-     * @param injector
-     * @return
-     */
-    public Configuration injector(DependencyInjector injector) {
-        this.dependencyInjector = injector;
-        return this;
-    }
-
-    /**
-     * # of max consumers to run concurrently. defaults to {@value #MAX_CONSUMER_COUNT}
-     * @param count
-     * @return
-     */
-    public Configuration maxConsumerCount(int count) {
-        this.maxConsumerCount = count;
-        return this;
-    }
-
-    /**
-     * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to {@value #MIN_CONSUMER_COUNT}
-     * @param count
-     * @return
-     */
-    public Configuration minConsumerCount(int count) {
-        this.minConsumerCount = count;
-        return this;
-    }
-
-    /**
-     * you can provide a custom logger to get logs from JobManager.
-     * by default, logs will go no-where.
-     * @param logger
-     * @return
-     */
-    public Configuration customLogger(CustomLogger logger) {
-        this.customLogger = logger;
-        return this;
-    }
-
-    /**
-     * calculated by # of jobs (running+waiting) per thread
-     * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
-     * (10/2) =5
-     * defaults to {@value #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
-     * @param loadFactor
-     * @return
-     */
-    public Configuration loadFactor(int loadFactor) {
-        this.loadFactor = loadFactor;
-        return this;
-    }
-
-    public Configuration defaultQueueFactory() {
-        this.queueFactory = new JobManager.DefaultQueueFactory();
-        return this;
-    }
-
-    public Configuration defaultNetworkUtil() {
-        this.networkUtil = new NetworkUtilImpl();
-        return this;
+    private Configuration(){
+        //use builder instead
     }
 
     public String getId() {
@@ -177,5 +69,113 @@ public class Configuration {
 
     public int getLoadFactor() {
         return loadFactor;
+    }
+
+    public static final class Builder {
+        private Configuration configuration;
+
+        public Builder() {
+            this.configuration = new Configuration();
+            configuration.queueFactory = new JobManager.DefaultQueueFactory();
+            configuration.networkUtil = new NetworkUtilImpl();
+        }
+
+        /**
+         * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
+         * create multiple instances of it.
+         * default id is {@value #DEFAULT_ID}
+         * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
+         */
+        public Builder id(String id) {
+            configuration.id = id;
+            return this;
+        }
+
+        /**
+         * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration. it defaults to {@value #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
+         * @param keepAlive in seconds
+         */
+        public Builder consumerKeepAlive(int keepAlive) {
+            configuration.consumerKeepAlive = keepAlive;
+            return this;
+        }
+
+        /**
+         * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
+         * By default, it will use {@link SqliteJobQueue} and {@link NonPersistentPriorityQueue}
+         * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
+         * {@link JobQueueTestBase} to ensure it will work fine.
+         * @param queueFactory your custom queue factory.
+         */
+        public Builder queueFactory(QueueFactory queueFactory) {
+            configuration.queueFactory = queueFactory;
+            return this;
+        }
+
+        /**
+         * By default, Job Manager comes with a simple {@link NetworkUtilImpl} that queries {@link ConnectivityManager}
+         * to check if network connection exists. You can provide your own if you need a custom logic (e.g. check your
+         * server health etc).
+         */
+        public Builder networkUtil(NetworkUtil networkUtil) {
+            configuration.networkUtil = networkUtil;
+            return this;
+        }
+
+        /**
+         * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
+         * before {BaseJob#onAdded} method is called.
+         * if job is persistent, it will also be called before run method.
+         * @param injector your dependency injector interface, if using one
+         * @return
+         */
+        public Builder injector(DependencyInjector injector) {
+            configuration.dependencyInjector = injector;
+            return this;
+        }
+
+        /**
+         * # of max consumers to run concurrently. defaults to {@value #MAX_CONSUMER_COUNT}
+         * @param count
+         */
+        public Builder maxConsumerCount(int count) {
+            configuration.maxConsumerCount = count;
+            return this;
+        }
+
+        /**
+         * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to {@value #MIN_CONSUMER_COUNT}
+         * @param count
+         */
+        public Builder minConsumerCount(int count) {
+            configuration.minConsumerCount = count;
+            return this;
+        }
+
+        /**
+         * you can provide a custom logger to get logs from JobManager.
+         * by default, logs will go no-where.
+         * @param logger
+         */
+        public Builder customLogger(CustomLogger logger) {
+            configuration.customLogger = logger;
+            return this;
+        }
+
+        /**
+         * calculated by # of jobs (running+waiting) per thread
+         * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
+         * (10/2) =5
+         * defaults to {@value #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
+         * @param loadFactor
+         */
+        public Builder loadFactor(int loadFactor) {
+            configuration.loadFactor = loadFactor;
+            return this;
+        }
+
+        public Configuration build() {
+            return configuration;
+        }
     }
 }

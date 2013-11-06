@@ -25,8 +25,8 @@ public class JobManagerTestBase extends TestBase {
         return new JobManager(Robolectric.application, UUID.randomUUID().toString());
     }
 
-    protected JobManager createJobManager(Configuration configuration) {
-        return new JobManager(Robolectric.application, configuration.id(UUID.randomUUID().toString()));
+    protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
+        return new JobManager(Robolectric.application, configurationBuilder.id(UUID.randomUUID().toString()).build());
     }
 
 

@@ -7,21 +7,19 @@ import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
 
 @RunWith(RobolectricTestRunner.class)
 public class InjectorTest extends JobManagerTestBase {
     @Test
     public void testInjector() throws Exception {
-        Configuration configuration = JobManager.createDefaultConfiguration();
+        Configuration.Builder builder = new Configuration.Builder();
         final JobManagerTestBase.ObjectReference injectedJobReference = new JobManagerTestBase.ObjectReference();
         final AtomicInteger injectionCallCount = new AtomicInteger(0);
         DependencyInjector dependencyInjector = new DependencyInjector() {
@@ -31,8 +29,8 @@ public class InjectorTest extends JobManagerTestBase {
                 injectionCallCount.incrementAndGet();
             }
         };
-        configuration.injector(dependencyInjector);
-        JobManager jobManager = createJobManager(configuration);
+        builder.injector(dependencyInjector);
+        JobManager jobManager = createJobManager(builder);
         jobManager.stop();
         jobManager.addJob(4, new DummyJob());
         MatcherAssert.assertThat("injection should be called after adding a non-persistent job", injectionCallCount.get(), equalTo(1));

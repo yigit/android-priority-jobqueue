@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -16,13 +17,12 @@ public class KeepAliveTest extends JobManagerTestBase {
     @Test
     public void testKeepAlive() throws Exception {
         int keepAlive = 3 + (int)(Math.random() * 5);
-        long id = System.nanoTime();
         DummyNetworkUtil networkUtilWithoutEventSupport = new DummyNetworkUtil();
         DummyNetworkUtilWithConnectivityEventSupport networkUtilWithEventSupport = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager1 = createJobManager(JobManager.createDefaultConfiguration()
-                .consumerKeepAlive(keepAlive).id(id + "a").networkUtil(networkUtilWithoutEventSupport));
-        JobManager jobManager2 = createJobManager(JobManager.createDefaultConfiguration()
-                .consumerKeepAlive(keepAlive).id(id + "b")
+        JobManager jobManager1 = createJobManager(new Configuration.Builder()
+                .consumerKeepAlive(keepAlive).networkUtil(networkUtilWithoutEventSupport));
+        JobManager jobManager2 = createJobManager(new Configuration.Builder()
+                .consumerKeepAlive(keepAlive)
                 .networkUtil(networkUtilWithEventSupport));
         //give it a little time to create first consumer
         jobManager1.addJob(0, new DummyJob());

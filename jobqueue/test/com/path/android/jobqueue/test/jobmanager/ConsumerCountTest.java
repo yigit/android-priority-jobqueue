@@ -1,26 +1,25 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-
 @RunWith(RobolectricTestRunner.class)
 public class ConsumerCountTest extends JobManagerTestBase {
     @Test
     public void testMaxConsumerCount() throws Exception {
         int maxConsumerCount = 2;
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
-                .maxConsumerCount(maxConsumerCount)
+        JobManager jobManager = createJobManager(new Configuration.Builder().maxConsumerCount(maxConsumerCount)
                 .loadFactor(maxConsumerCount));
         Object runLock = new Object();
         Semaphore semaphore = new Semaphore(maxConsumerCount);

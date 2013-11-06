@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.fest.reflect.method.Invoker;
 import org.hamcrest.MatcherAssert;
@@ -18,7 +19,7 @@ public class NetworkNextJobTest extends JobManagerTestBase {
     @Test
     public void testNetworkNextJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration().networkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(new Configuration.Builder().networkUtil(dummyNetworkUtil));
         jobManager.stop();
         DummyJob dummyJob = new DummyJob(true, false);
         long dummyJobId = jobManager.addJob(0, dummyJob);

@@ -1,7 +1,8 @@
 package com.path.android.jobqueue.test.jobmanager;
 
-import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
+import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -14,7 +15,6 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import com.path.android.jobqueue.log.CustomLogger;
 
 @RunWith(RobolectricTestRunner.class)
 public class LoadFactorTest extends JobManagerTestBase {
@@ -24,7 +24,7 @@ public class LoadFactorTest extends JobManagerTestBase {
         int maxConsumerCount = 5;
         int minConsumerCount = 2;
         int loadFactor = 5;
-        com.path.android.jobqueue.JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
+        com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder()
                 .maxConsumerCount(maxConsumerCount)
                 .minConsumerCount(minConsumerCount)
                 .customLogger(new CustomLogger() {

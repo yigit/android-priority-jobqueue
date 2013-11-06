@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import android.util.Log;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -24,7 +25,7 @@ public class MultiThreadTest extends JobManagerTestBase {
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
-        final JobManager jobManager = createJobManager(JobManager.createDefaultConfiguration()
+        final JobManager jobManager = createJobManager(new Configuration.Builder()
             .loadFactor(3).maxConsumerCount(10));
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));
