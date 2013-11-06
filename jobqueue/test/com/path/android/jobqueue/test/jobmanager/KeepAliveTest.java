@@ -19,9 +19,9 @@ public class KeepAliveTest extends JobManagerTestBase {
         int keepAlive = 3 + (int)(Math.random() * 5);
         DummyNetworkUtil networkUtilWithoutEventSupport = new DummyNetworkUtil();
         DummyNetworkUtilWithConnectivityEventSupport networkUtilWithEventSupport = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager1 = createJobManager(new Configuration.Builder()
+        JobManager jobManager1 = createJobManager(new Configuration.Builder(Robolectric.application)
                 .consumerKeepAlive(keepAlive).networkUtil(networkUtilWithoutEventSupport));
-        JobManager jobManager2 = createJobManager(new Configuration.Builder()
+        JobManager jobManager2 = createJobManager(new Configuration.Builder(Robolectric.application)
                 .consumerKeepAlive(keepAlive)
                 .networkUtil(networkUtilWithEventSupport));
         //give it a little time to create first consumer

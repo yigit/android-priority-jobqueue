@@ -7,7 +7,7 @@ import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
@@ -16,7 +16,7 @@ public class NetworkJobTest extends JobManagerTestBase {
     @Test
     public void testNetworkJob() throws Exception {
         JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
-        JobManager jobManager = createJobManager(new Configuration.Builder().networkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).networkUtil(dummyNetworkUtil));
         jobManager.stop();
 
         DummyJob networkDummyJob = new DummyJob(true, false);

@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class InjectorTest extends JobManagerTestBase {
     @Test
     public void testInjector() throws Exception {
-        Configuration.Builder builder = new Configuration.Builder();
+        Configuration.Builder builder = new Configuration.Builder(Robolectric.application);
         final JobManagerTestBase.ObjectReference injectedJobReference = new JobManagerTestBase.ObjectReference();
         final AtomicInteger injectionCallCount = new AtomicInteger(0);
         DependencyInjector dependencyInjector = new DependencyInjector() {

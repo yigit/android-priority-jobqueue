@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.config;
 
+import android.content.Context;
 import android.net.ConnectivityManager;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
@@ -73,11 +74,10 @@ public class Configuration {
 
     public static final class Builder {
         private Configuration configuration;
-
-        public Builder() {
+        private Context appContext;
+        public Builder(Context context) {
             this.configuration = new Configuration();
-            configuration.queueFactory = new JobManager.DefaultQueueFactory();
-            configuration.networkUtil = new NetworkUtilImpl();
+            appContext = context.getApplicationContext();
         }
 
         /**
@@ -175,6 +175,12 @@ public class Configuration {
         }
 
         public Configuration build() {
+            if(configuration.queueFactory == null) {
+                configuration.queueFactory = new JobManager.DefaultQueueFactory();
+            }
+            if(configuration.networkUtil == null) {
+                configuration.networkUtil = new NetworkUtilImpl(appContext);
+            }
             return configuration;
         }
     }

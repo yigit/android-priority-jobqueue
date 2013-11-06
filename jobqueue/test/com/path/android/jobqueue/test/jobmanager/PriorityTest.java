@@ -19,7 +19,7 @@ public class PriorityTest extends JobManagerTestBase {
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createJobManager(new Configuration.Builder().maxConsumerCount(1));
+        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).maxConsumerCount(1));
         testPriority(jobManager, false);
     }
 

@@ -8,7 +8,7 @@ import org.fest.reflect.method.Invoker;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -19,7 +19,7 @@ public class NetworkNextJobTest extends JobManagerTestBase {
     @Test
     public void testNetworkNextJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createJobManager(new Configuration.Builder().networkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).networkUtil(dummyNetworkUtil));
         jobManager.stop();
         DummyJob dummyJob = new DummyJob(true, false);
         long dummyJobId = jobManager.addJob(0, dummyJob);

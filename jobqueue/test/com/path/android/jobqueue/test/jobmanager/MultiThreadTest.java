@@ -25,7 +25,7 @@ public class MultiThreadTest extends JobManagerTestBase {
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
-        final JobManager jobManager = createJobManager(new Configuration.Builder()
+        final JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
             .loadFactor(3).maxConsumerCount(10));
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));

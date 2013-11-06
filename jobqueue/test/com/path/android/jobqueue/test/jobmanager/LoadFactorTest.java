@@ -24,7 +24,7 @@ public class LoadFactorTest extends JobManagerTestBase {
         int maxConsumerCount = 5;
         int minConsumerCount = 2;
         int loadFactor = 5;
-        com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder()
+        com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
                 .maxConsumerCount(maxConsumerCount)
                 .minConsumerCount(minConsumerCount)
                 .customLogger(new CustomLogger() {

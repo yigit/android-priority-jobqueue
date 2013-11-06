@@ -19,7 +19,8 @@ public class ConsumerCountTest extends JobManagerTestBase {
     @Test
     public void testMaxConsumerCount() throws Exception {
         int maxConsumerCount = 2;
-        JobManager jobManager = createJobManager(new Configuration.Builder().maxConsumerCount(maxConsumerCount)
+        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
+                .maxConsumerCount(maxConsumerCount)
                 .loadFactor(maxConsumerCount));
         Object runLock = new Object();
         Semaphore semaphore = new Semaphore(maxConsumerCount);
