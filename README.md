@@ -7,7 +7,6 @@
   - [Building](#building)
    - [Running Tests](#running-tests)
   - [getting coverage report](#getting-coverage-report)
-  - [TODO](#todo)
   - [License](#license)
 
 android-priority-jobqueue (Job Manager)
@@ -128,12 +127,6 @@ this will create a jar file under _release_ folder.
 * > `ant clean test`
 
 #### getting coverage report
-
-### TODO
-* move to gradle.
-* ability to cancel jobs by id
-* change default network utility to listen for network events by default
-
 
 ### License
 ```
