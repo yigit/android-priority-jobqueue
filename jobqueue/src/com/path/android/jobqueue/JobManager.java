@@ -56,7 +56,7 @@ public class JobManager implements NetworkEventProvider.Listener {
      * @param id an id that is unique to this JobManager
      */
     public JobManager(Context context, String id) {
-        this(context, new Configuration.Builder().id(id).build());
+        this(context, new Configuration.Builder(context).id(id).build());
     }
 
     /**
@@ -251,14 +251,14 @@ public class JobManager implements NetworkEventProvider.Listener {
             }
         }
         if(nextRunNs != null) {
-            long diff = (long)Math.ceil((double)(nextRunNs - System.nanoTime()) / NS_PER_MS);
-            if(diff <= 0) {
+            //to avoid overflow, we need to check equality first
+            if(nextRunNs < System.nanoTime()) {
                 notifyJobConsumer();
                 return 0L;
-            } else {
-                ensureConsumerOnTime(diff);
-                return diff;
             }
+            long diff = (long)Math.ceil((double)(nextRunNs - System.nanoTime()) / NS_PER_MS);
+            ensureConsumerOnTime(diff);
+            return diff;
         }
         return Long.MAX_VALUE;
     }
