@@ -451,9 +451,19 @@ public class JobManager implements NetworkEventProvider.Listener {
      * both are wrapped inside a {@link CachedJobQueue} to improve performance
      */
     public static class DefaultQueueFactory implements QueueFactory {
+        SqliteJobQueue.JobSerializer jobSerializer;
+
+        public DefaultQueueFactory() {
+            jobSerializer = new SqliteJobQueue.JavaSerializer();
+        }
+
+        public DefaultQueueFactory(SqliteJobQueue.JobSerializer jobSerializer) {
+            this.jobSerializer = jobSerializer;
+        }
+
         @Override
         public JobQueue createPersistentQueue(Context context, Long sessionId, String id) {
-            return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id));
+            return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id, jobSerializer));
         }
         @Override
         public JobQueue createNonPersistent(Context context, Long sessionId, String id) {

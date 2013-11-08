@@ -108,7 +108,22 @@ public class Configuration {
          * @param queueFactory your custom queue factory.
          */
         public Builder queueFactory(QueueFactory queueFactory) {
+            if(configuration.queueFactory != null) {
+                throw new RuntimeException("already set a queue factory. This might happen if you've provided a custom " +
+                        "job serializer");
+            }
             configuration.queueFactory = queueFactory;
+            return this;
+        }
+
+        /**
+         * convenient configuration to replace job serializer while using {@link SqliteJobQueue} queue for persistence.
+         * by default, it uses a {@link SqliteJobQueue.JavaSerializer} which will use default Java serialization.
+         * @param JobSerializer
+         * @return
+         */
+        public Builder jobSerializer(SqliteJobQueue.JobSerializer jobSerializer) {
+            configuration.queueFactory = new JobManager.DefaultQueueFactory(jobSerializer);
             return this;
         }
 

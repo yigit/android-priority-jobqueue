@@ -46,10 +46,6 @@ public class SqliteJobQueue implements JobQueue {
         nextJobsQueryCache = new QueryCache();
     }
 
-    public SqliteJobQueue(Context context, long sessionId, String id) {
-        this(context, sessionId, id, new JavaSerializer());
-    }
-
     /**
      * {@inheritDoc}
      */
