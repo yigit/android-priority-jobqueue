@@ -14,7 +14,7 @@ android-priority-jobqueue (Job Manager)
 
 Priority JobQueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
 
-It is written [flexibility](https://github.com/path/android-priority-jobqueue/wiki/configuration) & functionality in mind, not performance but we'll improve performance once API and functionality list gets more stable.
+It is written [flexibility](Job-Manager-Configuration) & functionality in mind, not performance but we'll improve performance once API and functionality list gets more stable.
 
 ### Why ?
 Good client applications cache as much data as possible on the client side to provide best user experience. They make changes locally to reflect user actions instantly in a consistent way and sync data with server silently, whenever possible. 
