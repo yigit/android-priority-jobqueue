@@ -133,7 +133,7 @@ this will create a jar file under _release_ folder.
 
 ## License
 
-Fast Image Cache is made available under the [MIT license](http://opensource.org/licenses/MIT):
+Android Priority Jobqueue is made available under the [MIT license](http://opensource.org/licenses/MIT):
 
 <pre>
 The MIT License (MIT)
