@@ -6,7 +6,7 @@
   - [Getting Started](#getting-started)
   - [Building](#building)
    - [Running Tests](#running-tests)
-  - [getting coverage report](#getting-coverage-report)
+  - [wiki][9]
   - [License](#license)
 
 android-priority-jobqueue (Job Manager)
@@ -93,7 +93,7 @@ On `onAdded` callback, we saved tweet into disk and dispatched necessary event s
 * When the job's turn comes, job manager will call `onRun` (and it will only be called if there is an active network connection). 
 By default, JobManager users a simple connection utility that checks ConnectivityManager (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom one][1] which can
 add additional checks (e.g. your server stability). You should also provide a [network util][1] which can notify JobManager when network
-is recovered so that JobManager will avoid a busy loop and can decrease # of consumers. 
+is recovered so that JobManager will avoid a busy loop and can decrease # of consumers(default configuration does it for you). 
 
 * JobManager will keep calling onRun until it succeeds (or it reaches retry limit). If an `onRun` method throws an exception,
 JobManager will call `shouldReRunOnThrowable` so that you can handle the exception and decide if you should try again or not.
@@ -107,7 +107,7 @@ your database, inform the user etc.
 At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
 * Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a resource heavy app like ours.
 * You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very common task to acquire a GCM token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching important content updates).
-* You can group jobs to ensure their serial execution, if necessary. For example, assume you have a messaging client and your user sent a bunch of messages when their phone had no coverage. When creating `SendMessageToNetwork` jobs, you can group them by conversation id (or receiver id). This way, messages sent to the same conversation will go in the order they are enqueued while messages sent to different conversations can still be sent it parallel. This will let you maximize network utilization and ensure data integrity w/o any effort on your side.
+* You can group jobs to ensure their serial execution, if necessary. For example, assume you have a messaging client and your user sent a bunch of messages when their phone had no network coverage. When creating `SendMessageToNetwork` jobs, you can group them by conversation id (or receiver id). This way, messages sent to the same conversation will go in the order they are enqueued while messages sent to different conversations can still be sent it parallel. This will let you maximize network utilization and ensure data integrity w/o any effort on your side.
 * By default, Job Manager checks for network (so you don't need to worry) and it won't run your network-requiring jobs unless there is a connection. You can even provide a custom [NetworkUtil][1] if you need custom logic (e.g. you can create another instance of job manager which runs only if there is a wireless connection)
 * It is fairly unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
@@ -116,6 +116,9 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can
 * [Download latest jar][5]
 * [check sample app][6]
 * [check sample configuration][7]
+
+
+### [Wiki][9]
 
 ### Building
 * checkout the repo
@@ -127,25 +130,35 @@ this will create a jar file under _release_ folder.
 * > `cd jobqueue`
 * > `ant clean test`
 
-#### getting coverage report
 
-### License
-```
-Copyright 2013 Path, Inc.
-Copyright 2010 Google, Inc.
+## License
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Fast Image Cache is made available under the [MIT license](http://opensource.org/licenses/MIT):
 
-   http://www.apache.org/licenses/LICENSE-2.0
+<pre>
+The MIT License (MIT)
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+Copyright (c) 2013 Path, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre>
+
 
 [1]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkUtil.java
 [2]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkEventProvider.java
@@ -155,3 +168,4 @@ limitations under the License.
 [6]: https://github.com/path/android-priority-jobqueue/tree/master/examples
 [7]: https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/TwitterApplication.java#L26
 [8]: http://www.youtube.com/watch?v=xHXn3Kg2IQE
+[9]: https://github.com/path/android-priority-jobqueue/wiki
