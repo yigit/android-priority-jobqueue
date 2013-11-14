@@ -1,20 +1,20 @@
-- [android-priority-jobqueue (Job Manager)](#android-priority-jobqueue-job-manager)
+Android Priority Jobqueue (Job Manager)
+=========================
+
+Priority JobQueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
+
+It is written [flexibility](https://github.com/path/android-priority-jobqueue/wiki/Job-Manager-Configuration) & [functionality](https://github.com/path/android-priority-jobqueue/wiki/Job-Configuration) in mind, not performance but we'll improve performance once API and functionality list gets more stable.
+
   - [Why ?](#why-)
-  - [show me the code](#show-me-the-code)
-  - [What Happened?](#what-happened)
-  - [Advantages of using Job Manager](#advantages-of-using-job-manager)
+  - [Show me the code](#show-me-the-code)
+  - [What Happened under the hood?](#what-happened)
+  - [Advantages of using Job manager](#advantages-of-using-job-manager)
   - [Getting Started](#getting-started)
   - [Building](#building)
    - [Running Tests](#running-tests)
   - [wiki][9]
   - [License](#license)
 
-android-priority-jobqueue (Job Manager)
-=========================
-
-Priority JobQueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
-
-It is written [flexibility](https://github.com/path/android-priority-jobqueue/wiki/Job-Manager-Configuration) & [functionality](https://github.com/path/android-priority-jobqueue/wiki/Job-Configuration) in mind, not performance but we'll improve performance once API and functionality list gets more stable.
 
 ### Why ?
 Good client applications cache as much data as possible on the client side to provide best user experience. They make changes locally to reflect user actions instantly in a consistent way and sync data with server silently, whenever possible. 
