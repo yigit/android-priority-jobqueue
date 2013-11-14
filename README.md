@@ -5,7 +5,7 @@ Android Priority Jobqueue (Job Manager)
 
 Priority JobQueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
 
-It is written [flexibility](https://github.com/path/android-priority-jobqueue/wiki/Job-Manager-Configuration) & [functionality](https://github.com/path/android-priority-jobqueue/wiki/Job-Configuration) in mind, not performance but we'll improve performance once API and functionality list gets more stable.
+It is written [flexibility][10] & [functionality][11] in mind, not performance but we'll improve performance once API and functionality list gets more stable.
 
   - [Why ?](#why-)
   - [Show me the code](#show-me-the-code)
@@ -116,6 +116,8 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can
 
 ### Getting Started
 * [Download latest jar][5]
+* [Configuring job manager][10]
+* [Configuring individual jobs][11]
 * [check sample app][6]
 * [check sample configuration][7]
 
@@ -171,3 +173,5 @@ THE SOFTWARE.
 [7]: https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/TwitterApplication.java#L26
 [8]: http://www.youtube.com/watch?v=xHXn3Kg2IQE
 [9]: https://github.com/path/android-priority-jobqueue/wiki
+[10]: https://github.com/path/android-priority-jobqueue/wiki/Job-Manager-Configuration
+[11]: https://github.com/path/android-priority-jobqueue/wiki/Job-Configuration
