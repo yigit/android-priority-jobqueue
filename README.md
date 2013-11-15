@@ -5,7 +5,7 @@ Android Priority Jobqueue (Job Manager)
 
 Priority JobQueue is an implementation of [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android where you can easily schedule jobs (tasks) you want to run on the background to improve UX and application stability.
 
-It is written [flexibility][10] & [functionality][11] in mind, not performance but we'll improve performance once API and functionality list gets more stable.
+It is written [flexibility][10] & [functionality][11] in mind, not performance, but we'll improve performance once API and functionality list gets more stable.
 
   - [Why ?](#why-)
   - [Show me the code](#show-me-the-code)
@@ -25,7 +25,7 @@ This creates a case where you have a bunch of resource heavy operations (web req
 Most of the idea is based on [Google IO 2010 talk on REST client applications][8].
 Although it is not required, it is most useful when used with an event bus and a dependency injection framework.
 
-### show me the code
+### Show me the code
 
 Since an example is worth thousands of words, here is a simplified example. ([full version](https://github.com/path/android-priority-jobqueue/wiki/complete-job-example))
 
@@ -95,7 +95,7 @@ On `onAdded` callback, we saved tweet into disk and dispatched necessary event s
 * When the job's turn comes, job manager will call `onRun` (and it will only be called if there is an active network connection). 
 By default, JobManager uses a simple connection utility that checks ConnectivityManager (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom one][1] which can
 add additional checks (e.g. your server stability). You should also provide a [network util][1] which can notify JobManager when network
-is recovered so that JobManager will avoid a busy loop and can decrease # of consumers(default configuration does it for you). 
+is recovered so that JobManager will avoid a busy loop and can decrease # of consumers (default configuration does it for you). 
 
 * JobManager will keep calling onRun until it succeeds (or it reaches retry limit). If an `onRun` method throws an exception,
 JobManager will call `shouldReRunOnThrowable` so that you can handle the exception and decide if you should try again or not.
@@ -106,11 +106,11 @@ your database, inform the user etc.
 ### Advantages of using Job Manager
 * It is very easy to de-couple application logic from your activites, making your code more robust, easy to refactor and easy to **test**.
 * You don't deal with asnyc tasks lifecycles etc. This is partially true assuming that you use some eventbus to update your UI (you should).
-At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
+At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus), you can also go with your own favorite. (e.g. [Square's Otto](https://github.com/square/otto))
 * Job manager takes care of prioritizing jobs, checking network connection, running them in parallel etc. Especially, prioritization is very helpful if you have a resource heavy app like ours.
 * You can delay jobs. This is helpful in cases like sending GCM token to server. It is a very common task to acquire a GCM token and send it to server when user logs into your app. You surely don't want it to interfere with other network operations (e.g. fetching important content updates).
 * You can group jobs to ensure their serial execution, if necessary. For example, assume you have a messaging client and your user sent a bunch of messages when their phone had no network coverage. When creating `SendMessageToNetwork` jobs, you can group them by conversation id (or receiver id). This way, messages sent to the same conversation will go in the order they are enqueued while messages sent to different conversations can still be sent it parallel. This will let you maximize network utilization and ensure data integrity w/o any effort on your side.
-* By default, Job Manager checks for network (so you don't need to worry) and it won't run your network-requiring jobs unless there is a connection. You can even provide a custom [NetworkUtil][1] if you need custom logic (e.g. you can create another instance of job manager which runs only if there is a wireless connection)
+* By default, Job Manager checks for network (so you don't need to worry) and it won't run your network-requiring jobs unless there is a connection. You can even provide a custom [NetworkUtil][1] if you need custom logic (e.g. you can create another instance of job manager which runs only if there is a wireless connection).
 * It is fairly unit tested and mostly documented. You can check [code coverage report][3] and [javadoc][4].
 
 
