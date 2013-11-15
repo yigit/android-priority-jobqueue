@@ -169,6 +169,7 @@
             <fileset dir="${out.dir}/classes">
                 <include name="com/path/android/jobqueue/**" />
             </fileset>
+            <file name="LICENSE.txt"/>
         </jar>
     </target>
 
