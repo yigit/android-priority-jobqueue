@@ -136,9 +136,13 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus); however
 - - [Hamcrest](https://code.google.com/p/hamcrest/) ([license](http://opensource.org/licenses/BSD-3-Clause))
 - For code coverage report, we use:
 - - [Cobertura](http://cobertura.github.io/cobertura/) ([license](https://github.com/cobertura/cobertura/blob/master/LICENSE.txt/))
-
+- Sample Twitter client uses:
+- - [Twitter4j](http://twitter4j.org/en)
+- - [Event Bus](https://github.com/greenrobot/EventBus)
+- - [Path's Green Dao Fork](https://github.com/path/greenDAO)
+- 
 ### Building
-* Checkout the repo
+* Clone the repo
 * `> cd jobqueue`
 * `> ant clean build-jar`
 This will create a jar file under _release_ folder.
