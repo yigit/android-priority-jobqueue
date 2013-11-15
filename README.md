@@ -139,8 +139,8 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus); however
 - Sample Twitter client uses:
 - - [Twitter4j](http://twitter4j.org/en)
 - - [Event Bus](https://github.com/greenrobot/EventBus)
-- - [Path's Green Dao Fork](https://github.com/path/greenDAO)
-- 
+- - [Path's fork of GreenDao](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
+
 ### Building
 * Clone the repo
 * `> cd jobqueue`
