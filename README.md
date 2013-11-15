@@ -15,7 +15,7 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
   - [Building](#building)
    - [Running Tests](#running-tests)
   - [wiki][9]
-  - [Dependencies][#dependencies]
+  - [Dependencies](#dependencies)
   - [License](#license)
 
 
