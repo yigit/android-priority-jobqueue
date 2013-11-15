@@ -93,7 +93,7 @@ It runs on a background thread because JobManager will make a disk access to per
 On `onAdded` callback, we saved tweet into disk and dispatched necessary event so that UI can update itself. Since there is no network access during this flow, it will be in a fraction of seconds so that user will see their Tweet on their UI instantly.
 
 * When the job's turn comes, job manager will call `onRun` (and it will only be called if there is an active network connection). 
-By default, JobManager users a simple connection utility that checks ConnectivityManager (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom one][1] which can
+By default, JobManager uses a simple connection utility that checks ConnectivityManager (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom one][1] which can
 add additional checks (e.g. your server stability). You should also provide a [network util][1] which can notify JobManager when network
 is recovered so that JobManager will avoid a busy loop and can decrease # of consumers(default configuration does it for you). 
 
