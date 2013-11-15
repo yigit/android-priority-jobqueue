@@ -42,7 +42,7 @@ public class PostTweetJob extends BaseJob implements Serializeable {
     @Override
     public void onAdded() {
         // Job has been saved to disk.
-        // This is a good place to dispatch a UI event to indicate the job is about to run.
+        // This is a good place to dispatch a UI event to indicate the job will eventually run.
         // In this example, it would be good to update the UI with the newly posted tweet.
     }
     @Override
@@ -93,7 +93,7 @@ That's it. :) Job Manager allows you to enjoy:
 It runs on a background thread because Job Queue will make a disk access to persist the job.
 
 * Right after `PostTweetJob` is synchronized to disk, Job Queue calls `DependencyInjector` (if provided) which will [inject fields](http://en.wikipedia.org/wiki/Dependency_injection) into our job instance. 
-At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fracions of a second. This allows the implementation of `onAdded()` to display the newly sent tweet almost instantly, creating a "fast" user experience.
+At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fracions of a second. This allows the implementation of `onAdded()` to inform UI to display the newly sent tweet almost instantly, creating a "fast" user experience. Beware, `onAdded()` is called on the thread job was added.
 
 * When it's time for `PostTweetJob` to run, Job Queue will call `onRun()` (and it will only be called if there is an active network connection, as dictated at the job's constructor). 
 By default, Job Queue uses a simple connection utility that checks `ConnectivityManager` (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom implementation][1] which can
