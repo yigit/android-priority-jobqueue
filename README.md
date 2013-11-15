@@ -130,10 +130,10 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus); however
 ### Dependencies
 - Job Queue does not depend on any other libraries other than Android SDK.
 - For testing, we use:
-- - [Junit 4](http://junit.org/)
-- - [Robolectric](http://robolectric.org/)
-- - [Fest Util](http://easytesting.org/)
-- - [Hamcrest](https://code.google.com/p/hamcrest/)
+- - [Junit 4](http://junit.org/) [license](https://github.com/junit-team/junit/blob/master/LICENSE.txt)
+- - [Robolectric](http://robolectric.org/) [license](https://github.com/robolectric/robolectric/blob/master/LICENSE.txt)
+- - [Fest Util](http://easytesting.org/) [license](http://www.apache.org/licenses/LICENSE-2.0)
+- - [Hamcrest](https://code.google.com/p/hamcrest/) [license](http://opensource.org/licenses/BSD-3-Clause)
 
 ### Building
 * Checkout the repo
