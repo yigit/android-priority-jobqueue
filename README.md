@@ -20,8 +20,8 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
 
 
 ### Why ?
-Great client applications cache as much data as possible to provide great user experiences, especially during spotty network connectivity. As users use the app, the UI updates instantly, silently syncing changes with the server.
-Since your app uses the internet, you create a slew of resource-heavy operations (web requests, string parsing, database queries, etc) that fight for network bandwidth and CPU time on the device. As you build more features, it can become difficult to schedule and prioritize these tasks. This is where Job Manager comes to the rescue.
+Great client applications cache as much data as possible to provide great user experiences, especially during spotty network connectivity. As users hammer away at these apps, the UI should update instantly, silently syncing changes with the server.
+Since such apps use the internet, they create a slew of resource-heavy operations (web requests, string parsing, database queries, etc) that fight for network bandwidth and CPU time on the device. As more features are added, it can become difficult to schedule and prioritize these tasks. This is where Job Manager comes to the rescue.
 
 Job Queue was inspired by a [Google I/O 2010 talk on REST client applications][8].
 Although not required, it is most useful when used with an event bus and a dependency injection framework.
