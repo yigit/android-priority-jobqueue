@@ -110,7 +110,7 @@ your database, inform the user, etc.
 ### Advantages
 * It is very easy to de-couple application logic from your activites, making your code more robust, easy to refactor, and easy to **test**.
 * You don't have to deal with `AsyncTask` lifecycles. This is true assuming you use an event bus to update your UI (you should).
-At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus); however, you can also go with your favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
+At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus); however, you can also go with your favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
 * Job Queue takes care of prioritizing jobs, checking network connection, running them in parallel, etc. Job prioritization is especially indispensable when you have a resource-heavy app like ours.
 * You can delay jobs. This is helpful in cases like sending a GCM token to your server. It is very common to acquire a GCM token and send it to your server when a user logs in to your app, but you don't want it to interfere with critical network operations (e.g. fetching user-facing content).
 * You can group jobs to ensure their serial execution, if necessary. For example, assume you have a messaging client and your user sent a bunch of messages when their phone had no network coverage. When creating these `SendMessageToNetwork` jobs, you can group them by conversation ID. Through this approach, messages in the same conversation will send in the order they were enqueued, while messages between different conversations are still sent in parallel. This lets you effortlessly maximize network utilization and ensure data integrity.
@@ -138,8 +138,8 @@ At Path, we use [GreenRobot's Eventbus](github.com/greenrobot/EventBus); however
 - - [Cobertura](http://cobertura.github.io/cobertura/) ([license](https://github.com/cobertura/cobertura/blob/master/LICENSE.txt/))
 - Sample Twitter client uses:
 - - [Twitter4j](http://twitter4j.org/en)
-- - [Event Bus](https://github.com/greenrobot/EventBus)
-- - [Path's fork of GreenDao](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
+- - [EventBus](https://github.com/greenrobot/EventBus)
+- - [Path's fork of greenDAO](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
 
 ### Building
 * Clone the repo
