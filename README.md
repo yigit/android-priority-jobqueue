@@ -37,7 +37,7 @@ public class PostTweetJob extends BaseJob implements Serializeable {
     private String text;
     public PostTweetJob(String text) {
         // This job requires network connectivity,
-        // and should be persisted in case the application exits while this job is running
+        // and should be persisted in case the application exits before job is completed.
         super(true, true);
     }
     @Override
