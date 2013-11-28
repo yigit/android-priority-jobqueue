@@ -119,7 +119,23 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 
 
 ### Getting Started
-* [Download latest jar][5]
+We distribute artifacts through maven central repository. 
+
+Gradle: `compile 'com.path:android-priority-jobqueue:0.9.8'`
+
+Maven:
+
+``` xml
+<dependency>
+    <groupId>com.path</groupId>
+    <artifactId>android-priority-jobqueue</artifactId>
+    <version>0.9.8</version>
+</dependency>
+```
+
+You can also [download][5] library jar, sources and javadoc from Maven Central.
+
+We highly recommend checking how you can configure job manager and individual jobs.
 * [Configure job manager][10]
 * [Configure individual jobs][11]
 * [Review sample app][6]
@@ -142,9 +158,12 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 - - [Path's fork of greenDAO](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
 
 ### Building
+We are in the process of moving build system from ant to gradle. Right now, you can build with gradle but if you want to run tests, you'll need ant.
+
 * Clone the repo
 * `> cd jobqueue`
 * `> ant clean build-jar`
+* 
 This will create a jar file under _release_ folder.
 
 #### Running Tests
@@ -185,7 +204,7 @@ THE SOFTWARE.
 [2]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkEventProvider.java
 [3]: http://path.github.io/android-priority-jobqueue/coverage-report/index.html
 [4]: http://path.github.io/android-priority-jobqueue/javadoc/index.html
-[5]: https://github.com/path/android-priority-jobqueue/releases
+[5]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22android-priority-jobqueue%22
 [6]: https://github.com/path/android-priority-jobqueue/tree/master/examples
 [7]: https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/TwitterApplication.java#L26
 [8]: http://www.youtube.com/watch?v=xHXn3Kg2IQE
