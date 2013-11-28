@@ -13,7 +13,7 @@ apply plugin: 'android'
 repositories {
     mavenCentral()
     maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        url 'https://oss.sonatype.org/content/repositories/releases'
     }
 }
 
@@ -53,8 +53,8 @@ android {
     dependencies {
         compile 'de.greenrobot:eventbus:2.1.0-beta-1'
         compile 'org.twitter4j:twitter4j-core:3.0.3'
+        compile 'com.path:android-priority-jobqueue:0.9.8'
         compile files('external-libs/greenDAO.jar')
-        compile files('external-libs/android-priority-jobqueue-0.9.7.2.jar')
     }
 
     sourceSets {
