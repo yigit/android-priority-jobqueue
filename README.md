@@ -23,16 +23,16 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
 
 ### Why ?
 #### The Problem
- There are a couple of ways to do background operations in Android. 
+Background operations are everywhere in almost every application, and are expected to keep the UI responsive and to remain robust during unfavorable situations (e.g. limited network connectivity). In Android applications, there are several ways to implement background work:
  
- * **Async Task:** Using an async task is the simplest approach but it is tightly coupled with activity lifecycle. If activity dies (or is re-created), related async task becomes useless. It is a terrible idea to drop a network request result just because user rotated their phone. 
- * **Loaders:** Loaders work-around the biggest deficity of async tasks and know how to recover after a configuration change. On the other hand, they are designed to load data from disk and are not well suited for long running network requests.
- * **Service with a Thread Pool:** Using a service is a much better way of doing background operations as it de-couples business logic from your activities. You will still need to use sth like a ThreadPoolExecutor to be able to process multiple requests in parallel. Combined with an EventBus to inform UI, this solution is pretty solid except that you still don't have any way of persisting your request. You still need some code to serialize your important requests to disk and retry them until they succeed. As the app grows, number of request grow which adds additional requirements like prioritizing requests and controlling concurrency.
+ * **Async Task:** Using an async task is the simplest approach, but it is tightly coupled with the activity lifecycle. If the activity dies (or is re-created), any ongoing async task will become wasted cycles or otherwise create unexpected behavior upon returning to the main thread. In addition, it is a terrible idea to drop responses from network requests just because users rotate their phones.
+ * **Loaders:** Loaders are a better option, as they recover themselves after a configuration change. On the other hand, they are designed to load data from disk and are not well suited for long-running network requests.
+ * **Service with a Thread Pool:** Using a service is a much better solution, as it de-couples business logic from your UI. However, you will need a thread pool (e.g. ThreadPoolExecutor) to process requests in parallel, broadcast events to update the UI, and write additional code to persist queued requests to disk. As your application grows, the number of background operations grows, which force you to consider task prioritization and often-complicated concurrency problems.
 
 #### Our Solution
-Job Queue provides you a nice framework to do all of the above and more. You define your background tasks as [Jobs][11] and enqueue them to your [JobManager][10] instance. Job Manager will take care of prioritization, persistence, load balancing, delaying, network control, grouping etc. It also provides a nice lifecycle for your jobs to provide better (consistent) user experience.
+Job Queue provides you a nice framework to do all of the above and more. You define your background tasks as [Jobs][11] and enqueue them to your [JobManager][10] instance. Job Manager will take care of prioritization, persistence, load balancing, delaying, network control, grouping etc. It also provides a nice lifecycle for your jobs to provide a better, consistent user experience.
 
-Although not required, it is most useful when used with an event bus and supports dependency injection hook.
+Although not required, it is most useful when used with an event bus. It also supports dependency injection.
 
 * Job Queue was inspired by a [Google I/O 2010 talk on REST client applications][8].
 
