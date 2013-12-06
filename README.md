@@ -8,6 +8,8 @@ Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org
 It is written primarily with [flexibility][10] & [functionality][11] in mind. This is an ongoing project, which we will continue to add stability and performance improvements.
 
   - [Why ?](#why-)
+   - [The Problem](#the-problem) 
+   - [Our Solution](#our-solution)
   - [Show me the code](#show-me-the-code)
   - [What's happening under the hood?](#under-the-hood)
   - [Advantages](#advantages)
@@ -20,11 +22,19 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
 
 
 ### Why ?
-Great client applications cache as much data as possible to provide great user experiences, especially during spotty network connectivity. As users hammer away at these apps, the UI should update instantly, silently syncing changes with the server.
-Since such apps use the internet, they create a slew of resource-heavy operations (web requests, string parsing, database queries, etc) that fight for network bandwidth and CPU time on the device. As more features are added, it can become difficult to schedule and prioritize these tasks. This is where Job Manager comes to the rescue.
+#### The Problem
+ There are a couple of ways to do background operations in Android. 
+ 
+ * **Async Task:** Using an async task is the simplest approach but it is tightly coupled with activity lifecycle. If activity dies (or is re-created), related async task becomes useless. It is a terrible idea to drop a network request result just because user rotated their phone. 
+ * **Loaders:** Loaders work-around the biggest deficity of async tasks and know how to recover after a configuration change. On the other hand, they are designed to load data from disk and are not well suited for long running network requests.
+ * **Service with a Thread Pool:** Using a service is a much better way of doing background operations as it de-couples business logic from your activities. You will still need to use sth like a ThreadPoolExecutor to be able to process multiple requests in parallel. Combined with an EventBus to inform UI, this solution is pretty solid except that you still don't have any way of persisting your request. You still need some code to serialize your important requests to disk and retry them until they succeed. As the app grows, number of request grow which adds additional requirements like prioritizing requests and controlling concurrency.
 
-Job Queue was inspired by a [Google I/O 2010 talk on REST client applications][8].
-Although not required, it is most useful when used with an event bus and a dependency injection framework.
+#### Our Solution
+Job Queue provides you a nice framework to do all of the above and more. You define your background tasks as [Jobs][11] and enqueue them to your [JobManager][10] instance. Job Manager will take care of prioritization, persistence, load balancing, delaying, network control, grouping etc. It also provides a nice lifecycle for your jobs to provide better (consistent) user experience.
+
+Although not required, it is most useful when used with an event bus and supports dependency injection hook.
+
+* Job Queue was inspired by a [Google I/O 2010 talk on REST client applications][8].
 
 ### Show me the code
 
