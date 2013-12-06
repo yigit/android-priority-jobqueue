@@ -23,9 +23,9 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
 
 ### Why ?
 #### The Problem
-Background operations are everywhere in almost every application, and are expected to keep the UI responsive and to remain robust during unfavorable situations (e.g. limited network connectivity). In Android applications, there are several ways to implement background work:
+Almost every application does work in a background thread. These "background tasks" are expected to keep the application responsive and robust, especially during unfavorable situations (e.g. limited network connectivity). In Android applications, there are several ways to implement background work:
  
- * **Async Task:** Using an async task is the simplest approach, but it is tightly coupled with the activity lifecycle. If the activity dies (or is re-created), any ongoing async task will become wasted cycles or otherwise create unexpected behavior upon returning to the main thread. In addition, it is a terrible idea to drop responses from network requests just because users rotate their phones.
+ * **Async Task:** Using an async task is the simplest approach, but it is tightly coupled with the activity lifecycle. If the activity dies (or is re-created), any ongoing async task will become wasted cycles or otherwise create unexpected behavior upon returning to the main thread. In addition, it is a terrible idea to drop q response from a network request just because a user rotated his/her phone.
  * **Loaders:** Loaders are a better option, as they recover themselves after a configuration change. On the other hand, they are designed to load data from disk and are not well suited for long-running network requests.
  * **Service with a Thread Pool:** Using a service is a much better solution, as it de-couples business logic from your UI. However, you will need a thread pool (e.g. ThreadPoolExecutor) to process requests in parallel, broadcast events to update the UI, and write additional code to persist queued requests to disk. As your application grows, the number of background operations grows, which force you to consider task prioritization and often-complicated concurrency problems.
 
