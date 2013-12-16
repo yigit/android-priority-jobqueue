@@ -189,6 +189,11 @@ public class JobManager implements NetworkEventProvider.Listener {
         return id;
     }
 
+    /**
+     * Non-blocking convenience method to add a job in background thread.
+     *
+     * @see #addJob(int, BaseJob) addJob(priority, job).
+     */
     public void addJobInBackground(final int priority, final BaseJob baseJob) {
         timedExecutor.execute(new Runnable() {
             @Override
@@ -198,6 +203,11 @@ public class JobManager implements NetworkEventProvider.Listener {
         });
     }
 
+    /**
+     * Non-blocking convenience method to add a job in background thread.
+     *
+     * @see #addJob(int, long, BaseJob) addJob(priority, delay, job).
+     */
     public void addJobInBackground(final int priority, final long delay, final BaseJob baseJob) {
         final long callTime = System.nanoTime();
         timedExecutor.execute(new Runnable() {
