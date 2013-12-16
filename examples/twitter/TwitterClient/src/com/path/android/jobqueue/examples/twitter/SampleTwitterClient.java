@@ -51,18 +51,7 @@ public class SampleTwitterClient extends BaseActivity {
     }
 
     private void sendTweet(final String text) {
-        new SimpleBackgroundTask<Void>(this) {
-            @Override
-            protected Void onRun() {
-                jobManager.addJob(1, new PostTweetJob(text));
-                return null;
-            }
-
-            @Override
-            protected void onSuccess(Void result) {
-                //nothing to do
-            }
-        }.execute();
+        jobManager.addJobInBackground(1, new PostTweetJob(text));
     }
 
     @Override
@@ -110,7 +99,7 @@ public class SampleTwitterClient extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        jobManager.addJob(0, new FetchTweetsJob());
+        jobManager.addJobInBackground(0, new FetchTweetsJob());
         if(dataDirty) {
             refreshList();
             dataDirty = false;

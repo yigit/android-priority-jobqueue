@@ -11,10 +11,8 @@ buildscript {
 apply plugin: 'android'
 
 repositories {
+    mavenLocal()
     mavenCentral()
-    maven {
-        url 'https://oss.sonatype.org/content/repositories/releases'
-    }
 }
 
 class RunApk extends DefaultTask {
@@ -53,7 +51,7 @@ android {
     dependencies {
         compile 'de.greenrobot:eventbus:2.1.0-beta-1'
         compile 'org.twitter4j:twitter4j-core:3.0.3'
-        compile 'com.path:android-priority-jobqueue:0.9.8'
+        compile 'com.path:android-priority-jobqueue:0.9.9'
         compile files('external-libs/greenDAO.jar')
     }
 
