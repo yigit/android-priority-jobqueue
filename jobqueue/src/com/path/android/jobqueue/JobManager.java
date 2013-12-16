@@ -428,7 +428,8 @@ public class JobManager implements NetworkEventProvider.Listener {
             //for delayed jobs,
             long nextJobDelay = ensureConsumerWhenNeeded(null);
             while (nextJob == null && waitUntil > System.nanoTime()) {
-                nextJob = JobManager.this.getNextJob();
+                //keep running inside here to avoid busy loop
+                nextJob = running ? JobManager.this.getNextJob() : null;
                 if(nextJob == null) {
                     long remaining = waitUntil - System.nanoTime();
                     if(remaining > 0) {
