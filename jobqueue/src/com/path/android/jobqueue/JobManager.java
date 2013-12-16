@@ -189,6 +189,26 @@ public class JobManager implements NetworkEventProvider.Listener {
         return id;
     }
 
+    public void addJobInBackground(final int priority, final BaseJob baseJob) {
+        timedExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                addJob(priority, baseJob);
+            }
+        });
+    }
+
+    public void addJobInBackground(final int priority, final long delay, final BaseJob baseJob) {
+        final long callTime = System.nanoTime();
+        timedExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                final long runDelay = (System.nanoTime() - callTime) / NS_PER_MS;
+                addJob(priority, Math.max(0, delay - runDelay), baseJob);
+            }
+        });
+    }
+
     //need to sync on related job queue before calling this
     private void addOnAddedLock(ConcurrentHashMap<Long, CountDownLatch> lockMap, long id) {
         lockMap.put(id, new CountDownLatch(1));
