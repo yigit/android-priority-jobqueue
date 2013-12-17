@@ -80,14 +80,8 @@ File: TweetActivity.java
 //...
 public void onSendClick() {
     final String status = editText.getText();
+    jobManager.addJobInBackground(1, new PostTweetJob(status));
     editText.setText("");
-    // Since JobManager.addJob() accesses the disk, we use an AsyncTask to perform the call
-    new AsyncTask<Void, Void, Void>() {
-        @Override
-        protected Void doInBackground(Void... params) {
-            jobManager.addJob(1, new PostTweetJob(status)); 
-        }
-    }.execute();
 }
 ...
 ```
@@ -139,7 +133,7 @@ Maven:
 <dependency>
     <groupId>com.path</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>0.9.8</version>
+    <version>0.9.9</version>
 </dependency>
 ```
 
