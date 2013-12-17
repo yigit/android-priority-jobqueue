@@ -40,11 +40,6 @@ def matcher = pattern.matcher(manifestText)
 matcher.find()
 def manifestVersionName = matcher.group(1)
 
-def SNAPSHOT_REPO = "https://oss.sonatype.org/content/repositories/snapshots"
-def RELEASE_REPO = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-
-def sonatypeRepositoryUrl = RELEASE_REPO
-
 //create jar tasks
 android.libraryVariants.all { variant ->
     def name = variant.buildType.name
@@ -92,7 +87,11 @@ afterEvaluate { project ->
 
                 pom.artifactId = 'android-priority-jobqueue'
 
-                repository(url: sonatypeRepositoryUrl) {
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                    authentication(userName: sonatypeUsername, password: sonotypePassword)
+                }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                     authentication(userName: sonatypeUsername, password: sonotypePassword)
                 }
 
