@@ -79,9 +79,11 @@ File: [TweetActivity.java](https://github.com/path/android-priority-jobqueue/blo
 ``` java
 //...
 public void onSendClick() {
-    final String status = editText.getText();
-    jobManager.addJobInBackground(1, new PostTweetJob(status));
-    editText.setText("");
+    final String status = editText.getText().toString();
+    if(status.trim().length() > 0) {
+      jobManager.addJobInBackground(1, new PostTweetJob(status));
+      editText.setText("");
+    }
 }
 ...
 ```
