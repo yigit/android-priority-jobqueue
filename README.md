@@ -38,12 +38,12 @@ Although not required, it is most useful when used with an event bus. It also su
 
 ### Show me the code
 
-Since a code example is worth thousands of documentation pages, here it is. ([full version](https://github.com/path/android-priority-jobqueue/wiki/complete-job-example))
+Since a code example is worth thousands of documentation pages, here it is.
 
-File: SendTweetJob.java
+File: [PostTweetJob.java](https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/jobs/PostTweetJob.java)
 ``` java
 // A job to send a tweet
-public class PostTweetJob extends BaseJob implements Serializeable {
+public class PostTweetJob extends BaseJob {
     private String text;
     public PostTweetJob(String text) {
         // This job requires network connectivity,
@@ -75,7 +75,7 @@ public class PostTweetJob extends BaseJob implements Serializeable {
 
 ```
 
-File: TweetActivity.java
+File: [TweetActivity.java](https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/SampleTwitterClient.java#L53)
 ``` java
 //...
 public void onSendClick() {
