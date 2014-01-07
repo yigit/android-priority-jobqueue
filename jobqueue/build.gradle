@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.6.+'
+        classpath 'com.android.tools.build:gradle:0.7.+'
     }
 }
 
@@ -34,11 +34,12 @@ android {
 
 //READ VERSION NAME
 def manifestFile = file("AndroidManifest.xml")
-def pattern = Pattern.compile("versionName=\"([\\d\\.]+)\"")
+def pattern = Pattern.compile("versionName=\"([\\d\\.\\w\\-]+)\"")
 def manifestText = manifestFile.getText()
 def matcher = pattern.matcher(manifestText)
 matcher.find()
 def manifestVersionName = matcher.group(1)
+println "version name:${manifestVersionName}"
 
 //create jar tasks
 android.libraryVariants.all { variant ->
