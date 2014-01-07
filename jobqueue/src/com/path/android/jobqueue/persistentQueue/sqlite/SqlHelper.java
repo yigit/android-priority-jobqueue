@@ -162,6 +162,11 @@ public class SqlHelper {
         db.execSQL("VACUUM");
     }
 
+    public void resetDelayTimesTo(long newDelayTime) {
+        db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
+            , new Object[]{newDelayTime});
+    }
+
     public static class Property {
         /*package*/ final String columnName;
         /*package*/ final String type;

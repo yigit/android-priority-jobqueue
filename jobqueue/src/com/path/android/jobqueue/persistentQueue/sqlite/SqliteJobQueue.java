@@ -44,6 +44,7 @@ public class SqliteJobQueue implements JobQueue {
         this.jobSerializer = jobSerializer;
         readyJobsQueryCache = new QueryCache();
         nextJobsQueryCache = new QueryCache();
+        sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
     }
 
     /**
