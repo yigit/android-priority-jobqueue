@@ -228,3 +228,4 @@ THE SOFTWARE.
 [9]: https://github.com/path/android-priority-jobqueue/wiki
 [10]: https://github.com/path/android-priority-jobqueue/wiki/Job-Manager-Configuration
 [11]: https://github.com/path/android-priority-jobqueue/wiki/Job-Configuration
+[12]: https://github.com/path/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/Params.java
