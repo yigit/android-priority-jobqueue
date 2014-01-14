@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
@@ -19,17 +20,17 @@ public class NetworkJobTest extends JobManagerTestBase {
         JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).networkUtil(dummyNetworkUtil));
         jobManager.stop();
 
-        DummyJob networkDummyJob = new DummyJob(true, false);
-        jobManager.addJob(5, networkDummyJob);
+        DummyJob networkDummyJob = new DummyJob(new Params(5).requireNetwork());
+        jobManager.addJob(networkDummyJob);
 
-        DummyJob noNetworkDummyJob = new DummyJob(false, false);
-        jobManager.addJob(2, noNetworkDummyJob);
+        DummyJob noNetworkDummyJob = new DummyJob(new Params(2));
+        jobManager.addJob(noNetworkDummyJob);
 
-        PersistentDummyJob networkPersistentJob = new PersistentDummyJob(true);
-        jobManager.addJob(6, networkPersistentJob);
+        PersistentDummyJob networkPersistentJob = new PersistentDummyJob(new Params(6).requireNetwork());
+        jobManager.addJob(networkPersistentJob);
 
-        PersistentDummyJob noNetworkPersistentJob = new PersistentDummyJob(false);
-        jobManager.addJob(1, noNetworkPersistentJob);
+        PersistentDummyJob noNetworkPersistentJob = new PersistentDummyJob(new Params(1));
+        jobManager.addJob(noNetworkPersistentJob);
 
         MatcherAssert.assertThat("count should be correct if there are network and non-network jobs w/o network", jobManager.count(), equalTo(4));
         dummyNetworkUtil.setHasNetwork(true);

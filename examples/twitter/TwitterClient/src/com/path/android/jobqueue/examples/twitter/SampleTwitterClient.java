@@ -51,7 +51,7 @@ public class SampleTwitterClient extends BaseActivity {
     }
 
     private void sendTweet(final String text) {
-        jobManager.addJobInBackground(1, new PostTweetJob(text));
+        jobManager.addJobInBackground(new PostTweetJob(text));
     }
 
     @Override
@@ -99,7 +99,7 @@ public class SampleTwitterClient extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        jobManager.addJobInBackground(0, new FetchTweetsJob());
+        jobManager.addJobInBackground(new FetchTweetsJob());
         if(dataDirty) {
             refreshList();
             dataDirty = false;

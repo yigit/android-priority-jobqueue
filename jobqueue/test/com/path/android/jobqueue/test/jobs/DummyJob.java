@@ -1,23 +1,16 @@
 package com.path.android.jobqueue.test.jobs;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
+import com.path.android.jobqueue.Params;
 
-public class DummyJob extends BaseJob {
+public class DummyJob extends Job {
     int onAddedCnt = 0;
     int onRunCnt = 0;
     int onCancelCnt = 0;
     int shouldReRunOnThrowableCnt = 0;
 
-    public DummyJob() {
-        super(false, false);
-    }
-
-    public DummyJob(boolean requiresNetwork, boolean persistent) {
-        super(requiresNetwork, persistent);
-    }
-
-    public DummyJob(String groupId) {
-        super(false, groupId);
+    public DummyJob(Params params) {
+        super(params);
     }
 
     @Override

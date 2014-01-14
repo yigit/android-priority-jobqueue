@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobqueue;
 
 import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.hamcrest.CoreMatchers;
@@ -45,7 +46,7 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         };
         SqliteJobQueue jobQueue = new SqliteJobQueue(Robolectric.application, System.nanoTime(), "__" + System.nanoTime(),
                 jobSerializer);
-        jobQueue.insert(createNewJobHolder());
+        jobQueue.insert(createNewJobHolder(new Params(0)));
         calledForSerialize.await(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat("custom serializer should be called for serialize", (int) calledForSerialize.getCount(), CoreMatchers.equalTo(0));
         MatcherAssert.assertThat("custom serializer should NOT be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(1));

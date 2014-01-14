@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import android.util.Log;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
@@ -39,7 +40,7 @@ public class MultiThreadTest extends JobManagerTestBase {
                     boolean requiresNetwork = Math.round(Math.random()) % 2 == 0;
                     int priority = (int) (Math.round(Math.random()) % 10);
                     multiThreadedJobCounter.incrementAndGet();
-                    jobManager.addJob(priority, new DummyJobForMultiThread(id, requiresNetwork, persistent));
+                    jobManager.addJob(new DummyJobForMultiThread(id, new Params(priority).setRequiresNetwork(requiresNetwork).setPersistent(persistent)));
                 }
             }));
         }
@@ -64,8 +65,8 @@ public class MultiThreadTest extends JobManagerTestBase {
     }
     public static class DummyJobForMultiThread extends DummyJob {
         private int id;
-        private DummyJobForMultiThread(int id, boolean requiresNetwork, boolean persist) {
-            super(requiresNetwork, persist);
+        private DummyJobForMultiThread(int id, Params params) {
+            super(params);
             this.id = id;
         }
 

@@ -8,7 +8,7 @@ Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org
 It is written primarily with [flexibility][10] & [functionality][11] in mind. This is an ongoing project, which we will continue to add stability and performance improvements.
 
   - [Why ?](#why-)
-   - [The Problem](#the-problem) 
+   - [The Problem](#the-problem)
    - [Our Solution](#our-solution)
   - [Show me the code](#show-me-the-code)
   - [What's happening under the hood?](#under-the-hood)
@@ -24,7 +24,7 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
 ### Why ?
 #### The Problem
 Almost every application does work in a background thread. These "background tasks" are expected to keep the application responsive and robust, especially during unfavorable situations (e.g. limited network connectivity). In Android applications, there are several ways to implement background work:
- 
+
  * **Async Task:** Using an async task is the simplest approach, but it is tightly coupled with the activity lifecycle. If the activity dies (or is re-created), any ongoing async task will become wasted cycles or otherwise create unexpected behavior upon returning to the main thread. In addition, it is a terrible idea to drop a response from a network request just because a user rotated his/her phone.
  * **Loaders:** Loaders are a better option, as they recover themselves after a configuration change. On the other hand, they are designed to load data from disk and are not well suited for long-running network requests.
  * **Service with a Thread Pool:** Using a service is a much better solution, as it de-couples business logic from your UI. However, you will need a thread pool (e.g. ThreadPoolExecutor) to process requests in parallel, broadcast events to update the UI, and write additional code to persist queued requests to disk. As your application grows, the number of background operations grows, which force you to consider task prioritization and often-complicated concurrency problems.
@@ -43,12 +43,13 @@ Since a code example is worth thousands of documentation pages, here it is.
 File: [PostTweetJob.java](https://github.com/path/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/jobs/PostTweetJob.java)
 ``` java
 // A job to send a tweet
-public class PostTweetJob extends BaseJob {
+public class PostTweetJob extends Job {
+    public static final int PRIORITY = 1;
     private String text;
     public PostTweetJob(String text) {
         // This job requires network connectivity,
         // and should be persisted in case the application exits before job is completed.
-        super(true, true);
+        super(new Params(PRIORITY).requireNetwork().persist());
     }
     @Override
     public void onAdded() {
@@ -81,7 +82,7 @@ File: [TweetActivity.java](https://github.com/path/android-priority-jobqueue/blo
 public void onSendClick() {
     final String status = editText.getText().toString();
     if(status.trim().length() > 0) {
-      jobManager.addJobInBackground(1, new PostTweetJob(status));
+      jobManager.addJobInBackground(new PostTweetJob(status));
       editText.setText("");
     }
 }
@@ -99,13 +100,13 @@ That's it. :) Job Manager allows you to enjoy:
 * When user clicked the send button, `onSendClick()` was called, which creates a `PostTweetJob` and adds it to Job Queue for execution.
 It runs on a background thread because Job Queue will make a disk access to persist the job.
 
-* Right after `PostTweetJob` is synchronized to disk, Job Queue calls `DependencyInjector` (if provided) which will [inject fields](http://en.wikipedia.org/wiki/Dependency_injection) into our job instance. 
+* Right after `PostTweetJob` is synchronized to disk, Job Queue calls `DependencyInjector` (if provided) which will [inject fields](http://en.wikipedia.org/wiki/Dependency_injection) into our job instance.
 At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fracions of a second. This allows the implementation of `onAdded()` to inform UI to display the newly sent tweet almost instantly, creating a "fast" user experience. Beware, `onAdded()` is called on the thread job was added.
 
-* When it's time for `PostTweetJob` to run, Job Queue will call `onRun()` (and it will only be called if there is an active network connection, as dictated at the job's constructor). 
+* When it's time for `PostTweetJob` to run, Job Queue will call `onRun()` (and it will only be called if there is an active network connection, as dictated at the job's constructor).
 By default, Job Queue uses a simple connection utility that checks `ConnectivityManager` (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom implementation][1] which can
 add additional checks (e.g. your server stability). You should also provide a [`NetworkUtil`][1] which can notify Job Queue when network
-is recovered so that Job Queue will avoid a busy loop and decrease # of consumers(default configuration does it for you). 
+is recovered so that Job Queue will avoid a busy loop and decrease # of consumers(default configuration does it for you).
 
 * Job Queue will keep calling `onRun()` until it succeeds (or reaches a retry limit). If `onRun()` throws an exception,
 Job Queue will call `shouldReRunOnThrowable()` to allow you to handle the exception and decide whether to retry job execution or abort.
@@ -125,7 +126,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 
 
 ### Getting Started
-We distribute artifacts through maven central repository. 
+We distribute artifacts through maven central repository.
 
 Gradle: `compile 'com.path:android-priority-jobqueue:0.9.9'`
 
@@ -169,7 +170,7 @@ We are in the process of moving build system from ant to gradle. Right now, you 
 * Clone the repo
 * `> cd jobqueue`
 * `> ant clean build-jar`
-* 
+*
 This will create a jar file under _release_ folder.
 
 #### Running Tests

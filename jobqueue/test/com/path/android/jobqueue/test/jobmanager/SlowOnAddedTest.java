@@ -1,7 +1,8 @@
 package com.path.android.jobqueue.test.jobmanager;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import static org.hamcrest.CoreMatchers.*;
@@ -18,11 +19,11 @@ public class SlowOnAddedTest extends JobManagerTestBase {
     public void testNonPersistent() throws InterruptedException {
         JobManager jobManager = createJobManager();
         CountDownLatch runLatch = new CountDownLatch(1);
-        MyDummyJob job = new MyDummyJob(runLatch);
+        MyDummyJob job = new MyDummyJob(new Params(2), runLatch);
         for(int i = 0; i < 50; i++) {
-            jobManager.addJob(1, new DummyJob());
+            jobManager.addJob(new DummyJob(new Params(1)));
         }
-        jobManager.addJob(2, job);
+        jobManager.addJob(job);
         runLatch.await();
         assertThat("on added should be called before on run", job.onAddedCntWhenRun, equalTo(1));
     }
@@ -32,21 +33,21 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         JobManager jobManager = createJobManager();
         MyDummyPersistentJob.persistentJobLatch = new CountDownLatch(1);
         for(int i = 0; i < 50; i++) {
-            jobManager.addJob(1, new PersistentDummyJob());
+            jobManager.addJob(new PersistentDummyJob(new Params(1)));
         }
-        jobManager.addJob(2, new MyDummyPersistentJob());
+        jobManager.addJob(new MyDummyPersistentJob(2));
         MyDummyPersistentJob.persistentJobLatch.await();
         assertThat("even if job is persistent, onAdded should be called b4 onRun",
                 MyDummyPersistentJob.onAddedCountWhenOnRun, equalTo(1));
     }
 
-    public static class MyDummyPersistentJob extends BaseJob {
+    public static class MyDummyPersistentJob extends Job {
         private static CountDownLatch persistentJobLatch;
         private static int persistentOnAdded = 0;
         private static int onAddedCountWhenOnRun = -1;
 
-        protected MyDummyPersistentJob() {
-            super(false, true);
+        protected MyDummyPersistentJob(int priority) {
+            super(new Params(priority).persist());
         }
 
         @Override
@@ -79,8 +80,8 @@ public class SlowOnAddedTest extends JobManagerTestBase {
     private static class MyDummyJob extends DummyLatchJob {
         int onAddedCntWhenRun = -1;
 
-        protected MyDummyJob(CountDownLatch latch) {
-            super(latch);
+        protected MyDummyJob(Params params, CountDownLatch latch) {
+            super(params, latch);
         }
 
         @Override

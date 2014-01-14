@@ -1,14 +1,13 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-
-import static org.hamcrest.CoreMatchers.equalTo;
+import org.robolectric.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class DelayedRunTest extends JobManagerTestBase {
@@ -21,10 +20,10 @@ public class DelayedRunTest extends JobManagerTestBase {
     }
     public void testDelayedRun(boolean persist, boolean tryToStop) throws Exception {
         JobManager jobManager = createJobManager();
-        DummyJob delayedJob = persist ? new PersistentDummyJob() : new DummyJob();
-        DummyJob nonDelayedJob = persist ? new PersistentDummyJob() : new DummyJob();
-        jobManager.addJob(10, 2000, delayedJob);
-        jobManager.addJob(0, 0, nonDelayedJob);
+        DummyJob delayedJob = new DummyJob(new Params(10).delayInMs(2000).setPersistent(persist));
+        DummyJob nonDelayedJob = new DummyJob(new Params(0).setPersistent(persist));
+        jobManager.addJob(delayedJob);
+        jobManager.addJob(nonDelayedJob);
         Thread.sleep(500);
         MatcherAssert.assertThat("there should be 1 delayed job waiting to be run", jobManager.count(), equalTo(1));
         if(tryToStop) {//see issue #11

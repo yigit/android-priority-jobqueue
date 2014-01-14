@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.fest.reflect.method.Invoker;
@@ -23,10 +24,10 @@ public class GroupingTest extends JobManagerTestBase {
         Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
         Invoker<Void> removeJobMethod = getRemoveJobMethod(jobManager);
 
-        long jobId1 = jobManager.addJob(0, new DummyJob("group1"));
-        long jobId2 = jobManager.addJob(0, new DummyJob("group1"));
-        long jobId3 = jobManager.addJob(0, new PersistentDummyJob("group2"));
-        long jobId4 = jobManager.addJob(0, new PersistentDummyJob("group1"));
+        long jobId1 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
+        long jobId2 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
+        long jobId3 = jobManager.addJob(new PersistentDummyJob(new Params(0).groupBy("group2")));
+        long jobId4 = jobManager.addJob(new PersistentDummyJob(new Params(0).groupBy("group1")));
         JobHolder nextJob = nextJobMethod.invoke();
         MatcherAssert.assertThat("next job should be the first job from group1", nextJob.getId(), equalTo(jobId1));
         JobHolder group2Job = nextJobMethod.invoke();

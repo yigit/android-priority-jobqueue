@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.hamcrest.MatcherAssert;
@@ -17,8 +18,8 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
         JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).networkUtil(dummyNetworkUtil));
         dummyNetworkUtil.setHasNetwork(false, true);
-        DummyJob dummyJob = new DummyJob(true, false);
-        long dummyJobId = jobManager.addJob(0, dummyJob);
+        DummyJob dummyJob = new DummyJob(new Params(0).requireNetwork());
+        long dummyJobId = jobManager.addJob(dummyJob);
         Thread.sleep(2000);//sleep a while so that consumers die. they should die since we are using a network util
         //with event support
         MatcherAssert.assertThat("count should be 1 as no jobs should be consumed w/o network", jobManager.count(), equalTo(1));

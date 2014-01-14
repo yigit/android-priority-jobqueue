@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.hamcrest.MatcherAssert;
@@ -14,15 +15,15 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class AddedCountTest extends JobManagerTestBase {
     @Test
     public void testAddedCount() throws Exception {
-        testAddedCount(new DummyJob());
-        testAddedCount(new PersistentDummyJob());
+        testAddedCount(new DummyJob(new Params(0)));
+        testAddedCount(new PersistentDummyJob(new Params(0)));
 
     }
 
     private void testAddedCount(DummyJob dummyJob) {
         JobManager jobManager = createJobManager();
         jobManager.stop();
-        jobManager.addJob(0, dummyJob);
+        jobManager.addJob(dummyJob);
         MatcherAssert.assertThat(1, equalTo(dummyJob.getOnAddedCnt()));
     }
 }
