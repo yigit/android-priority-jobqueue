@@ -14,6 +14,7 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
   - [What's happening under the hood?](#under-the-hood)
   - [Advantages](#advantages)
   - [Getting Started](#getting-started)
+  - [Version History](#version-history)
   - [Building](#building)
    - [Running Tests](#running-tests)
   - [wiki][9]
@@ -147,6 +148,15 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Configure individual jobs][11]
 * [Review sample app][6]
 * [Review sample configuration][7]
+
+### Version History
+
+  - 1.0 (Jan 14, 2014):
+   - Added [parameterized][12] constructor for Job for more readable code.
+   - Deprecated `BaseJob` in favor of a more complete `Job` class.
+  - 0.9.9 (Dec 16, 2013):
+   - First public release.
+
 
 ### [Wiki][9]
 
