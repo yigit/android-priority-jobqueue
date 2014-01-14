@@ -1,6 +1,8 @@
 package com.path.android.jobqueue.examples.twitter.jobs;
 
 import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.examples.twitter.controllers.TwitterController;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
 import com.path.android.jobqueue.examples.twitter.events.FetchedNewTweetsEvent;
@@ -14,12 +16,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class FetchTweetsJob extends BaseJob {
+public class FetchTweetsJob extends Job {
     private static final AtomicInteger jobCounter = new AtomicInteger(0);
 
     private final int id;
     public FetchTweetsJob() {
-        super(true, false, "fetch-tweets");
+        super(new Params(Priority.LOW).requireNetwork().groupBy("fetch-tweets"));
         id = jobCounter.incrementAndGet();
     }
 

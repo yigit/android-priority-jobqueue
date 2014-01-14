@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.fest.reflect.method.Invoker;
@@ -21,8 +22,8 @@ public class NetworkNextJobTest extends JobManagerTestBase {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
         JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).networkUtil(dummyNetworkUtil));
         jobManager.stop();
-        DummyJob dummyJob = new DummyJob(true, false);
-        long dummyJobId = jobManager.addJob(0, dummyJob);
+        DummyJob dummyJob = new DummyJob(new Params(0).requireNetwork());
+        long dummyJobId = jobManager.addJob(dummyJob);
         dummyNetworkUtil.setHasNetwork(false);
         Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
         MatcherAssert.assertThat("when there isn't any network, next job should return null", nextJobMethod.invoke(), nullValue());

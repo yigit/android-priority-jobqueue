@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
@@ -27,9 +28,9 @@ public class ConsumerCountTest extends JobManagerTestBase {
         int totalJobCount = maxConsumerCount * 3;
         List<DummyJob> runningJobs = new ArrayList<DummyJob>(totalJobCount);
         for(int i = 0; i < totalJobCount; i ++) {
-            DummyJob job = new NeverEndingDummyJob(runLock, semaphore);
+            DummyJob job = new NeverEndingDummyJob(new Params((int)(Math.random() * 3)), runLock, semaphore);
             runningJobs.add(job);
-            jobManager.addJob((int)(Math.random() * 3), job);
+            jobManager.addJob(job);
         }
         //wait till enough jobs start
         long now = System.nanoTime();

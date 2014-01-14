@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
@@ -25,8 +26,8 @@ public class KeepAliveTest extends JobManagerTestBase {
                 .consumerKeepAlive(keepAlive)
                 .networkUtil(networkUtilWithEventSupport));
         //give it a little time to create first consumer
-        jobManager1.addJob(0, new DummyJob());
-        jobManager2.addJob(0, new DummyJob());
+        jobManager1.addJob(new DummyJob(new Params(0)));
+        jobManager2.addJob(new DummyJob(new Params(0)));
         AtomicInteger activeThreadCount1 = getActiveConsumerCount(getConsumerExecutor(jobManager1)).get();
         AtomicInteger activeThreadCount2 = getActiveConsumerCount(getConsumerExecutor(jobManager2)).get();
 
@@ -46,8 +47,8 @@ public class KeepAliveTest extends JobManagerTestBase {
         //disable network and add a network bound job
         networkUtilWithoutEventSupport.setHasNetwork(false);
         networkUtilWithEventSupport.setHasNetwork(false, true);
-        jobManager1.addJob(0, new DummyJob(true, false));
-        jobManager2.addJob(0, new DummyJob(true, false));
+        jobManager1.addJob(new DummyJob(new Params(0).requireNetwork()));
+        jobManager2.addJob(new DummyJob(new Params(0).requireNetwork()));
         Thread.sleep(1000 + (long) (TimeUnit.SECONDS.toMillis(keepAlive) * 2));
         MatcherAssert.assertThat("when network changes cannot be detected, there should be a consumer waiting alive",
                 activeThreadCount1.get(), equalTo(1));

@@ -8,9 +8,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 /**
- * base class for any job to extend from.
- *
+ * This class has been deprecated and will soon be removed from public api.
+ * Please use {@link Job} instead which provider a cleaner constructor API.
+ * Deprecated. Use {@link Job}
  */
+@Deprecated
 abstract public class BaseJob implements Serializable {
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private boolean requiresNetwork;

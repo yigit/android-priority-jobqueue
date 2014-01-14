@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.hamcrest.*;
 import org.junit.Test;
@@ -22,7 +23,7 @@ public class AddInBackgroundTest extends JobManagerTestBase {
         long currentThreadId = Thread.currentThread().getId();
         final AtomicLong onAddedThreadId = new AtomicLong();
         final CountDownLatch addedLatch = new CountDownLatch(2);
-        BaseJob dummyJob = new DummyJob() {
+        Job dummyJob = new DummyJob(new Params(1).setDelayMs(delayed ? 1000 : 0)) {
             @Override
             public void onAdded() {
                 super.onAdded();
@@ -30,11 +31,7 @@ public class AddInBackgroundTest extends JobManagerTestBase {
                 addedLatch.countDown();
             }
         };
-        if(delayed) {
-            createJobManager().addJobInBackground(1, 1000, dummyJob);
-        } else {
-            createJobManager().addJobInBackground(1, dummyJob);
-        }
+        createJobManager().addJobInBackground(dummyJob);
 
         addedLatch.countDown();
         MatcherAssert.assertThat("thread ids should be different. delayed:" + delayed, currentThreadId, CoreMatchers.not(onAddedThreadId.get()));

@@ -3,17 +3,14 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
-import org.fest.reflect.method.Invoker;
-import org.hamcrest.MatcherAssert;
+import org.fest.reflect.method.*;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
+import org.robolectric.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class DelayTest extends JobManagerTestBase {
@@ -26,10 +23,10 @@ public class DelayTest extends JobManagerTestBase {
     public void testDelay(boolean persist) throws Exception {
         JobManager jobManager = createJobManager();
         jobManager.stop();
-        DummyJob delayedJob = persist ? new PersistentDummyJob() : new DummyJob();
-        DummyJob nonDelayedJob = persist ? new PersistentDummyJob() : new DummyJob();
-        long jobId = jobManager.addJob(10, 1000, delayedJob);
-        long nonDelayedJobId = jobManager.addJob(0, 0, nonDelayedJob);
+        DummyJob delayedJob = new DummyJob(new Params(10).delayInMs(1000).setPersistent(persist));
+        DummyJob nonDelayedJob = new DummyJob(new Params(0).setPersistent(persist));
+        long jobId = jobManager.addJob(delayedJob);
+        long nonDelayedJobId = jobManager.addJob(nonDelayedJob);
 
         Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
         Invoker<Void> removeJobMethod = getRemoveJobMethod(jobManager);

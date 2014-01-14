@@ -3,9 +3,9 @@ package com.path.android.jobqueue.test.jobqueue;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.fest.reflect.core.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -64,7 +64,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         //create and add JOB_LIMIT jobs with random priority
         for (int i = 0; i < JOB_LIMIT; i++) {
-            jobQueue.insert(createNewJobHolderWithPriority((int) (Math.random() * 10)));
+            jobQueue.insert(createNewJobHolder(new Params((int) (Math.random() * 10))));
         }
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
@@ -79,8 +79,8 @@ public abstract class JobQueueTestBase extends TestBase {
     public void testDelayUntilWithPriority() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         long now = System.nanoTime();
-        JobHolder lowPriorityHolder = createNewJobHolderWithDelayUntil(false, 5, now + 10000 * JobManager.NS_PER_MS);
-        JobHolder highPriorityHolder = createNewJobHolderWithDelayUntil(false, 10, now + 20000 * JobManager.NS_PER_MS);
+        JobHolder lowPriorityHolder = createNewJobHolderWithDelayUntil(new Params(5), now + 10000 * JobManager.NS_PER_MS);
+        JobHolder highPriorityHolder = createNewJobHolderWithDelayUntil(new Params(10), now + 20000 * JobManager.NS_PER_MS);
         jobQueue.insert(lowPriorityHolder);
         jobQueue.insert(highPriorityHolder);
         MatcherAssert.assertThat("when asked, if lower priority job has less delay until, we should return it",
@@ -91,11 +91,11 @@ public abstract class JobQueueTestBase extends TestBase {
     @Test
     public void testGroupId() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
-        long jobId1 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group1"));
-        long jobId2 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group1"));
-        long jobId3 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group2"));
-        long jobId4 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group2"));
-        long jobId5 = jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(0, "group1"));
+        long jobId1 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group1")));
+        long jobId2 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group1")));
+        long jobId3 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group2")));
+        long jobId4 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group2")));
+        long jobId5 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group1")));
         JobHolder holder1 = jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group2"}));
         MatcherAssert.assertThat("first jobs should be from group group2 if group1 is excluded",
                 holder1.getBaseJob().getRunGroupId(), equalTo("group1"));
@@ -105,7 +105,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 jobQueue.nextJobAndIncRunCount(true,
                         Arrays.asList(new String[]{"group1", "group2"})),
                 is(nullValue()));
-        long jobId6 = jobQueue.insert(createNewJobHolderWithPriority(0));
+        long jobId6 = jobQueue.insert(createNewJobHolder(new Params(0)));
         MatcherAssert.assertThat("both groups are disabled, null group job should be returned",
                 jobQueue.nextJobAndIncRunCount(true,
                         Arrays.asList(new String[]{"group1", "group2"})).getId(),
@@ -127,8 +127,8 @@ public abstract class JobQueueTestBase extends TestBase {
                 holder3.getId(), equalTo(jobId4));
 
         //add two more non-grouped jobs
-        long jobId7 = jobQueue.insert(createNewJobHolderWithPriority(0));
-        long jobId8 = jobQueue.insert(createNewJobHolderWithPriority(0));
+        long jobId7 = jobQueue.insert(createNewJobHolder(new Params(0)));
+        long jobId8 = jobQueue.insert(createNewJobHolder(new Params(0)));
         JobHolder holder4 = jobQueue.nextJobAndIncRunCount(true,
                 Arrays.asList(new String[]{"group1", "group2"}));
         MatcherAssert.assertThat("if all grouped jobs are excluded, non-grouped jobs should be returned",
@@ -146,12 +146,12 @@ public abstract class JobQueueTestBase extends TestBase {
     public void testDueDelayUntilWithPriority() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         long now = System.nanoTime();
-        JobHolder lowPriorityHolder = createNewJobHolderWithDelayUntil(false, 5, now - 1000 * JobManager.NS_PER_MS);
-        JobHolder highPriorityHolder = createNewJobHolderWithDelayUntil(false, 10, now - 10000 * JobManager.NS_PER_MS);
+        JobHolder lowPriorityHolder = createNewJobHolderWithDelayUntil(new Params(5),now - 1000 * JobManager.NS_PER_MS);
+        JobHolder highPriorityHolder = createNewJobHolderWithDelayUntil(new Params(10), now - 10000 * JobManager.NS_PER_MS);
         jobQueue.insert(lowPriorityHolder);
         jobQueue.insert(highPriorityHolder);
         long soonJobDelay = 2000;
-        JobHolder highestPriorityDelayedJob = createNewJobHolderWithDelayUntil(false, 12, now + soonJobDelay * JobManager.NS_PER_MS);
+        JobHolder highestPriorityDelayedJob = createNewJobHolderWithDelayUntil(new Params(12), now + soonJobDelay * JobManager.NS_PER_MS);
         long highestPriorityDelayedJobId = jobQueue.insert(highestPriorityDelayedJob);
         MatcherAssert.assertThat("when asked, if job's due has passed, highest priority jobs's delay until should be " +
                 "returned",
@@ -167,9 +167,9 @@ public abstract class JobQueueTestBase extends TestBase {
     public void testDelayUntil() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         long now = System.nanoTime();
-        JobHolder networkJobHolder = createNewJobHolderWithDelayUntil(true, 0, now + 200000 * JobManager.NS_PER_MS);
+        JobHolder networkJobHolder = createNewJobHolderWithDelayUntil(new Params(0).requireNetwork(), now + 200000 * JobManager.NS_PER_MS);
 
-        JobHolder noNetworkJobHolder = createNewJobHolderWithDelayUntil(false, 0, now + 500000 * JobManager.NS_PER_MS);
+        JobHolder noNetworkJobHolder = createNewJobHolderWithDelayUntil(new Params(0), now + 500000 * JobManager.NS_PER_MS);
 
         jobQueue.insert(networkJobHolder);
         jobQueue.insert(noNetworkJobHolder);
@@ -180,7 +180,7 @@ public abstract class JobQueueTestBase extends TestBase {
         MatcherAssert.assertThat("if there is network, delay until should be provided for network job because it is " +
                 "sooner", jobQueue.getNextJobDelayUntilNs(true), equalTo(networkJobHolder.getDelayUntilNs()));
 
-        JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(false, 0, now + 100000 * JobManager.NS_PER_MS);
+        JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(new Params(0), now + 100000 * JobManager.NS_PER_MS);
 
         jobQueue.insert(noNetworkJobHolder2);
         MatcherAssert.assertThat("if there is network, any job's delay until should be returned",
@@ -206,19 +206,19 @@ public abstract class JobQueueTestBase extends TestBase {
     @Test
     public void testPriorityWithDelayedJobs() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder delayedPriority_5 = createNewJobHolderWithPriority(5);
+        JobHolder delayedPriority_5 = createNewJobHolder(new Params(5));
         org.fest.reflect.field.Invoker<Long> delayUntilField = getDelayUntilNsField(delayedPriority_5);
         delayUntilField.set(System.nanoTime() - 1000);
 
-        JobHolder delayedPriority_2 = createNewJobHolderWithPriority(2);
+        JobHolder delayedPriority_2 = createNewJobHolder(new Params(2));
         delayUntilField = getDelayUntilNsField(delayedPriority_2);
         delayUntilField.set(System.nanoTime() - 500);
 
 
 
-        JobHolder nonDelayedPriority_6 = createNewJobHolderWithPriority(6);
-        JobHolder nonDelayedPriority_3 = createNewJobHolderWithPriority(3);
-        JobHolder nonDelayedPriority_2 = createNewJobHolderWithPriority(2);
+        JobHolder nonDelayedPriority_6 = createNewJobHolder(new Params(6));
+        JobHolder nonDelayedPriority_3 = createNewJobHolder(new Params(3));
+        JobHolder nonDelayedPriority_2 = createNewJobHolder(new Params(2));
 
 
         jobQueue.insert(delayedPriority_5);
@@ -241,6 +241,18 @@ public abstract class JobQueueTestBase extends TestBase {
         return Reflection.field("delayUntilNs").ofType(long.class).in(jobHolder);
     }
 
+    private org.fest.reflect.field.Invoker<Integer> getPriorityField(Params params) {
+        return Reflection.field("priority").ofType(int.class).in(params);
+    }
+
+    private org.fest.reflect.field.Invoker<Long> getDelayMsField(Params params) {
+        return Reflection.field("delayMs").ofType(long.class).in(params);
+    }
+
+    private org.fest.reflect.field.Invoker<String> getGroupIdField(Params params) {
+        return Reflection.field("groupId").ofType(String.class).in(params);
+    }
+
     @Test
     public void testSessionId() throws Exception {
         long sessionId = (long) (Math.random() * 100000);
@@ -258,7 +270,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         //create and add JOB_LIMIT jobs with random priority
         for (int i = 0; i < JOB_LIMIT; i++) {
-            jobQueue.insert(createNewJobHolderWithPriority((int) (Math.random() * 10)));
+            jobQueue.insert(createNewJobHolder(new Params((int) (Math.random() * 10))));
         }
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
@@ -285,13 +297,13 @@ public abstract class JobQueueTestBase extends TestBase {
     @Test
     public void testNetwork() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder jobHolder = createNewJobHolderWithRequiresNetwork(false);
+        JobHolder jobHolder = createNewJobHolder(new Params(0));
         jobQueue.insert(jobHolder);
         MatcherAssert.assertThat("no network job should be returned even if there is no netowrk",
                 jobQueue.nextJobAndIncRunCount(false, null), notNullValue());
         jobQueue.remove(jobHolder);
 
-        jobHolder = createNewJobHolderWithRequiresNetwork(true);
+        jobHolder = createNewJobHolder(new Params(0).requireNetwork());
         MatcherAssert.assertThat("if there isn't any network, job with network requirement should not return",
                 jobQueue.nextJobAndIncRunCount(false, null), nullValue());
 
@@ -300,8 +312,8 @@ public abstract class JobQueueTestBase extends TestBase {
 
         jobQueue.remove(jobHolder);
 
-        jobHolder = createNewJobHolderWithRequiresNetworkAndPriority(false, 1);
-        JobHolder jobHolder2 = createNewJobHolderWithRequiresNetworkAndPriority(true, 5);
+        jobHolder = createNewJobHolder(new Params(1));
+        JobHolder jobHolder2 = createNewJobHolder(new Params(5).requireNetwork());
         long firstJobId = jobQueue.insert(jobHolder);
         long secondJobId = jobQueue.insert(jobHolder2);
         JobHolder retrieved = jobQueue.nextJobAndIncRunCount(false, null);
@@ -329,7 +341,7 @@ public abstract class JobQueueTestBase extends TestBase {
         }
         jobQueue.insertOrReplace(jobHolder2);
 
-        JobHolder highestPriorityJob = createNewJobHolderWithRequiresNetworkAndPriority(false, 10);
+        JobHolder highestPriorityJob = createNewJobHolder(new Params(10));
         long highestPriorityJobId = jobQueue.insert(highestPriorityJob);
         retrieved = jobQueue.nextJobAndIncRunCount(true, null);
         MatcherAssert.assertThat("w/ or w/o network, highest priority should be returned", retrieved, notNullValue());
@@ -346,31 +358,31 @@ public abstract class JobQueueTestBase extends TestBase {
         MatcherAssert.assertThat("initial count should be 0 for ready jobs", jobQueue.countReadyJobs(true, null), equalTo(0));
         //add some jobs
         jobQueue.insert(createNewJobHolder());
-        jobQueue.insert(createNewJobHolderWithRequiresNetwork(true));
+        jobQueue.insert(createNewJobHolder(new Params(0).requireNetwork()));
         long now = System.nanoTime();
         long delay = 1000;
-        jobQueue.insert(createNewJobHolderWithDelayUntil(false, 0, now + TimeUnit.MILLISECONDS.toNanos(delay)));
+        jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0), now + TimeUnit.MILLISECONDS.toNanos(delay)));
         MatcherAssert.assertThat("ready count should be 1 if there is no network", jobQueue.countReadyJobs(false, null), equalTo(1));
         MatcherAssert.assertThat("ready count should be 2 if there is network", jobQueue.countReadyJobs(true, null), equalTo(2));
         Thread.sleep(delay);
         MatcherAssert.assertThat("when needed delay time passes, ready count should be 3", jobQueue.countReadyJobs(true, null), equalTo(3));
         MatcherAssert.assertThat("when needed delay time passes but no network, ready count should be 2", jobQueue.countReadyJobs(false, null), equalTo(2));
-        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(5, "group1"));
-        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(5, "group1"));
+        jobQueue.insert(createNewJobHolder(new Params(5).groupBy("group1")));
+        jobQueue.insert(createNewJobHolder(new Params(5).groupBy("group1")));
         MatcherAssert.assertThat("when more than 1 job from same group is created, ready jobs should increment only by 1",
                 jobQueue.countReadyJobs(true, null), equalTo(4));
         MatcherAssert.assertThat("excluding groups should work",
                 jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1"})), equalTo(3));
         MatcherAssert.assertThat("giving a non-existing group should not fool the count",
                 jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group3423"})), equalTo(4));
-        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(3, "group2"));
+        jobQueue.insert(createNewJobHolder(new Params(3).groupBy("group2")));
         MatcherAssert.assertThat("when a job from another group is added, ready job count should inc",
                 jobQueue.countReadyJobs(true, null), equalTo(5));
         now = System.nanoTime();
-        jobQueue.insert(createNewJobHolderWithPriorityAndGroupIdAndDelayUntil(3, "group3", now + TimeUnit.MILLISECONDS.toNanos(delay)));
+        jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(3).groupBy("group3"), now + TimeUnit.MILLISECONDS.toNanos(delay)));
         MatcherAssert.assertThat("when a delayed job from another group is added, ready count should not change",
                 jobQueue.countReadyJobs(true, null), equalTo(5));
-        jobQueue.insert(createNewJobHolderWithPriorityAndGroupId(3, "group3"));
+        jobQueue.insert(createNewJobHolder(new Params(3).groupBy("group3")));
         MatcherAssert.assertThat("when another job from delayed group is added, ready job count should inc",
                 jobQueue.countReadyJobs(true, null), equalTo(6));
         Thread.sleep(delay);
@@ -381,10 +393,10 @@ public abstract class JobQueueTestBase extends TestBase {
 
         //jobs w/ same group id but with different persistence constraints should not fool the count
         now = System.nanoTime();
-        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(true, "group10", now + 1000));
-        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(false, "group10", now + 1000));
-        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(true, "group10", now - 1000));
-        jobQueue.insert(createNewJobHolderWithGroupIdAndDelayUntil(false, "group10", now - 1000));
+        jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).persist().groupBy("group10"), now + 1000));
+        jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).groupBy("group10"), now + 1000));
+        jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).persist().groupBy("group10"), now - 1000));
+        jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).groupBy("group10"), now - 1000));
         MatcherAssert.assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
                 jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1", "group3"})), equalTo(5));
         MatcherAssert.assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
@@ -402,7 +414,7 @@ public abstract class JobQueueTestBase extends TestBase {
 
         int priority = (int) (Math.random() * 1000);
         jobHolder.setPriority(priority);
-        DummyJob dummyJob = new DummyJob();
+        DummyJob dummyJob = new DummyJob(new Params(0));
         jobHolder.setBaseJob(dummyJob);
         int runCount = (int) (Math.random() * 10);
         jobHolder.setRunCount(runCount);
@@ -421,37 +433,17 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     protected JobHolder createNewJobHolder() {
-        return new JobHolder(null, 0, null, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        return createNewJobHolder(new Params(0));
     }
 
-    private JobHolder createNewJobHolderWithRequiresNetwork(boolean requiresNetwork) {
-        return new JobHolder(null, 0, null, 0, new DummyJob(requiresNetwork, false), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+    protected JobHolder createNewJobHolder(Params params) {
+        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(), 0, new DummyJob(params), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
-    private JobHolder createNewJobHolderWithDelayUntil(boolean requiresNetwork, int priority, long delayUntil) {
-        JobHolder jobHolder = new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork, false), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+    private JobHolder createNewJobHolderWithDelayUntil(Params params, long delayUntil) {
+        JobHolder jobHolder = createNewJobHolder(params);
         getDelayUntilNsField(jobHolder).set(delayUntil);
         return jobHolder;
-    }
-
-    private JobHolder createNewJobHolderWithRequiresNetworkAndPriority(boolean requiresNetwork, int priority) {
-        return new JobHolder(null, priority, null, 0, new DummyJob(requiresNetwork, false), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
-    }
-
-    private JobHolder createNewJobHolderWithPriority(int priority) {
-        return new JobHolder(null, priority, null, 0, new DummyJob(), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
-    }
-
-    private JobHolder createNewJobHolderWithPriorityAndGroupId(int priority, String groupId) {
-        return new JobHolder(null, priority, groupId, 0, new DummyJob(groupId), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
-    }
-
-    private JobHolder createNewJobHolderWithGroupIdAndDelayUntil(boolean persistent, String groupId, long delayUntil) {
-        return new JobHolder(null, 0, groupId, 0, persistent ? new PersistentDummyJob(groupId) : new DummyJob(groupId), System.nanoTime(), delayUntil, JobManager.NOT_RUNNING_SESSION_ID);
-    }
-
-    private JobHolder createNewJobHolderWithPriorityAndGroupIdAndDelayUntil(int priority, String groupId, long delayUntilNs) {
-        return new JobHolder(null, priority, groupId, 0, new DummyJob(groupId), System.nanoTime(), delayUntilNs, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobQueue createNewJobQueue() {

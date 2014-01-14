@@ -1,16 +1,16 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
-import org.hamcrest.MatcherAssert;
+import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.test.jobs.DummyJob;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.*;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 public class PersistentJobTest extends JobManagerTestBase {
@@ -25,7 +25,11 @@ public class PersistentJobTest extends JobManagerTestBase {
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
     }
 
-    protected static class DummyPersistentLatchJob extends PersistentDummyJob {
+    protected static class DummyPersistentLatchJob extends DummyJob {
+
+        public DummyPersistentLatchJob() {
+            super(new Params(0).persist());
+        }
 
         @Override
         public void onRun() throws Throwable {

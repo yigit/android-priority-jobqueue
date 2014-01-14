@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.log.CustomLogger;
@@ -41,9 +42,9 @@ public class LoadFactorTest extends JobManagerTestBase {
         int totalJobCount = loadFactor * maxConsumerCount * 5;
         List<DummyJob> runningJobs = new ArrayList<DummyJob>(totalJobCount);
         for(int i = 0; i < totalJobCount; i ++) {
-            DummyJob job = new NeverEndingDummyJob(runLock, semaphore);
+            DummyJob job = new NeverEndingDummyJob(new Params((int)(Math.random() * 3)), runLock, semaphore);
             runningJobs.add(job);
-            jobManager.addJob((int)(Math.random() * 3), job);
+            jobManager.addJob(job);
 
             int expectedConsumerCount = Math.min(maxConsumerCount, (int)Math.ceil((float)(i+1) / loadFactor));
             if(i >= minConsumerCount) {

@@ -1,6 +1,8 @@
 package com.path.android.jobqueue.examples.twitter.jobs;
 
 import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.examples.twitter.controllers.TwitterController;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
 import com.path.android.jobqueue.examples.twitter.events.DeletedTweetEvent;
@@ -13,11 +15,11 @@ import twitter4j.TwitterException;
 
 import java.util.Date;
 
-public class PostTweetJob extends BaseJob {
+public class PostTweetJob extends Job {
     private long localId;
     private String text;
     public PostTweetJob(String text) {
-        super(true, true, "post_tweet");//order of tweets matter, we don't want to send two in parallel
+        super(new Params(Priority.MID).requireNetwork().persist().groupBy("post_tweet"));//order of tweets matter, we don't want to send two in parallel
         //use a negative id so that it cannot collide w/ twitter ids
         //we have to set local id here so it gets serialized into job (to find tweet later on)
         localId = -System.currentTimeMillis();
