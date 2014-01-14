@@ -128,7 +128,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.path:android-priority-jobqueue:0.9.9'`
+Gradle: `compile 'com.path:android-priority-jobqueue:1.0'`
 
 Maven:
 
@@ -136,7 +136,7 @@ Maven:
 <dependency>
     <groupId>com.path</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>0.9.9</version>
+    <version>1.0</version>
 </dependency>
 ```
 
