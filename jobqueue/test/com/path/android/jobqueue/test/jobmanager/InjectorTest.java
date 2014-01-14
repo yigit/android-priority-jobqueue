@@ -7,7 +7,6 @@ import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.Test;
@@ -35,7 +34,7 @@ public class InjectorTest extends JobManagerTestBase {
         jobManager.stop();
         jobManager.addJob(new DummyJob(new Params(4)));
         MatcherAssert.assertThat("injection should be called after adding a non-persistent job", injectionCallCount.get(), equalTo(1));
-        jobManager.addJob(new PersistentDummyJob(new Params(1)));
+        jobManager.addJob(new DummyJob(new Params(1).persist()));
         MatcherAssert.assertThat("injection should be called after adding a persistent job", injectionCallCount.get(), equalTo(2));
         JobHolder holder = getNextJobMethod(jobManager).invoke();
         MatcherAssert.assertThat("injection should NOT be called for non persistent job", holder.getBaseJob(), not(injectedJobReference.getObject()));

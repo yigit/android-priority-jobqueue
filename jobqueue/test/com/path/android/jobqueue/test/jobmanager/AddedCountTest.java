@@ -3,7 +3,6 @@ package com.path.android.jobqueue.test.jobmanager;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,7 +15,7 @@ public class AddedCountTest extends JobManagerTestBase {
     @Test
     public void testAddedCount() throws Exception {
         testAddedCount(new DummyJob(new Params(0)));
-        testAddedCount(new PersistentDummyJob(new Params(0)));
+        testAddedCount(new DummyJob(new Params(0).persist()));
 
     }
 

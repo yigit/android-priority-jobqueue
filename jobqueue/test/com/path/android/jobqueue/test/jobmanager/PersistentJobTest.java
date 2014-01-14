@@ -2,7 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
+import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.Test;
@@ -25,10 +25,10 @@ public class PersistentJobTest extends JobManagerTestBase {
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
     }
 
-    protected static class DummyPersistentLatchJob extends PersistentDummyJob {
+    protected static class DummyPersistentLatchJob extends DummyJob {
 
         public DummyPersistentLatchJob() {
-            super(new Params(0));
+            super(new Params(0).persist());
         }
 
         @Override

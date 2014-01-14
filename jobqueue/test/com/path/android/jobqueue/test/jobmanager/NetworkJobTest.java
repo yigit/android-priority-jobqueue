@@ -4,13 +4,11 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
-import org.hamcrest.MatcherAssert;
+import static org.hamcrest.CoreMatchers.*;
+import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 public class NetworkJobTest extends JobManagerTestBase {
@@ -26,10 +24,10 @@ public class NetworkJobTest extends JobManagerTestBase {
         DummyJob noNetworkDummyJob = new DummyJob(new Params(2));
         jobManager.addJob(noNetworkDummyJob);
 
-        PersistentDummyJob networkPersistentJob = new PersistentDummyJob(new Params(6).requireNetwork());
+        DummyJob networkPersistentJob = new DummyJob(new Params(6).persist().requireNetwork());
         jobManager.addJob(networkPersistentJob);
 
-        PersistentDummyJob noNetworkPersistentJob = new PersistentDummyJob(new Params(1));
+        DummyJob noNetworkPersistentJob = new DummyJob(new Params(1).persist());
         jobManager.addJob(noNetworkPersistentJob);
 
         MatcherAssert.assertThat("count should be correct if there are network and non-network jobs w/o network", jobManager.count(), equalTo(4));

@@ -6,7 +6,6 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import org.fest.reflect.core.*;
 import org.fest.reflect.method.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -23,7 +22,7 @@ public class SessionIdTest extends JobManagerTestBase {
         Long sessionId = Reflection.field("sessionId").ofType(long.class)
                 .in(jobManager).get();
         jobManager.stop();
-        Job[] jobs = new Job[]{new DummyJob(new Params(0)), new PersistentDummyJob(new Params(0))};
+        Job[] jobs = new Job[]{new DummyJob(new Params(0)), new DummyJob(new Params(0).persist())};
         for (Job job : jobs) {
             jobManager.addJob(job);
         }

@@ -4,7 +4,6 @@ import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.jobs.PersistentDummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
 import org.junit.Test;
@@ -33,7 +32,7 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         JobManager jobManager = createJobManager();
         MyDummyPersistentJob.persistentJobLatch = new CountDownLatch(1);
         for(int i = 0; i < 50; i++) {
-            jobManager.addJob(new PersistentDummyJob(new Params(1)));
+            jobManager.addJob(new DummyJob(new Params(1).persist()));
         }
         jobManager.addJob(new MyDummyPersistentJob(2));
         MyDummyPersistentJob.persistentJobLatch.await();
