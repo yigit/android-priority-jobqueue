@@ -72,4 +72,11 @@ public interface JobQueue {
      */
     void clear();
 
+    /**
+     * returns the current status of a job
+     * @param id job id, returned by the {@link JobManager#addJob(Job)} method.
+     * @return
+     */
+    JobStatus getJobStatus(long id);
+
 }
