@@ -110,31 +110,33 @@ abstract public class MergedQueue implements JobSet {
      */
     @Override
     public JobHolder peek(Collection<String> excludeGroupIds) {
-        JobHolder delayed = queue0.peek(excludeGroupIds);
-        //if queue for this job has changed, re-add it and try peek from scratch
-        if(delayed != null && decideQueue(delayed) != SetId.S0) {
-            queue1.offer(delayed);
-            queue0.remove(delayed);
-            return peek(excludeGroupIds);
-        }
-        JobHolder nonDelayed = queue1.peek(excludeGroupIds);
-        //if queue for this job has changed, re-add it and try peek from scratch
-        if(nonDelayed != null && decideQueue(nonDelayed) != SetId.S1) {
-            queue0.offer(nonDelayed);
-            queue1.remove(nonDelayed);
-            return peek(excludeGroupIds);
-        }
-        if(delayed == null) {
+        while (true) {
+            JobHolder delayed = queue0.peek(excludeGroupIds);
+            //if queue for this job has changed, re-add it and try peek from scratch
+            if(delayed != null && decideQueue(delayed) != SetId.S0) {
+                queue1.offer(delayed);
+                queue0.remove(delayed);
+                continue;//retry
+            }
+            JobHolder nonDelayed = queue1.peek(excludeGroupIds);
+            //if queue for this job has changed, re-add it and try peek from scratch
+            if(nonDelayed != null && decideQueue(nonDelayed) != SetId.S1) {
+                queue0.offer(nonDelayed);
+                queue1.remove(nonDelayed);
+                continue;//retry
+            }
+            if(delayed == null) {
+                return nonDelayed;
+            }
+            if(nonDelayed == null) {
+                return delayed;
+            }
+            int cmp = retrieveComparator.compare(delayed, nonDelayed);
+            if(cmp == -1) {
+                return delayed;
+            }
             return nonDelayed;
         }
-        if(nonDelayed == null) {
-            return delayed;
-        }
-        int cmp = retrieveComparator.compare(delayed, nonDelayed);
-        if(cmp == -1) {
-            return delayed;
-        }
-        return nonDelayed;
     }
 
 
