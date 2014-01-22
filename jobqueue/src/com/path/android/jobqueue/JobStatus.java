@@ -31,5 +31,5 @@ public enum JobStatus {
      * </ul>
      * </p>
      */
-    DOES_NOT_EXISTS
+    UNKNOWN
 }

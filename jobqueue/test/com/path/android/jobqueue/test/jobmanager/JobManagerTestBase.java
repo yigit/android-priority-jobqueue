@@ -32,6 +32,31 @@ public class JobManagerTestBase extends TestBase {
 
 
 
+    protected static class DummyTwoLatchJob extends DummyJob {
+        private final CountDownLatch waitFor;
+        private final CountDownLatch trigger;
+        private final CountDownLatch onRunLatch;
+
+        protected DummyTwoLatchJob(Params params, CountDownLatch waitFor, CountDownLatch trigger) {
+            super(params);
+            this.waitFor = waitFor;
+            this.trigger = trigger;
+            onRunLatch = new CountDownLatch(1);
+        }
+
+        public void waitTillOnRun() throws InterruptedException {
+            onRunLatch.await();
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            onRunLatch.countDown();
+            waitFor.await();
+            super.onRun();
+            trigger.countDown();
+        }
+    }
+
     protected static class DummyLatchJob extends DummyJob {
         private final CountDownLatch latch;
 
@@ -107,6 +132,10 @@ public class JobManagerTestBase extends TestBase {
         @Override
         public void setListener(Listener listener) {
             this.listener = listener;
+        }
+
+        public boolean isConnected() {
+            return hasNetwork;
         }
     }
 
