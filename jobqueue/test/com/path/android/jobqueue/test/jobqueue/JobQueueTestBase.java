@@ -75,6 +75,7 @@ public abstract class JobQueueTestBase extends TestBase {
         MatcherAssert.assertThat(jobQueue.nextJobAndIncRunCount(true, null), nullValue());
     }
 
+
     @Test
     public void testDelayUntilWithPriority() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
@@ -437,7 +438,9 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     protected JobHolder createNewJobHolder(Params params) {
-        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(), 0, new DummyJob(params), System.nanoTime(), Long.MIN_VALUE, JobManager.NOT_RUNNING_SESSION_ID);
+        long delay = getDelayMsField(params).get();
+        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(), 0, new DummyJob(params), System.nanoTime(),
+                delay > 0 ? System.nanoTime() +  delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
     private JobHolder createNewJobHolderWithDelayUntil(Params params, long delayUntil) {
@@ -446,7 +449,7 @@ public abstract class JobQueueTestBase extends TestBase {
         return jobHolder;
     }
 
-    private JobQueue createNewJobQueue() {
+    protected JobQueue createNewJobQueue() {
         return createNewJobQueueWithSessionId(System.nanoTime());
     }
 
