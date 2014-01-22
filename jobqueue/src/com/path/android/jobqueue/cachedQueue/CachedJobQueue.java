@@ -93,6 +93,11 @@ public class CachedJobQueue implements JobQueue {
         delegate.clear();
     }
 
+    @Override
+    public JobHolder findJobById(long id) {
+        return delegate.findJobById(id);
+    }
+
     private static class Cache {
         Integer count;
         DelayUntil delayUntil;

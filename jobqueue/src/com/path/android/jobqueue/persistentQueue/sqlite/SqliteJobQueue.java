@@ -246,11 +246,22 @@ public class SqliteJobQueue implements JobQueue {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void clear() {
         sqlHelper.truncate();
         readyJobsQueryCache.clear();
         nextJobsQueryCache.clear();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public JobHolder findJobById(long id) {
+        return null;
     }
 
     private void onJobFetchedForRunning(JobHolder jobHolder) {
