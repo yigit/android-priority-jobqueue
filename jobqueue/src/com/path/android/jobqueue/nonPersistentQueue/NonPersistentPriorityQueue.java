@@ -104,7 +104,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
      */
     @Override
     public JobHolder findJobById(long id) {
-        return null;
+        return jobs.findById(id);
     }
 
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {

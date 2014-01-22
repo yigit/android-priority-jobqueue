@@ -8,6 +8,9 @@ import com.path.android.jobqueue.log.JqLog;
  * Helper class for {@link SqliteJobQueue} to generate sql queries and statements.
  */
 public class SqlHelper {
+
+    /**package**/ String FIND_BY_ID_QUERY;
+
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertOrReplaceStatement;
     private SQLiteStatement deleteStatement;
@@ -15,6 +18,7 @@ public class SqlHelper {
     private SQLiteStatement countStatement;
     private SQLiteStatement nextJobDelayedUntilWithNetworkStatement;
     private SQLiteStatement nextJobDelayedUntilWithoutNetworkStatement;
+
 
     final SQLiteDatabase db;
     final String tableName;
@@ -28,6 +32,7 @@ public class SqlHelper {
         this.columnCount = columnCount;
         this.primaryKeyColumnName = primaryKeyColumnName;
         this.sessionId = sessionId;
+        FIND_BY_ID_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName + " = ?";
     }
 
     public static String create(String tableName, Property primaryKey, Property... properties) {

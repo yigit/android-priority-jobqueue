@@ -3,7 +3,13 @@ package com.path.android.jobqueue.nonPersistentQueue;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.log.JqLog;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * This is the default implementation of JobSet.
@@ -11,13 +17,15 @@ import java.util.*;
  * version
  */
 public class NonPersistentJobSet implements JobSet {
-    TreeSet<JobHolder> set;
+    private final TreeSet<JobHolder> set;
     //groupId -> # of jobs in that group
-    Map<String, Integer> existingGroups;
+    private final Map<String, Integer> existingGroups;
+    private final Map<Long, JobHolder> idCache;
 
     public NonPersistentJobSet(Comparator<JobHolder> comparator) {
         this.set = new TreeSet<JobHolder>(comparator);
         this.existingGroups = new HashMap<String, Integer>();
+        this.idCache = new HashMap<Long, JobHolder>();
     }
 
     private JobHolder safeFirst() {
@@ -63,6 +71,11 @@ public class NonPersistentJobSet implements JobSet {
     }
 
     @Override
+    public JobHolder findById(long id) {
+        return idCache.get(id);
+    }
+
+    @Override
     public boolean offer(JobHolder holder) {
         if(holder.getId() == null) {
             throw new RuntimeException("cannot add job holder w/o an ID");
@@ -73,9 +86,13 @@ public class NonPersistentJobSet implements JobSet {
             remove(holder);
             result = set.add(holder);
         }
-        if(result && holder.getGroupId() != null) {
-            incGroupCount(holder.getGroupId());
+        if(result) {
+            idCache.put(holder.getId(), holder);
+            if(holder.getGroupId() != null) {
+                incGroupCount(holder.getGroupId());
+            }
         }
+
         return result;
     }
 
@@ -103,8 +120,11 @@ public class NonPersistentJobSet implements JobSet {
     @Override
     public boolean remove(JobHolder holder) {
         boolean removed = set.remove(holder);
-        if(removed && holder.getGroupId() != null) {
-            decGroupCount(holder.getGroupId());
+        if(removed) {
+            idCache.remove(holder.getId());
+            if(holder.getGroupId() != null) {
+                decGroupCount(holder.getGroupId());
+            }
         }
         return removed;
     }
@@ -115,6 +135,7 @@ public class NonPersistentJobSet implements JobSet {
     public void clear() {
         set.clear();
         existingGroups.clear();
+        idCache.clear();
     }
 
     @Override

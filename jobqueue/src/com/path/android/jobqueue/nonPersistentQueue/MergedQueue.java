@@ -201,6 +201,19 @@ abstract public class MergedQueue implements JobSet {
         }
     }
 
+
+
+    /**
+     * Returns the JobHolder that has the given id
+     * @param id id job the job
+     * @return
+     */
+    @Override
+    public JobHolder findById(long id) {
+        JobHolder q0 = queue0.findById(id);
+        return q0 == null ? queue1.findById(id) : q0;
+    }
+
     /**
      * simple enum to identify queues
      */

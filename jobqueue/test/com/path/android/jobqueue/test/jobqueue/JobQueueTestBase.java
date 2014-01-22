@@ -447,7 +447,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         assertJob(jobQueue, "non existing job (negative id)", -4, null);
         assertJob(jobQueue, "non existing job (positive id)", +4, null);
-        final int LIMIT = 10;
+        final int LIMIT = 100;
         JobHolder[] holders = new JobHolder[LIMIT];
         long[] ids = new long[LIMIT];
         for(int i =  0; i < LIMIT; i++) {
@@ -476,6 +476,10 @@ public abstract class JobQueueTestBase extends TestBase {
             } else {
                 assertJob(jobQueue, "removed job should not be returned in id query", ids[i], null);
             }
+        }
+        jobQueue.clear();
+        for(int i = 0; i < LIMIT; i++) {
+            assertJob(jobQueue, "after clear, find by id should return null", ids[i], null);
         }
     }
 
