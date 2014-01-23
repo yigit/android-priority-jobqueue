@@ -308,6 +308,10 @@ public class JobManager implements NetworkEventProvider.Listener {
      * <p>
      *     You should not call this method on UI thread because it may make a db request.
      * </p>
+     * <p>
+     *     This is not a very fast call so try not to make it unless necessary. Consider using events if you need to be
+     *     informed about a job's lifecycle.
+     * </p>
      * @param id the ID, returned by the addJob method
      * @param isPersistent Jobs are added to different queues depending on if they are persistent or not. This is necessary
      *                     because each queue has independent id sets.
