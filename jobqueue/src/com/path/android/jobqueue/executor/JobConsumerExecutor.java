@@ -6,6 +6,7 @@ import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,7 +22,8 @@ public class JobConsumerExecutor {
     private final Contract contract;
     private final int keepAliveSeconds;
     private final AtomicInteger activeConsumerCount = new AtomicInteger(0);
-    private final AtomicInteger runningJobCount = new AtomicInteger(0);
+    // key : id + (isPersistent)
+    private final ConcurrentHashMap<String, JobHolder> runningJobHolders;
 
 
     public JobConsumerExecutor(Configuration config, Contract contract) {
@@ -31,6 +33,7 @@ public class JobConsumerExecutor {
         this.keepAliveSeconds = config.getConsumerKeepAlive();
         this.contract = contract;
         threadGroup = new ThreadGroup("JobConsumers");
+        runningJobHolders = new ConcurrentHashMap<String, JobHolder>();
     }
 
     /**
@@ -92,15 +95,41 @@ public class JobConsumerExecutor {
             int consumerCnt = activeConsumerCount.intValue() - (inConsumerThread ? 1 : 0);
             boolean res =
                     consumerCnt < minConsumerSize ||
-                    consumerCnt * loadFactor < contract.countRemainingReadyJobs() + runningJobCount.get();
+                    consumerCnt * loadFactor < contract.countRemainingReadyJobs() + runningJobHolders.size();
             if(JqLog.isDebugEnabled()) {
                 JqLog.d("%s: load factor check. %s = (%d < %d)|| (%d * %d < %d + %d). consumer thread: %s", Thread.currentThread().getName(), res,
                         consumerCnt, minConsumerSize,
-                        consumerCnt, loadFactor, contract.countRemainingReadyJobs(), runningJobCount.get(), inConsumerThread);
+                        consumerCnt, loadFactor, contract.countRemainingReadyJobs(), runningJobHolders.size(), inConsumerThread);
             }
             return res;
         }
 
+    }
+
+    private void onBeforeRun(JobHolder jobHolder) {
+        runningJobHolders.put(createrunningJobHolderKey(jobHolder), jobHolder);
+    }
+
+    private void onAfterRun(JobHolder jobHolder) {
+        runningJobHolders.remove(createrunningJobHolderKey(jobHolder));
+    }
+
+    private String createrunningJobHolderKey(JobHolder jobHolder) {
+        return createrunningJobHolderKey(jobHolder.getId(), jobHolder.getBaseJob().isPersistent());
+    }
+
+    private String createrunningJobHolderKey(long id, boolean isPersistent) {
+        return id + "_" + (isPersistent ? "t" : "f");
+    }
+
+    /**
+     * returns true if job is currently handled by one of the executor threads
+     * @param id id of the job
+     * @param persistent boolean flag to distinguish id conflicts
+     * @return true if job is currently handled here
+     */
+    public boolean isRunning(long id, boolean persistent) {
+        return runningJobHolders.containsKey(createrunningJobHolderKey(id, persistent));
     }
 
     /**
@@ -168,13 +197,13 @@ public class JobConsumerExecutor {
                     do {
                         nextJob = contract.isRunning() ? contract.getNextJob(executor.keepAliveSeconds, TimeUnit.SECONDS) : null;
                         if (nextJob != null) {
-                            executor.runningJobCount.incrementAndGet();
+                            executor.onBeforeRun(nextJob);
                             if (nextJob.safeRun(nextJob.getRunCount())) {
                                 contract.removeJob(nextJob);
                             } else {
                                 contract.insertOrReplace(nextJob);
                             }
-                            executor.runningJobCount.decrementAndGet();
+                            executor.onAfterRun(nextJob);
                         }
                     } while (nextJob != null);
                 } finally {

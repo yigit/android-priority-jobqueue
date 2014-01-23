@@ -9,6 +9,7 @@ public enum JobStatus {
      * As of v 1.1, this might be:
      * <ul>
      *     <li>Job requires network but there is no available network connection</li>
+     *     <li>Job is delayed. We are waiting for the time to pass</li>
      * </ul>
      */
     WAITING_NOT_READY,

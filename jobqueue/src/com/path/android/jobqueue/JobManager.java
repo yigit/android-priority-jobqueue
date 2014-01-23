@@ -304,14 +304,41 @@ public class JobManager implements NetworkEventProvider.Listener {
     }
 
     /**
-     * returns the current status of a {@link Job}
+     * Returns the current status of a {@link Job}.
+     * <p>
+     *     You should not call this method on UI thread because it may make a db request.
+     * </p>
      * @param id the ID, returned by the addJob method
      * @param isPersistent Jobs are added to different queues depending on if they are persistent or not. This is necessary
      *                     because each queue has independent id sets.
      * @return
      */
     public JobStatus getJobStatus(long id, boolean isPersistent) {
-        return null;
+        if(jobConsumerExecutor.isRunning(id, isPersistent)) {
+            return JobStatus.RUNNING;
+        }
+        JobHolder holder;
+        if(isPersistent) {
+            synchronized (persistentJobQueue) {
+                holder = persistentJobQueue.findJobById(id);
+            }
+        } else {
+            synchronized (nonPersistentJobQueue) {
+                holder = nonPersistentJobQueue.findJobById(id);
+            }
+        }
+        if(holder == null) {
+            return JobStatus.UNKNOWN;
+        }
+        boolean network = hasNetwork();
+        if(holder.requiresNetwork() && !network) {
+            return JobStatus.WAITING_NOT_READY;
+        }
+        if(holder.getDelayUntilNs() > System.nanoTime()) {
+            return JobStatus.WAITING_NOT_READY;
+        }
+
+        return JobStatus.WAITING_READY;
     }
 
     private void removeJob(JobHolder jobHolder) {
