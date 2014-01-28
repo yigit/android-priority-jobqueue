@@ -107,18 +107,18 @@ public class JobConsumerExecutor {
     }
 
     private void onBeforeRun(JobHolder jobHolder) {
-        runningJobHolders.put(createrunningJobHolderKey(jobHolder), jobHolder);
+        runningJobHolders.put(createRunningJobHolderKey(jobHolder), jobHolder);
     }
 
     private void onAfterRun(JobHolder jobHolder) {
-        runningJobHolders.remove(createrunningJobHolderKey(jobHolder));
+        runningJobHolders.remove(createRunningJobHolderKey(jobHolder));
     }
 
-    private String createrunningJobHolderKey(JobHolder jobHolder) {
-        return createrunningJobHolderKey(jobHolder.getId(), jobHolder.getBaseJob().isPersistent());
+    private String createRunningJobHolderKey(JobHolder jobHolder) {
+        return createRunningJobHolderKey(jobHolder.getId(), jobHolder.getBaseJob().isPersistent());
     }
 
-    private String createrunningJobHolderKey(long id, boolean isPersistent) {
+    private String createRunningJobHolderKey(long id, boolean isPersistent) {
         return id + "_" + (isPersistent ? "t" : "f");
     }
 
@@ -129,7 +129,7 @@ public class JobConsumerExecutor {
      * @return true if job is currently handled here
      */
     public boolean isRunning(long id, boolean persistent) {
-        return runningJobHolders.containsKey(createrunningJobHolderKey(id, persistent));
+        return runningJobHolders.containsKey(createRunningJobHolderKey(id, persistent));
     }
 
     /**

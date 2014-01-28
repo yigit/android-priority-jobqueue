@@ -306,7 +306,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     /**
      * Returns the current status of a {@link Job}.
      * <p>
-     *     You should not call this method on UI thread because it may make a db request.
+     *     You should not call this method on the UI thread because it may make a db request.
      * </p>
      * <p>
      *     This is not a very fast call so try not to make it unless necessary. Consider using events if you need to be

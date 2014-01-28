@@ -22,7 +22,7 @@ public enum JobStatus {
      */
     RUNNING,
     /**
-     * Job is not know by job queue.
+     * Job is not known by job queue.
      * <p>This might be:
      * <ul>
      *     <li>Invalid ID</li>
