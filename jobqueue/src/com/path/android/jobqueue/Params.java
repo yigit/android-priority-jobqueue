@@ -97,23 +97,23 @@ public class Params {
         return this;
     }
 
-    boolean doesRequireNetwork() {
+    public boolean doesRequireNetwork() {
         return requiresNetwork;
     }
 
-    String getGroupId() {
+    public String getGroupId() {
         return groupId;
     }
 
-    boolean isPersistent() {
+    public boolean isPersistent() {
         return persistent;
     }
 
-    int getPriority() {
+    public int getPriority() {
         return priority;
     }
 
-    long getDelayMs() {
+    public long getDelayMs() {
         return delayMs;
     }
 }
