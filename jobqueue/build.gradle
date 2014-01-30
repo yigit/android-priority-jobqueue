@@ -1,4 +1,8 @@
 import java.util.regex.Pattern
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.10'
+}
+
 apply plugin: 'maven'
 apply plugin: 'signing'
 
@@ -8,7 +12,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.7.+'
+        classpath 'com.android.tools.build:gradle:0.8.+'
     }
 }
 
@@ -22,7 +26,7 @@ apply plugin: 'android-library'
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "18.1.0"
+    buildToolsVersion "19.0.1"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
