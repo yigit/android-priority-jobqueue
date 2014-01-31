@@ -129,7 +129,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.path:android-priority-jobqueue:1.0'`
+Gradle: `compile 'com.path:android-priority-jobqueue:1.1'`
 
 Maven:
 
@@ -137,7 +137,7 @@ Maven:
 <dependency>
     <groupId>com.path</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
 </dependency>
 ```
 
@@ -150,7 +150,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
-
+  - 1.1 (Jan 30, 2014)
+   - Job Status query API (#18)
+   - Fixed a stackoverflow bug when network status changes after a long time. (#21) 
   - 1.0 (Jan 14, 2014):
    - Added [parameterized][12] constructor for Job for more readable code.
    - Deprecated `BaseJob` in favor of a more complete `Job` class.
