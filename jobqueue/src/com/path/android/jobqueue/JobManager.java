@@ -11,6 +11,7 @@ import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
+import java.util.Collection;
 import java.util.concurrent.*;
 
 /**
@@ -40,6 +41,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final ConcurrentHashMap<Long, CountDownLatch> persistentOnAddedLocks;
     private final ConcurrentHashMap<Long, CountDownLatch> nonPersistentOnAddedLocks;
     private final ScheduledExecutorService timedExecutor;
+    private final Object getNextJobLock = new Object();
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -260,30 +262,36 @@ public class JobManager implements NetworkEventProvider.Listener {
         boolean haveNetwork = hasNetwork();
         JobHolder jobHolder;
         boolean persistent = false;
-        synchronized (nonPersistentJobQueue) {
-            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());
-        }
-        if (jobHolder == null) {
-            //go to disk, there aren't any non-persistent jobs
-            synchronized (persistentJobQueue) {
-                jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups.getSafe());
-                persistent = true;
+        synchronized (getNextJobLock) {
+            final Collection<String> runningJobIds = runningJobGroups.getSafe();
+            synchronized (nonPersistentJobQueue) {
+                jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobIds);
+            }
+            if (jobHolder == null) {
+                //go to disk, there aren't any non-persistent jobs
+                synchronized (persistentJobQueue) {
+                    jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobIds);
+                    persistent = true;
+                }
+            }
+            if(jobHolder == null) {
+                return null;
+            }
+            if(persistent && dependencyInjector != null) {
+                dependencyInjector.inject(jobHolder.getBaseJob());
+            }
+            if(jobHolder.getGroupId() != null) {
+                runningJobGroups.add(jobHolder.getGroupId());
             }
         }
-        if(jobHolder != null) {
-            //wait for onAdded locks
-            if(persistent) {
-                waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());
-            } else {
-                waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());
-            }
+
+        //wait for onAdded locks. wait for locks after job is selected so that we minimize the lock
+        if(persistent) {
+            waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());
+        } else {
+            waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());
         }
-        if(persistent && jobHolder != null && dependencyInjector != null) {
-            dependencyInjector.inject(jobHolder.getBaseJob());
-        }
-        if(jobHolder != null && jobHolder.getGroupId() != null) {
-            runningJobGroups.add(jobHolder.getGroupId());
-        }
+
         return jobHolder;
     }
 
