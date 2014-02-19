@@ -129,7 +129,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.path:android-priority-jobqueue:1.1.1'`
+Gradle: `compile 'com.path:android-priority-jobqueue:1.1.2'`
 
 Maven:
 
@@ -137,7 +137,7 @@ Maven:
 <dependency>
     <groupId>com.path</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 </dependency>
 ```
 
@@ -150,6 +150,8 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 1.1.2 (Feb 18, 2014)
+   - Report exceptions to logger if addInBackground fails. (#31)
   - 1.1.1 (Feb 8, 2014)
    - Fixed an important bug (#35) where jobs in the same group may run in parallel if many of them become available at the same time while multiple consumer threads are waiting for a new job. 
   - 1.1 (Jan 30, 2014)
