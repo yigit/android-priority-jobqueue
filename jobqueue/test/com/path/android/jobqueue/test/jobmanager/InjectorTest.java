@@ -81,7 +81,7 @@ public class InjectorTest extends JobManagerTestBase {
                 //
             }
         };
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).injector(dummyDependencyInjector));
+        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).injector(dummyDependencyInjector).customLogger(customLogger));
         Throwable addException = null;
         try {
             jobManager.addJob(new DummyJob(new Params(0)));

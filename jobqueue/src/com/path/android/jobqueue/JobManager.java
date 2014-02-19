@@ -560,10 +560,14 @@ public class JobManager implements NetworkEventProvider.Listener {
         timedExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                final long runDelay = (System.nanoTime() - callTime) / NS_PER_MS;
-                long id = addJob(priority, Math.max(0, delay - runDelay), baseJob);
-                if(callback != null) {
-                    callback.onAdded(id);
+                try {
+                    final long runDelay = (System.nanoTime() - callTime) / NS_PER_MS;
+                    long id = addJob(priority, Math.max(0, delay - runDelay), baseJob);
+                    if(callback != null) {
+                        callback.onAdded(id);
+                    }
+                } catch (Throwable t) {
+                    JqLog.e(t, "addJobInBackground received an exception. job class: %s", baseJob.getClass().getSimpleName() );
                 }
             }
         });
