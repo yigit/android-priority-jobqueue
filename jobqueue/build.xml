@@ -193,7 +193,7 @@
 
 
         <mkdir dir="${basedir}/out/reports/tests"/>
-        <junit showoutput="true" fork="yes" haltonfailure="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
+        <junit showoutput="true" fork="no" haltonfailure="yes" failureproperty="junit.failure" printsummary="yes" logfailedtests="true">
             <jvmarg value="-Xmx2g"/>
             <formatter type="plain" usefile="false"/>
             <formatter type="plain"/>
