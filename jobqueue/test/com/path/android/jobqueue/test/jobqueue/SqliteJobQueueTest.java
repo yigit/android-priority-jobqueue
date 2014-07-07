@@ -1,6 +1,6 @@
 package com.path.android.jobqueue.test.jobqueue;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
@@ -39,7 +39,7 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
             }
 
             @Override
-            public <T extends BaseJob> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+            public <T extends Job> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
                 calledForDeserialize.countDown();
                 return super.deserialize(bytes);
             }

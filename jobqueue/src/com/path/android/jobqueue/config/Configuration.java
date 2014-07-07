@@ -139,7 +139,7 @@ public class Configuration {
 
         /**
          * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
-         * before {BaseJob#onAdded} method is called.
+         * before {Job#onAdded} method is called.
          * if job is persistent, it will also be called before run method.
          * @param injector your dependency injector interface, if using one
          * @return

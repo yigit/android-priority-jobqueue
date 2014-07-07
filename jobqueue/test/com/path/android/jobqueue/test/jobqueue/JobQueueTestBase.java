@@ -99,7 +99,7 @@ public abstract class JobQueueTestBase extends TestBase {
         long jobId5 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group1")));
         JobHolder holder1 = jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group2"}));
         assertThat("first jobs should be from group group2 if group1 is excluded",
-                holder1.getBaseJob().getRunGroupId(), equalTo("group1"));
+                holder1.getJob().getRunGroupId(), equalTo("group1"));
         assertThat("correct job should be returned if groupId is provided",
                 holder1.getId(), equalTo(jobId1));
         assertThat("no jobs should be returned if all groups are excluded",
@@ -112,7 +112,7 @@ public abstract class JobQueueTestBase extends TestBase {
                         Arrays.asList(new String[]{"group1", "group2"})).getId(),
                 is(jobId6));
         assertThat("if group1 is excluded, next job should be from group2",
-                jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group1"})).getBaseJob().getRunGroupId()
+                jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group1"})).getJob().getRunGroupId()
                 , equalTo("group2"));
 
         //to test re-run case, add the job back in
@@ -416,7 +416,7 @@ public abstract class JobQueueTestBase extends TestBase {
         int priority = (int) (Math.random() * 1000);
         jobHolder.setPriority(priority);
         DummyJob dummyJob = new DummyJob(new Params(0));
-        jobHolder.setBaseJob(dummyJob);
+        jobHolder.setJob(dummyJob);
         int runCount = (int) (Math.random() * 10);
         jobHolder.setRunCount(runCount);
 

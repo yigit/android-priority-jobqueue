@@ -20,7 +20,7 @@ public class PersistentJobTest extends JobManagerTestBase {
     @Test
     public void testPersistentJob() throws Exception {
         JobManager jobManager = createJobManager();
-        jobManager.addJob(0, new DummyPersistentLatchJob());
+        jobManager.addJob(new DummyPersistentLatchJob());
         persistentRunLatch.await(5, TimeUnit.SECONDS);
         MatcherAssert.assertThat((int) persistentRunLatch.getCount(), equalTo(0));
     }

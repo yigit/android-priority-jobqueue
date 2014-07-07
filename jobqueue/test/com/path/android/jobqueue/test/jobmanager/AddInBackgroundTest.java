@@ -1,7 +1,6 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.AsyncAddCallback;
-import com.path.android.jobqueue.BaseJob;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
@@ -63,7 +62,7 @@ public class AddInBackgroundTest extends JobManagerTestBase {
             JobHolder holder = queue.findJobById(jobId.longValue());
             MatcherAssert.assertThat("there should be a job in the holder. id:" + jobId.longValue() +", delayed:" + delayed + ", use cb:" + useCallback
                     , holder, CoreMatchers.notNullValue());
-            MatcherAssert.assertThat("id callback should have the proper id:", holder.getBaseJob(), CoreMatchers.is((BaseJob) dummyJob));
+            MatcherAssert.assertThat("id callback should have the proper id:", holder.getJob(), CoreMatchers.is((Job)dummyJob));
         }
     }
 

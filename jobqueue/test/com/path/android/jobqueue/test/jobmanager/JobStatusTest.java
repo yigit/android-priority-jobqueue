@@ -86,6 +86,8 @@ public class JobStatusTest extends JobManagerTestBase {
         while (jobManager.count() > 0 && limit--  > 0) {
             Thread.sleep(1000);
         }
+        //we need a better api callback to do this
+        Thread.sleep(500);
         assertThat("jobs should finish", jobManager.count(), is(0));
         for(int i = 0; i < jobs.length; i ++) {
             //after all jobs finish, state should be unknown

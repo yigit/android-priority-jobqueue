@@ -115,7 +115,7 @@ public class JobConsumerExecutor {
     }
 
     private String createRunningJobHolderKey(JobHolder jobHolder) {
-        return createRunningJobHolderKey(jobHolder.getId(), jobHolder.getBaseJob().isPersistent());
+        return createRunningJobHolderKey(jobHolder.getId(), jobHolder.getJob().isPersistent());
     }
 
     private String createRunningJobHolderKey(long id, boolean isPersistent) {

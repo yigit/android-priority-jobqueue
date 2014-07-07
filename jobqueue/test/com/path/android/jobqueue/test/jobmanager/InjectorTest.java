@@ -1,6 +1,6 @@
 package com.path.android.jobqueue.test.jobmanager;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
@@ -27,7 +27,7 @@ public class InjectorTest extends JobManagerTestBase {
         final AtomicInteger injectionCallCount = new AtomicInteger(0);
         DependencyInjector dependencyInjector = new DependencyInjector() {
             @Override
-            public void inject(BaseJob job) {
+            public void inject(Job job) {
                 injectedJobReference.setObject(job);
                 injectionCallCount.incrementAndGet();
             }
@@ -40,10 +40,10 @@ public class InjectorTest extends JobManagerTestBase {
         jobManager.addJob(new DummyJob(new Params(1).persist()));
         MatcherAssert.assertThat("injection should be called after adding a persistent job", injectionCallCount.get(), equalTo(2));
         JobHolder holder = getNextJobMethod(jobManager).invoke();
-        MatcherAssert.assertThat("injection should NOT be called for non persistent job", holder.getBaseJob(), not(injectedJobReference.getObject()));
+        MatcherAssert.assertThat("injection should NOT be called for non persistent job", holder.getJob(), not(injectedJobReference.getObject()));
         MatcherAssert.assertThat("injection should be called once for non persistent job", injectionCallCount.get(), equalTo(2));
         holder = getNextJobMethod(jobManager).invoke();
-        MatcherAssert.assertThat("injection should be called for persistent job", holder.getBaseJob(), equalTo(injectedJobReference.getObject()));
+        MatcherAssert.assertThat("injection should be called for persistent job", holder.getJob(), equalTo(injectedJobReference.getObject()));
         MatcherAssert.assertThat("injection should be called two times for persistent job", injectionCallCount.get(), equalTo(3));
     }
 
@@ -52,7 +52,7 @@ public class InjectorTest extends JobManagerTestBase {
         final String EXCEPTION_MESSAGE = "could not inject for whatever reason :)";
         DependencyInjector dummyDependencyInjector = new DependencyInjector() {
             @Override
-            public void inject(BaseJob baseJob) {
+            public void inject(Job job) {
                 throw new RuntimeException(EXCEPTION_MESSAGE);
             }
         };

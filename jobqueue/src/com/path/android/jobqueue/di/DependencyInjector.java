@@ -1,6 +1,6 @@
 package com.path.android.jobqueue.di;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
 
 /**
  * interface that can be provided to {@link com.path.android.jobqueue.JobManager} for dependency injection
@@ -8,5 +8,5 @@ import com.path.android.jobqueue.BaseJob;
  * back from disk.
  */
 public interface DependencyInjector {
-    public void inject(BaseJob job);
+    public void inject(Job job);
 }

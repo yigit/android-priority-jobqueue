@@ -1,7 +1,7 @@
 package com.path.android.jobqueue;
 
 /**
- * BaseJob builder object to have a more readable design.
+ * Job builder object to have a more readable design.
  * Methods can be chained to have more readable code.
  */
 public class Params {

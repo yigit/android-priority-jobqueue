@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,7 +21,7 @@ public class ReRunWithLimitTest extends JobManagerTestBase {
     private void testReRun(JobManager jobManager, boolean persist) throws InterruptedException {
         DummyJobWithRunCount.runCount = 0;//reset
         DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
-        jobManager.addJob(0, job);
+        jobManager.addJob(job);
         int limit = 25;
         while (limit-- > 0 && DummyJobWithRunCount.runCount != 5) {
             Thread.sleep(100);

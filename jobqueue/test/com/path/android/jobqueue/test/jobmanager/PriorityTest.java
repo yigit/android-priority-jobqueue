@@ -1,7 +1,8 @@
 package com.path.android.jobqueue.test.jobmanager;
 
-import com.path.android.jobqueue.BaseJob;
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -26,23 +27,23 @@ public class PriorityTest extends JobManagerTestBase {
     public void testPriority(JobManager jobManager, boolean persist) throws Exception {
         priorityRunLatch = new CountDownLatch(2);
         DummyJobWithRunOrderAssert.globalRunCount = new AtomicInteger(0);
-        BaseJob job1 = new DummyJobWithRunOrderAssert(2, persist);
-        BaseJob job2 = new DummyJobWithRunOrderAssert(1, persist);
+        Job job1 = new DummyJobWithRunOrderAssert(2, new Params(1).setPersistent(persist));
+        Job job2 = new DummyJobWithRunOrderAssert(1, new Params(2).setPersistent(persist));
         jobManager.stop();
-        jobManager.addJob(1, job1);
-        jobManager.addJob(2, job2);
+        jobManager.addJob(job1);
+        jobManager.addJob(job2);
         jobManager.start();
         priorityRunLatch.await(4, TimeUnit.SECONDS);
         //ensure both jobs did run
         MatcherAssert.assertThat((int) priorityRunLatch.getCount(), equalTo(0));
     }
 
-    public static class DummyJobWithRunOrderAssert extends BaseJob {
+    public static class DummyJobWithRunOrderAssert extends Job {
         transient public static AtomicInteger globalRunCount;
         private int expectedRunOrder;
 
-        public DummyJobWithRunOrderAssert(int expectedRunOrder, boolean persist) {
-            super(true, persist);
+        public DummyJobWithRunOrderAssert(int expectedRunOrder, Params params) {
+            super(params.requireNetwork());
             this.expectedRunOrder = expectedRunOrder;
         }
 

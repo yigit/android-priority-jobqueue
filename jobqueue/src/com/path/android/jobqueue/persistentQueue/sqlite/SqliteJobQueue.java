@@ -5,10 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
-import com.path.android.jobqueue.BaseJob;
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.*;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.io.ByteArrayInputStream;
@@ -72,9 +69,9 @@ public class SqliteJobQueue implements JobQueue {
             stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
         }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
-        byte[] baseJob = getSerializeBaseJob(jobHolder);
-        if (baseJob != null) {
-            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, baseJob);
+        byte[] job = getSerializeJob(jobHolder);
+        if (job != null) {
+            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, job);
         }
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
@@ -170,7 +167,7 @@ public class SqliteJobQueue implements JobQueue {
                 return null;
             }
             return createJobHolderFromCursor(cursor);
-        } catch (InvalidBaseJobException e) {
+        } catch (InvalidJobException e) {
             JqLog.e(e, "invalid job on findJobById");
             return null;
         } finally {
@@ -204,7 +201,7 @@ public class SqliteJobQueue implements JobQueue {
             JobHolder holder = createJobHolderFromCursor(cursor);
             onJobFetchedForRunning(holder);
             return holder;
-        } catch (InvalidBaseJobException e) {
+        } catch (InvalidJobException e) {
             //delete
             Long jobId = cursor.getLong(0);
             delete(jobId);
@@ -288,10 +285,10 @@ public class SqliteJobQueue implements JobQueue {
         }
     }
 
-    private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidBaseJobException {
-        BaseJob job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));
+    private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidJobException {
+        Job job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));
         if (job == null) {
-            throw new InvalidBaseJobException();
+            throw new InvalidJobException();
         }
         return new JobHolder(
                 cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
@@ -306,7 +303,7 @@ public class SqliteJobQueue implements JobQueue {
 
     }
 
-    private BaseJob safeDeserialize(byte[] bytes) {
+    private Job safeDeserialize(byte[] bytes) {
         try {
             return jobSerializer.deserialize(bytes);
         } catch (Throwable t) {
@@ -315,8 +312,8 @@ public class SqliteJobQueue implements JobQueue {
         return null;
     }
 
-    private byte[] getSerializeBaseJob(JobHolder jobHolder) {
-        return safeSerialize(jobHolder.getBaseJob());
+    private byte[] getSerializeJob(JobHolder jobHolder) {
+        return safeSerialize(jobHolder.getJob());
     }
 
     private byte[] safeSerialize(Object object) {
@@ -328,7 +325,7 @@ public class SqliteJobQueue implements JobQueue {
         return null;
     }
 
-    private static class InvalidBaseJobException extends Exception {
+    private static class InvalidJobException extends Exception {
 
     }
 
@@ -355,7 +352,7 @@ public class SqliteJobQueue implements JobQueue {
         }
 
         @Override
-        public <T extends BaseJob> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+        public <T extends Job> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
             if (bytes == null || bytes.length == 0) {
                 return null;
             }
@@ -373,6 +370,6 @@ public class SqliteJobQueue implements JobQueue {
 
     public static interface JobSerializer {
         public byte[] serialize(Object object) throws IOException;
-        public <T extends BaseJob> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException;
+        public <T extends Job> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException;
     }
 }
