@@ -10,8 +10,10 @@ import com.path.android.jobqueue.log.JqLog;
 public class SqlHelper {
 
     /**package**/ String FIND_BY_ID_QUERY;
+    /**package**/ String FIND_BY_TAG_QUERY;
 
     private SQLiteStatement insertStatement;
+    private SQLiteStatement insertTagsStatement;
     private SQLiteStatement insertOrReplaceStatement;
     private SQLiteStatement deleteStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
@@ -24,19 +26,27 @@ public class SqlHelper {
     final String tableName;
     final String primaryKeyColumnName;
     final int columnCount;
+    final String tagsTableName;
+    final int tagsColumnCount;
     final long sessionId;
 
-    public SqlHelper(SQLiteDatabase db, String tableName, String primaryKeyColumnName, int columnCount, long sessionId) {
+    public SqlHelper(SQLiteDatabase db, String tableName, String primaryKeyColumnName,
+            int columnCount, String tagsTableName, int tagsColumnCount, long sessionId) {
         this.db = db;
         this.tableName = tableName;
         this.columnCount = columnCount;
         this.primaryKeyColumnName = primaryKeyColumnName;
         this.sessionId = sessionId;
+        this.tagsColumnCount = tagsColumnCount;
+        this.tagsTableName = tagsTableName;
         FIND_BY_ID_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName + " = ?";
+        FIND_BY_TAG_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName
+                + " IN ( SELECT " + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " FROM " + tagsTableName
+                + " WHERE " + DbOpenHelper.TAGS_NAME_COLUMN.columnName + " = ?)";
     }
 
     public static String create(String tableName, Property primaryKey, Property... properties) {
-        StringBuilder builder = new StringBuilder("CREATE TABLE ");
+        StringBuilder builder = new StringBuilder("CREATE TABLE IF NOT EXISTS ");
         builder.append(tableName).append(" (");
         builder.append(primaryKey.columnName).append(" ");
         builder.append(primaryKey.type);
@@ -44,9 +54,31 @@ public class SqlHelper {
         for (Property property : properties) {
             builder.append(", `").append(property.columnName).append("` ").append(property.type);
         }
+        for (Property property : properties) {
+            if (property.foreignKey != null) {
+                ForeignKey key = property.foreignKey;
+                builder.append(", FOREIGN KEY(`").append(property.columnName)
+                        .append("`) REFERENCES ").append(key.targetTable).append("(`")
+                        .append(key.targetFieldName).append("`) ON DELETE CASCADE");
+            }
+        }
         builder.append(" );");
         JqLog.d(builder.toString());
         return builder.toString();
+    }
+
+    public String createFindByTagsQuery(int numberOfTags) {
+        StringBuilder query = new StringBuilder();
+        String placeHolders = createPlaceholders(numberOfTags);
+        query.append("SELECT * FROM ").append(tableName).append(" WHERE ")
+                .append(DbOpenHelper.ID_COLUMN.columnName).append(" IN ( SELECT ")
+                .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(" FROM ")
+                .append(tagsTableName).append(" WHERE ")
+                .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(" IN (")
+                .append(placeHolders).append(")").append(" GROUP BY (`")
+                .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append("`) HAVING count(*) = ")
+                .append(numberOfTags).append(")");
+        return query.toString();
     }
 
     public static String drop(String tableName) {
@@ -67,6 +99,22 @@ public class SqlHelper {
             insertStatement = db.compileStatement(builder.toString());
         }
         return insertStatement;
+    }
+
+    public SQLiteStatement getInsertTagsStatement() {
+        if (insertTagsStatement == null) {
+            StringBuilder builder = new StringBuilder("INSERT INTO ").append(DbOpenHelper.JOB_TAGS_TABLE_NAME);
+            builder.append(" VALUES (");
+            for (int i = 0; i < tagsColumnCount; i++) {
+                if (i != 0) {
+                    builder.append(",");
+                }
+                builder.append("?");
+            }
+            builder.append(")");
+            insertTagsStatement = db.compileStatement(builder.toString());
+        }
+        return insertTagsStatement;
     }
 
     public SQLiteStatement getCountStatement() {
@@ -158,6 +206,22 @@ public class SqlHelper {
         return builder.toString();
     }
 
+    /**
+     * returns a placeholder string that contains <code>count</code> placeholders. e.g. ?,?,? for
+     * 3.
+     * @param count Number of placeholders to add.
+     */
+    private static String createPlaceholders(int count) {
+        if (count == 0) {
+            throw new IllegalArgumentException("cannot create placeholders for 0 items");
+        }
+        final StringBuilder builder = new StringBuilder("?");
+        for (int i = 1; i < count; i ++) {
+            builder.append(",?");
+        }
+        return builder.toString();
+    }
+
     public void truncate() {
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME);
         vacuum();
@@ -176,11 +240,27 @@ public class SqlHelper {
         /*package*/ final String columnName;
         /*package*/ final String type;
         public final int columnIndex;
+        public final ForeignKey foreignKey;
 
         public Property(String columnName, String type, int columnIndex) {
+            this(columnName, type, columnIndex, null);
+        }
+
+        public Property(String columnName, String type, int columnIndex, ForeignKey foreignKey) {
             this.columnName = columnName;
             this.type = type;
             this.columnIndex = columnIndex;
+            this.foreignKey = foreignKey;
+        }
+    }
+
+    public static class ForeignKey {
+        final String targetTable;
+        final String targetFieldName;
+
+        public ForeignKey(String targetTable, String targetFieldName) {
+            this.targetTable = targetTable;
+            this.targetFieldName = targetFieldName;
         }
     }
 

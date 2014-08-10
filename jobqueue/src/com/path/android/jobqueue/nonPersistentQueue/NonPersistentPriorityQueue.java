@@ -107,6 +107,14 @@ public class NonPersistentPriorityQueue implements JobQueue {
         return jobs.findById(id);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set<JobHolder> findJobsByTags(String... tags) {
+        return jobs.findByTags(tags);
+    }
+
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {
         @Override
         public int compare(JobHolder holder1, JobHolder holder2) {

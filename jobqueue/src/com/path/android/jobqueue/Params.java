@@ -1,5 +1,7 @@
 package com.path.android.jobqueue;
 
+import java.util.HashSet;
+
 /**
  * Job builder object to have a more readable design.
  * Methods can be chained to have more readable code.
@@ -10,6 +12,7 @@ public class Params {
     private boolean persistent = false;
     private int priority;
     private long delayMs;
+    private HashSet<String> tags;
 
     /**
      *
@@ -97,6 +100,43 @@ public class Params {
         return this;
     }
 
+    /**
+     * Attaches given tags to the Job.
+     * These are initially used for cancelling or querying jobs but usage will be extended
+     * @param newTags List of tags to add
+     * @return
+     */
+    public Params addTags(String... newTags) {
+        if(tags == null) {
+            tags = new HashSet<String>();
+        }
+        for(String tag : newTags) {
+            tags.add(tag);
+        }
+        return this;
+    }
+
+    /**
+     * Removes the given tags from the Job.
+     *
+     * @param oldTags List of tags to be removed
+     * @return
+     */
+    public Params removeTags(String... oldTags) {
+        if(tags == null) {
+            return this;
+        }
+        for(String tag : oldTags) {
+            tags.remove(tag);
+        }
+        return this;
+    }
+
+    public Params clearTags() {
+        tags = null;
+        return this;
+    }
+
     public boolean doesRequireNetwork() {
         return requiresNetwork;
     }
@@ -115,5 +155,9 @@ public class Params {
 
     public long getDelayMs() {
         return delayMs;
+    }
+
+    public HashSet<String> getTags() {
+        return tags;
     }
 }

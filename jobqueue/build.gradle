@@ -12,7 +12,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.8.+'
+        classpath 'com.android.tools.build:gradle:0.11.+'
     }
 }
 
@@ -26,7 +26,7 @@ apply plugin: 'android-library'
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "19.0.1"
+    buildToolsVersion "19.1"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -49,7 +49,7 @@ println "version name:${manifestVersionName}"
 android.libraryVariants.all { variant ->
     def name = variant.buildType.name
     println "checking variant ${name}"
-    if (name.equals(com.android.builder.BuilderConstants.DEBUG)) {
+    if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
         return; // Skip debug builds.
     }
     def suffix = name.capitalize()
@@ -61,7 +61,7 @@ android.libraryVariants.all { variant ->
     }
     def javadocTask = project.tasks.create(name: "javadoc${suffix}", type: Javadoc) {
         source = variant.javaCompile.source
-        ext.androidJar = "${android.plugin.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
+        ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
         classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
     }
 
@@ -71,7 +71,7 @@ android.libraryVariants.all { variant ->
     }
 
     def sourcesJarTask = project.tasks.create(name: "sourceJar${suffix}", type: Jar) {
-        from android.sourceSets.main.allSource
+        from android.sourceSets.main.getJava()
         classifier = 'sources'
     }
     artifacts.add('archives', jarTask);

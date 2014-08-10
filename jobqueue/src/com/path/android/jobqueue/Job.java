@@ -1,6 +1,8 @@
 package com.path.android.jobqueue;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Base class for all of your jobs.
@@ -11,11 +13,14 @@ abstract public class Job extends BaseJob implements Serializable {
     private static final long serialVersionUID = 1L;
     private transient int priority;
     private transient long delayInMs;
+    private transient final Set<String> readonlyTags;
 
     protected Job(Params params) {
         super(params.doesRequireNetwork(), params.isPersistent(), params.getGroupId());
         this.priority = params.getPriority();
         this.delayInMs = params.getDelayMs();
+        Set<String> tags = params.getTags();
+        this.readonlyTags = tags == null ? null : Collections.unmodifiableSet(tags);
     }
 
     /**
@@ -34,5 +39,13 @@ abstract public class Job extends BaseJob implements Serializable {
      */
     public final long getDelayInMs() {
         return delayInMs;
+    }
+
+    /**
+     * Returns a readonly set of tags attached to this Job.
+     * @return Set of Tags. If tags do not exists, returns null.
+     */
+    public final Set<String> getTags() {
+        return readonlyTags;
     }
 }

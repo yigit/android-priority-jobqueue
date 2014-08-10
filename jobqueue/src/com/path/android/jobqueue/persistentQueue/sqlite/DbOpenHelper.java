@@ -8,8 +8,9 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Helper class for {@link SqliteJobQueue} to handle database connection
  */
 public class DbOpenHelper extends SQLiteOpenHelper {
-    private static final int DB_VERSION = 3;
+    private static final int DB_VERSION = 4;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
+    /*package*/ static final String JOB_TAGS_TABLE_NAME = "job_holder_tags";
     /*package*/ static final SqlHelper.Property ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
     /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property("priority", "integer", 1);
     /*package*/ static final SqlHelper.Property GROUP_ID_COLUMN = new SqlHelper.Property("group_id", "text", 2);
@@ -19,8 +20,12 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property("delay_until_ns", "long", 6);
     /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long", 7);
     /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_COLUMN = new SqlHelper.Property("requires_network", "integer", 8);
+    /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
+    /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "integer", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
+    /*package*/ static final SqlHelper.Property TAGS_NAME_COLUMN = new SqlHelper.Property("tag_name", "text", 2);
 
     /*package*/ static final int COLUMN_COUNT = 9;
+    /*package*/ static final int TAGS_COLUMN_COUNT = 3;
 
     public DbOpenHelper(Context context, String name) {
         super(context, name, null, DB_VERSION);
@@ -40,11 +45,18 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 REQUIRES_NETWORK_COLUMN
         );
         sqLiteDatabase.execSQL(createQuery);
+
+        String createTagsQuery = SqlHelper.create(JOB_TAGS_TABLE_NAME,
+                TAGS_ID_COLUMN,
+                TAGS_JOB_ID_COLUMN,
+                TAGS_NAME_COLUMN);
+        sqLiteDatabase.execSQL(createTagsQuery);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
+        sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));
         onCreate(sqLiteDatabase);
     }
 }

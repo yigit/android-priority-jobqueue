@@ -7,6 +7,7 @@ import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +49,12 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
             MatcherAssert.assertThat("should get a next job", holder, notNullValue());
             jobQueue.remove(holder);
         }
+    }
+
+    @Test
+    public void testFindByTags() {
+        JobQueue jobQueue = createNewJobQueue();
+        assertThat("empty queue should return 0",jobQueue.findJobsByTags("abc").size(), is(0));
 
     }
 }

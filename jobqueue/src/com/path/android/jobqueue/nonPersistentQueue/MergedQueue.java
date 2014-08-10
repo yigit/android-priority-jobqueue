@@ -214,6 +214,12 @@ abstract public class MergedQueue implements JobSet {
         return q0 == null ? queue1.findById(id) : q0;
     }
 
+    public Set<JobHolder> findByTags(String... tags) {
+        Set<JobHolder> jobs = queue0.findByTags(tags);
+        jobs.addAll(queue1.findByTags(tags));
+        return jobs;
+    }
+
     /**
      * simple enum to identify queues
      */

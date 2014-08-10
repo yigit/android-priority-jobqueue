@@ -1,5 +1,8 @@
 package com.path.android.jobqueue;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * Container class to address Jobs inside job manager.
  */
@@ -20,6 +23,7 @@ public class JobHolder {
     protected long runningSessionId;
     protected boolean requiresNetwork;
     transient Job job;
+    protected final Set<String> tags;
 
     /**
      * @param id               Unique ID for the job. Should be unique per queue
@@ -41,6 +45,7 @@ public class JobHolder {
         this.job = job;
         this.runningSessionId = runningSessionId;
         this.requiresNetwork = job.requiresNetwork();
+        this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
     }
 
     public JobHolder(int priority, Job job, long runningSessionId) {
@@ -120,6 +125,10 @@ public class JobHolder {
         return groupId;
     }
 
+    public Set<String> getTags() {
+        return tags;
+    }
+
     @Override
     public int hashCode() {
         //we don't really care about overflow.
@@ -139,5 +148,9 @@ public class JobHolder {
             return false;
         }
         return id.equals(other.id);
+    }
+
+    public boolean hasTags() {
+        return tags != null && tags.size() > 0;
     }
 }

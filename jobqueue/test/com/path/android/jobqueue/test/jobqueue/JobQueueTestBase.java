@@ -13,7 +13,12 @@ import static org.hamcrest.MatcherAssert.*;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Ignore
@@ -482,6 +487,103 @@ public abstract class JobQueueTestBase extends TestBase {
             assertJob(jobQueue, "after clear, find by id should return null", ids[i], null);
         }
     }
+
+    @Test
+    public void testFindByTags() {
+        JobQueue jobQueue = createNewJobQueue();
+        assertThat("empty queue should return 0",jobQueue.findJobsByTags("abc").size(), is(0));
+        jobQueue.insert(createNewJobHolder());
+        Set<JobHolder> result = jobQueue.findJobsByTags("blah");
+        assertThat("if job does not have a tag, it should return 0", result.size(), is(0));
+        final String tag1 = UUID.randomUUID().toString();
+        JobHolder holder = createNewJobHolder(new Params(0).addTags(tag1));
+        long id = jobQueue.insert(holder);
+        result = jobQueue.findJobsByTags("tata");
+        assertThat("if tag does not match, it should return 0", result.size(), is(0));
+        result = jobQueue.findJobsByTags(tag1);
+        assertThat("when correct tag is given, it should return one", result.size(), is(1));
+        assertThat("returned job should be the correct one", result.iterator().next().getId(), is(id));
+        jobQueue.insertOrReplace(holder);
+        result = jobQueue.findJobsByTags(tag1);
+        assertThat("when replaced, tags should be preserved", result.size(), is(1));
+        assertThat("when replaced, same job should be returned", result.iterator().next().getId(), is(id));
+
+        final Set<JobHolder> emptyResult = jobQueue.findJobsByTags(tag1, "non-existing-tag");
+        assertThat("if no job has all tags given, empty set should be returned", emptyResult.size(), is(0));
+
+        jobQueue.remove(holder);
+        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(tag1).size(), is(0));
+        String tag2;
+        do {
+            tag2 = UUID.randomUUID().toString();
+        } while (tag1.equals(tag2));
+    }
+
+    private void assertTags(String msg, JobQueue jobQueue, JobHolder holder) {
+        Set<JobHolder> result;
+        String wrongTag;
+        boolean found;
+        do {
+            wrongTag = UUID.randomUUID().toString();
+            found = false;
+            if(holder.getTags() != null) {
+                for(String tag : holder.getTags()) {
+                    if(tag.equals(wrongTag)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        } while (found);
+        result = jobQueue.findJobsByTags(wrongTag);
+        found = false;
+        for(JobHolder received : result) {
+            if(received.getId() == holder.getId()) {
+                found = true;
+            }
+        }
+        assertThat("when wrong tag is given, our job should not return", found, is(false));
+
+        if(holder.getTags() == null) {
+            return;// done
+        }
+        for(String tag : holder.getTags()) {
+
+        }
+        assertThat("when correct tag is given, it should return one", result.size(), is(1));
+        //assertThat("returned job should be the correct one", result.iterator().next().getId(), is(id));
+    }
+
+    List<String[]> combinations(Set<String> strings) {
+        if(strings.size() == 0) {
+            List<String[]> result = new ArrayList<String[]>();
+            result.add(new String[]{});
+            return result;
+        }
+        Set<String> remaining = new HashSet<String>();
+        boolean skip = true;
+        for(String str : strings) {
+            if(skip) {
+                skip = false;
+            } else {
+                remaining.add(str);
+            }
+        }
+        List<String[]> others = combinations(remaining);
+        List<String[]> result = new ArrayList<String[]>();
+        for(String[] subset : others) {
+            result.add(subset);
+            // add myself
+            String[] copy = new String[subset.length + 1];
+            copy[0] = strings.iterator().next();
+            for(int i = 1; i <= subset.length; i++) {
+                copy[i] = subset[i - 1];
+            }
+            result.add(copy);
+        }
+        return result;
+    }
+
 
     protected JobHolder createNewJobHolder() {
         return createNewJobHolder(new Params(0));

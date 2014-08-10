@@ -15,6 +15,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Persistent Job Queue that keeps its data in an sqlite database.
@@ -37,7 +39,8 @@ public class SqliteJobQueue implements JobQueue {
         this.sessionId = sessionId;
         dbOpenHelper = new DbOpenHelper(context, "db_" + id);
         db = dbOpenHelper.getWritableDatabase();
-        sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT, sessionId);
+        sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,
+                DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
         this.jobSerializer = jobSerializer;
         readyJobsQueryCache = new QueryCache();
         nextJobsQueryCache = new QueryCache();
@@ -49,7 +52,10 @@ public class SqliteJobQueue implements JobQueue {
      */
     @Override
     public long insert(JobHolder jobHolder) {
-        SQLiteStatement stmt = sqlHelper.getInsertStatement();
+        if (jobHolder.hasTags()) {
+            return insertWithTags(jobHolder);
+        }
+        final SQLiteStatement stmt = sqlHelper.getInsertStatement();
         long id;
         synchronized (stmt) {
             stmt.clearBindings();
@@ -58,6 +64,35 @@ public class SqliteJobQueue implements JobQueue {
         }
         jobHolder.setId(id);
         return id;
+    }
+
+    private long insertWithTags(JobHolder jobHolder) {
+        final SQLiteStatement stmt = sqlHelper.getInsertStatement();
+        final SQLiteStatement tagsStmt = sqlHelper.getInsertTagsStatement();
+        long id;
+        synchronized (stmt) {
+            db.beginTransaction();
+            try {
+                stmt.clearBindings();
+                bindValues(stmt, jobHolder);
+                id = stmt.executeInsert();
+                for (String tag : jobHolder.getTags()) {
+                    tagsStmt.clearBindings();
+                    bindTag(tagsStmt, id, tag);
+                    tagsStmt.executeInsert();
+                }
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        }
+        jobHolder.setId(id);
+        return id;
+    }
+
+    private void bindTag(SQLiteStatement stmt, long jobId, String tag) {
+        stmt.bindLong(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnIndex + 1, jobId);
+        stmt.bindString(DbOpenHelper.TAGS_NAME_COLUMN.columnIndex + 1, tag);
     }
 
     private void bindValues(SQLiteStatement stmt, JobHolder jobHolder) {
@@ -173,6 +208,24 @@ public class SqliteJobQueue implements JobQueue {
         } finally {
             cursor.close();
         }
+    }
+
+    @Override
+    public Set<JobHolder> findJobsByTags(String... tags) {
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        final String query = sqlHelper.createFindByTagsQuery(tags.length);
+        JqLog.d(query);
+        Cursor cursor = db.rawQuery(query, tags);
+        try {
+            while (cursor.moveToNext()) {
+                jobs.add(createJobHolderFromCursor(cursor));
+            }
+        } catch (InvalidJobException e) {
+            JqLog.e(e, "invalid job found by tags.");
+        } finally {
+            cursor.close();
+        }
+        return jobs;
     }
 
     /**

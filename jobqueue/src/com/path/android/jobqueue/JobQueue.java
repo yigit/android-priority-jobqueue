@@ -1,6 +1,7 @@
 package com.path.android.jobqueue;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * Interface that any JobQueue should implement
@@ -78,5 +79,12 @@ public interface JobQueue {
      * @return JobHolder with the given id or null if it does not exists
      */
     JobHolder findJobById(long id);
+
+    /**
+     * Returns jobs that has the given tags. The returned jobs should have all of the tags listed.
+     * @param tags
+     * @return
+     */
+    Set<JobHolder> findJobsByTags(String... tags);
 
 }
