@@ -13,7 +13,7 @@ abstract public class Job extends BaseJob implements Serializable {
     private static final long serialVersionUID = 1L;
     private transient int priority;
     private transient long delayInMs;
-    private transient final Set<String> readonlyTags;
+    private final Set<String> readonlyTags;
 
     protected Job(Params params) {
         super(params.doesRequireNetwork(), params.isPersistent(), params.getGroupId());

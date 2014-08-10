@@ -11,11 +11,16 @@ import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.fest.reflect.core.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
+
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
+import org.hamcrest.MatcherAssert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -492,6 +497,50 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     @Test
+    public void testTagsWithMultipleHolders() {
+        JobQueue jobQueue = createNewJobQueue();
+        final String tag1 = UUID.randomUUID().toString();
+        String tag2 = UUID.randomUUID().toString();
+        while (tag2.equals(tag1)) {
+            tag2 = UUID.randomUUID().toString();
+        }
+        String tag3 = UUID.randomUUID().toString();
+        while (tag3.equals(tag1) || tag3.equals(tag2)) {
+            tag3 = UUID.randomUUID().toString();
+        }
+
+        JobHolder holder1 = createNewJobHolder(new Params(0).addTags(tag1, tag2));
+        JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1, tag3));
+        jobQueue.insert(holder1);
+        jobQueue.insert(holder2);
+        Set<JobHolder> twoJobs = jobQueue.findJobsByTags(ANY, tag1);
+        Set<Long> resultIds = ids(twoJobs);
+
+        assertThat("two jobs should be returned", twoJobs.size(), is(2));
+        assertThat("should have job id 1", resultIds, hasItems(holder1.getId(), holder2.getId()));
+        for (String tag : new String[]{tag2, tag3}) {
+            Set<JobHolder> oneJob = jobQueue.findJobsByTags(ANY, tag);
+            resultIds = ids(oneJob);
+            assertThat("one job should be returned", oneJob.size(), is(1));
+            if (tag.equals(tag2)) {
+                assertThat("should have job id 1", resultIds, hasItems(holder1.getId()));
+            } else {
+                assertThat("should have job id 2", resultIds, hasItems(holder2.getId()));
+            }
+        }
+        jobQueue.remove(holder1);
+        assertTags("after one of the jobs is removed", jobQueue, holder2);
+    }
+
+    private Set<Long> ids(Collection<JobHolder> result) {
+        HashSet<Long> ids = new HashSet<Long>();
+        for (JobHolder holder : result) {
+            ids.add(holder.getId());
+        }
+        return ids;
+    }
+
+    @Test
     public void testFindByMultipleTags() {
         JobQueue jobQueue = createNewJobQueue();
         final String tag1 = UUID.randomUUID().toString();
@@ -533,6 +582,7 @@ public abstract class JobQueueTestBase extends TestBase {
         String wrongTag;
         final long id = holder.getId();
         boolean found;
+        Matcher allTagsMatcher = CoreMatchers.hasItems(holder.getTags().toArray(new String[holder.getTags().size()]));
         do {
             wrongTag = UUID.randomUUID().toString();
             found = false;
@@ -564,6 +614,7 @@ public abstract class JobQueueTestBase extends TestBase {
             } else {
                 assertThat(msg + " any combinations: when correct tag is given, it should return one", result.size(), is(1));
                 assertThat(msg + " any combinations: returned job should be the correct one", result.iterator().next().getId(), is(id));
+                assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
         }
 
@@ -576,6 +627,7 @@ public abstract class JobQueueTestBase extends TestBase {
                         result.size(), is(1));
                 assertThat(msg + " all combinations: returned job should be the correct one",
                         result.iterator().next().getId(), is(id));
+                assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
         }
 
@@ -591,6 +643,7 @@ public abstract class JobQueueTestBase extends TestBase {
                         result.size(), is(1));
                 assertThat(msg + " any combinations with wrong tag: returned job should be the correct one",
                         result.iterator().next().getId(), is(id));
+                assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
 
             result = jobQueue.findJobsByTags(TagConstraint.ALL, tagsWithAdditional);
