@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.TagConstraint;
 
 import java.util.*;
 
@@ -214,9 +215,10 @@ abstract public class MergedQueue implements JobSet {
         return q0 == null ? queue1.findById(id) : q0;
     }
 
-    public Set<JobHolder> findByTags(String... tags) {
-        Set<JobHolder> jobs = queue0.findByTags(tags);
-        jobs.addAll(queue1.findByTags(tags));
+    public Set<JobHolder> findByTags(TagConstraint constraint, String... tags) {
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        jobs.addAll(queue0.findByTags(constraint, tags));
+        jobs.addAll(queue1.findByTags(constraint, tags));
         return jobs;
     }
 

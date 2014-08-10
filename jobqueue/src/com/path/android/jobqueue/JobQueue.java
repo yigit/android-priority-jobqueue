@@ -81,10 +81,13 @@ public interface JobQueue {
     JobHolder findJobById(long id);
 
     /**
-     * Returns jobs that has the given tags. The returned jobs should have all of the tags listed.
-     * @param tags
+     * Returns jobs that has the given tags.
+     *
+     * @param tagConstraint If set to {@link TagConstraint#ALL}, returned jobs should have all of
+     *                      the tags provided. If set to {@link TagConstraint#ANY}, returned jobs
+     *                      should have at least one of the provided tags
+     * @param tags The list of tags
      * @return
      */
-    Set<JobHolder> findJobsByTags(String... tags);
-
+    Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, String... tags);
 }

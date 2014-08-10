@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import edu.emory.mathcs.backport.java.util.Collections;
+
 /**
  * Persistent Job Queue that keeps its data in an sqlite database.
  */
@@ -211,9 +213,12 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public Set<JobHolder> findJobsByTags(String... tags) {
+    public Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, String... tags) {
+        if (tags == null || tags.length == 0) {
+            return Collections.emptySet();
+        }
         Set<JobHolder> jobs = new HashSet<JobHolder>();
-        final String query = sqlHelper.createFindByTagsQuery(tags.length);
+        final String query = sqlHelper.createFindByTagsQuery(tagConstraint, tags.length);
         JqLog.d(query);
         Cursor cursor = db.rawQuery(query, tags);
         try {

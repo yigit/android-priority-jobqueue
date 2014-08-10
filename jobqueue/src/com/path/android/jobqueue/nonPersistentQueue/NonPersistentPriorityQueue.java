@@ -3,6 +3,7 @@ package com.path.android.jobqueue.nonPersistentQueue;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.TagConstraint;
 
 import java.util.*;
 
@@ -111,8 +112,8 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Set<JobHolder> findJobsByTags(String... tags) {
-        return jobs.findByTags(tags);
+    public Set<JobHolder> findJobsByTags(TagConstraint constraint, String... tags) {
+        return jobs.findByTags(constraint, tags);
     }
 
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {

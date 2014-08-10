@@ -2,6 +2,8 @@ package com.path.android.jobqueue.persistentQueue.sqlite;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
+
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.log.JqLog;
 
 /**
@@ -67,7 +69,7 @@ public class SqlHelper {
         return builder.toString();
     }
 
-    public String createFindByTagsQuery(int numberOfTags) {
+    public String createFindByTagsQuery(TagConstraint constraint, int numberOfTags) {
         StringBuilder query = new StringBuilder();
         String placeHolders = createPlaceholders(numberOfTags);
         query.append("SELECT * FROM ").append(tableName).append(" WHERE ")
@@ -75,9 +77,19 @@ public class SqlHelper {
                 .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(" FROM ")
                 .append(tagsTableName).append(" WHERE ")
                 .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(" IN (")
-                .append(placeHolders).append(")").append(" GROUP BY (`")
-                .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append("`) HAVING count(*) = ")
-                .append(numberOfTags).append(")");
+                .append(placeHolders).append(")");
+        if (constraint == TagConstraint.ANY) {
+            query.append(")");
+        } else if (constraint == TagConstraint.ALL) {
+            query.append(" GROUP BY (`")
+                    .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append("`)")
+                    .append(" HAVING count(*) = ")
+                    .append(numberOfTags).append(")");
+        } else {
+            // have this in place in case we change number of constraints
+            throw new IllegalArgumentException("unknown constraint " + constraint);
+        }
+
         return query.toString();
     }
 

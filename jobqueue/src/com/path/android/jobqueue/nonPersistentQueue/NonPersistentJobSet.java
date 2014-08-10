@@ -1,12 +1,15 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -79,19 +82,45 @@ public class NonPersistentJobSet implements JobSet {
         return idCache.get(id);
     }
 
-    public Set<JobHolder> findByTags(String... tags) {
+    @Override
+    public Set<JobHolder> findByTags(TagConstraint constraint, String... tags) {
         if(tags == null) {
-            return new HashSet<JobHolder>();
+            return Collections.emptySet();
         }
         Set<JobHolder> jobs = new HashSet<JobHolder>();
+        boolean first = true;
         for(String tag : tags) {
             List<JobHolder> found = tagCache.get(tag);
-            if(found == null) {
-                continue;
+            if(found == null || found.size() == 0) {
+                if (constraint == TagConstraint.ALL) {
+                    return Collections.emptySet();
+                } else {
+                    continue;
+                }
             }
-            jobs.addAll(found);
+            if (constraint == TagConstraint.ALL) {
+                jobs.addAll(found);
+            } else if (first) {
+                jobs.addAll(found);
+            } else {
+                removeIfNotExists(jobs, found);
+                if (jobs.size() == 0) {
+                    return Collections.emptySet();
+                }
+            }
+            first = false;
         }
         return jobs;
+    }
+
+    private void removeIfNotExists(Set<JobHolder> mainSet, List<JobHolder> items) {
+        final Iterator<JobHolder> itr = mainSet.iterator();
+        while (itr.hasNext()) {
+            JobHolder holder = itr.next();
+            if (!items.contains(holder)) {
+                itr.remove();
+            }
+        }
     }
 
     @Override
