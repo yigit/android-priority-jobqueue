@@ -10,7 +10,7 @@ import java.util.Set;
  */
 @SuppressWarnings("deprecation")
 abstract public class Job extends BaseJob implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
     private transient int priority;
     private transient long delayInMs;
     private final Set<String> readonlyTags;
@@ -19,7 +19,7 @@ abstract public class Job extends BaseJob implements Serializable {
         super(params.doesRequireNetwork(), params.isPersistent(), params.getGroupId());
         this.priority = params.getPriority();
         this.delayInMs = params.getDelayMs();
-        Set<String> tags = params.getTags();
+        final Set<String> tags = params.getTags();
         this.readonlyTags = tags == null ? null : Collections.unmodifiableSet(tags);
     }
 

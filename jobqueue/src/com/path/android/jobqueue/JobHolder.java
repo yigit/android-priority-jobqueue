@@ -24,6 +24,8 @@ public class JobHolder {
     protected boolean requiresNetwork;
     transient Job job;
     protected final Set<String> tags;
+    private boolean canceled;
+    private boolean successful;
 
     /**
      * @param id               Unique ID for the job. Should be unique per queue
@@ -62,7 +64,7 @@ public class JobHolder {
      * @return
      */
     public final boolean safeRun(int currentRunCount) {
-        return job.safeRun(currentRunCount);
+        return job.safeRun(this, currentRunCount);
     }
 
     public Long getId() {
@@ -129,6 +131,15 @@ public class JobHolder {
         return tags;
     }
 
+    public void markAsCanceled() {
+        canceled = true;
+        job.canceled = true;
+    }
+
+    public boolean isCanceled() {
+        return canceled;
+    }
+
     @Override
     public int hashCode() {
         //we don't really care about overflow.
@@ -152,5 +163,13 @@ public class JobHolder {
 
     public boolean hasTags() {
         return tags != null && tags.size() > 0;
+    }
+
+    public void markAsSuccessful() {
+        successful = true;
+    }
+
+    public boolean isSuccessful() {
+        return successful;
     }
 }

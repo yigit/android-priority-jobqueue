@@ -619,7 +619,7 @@ public abstract class JobQueueTestBase extends TestBase {
         }
 
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobsByTags(TagConstraint.ALL, tags);
+            result = jobQueue.findJobsByTags(ALL, tags);
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -646,7 +646,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
 
-            result = jobQueue.findJobsByTags(TagConstraint.ALL, tagsWithAdditional);
+            result = jobQueue.findJobsByTags(ALL, tagsWithAdditional);
             assertThat(msg + " all combinations with wrong tag: when an additional wrong tag is given, it should return 0", result.size(), is(0));
         }
     }

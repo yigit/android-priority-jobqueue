@@ -3,9 +3,14 @@ package com.path.android.jobqueue.executor;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -107,11 +112,16 @@ public class JobConsumerExecutor {
     }
 
     private void onBeforeRun(JobHolder jobHolder) {
-        runningJobHolders.put(createRunningJobHolderKey(jobHolder), jobHolder);
+        synchronized (runningJobHolders) {
+            runningJobHolders.put(createRunningJobHolderKey(jobHolder), jobHolder);
+        }
     }
 
     private void onAfterRun(JobHolder jobHolder) {
-        runningJobHolders.remove(createRunningJobHolderKey(jobHolder));
+        synchronized (runningJobHolders) {
+            runningJobHolders.remove(createRunningJobHolderKey(jobHolder));
+            runningJobHolders.notifyAll();
+        }
     }
 
     private String createRunningJobHolderKey(JobHolder jobHolder) {
@@ -130,6 +140,84 @@ public class JobConsumerExecutor {
      */
     public boolean isRunning(long id, boolean persistent) {
         return runningJobHolders.containsKey(createRunningJobHolderKey(id, persistent));
+    }
+
+    public void waitUntilDone(Set<Long> persistentJobIds, Set<Long> nonPersistentJobIds)
+            throws InterruptedException {
+        List<String> ids = new ArrayList<String>();
+        for (Long id : persistentJobIds) {
+            ids.add(createRunningJobHolderKey(id, true));
+        }
+        for (Long id : nonPersistentJobIds) {
+            ids.add(createRunningJobHolderKey(id, false));
+        }
+        synchronized (runningJobHolders) {
+            while (containsAny(ids)) {
+                runningJobHolders.wait();
+            }
+        }
+    }
+
+    private boolean containsAny(List<String> ids) {
+        for (String id : ids) {
+            if (runningJobHolders.containsKey(id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Set<JobHolder> findRunningByTags(TagConstraint constraint, String[] tags, boolean persistent) {
+        Set<JobHolder> result = new HashSet<JobHolder>();
+        synchronized (runningJobHolders) {
+            for (JobHolder holder : runningJobHolders.values()) {
+                if (!holder.hasTags() || persistent != holder.getJob().isPersistent()) {
+                    continue;
+                }
+                if (doesHolderMatchTags(holder, constraint, tags)) {
+                    result.add(holder);
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean doesHolderMatchTags(JobHolder holder, TagConstraint constraint, String[] tags) {
+        if (constraint == TagConstraint.ANY) {
+            for (String tag : holder.getTags()) {
+                if (contains(tags, tag)) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            final Set<String> holderTags = holder.getTags();
+            for (String tag : tags) {
+                if (!holderTags.contains(tag)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    private boolean contains(String[] arr, String val) {
+        for (int i = 0; i < arr.length; i ++) {
+            if (val.equals(arr[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void waitUntilAllConsumersAreFinished() throws InterruptedException {
+        Thread[] threads = new Thread[threadGroup.activeCount() * 3];
+        threadGroup.enumerate(threads);
+        for (Thread thread : threads) {
+            if (thread != null) {
+                thread.join();
+            }
+        }
     }
 
     /**
@@ -199,9 +287,12 @@ public class JobConsumerExecutor {
                         if (nextJob != null) {
                             executor.onBeforeRun(nextJob);
                             if (nextJob.safeRun(nextJob.getRunCount())) {
+                                nextJob.markAsSuccessful();
                                 contract.removeJob(nextJob);
                             } else {
-                                contract.insertOrReplace(nextJob);
+                                if (!nextJob.isCanceled()) {
+                                    contract.insertOrReplace(nextJob);
+                                }
                             }
                             executor.onAfterRun(nextJob);
                         }

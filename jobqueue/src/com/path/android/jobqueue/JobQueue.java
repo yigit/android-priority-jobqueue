@@ -52,8 +52,8 @@ public interface JobQueue {
     /**
      * Returns the next available job in the data set
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
-     * It should filter out all running jobs and
-     * exclude groups are guaranteed to be ordered in natural order
+     * It should filter out all running jobs and exclude groups are guaranteed to be ordered in natural order
+     *
      * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
      * @param excludeGroups if provided, jobs from these groups will NOT be returned
      * @return

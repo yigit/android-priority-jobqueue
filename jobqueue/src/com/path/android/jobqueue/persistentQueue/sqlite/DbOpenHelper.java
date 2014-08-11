@@ -27,6 +27,8 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final int COLUMN_COUNT = 9;
     /*package*/ static final int TAGS_COLUMN_COUNT = 3;
 
+    static final String TAG_INDEX_NAME = "TAG_NAME_INDEX";
+
     public DbOpenHelper(Context context, String name) {
         super(context, name, null, DB_VERSION);
     }
@@ -51,12 +53,16 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 TAGS_JOB_ID_COLUMN,
                 TAGS_NAME_COLUMN);
         sqLiteDatabase.execSQL(createTagsQuery);
+
+        sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + TAG_INDEX_NAME + " ON "
+                + JOB_TAGS_TABLE_NAME + "(" + DbOpenHelper.TAGS_NAME_COLUMN.columnName + ")");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
         sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));
+        sqLiteDatabase.execSQL("DROP INDEX IF EXISTS " + TAG_INDEX_NAME);
         onCreate(sqLiteDatabase);
     }
 }
