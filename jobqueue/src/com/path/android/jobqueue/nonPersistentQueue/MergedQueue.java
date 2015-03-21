@@ -202,8 +202,6 @@ abstract public class MergedQueue implements JobSet {
         }
     }
 
-
-
     /**
      * Returns the JobHolder that has the given id
      * @param id id job the job
@@ -215,10 +213,12 @@ abstract public class MergedQueue implements JobSet {
         return q0 == null ? queue1.findById(id) : q0;
     }
 
-    public Set<JobHolder> findByTags(TagConstraint constraint, String... tags) {
+    @Override
+    public Set<JobHolder> findByTags(TagConstraint constraint, Collection<Long> exclude,
+            String... tags) {
         Set<JobHolder> jobs = new HashSet<JobHolder>();
-        jobs.addAll(queue0.findByTags(constraint, tags));
-        jobs.addAll(queue1.findByTags(constraint, tags));
+        jobs.addAll(queue0.findByTags(constraint, exclude, tags));
+        jobs.addAll(queue1.findByTags(constraint, exclude, tags));
         return jobs;
     }
 

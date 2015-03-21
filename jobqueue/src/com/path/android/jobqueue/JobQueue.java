@@ -86,8 +86,21 @@ public interface JobQueue {
      * @param tagConstraint If set to {@link TagConstraint#ALL}, returned jobs should have all of
      *                      the tags provided. If set to {@link TagConstraint#ANY}, returned jobs
      *                      should have at least one of the provided tags
+     * @param excludeCancelled If true, cancelled jobs will not be returned. A job may be in cancelled
+     *                        state if a cancel request has arrived but it has not been removed from
+     *                        queue yet (e.g. still running).
+     * @param excludeIds Ids of jobs to ignore in the result
      * @param tags The list of tags
-     * @return
      */
-    Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, String... tags);
+    Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, boolean excludeCancelled,
+            Collection<Long> excludeIds, String... tags);
+
+    /**
+     * Called when a job is cancelled by the user.
+     * <p/>
+     * It is important to not return this job from queries anymore.
+     *
+     * @param holder The JobHolder that is being cancelled
+     */
+    void onJobCancelled(JobHolder holder);
 }

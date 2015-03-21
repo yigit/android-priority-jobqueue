@@ -14,7 +14,7 @@ public class CachedNonPersistentJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id) {
-                return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id));
+                return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id, true));
             }
         });
     }

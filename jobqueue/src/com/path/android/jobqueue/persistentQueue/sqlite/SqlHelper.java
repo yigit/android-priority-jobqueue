@@ -69,11 +69,12 @@ public class SqlHelper {
         return builder.toString();
     }
 
-    public String createFindByTagsQuery(TagConstraint constraint, int numberOfTags) {
+    public String createFindByTagsQuery(TagConstraint constraint, int numberOfExcludeIds,
+            int numberOfTags) {
         StringBuilder query = new StringBuilder();
         String placeHolders = createPlaceholders(numberOfTags);
-        query.append("SELECT * FROM ").append(tableName).append(" WHERE ")
-                .append(DbOpenHelper.ID_COLUMN.columnName).append(" IN ( SELECT ")
+        query.append("SELECT * FROM ").append(tableName).append(" WHERE ");
+        query.append(DbOpenHelper.ID_COLUMN.columnName).append(" IN ( SELECT ")
                 .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(" FROM ")
                 .append(tagsTableName).append(" WHERE ")
                 .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(" IN (")
@@ -88,6 +89,11 @@ public class SqlHelper {
         } else {
             // have this in place in case we change number of constraints
             throw new IllegalArgumentException("unknown constraint " + constraint);
+        }
+        if (numberOfExcludeIds > 0) {
+            String idPlaceHolders = createPlaceholders(numberOfExcludeIds);
+            query.append(" AND ").append(DbOpenHelper.ID_COLUMN.columnName)
+                    .append(" NOT IN(").append(idPlaceHolders).append(")");
         }
 
         return query.toString();

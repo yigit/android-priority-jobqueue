@@ -14,7 +14,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
     private final String id;
     private final long sessionId;
 
-    public NonPersistentPriorityQueue(long sessionId, String id) {
+    public NonPersistentPriorityQueue(long sessionId, String id, boolean inTestMode) {
         this.id = id;
         this.sessionId = sessionId;
         jobs = new NetworkAwarePriorityQueue(5, jobComparator);
@@ -112,8 +112,16 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Set<JobHolder> findJobsByTags(TagConstraint constraint, String... tags) {
-        return jobs.findByTags(constraint, tags);
+    public Set<JobHolder> findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
+            Collection<Long> exclude, String... tags) {
+        //we ignore excludeCancelled because we remove them as soon as they are cancelled
+        return jobs.findByTags(constraint, exclude, tags);
+    }
+
+    @Override
+    public void onJobCancelled(JobHolder holder) {
+        // we can remove instantly.
+        remove(holder);
     }
 
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {

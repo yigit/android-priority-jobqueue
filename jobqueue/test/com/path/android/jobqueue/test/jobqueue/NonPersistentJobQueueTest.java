@@ -12,7 +12,9 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
-import static com.path.android.jobqueue.TagConstraint.ALL;
+
+import java.util.Collections;
+
 import static com.path.android.jobqueue.TagConstraint.ANY;
 
 @RunWith(RobolectricTestRunner.class)
@@ -21,7 +23,7 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id) {
-                return new NonPersistentPriorityQueue(sessionId, id);
+                return new NonPersistentPriorityQueue(sessionId, id, true);
             }
         });
     }
@@ -56,7 +58,8 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
     @Test
     public void testFindByTags() {
         JobQueue jobQueue = createNewJobQueue();
-        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY, "abc").size(), is(0));
+        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY,
+                false, Collections.<Long>emptyList(), "abc").size(), is(0));
 
     }
 }

@@ -59,7 +59,7 @@ android {
     dependencies {
         compile 'de.greenrobot:eventbus:2.1.0-beta-1'
         compile 'org.twitter4j:twitter4j-core:3.0.5'
-        compile 'com.path:android-priority-jobqueue:1.1-SNAPSHOT'
+        compile 'com.path:android-priority-jobqueue:1.1 -SNAPSHOT'
         compile files('external-libs/greenDAO.jar')
     }
 

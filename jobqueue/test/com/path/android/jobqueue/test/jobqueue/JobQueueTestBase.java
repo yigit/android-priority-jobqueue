@@ -15,12 +15,14 @@ import static org.hamcrest.MatcherAssert.*;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +37,11 @@ public abstract class JobQueueTestBase extends TestBase {
 
     public JobQueueTestBase(JobQueueFactory factory) {
         currentFactory = factory;
+    }
+
+    @Before
+    public void setup() {
+        enableDebug();
     }
 
     @Test
@@ -513,13 +520,13 @@ public abstract class JobQueueTestBase extends TestBase {
         JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1, tag3));
         jobQueue.insert(holder1);
         jobQueue.insert(holder2);
-        Set<JobHolder> twoJobs = jobQueue.findJobsByTags(ANY, tag1);
+        Set<JobHolder> twoJobs = jobQueue.findJobsByTags(ANY, true, Collections.<Long>emptyList(), tag1);
         Set<Long> resultIds = ids(twoJobs);
 
         assertThat("two jobs should be returned", twoJobs.size(), is(2));
         assertThat("should have job id 1", resultIds, hasItems(holder1.getId(), holder2.getId()));
         for (String tag : new String[]{tag2, tag3}) {
-            Set<JobHolder> oneJob = jobQueue.findJobsByTags(ANY, tag);
+            Set<JobHolder> oneJob = jobQueue.findJobsByTags(ANY, true, Collections.<Long>emptyList(), tag);
             resultIds = ids(oneJob);
             assertThat("one job should be returned", oneJob.size(), is(1));
             if (tag.equals(tag2)) {
@@ -555,16 +562,18 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insertOrReplace(holder);
         assertTags("job with two tags, reinserted", jobQueue, holder);
         jobQueue.remove(holder);
-        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, tag1).size(), is(0));
-        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, tag2).size(), is(0));
+        assertThat("when job is removed, it should return none",
+                jobQueue.findJobsByTags(ANY, true, Collections.<Long>emptyList(), tag1).size(), is(0));
+        assertThat("when job is removed, it should return none",
+                jobQueue.findJobsByTags(ANY, true, Collections.<Long>emptyList(), tag2).size(), is(0));
     }
 
     @Test
     public void testFindByTags() {
         JobQueue jobQueue = createNewJobQueue();
-        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY, "abc").size(), is(0));
+        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY, false, Collections.<Long>emptyList(), "abc").size(), is(0));
         jobQueue.insert(createNewJobHolder());
-        Set<JobHolder> result = jobQueue.findJobsByTags(ANY, "blah");
+        Set<JobHolder> result = jobQueue.findJobsByTags(ANY, false, Collections.<Long>emptyList(), "blah");
         assertThat("if job does not have a tag, it should return 0", result.size(), is(0));
 
         final String tag1 = UUID.randomUUID().toString();
@@ -574,7 +583,15 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insertOrReplace(holder);
         assertTags("holder with 1 tag reinserted", jobQueue, holder);
         jobQueue.remove(holder);
-        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, tag1).size(), is(0));
+        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, false, Collections.<Long>emptyList(), tag1).size(), is(0));
+
+        JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1));
+        jobQueue.insert(holder2);
+        assertThat("it should return the job", jobQueue.findJobsByTags(ANY, false, Collections.<Long>emptyList(), tag1).size(), is(1));
+        jobQueue.onJobCancelled(holder2);
+        assertThat("when queried w/ exclude cancelled, it should not return the job",
+                jobQueue.findJobsByTags(ANY, true, Collections.<Long>emptyList(), tag1).size(), is(0));
+
     }
 
     private void assertTags(String msg, JobQueue jobQueue, JobHolder holder) {
@@ -595,7 +612,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 }
             }
         } while (found);
-        result = jobQueue.findJobsByTags(ANY, wrongTag);
+        result = jobQueue.findJobsByTags(ANY, true, Collections.<Long>emptyList(), wrongTag);
         found = false;
         for(JobHolder received : result) {
             if(received.getId().equals(holder.getId())) {
@@ -607,8 +624,9 @@ public abstract class JobQueueTestBase extends TestBase {
         if(holder.getTags() == null) {
             return;// done
         }
+        Collection<Long> exclude = Arrays.asList(holder.getId());
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobsByTags(TagConstraint.ANY, tags);
+            result = jobQueue.findJobsByTags(TagConstraint.ANY, true, Collections.<Long>emptyList(), tags);
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -616,10 +634,14 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " any combinations: returned job should be the correct one", result.iterator().next().getId(), is(id));
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
+            result = jobQueue.findJobsByTags(TagConstraint.ANY,true,  exclude, tags);
+            assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(
+                    0));
+
         }
 
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobsByTags(ALL, tags);
+            result = jobQueue.findJobsByTags(ALL, true, Collections.<Long>emptyList(), tags);
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -629,13 +651,15 @@ public abstract class JobQueueTestBase extends TestBase {
                         result.iterator().next().getId(), is(id));
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
+            result = jobQueue.findJobsByTags(ALL, true, exclude, tags);
+            assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(0));
         }
 
         for(String[] tags : combinations(holder.getTags())) {
             String[] tagsWithAdditional = new String[tags.length + 1];
             System.arraycopy(tags, 0, tagsWithAdditional, 0, tags.length);
             tagsWithAdditional[tags.length] = wrongTag;
-            result = jobQueue.findJobsByTags(TagConstraint.ANY, tagsWithAdditional);
+            result = jobQueue.findJobsByTags(TagConstraint.ANY, true, Collections.<Long>emptyList(), tagsWithAdditional);
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -646,8 +670,11 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
 
-            result = jobQueue.findJobsByTags(ALL, tagsWithAdditional);
+            result = jobQueue.findJobsByTags(ALL, true, Collections.<Long>emptyList(), tagsWithAdditional);
             assertThat(msg + " all combinations with wrong tag: when an additional wrong tag is given, it should return 0", result.size(), is(0));
+
+            result = jobQueue.findJobsByTags(ALL, true, exclude, tagsWithAdditional);
+            assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(0));
         }
     }
 

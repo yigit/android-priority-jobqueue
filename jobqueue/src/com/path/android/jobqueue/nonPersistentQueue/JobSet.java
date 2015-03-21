@@ -14,7 +14,8 @@ public interface JobSet {
     JobHolder peek(Collection<String> excludeGroupIds);
     JobHolder poll(Collection<String> excludeGroupIds);
     JobHolder findById(long id);
-    Set<JobHolder> findByTags(TagConstraint constraint, String... tags);
+    Set<JobHolder> findByTags(TagConstraint constraint, Collection<Long> exclude,
+            String... tags);
     boolean offer(JobHolder holder);
     boolean remove(JobHolder holder);
     void clear();

@@ -96,8 +96,14 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public Set<JobHolder> findJobsByTags(TagConstraint constraint, String... tags) {
-        return delegate.findJobsByTags(constraint, tags);
+    public Set<JobHolder> findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
+            Collection<Long> exclude, String... tags) {
+        return delegate.findJobsByTags(constraint, excludeCancelled, exclude, tags);
+    }
+
+    @Override
+    public void onJobCancelled(JobHolder holder) {
+        delegate.onJobCancelled(holder);
     }
 
     @Override

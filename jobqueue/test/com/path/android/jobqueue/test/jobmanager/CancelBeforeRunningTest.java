@@ -25,14 +25,14 @@ public class CancelBeforeRunningTest extends JobManagerTestBase {
         jobManager.addJob(nonPersistentJob);
         jobManager.addJob(persistentJob);
         CancelResult result = jobManager.cancelJobs(TagConstraint.ANY, "dummyTag");
-        assertThat("both jobs should be canceled", result.getCanceledJobs().size(), is(2));
-        assertThat("both jobs should be canceled", result.getFailedToCancel().size(), is(0));
-        for (Job j : result.getCanceledJobs()) {
+        assertThat("both jobs should be cancelled", result.getCancelledJobs().size(), is(2));
+        assertThat("both jobs should be cancelled", result.getFailedToCancel().size(), is(0));
+        for (Job j : result.getCancelledJobs()) {
             DummyJob job = (DummyJob) j;
             if (!job.isPersistent()) {
                 assertThat("job is still added", job.getOnAddedCnt(), is(1));
             }
-            assertThat("job is canceled", job.getOnCancelCnt(), is(1));
+            assertThat("job is cancelled", job.getOnCancelCnt(), is(1));
             assertThat("job is NOT run", job.getOnRunCnt(), is(0));
         }
     }

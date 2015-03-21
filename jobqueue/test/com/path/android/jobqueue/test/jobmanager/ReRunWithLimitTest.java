@@ -19,11 +19,12 @@ public class ReRunWithLimitTest extends JobManagerTestBase {
     }
 
     private void testReRun(JobManager jobManager, boolean persist) throws InterruptedException {
+        enableDebug();
         DummyJobWithRunCount.runCount = 0;//reset
         DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
         jobManager.addJob(job);
         int limit = 25;
-        while (limit-- > 0 && DummyJobWithRunCount.runCount != 5) {
+        while (limit-- > 0 && DummyJobWithRunCount.runCount != job.getRetryLimit()) {
             Thread.sleep(100);
         }
         MatcherAssert.assertThat(DummyJobWithRunCount.runCount, equalTo(job.getRetryLimit()));

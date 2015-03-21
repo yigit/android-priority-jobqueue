@@ -31,6 +31,7 @@ public class Configuration {
     private DependencyInjector dependencyInjector;
     private NetworkUtil networkUtil;
     private CustomLogger customLogger;
+    private boolean inTestMode = false;
 
     private Configuration(){
         //use builder instead
@@ -70,6 +71,10 @@ public class Configuration {
 
     public int getLoadFactor() {
         return loadFactor;
+    }
+
+    public boolean isInTestMode() {
+        return inTestMode;
     }
 
     public static final class Builder {
@@ -186,6 +191,16 @@ public class Configuration {
          */
         public Builder loadFactor(int loadFactor) {
             configuration.loadFactor = loadFactor;
+            return this;
+        }
+
+        /**
+         * Sets the JobManager in test mode. This information is passed to JobQueue's.
+         * If you are using default JobQueues, calling this method will cause {@link SqliteJobQueue}
+         * to use an in-memory database.
+         */
+        public Builder inTestMode() {
+            configuration.inTestMode = true;
             return this;
         }
 
