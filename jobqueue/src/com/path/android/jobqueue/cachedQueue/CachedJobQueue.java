@@ -2,8 +2,10 @@ package com.path.android.jobqueue.cachedQueue;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.TagConstraint;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * a class that implements {@link JobQueue} interface, wraps another {@link JobQueue} and caches
@@ -91,6 +93,11 @@ public class CachedJobQueue implements JobQueue {
     public void clear() {
         cache.invalidateAll();
         delegate.clear();
+    }
+
+    @Override
+    public Set<JobHolder> findJobsByTags(TagConstraint constraint, String... tags) {
+        return delegate.findJobsByTags(constraint, tags);
     }
 
     @Override

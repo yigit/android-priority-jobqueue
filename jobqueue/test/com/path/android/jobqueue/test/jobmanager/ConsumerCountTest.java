@@ -26,9 +26,9 @@ public class ConsumerCountTest extends JobManagerTestBase {
         Object runLock = new Object();
         Semaphore semaphore = new Semaphore(maxConsumerCount);
         int totalJobCount = maxConsumerCount * 3;
-        List<DummyJob> runningJobs = new ArrayList<DummyJob>(totalJobCount);
+        List<NeverEndingDummyJob> runningJobs = new ArrayList<NeverEndingDummyJob>(totalJobCount);
         for(int i = 0; i < totalJobCount; i ++) {
-            DummyJob job = new NeverEndingDummyJob(new Params((int)(Math.random() * 3)), runLock, semaphore);
+            NeverEndingDummyJob job = new NeverEndingDummyJob(new Params((int)(Math.random() * 3)), runLock, semaphore);
             runningJobs.add(job);
             jobManager.addJob(job);
         }
@@ -66,6 +66,5 @@ public class ConsumerCountTest extends JobManagerTestBase {
             }
         }
         MatcherAssert.assertThat("no jobs should remain", jobManager.count(), equalTo(0));
-
     }
 }

@@ -12,6 +12,8 @@ import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.*;
 
 /**
@@ -28,7 +30,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
     @SuppressWarnings("FieldCanBeLocal")//used for testing
     private final long sessionId;
-    private boolean running;
+    private volatile boolean running;
 
     private final Context appContext;
     private final NetworkUtil networkUtil;
@@ -40,7 +42,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final Object newJobListeners = new Object();
     private final ConcurrentHashMap<Long, CountDownLatch> persistentOnAddedLocks;
     private final ConcurrentHashMap<Long, CountDownLatch> nonPersistentOnAddedLocks;
-    private final ScheduledExecutorService timedExecutor;
+    private ScheduledExecutorService timedExecutor;
     private final Object getNextJobLock = new Object();
 
     /**
@@ -180,6 +182,99 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         notifyJobConsumer();
         return id;
+    }
+
+    /**
+     * Cancels all jobs matching the list of tags.
+     * <p>
+     * Note that, if any of the matching jobs is running, this method WILL wait for them to finish
+     * or fail.
+     * @param constraint The constraint to use while selecting jobs. If set to {@link TagConstraint#ANY},
+     *                   any job that has one of the given tags will be canceled. If set to
+     *                   {@link TagConstraint#ALL}, jobs that has all of the given tags will be canceled.
+     * @param tags The list of tags
+     */
+    public void cancelJobsInBackground(final CancelResult.AsyncCancelCallback cancelCallback,
+            final TagConstraint constraint, final String... tags) {
+        timedExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                CancelResult result = cancelJobs(constraint, tags);
+                if (cancelCallback != null) {
+                    cancelCallback.onCanceled(result);
+                }
+            }
+        });
+    }
+
+    /**
+     * Cancel all jobs matching the list of tags.
+     * <p>
+     * Note that, you should NOT call this method on main thread because it queries database and
+     * may also need to wait for running jobs to finish.
+     *
+     * @param constraint The constraint to use while selecting jobs. If set to {@link TagConstraint#ANY},
+     *                   any job that has one of the given tags will be canceled. If set to
+     *                   {@link TagConstraint#ALL}, jobs that has all of the given tags will be canceled.
+     * @param tags       The list of tags
+     * @return A Cancel result containing the list of jobs.
+     * @see #cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)
+     */
+    public CancelResult cancelJobs(TagConstraint constraint, String... tags) {
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        Set<Long> persistentJobIds;
+        Set<Long> nonPersistentJobIds;
+        synchronized (getNextJobLock) {
+            Set<JobHolder> nonPersistentRunningJobs = jobConsumerExecutor.findRunningByTags(constraint, tags, false);
+            synchronized (nonPersistentJobQueue) {
+                nonPersistentJobIds = markJobsAsCanceled(nonPersistentRunningJobs, nonPersistentJobQueue);
+            }
+            jobs.addAll(nonPersistentRunningJobs);
+
+            Set<JobHolder> persistentRunningJobs = jobConsumerExecutor.findRunningByTags(constraint, tags, true);
+            synchronized (persistentJobQueue) {
+                persistentJobIds = markJobsAsCanceled(persistentRunningJobs, persistentJobQueue);
+            }
+            jobs.addAll(persistentRunningJobs);
+
+            synchronized (nonPersistentJobQueue) {
+                Set<JobHolder> nonPersistentJobs = nonPersistentJobQueue.findJobsByTags(constraint, tags);
+                persistentJobIds.addAll(markJobsAsCanceled(nonPersistentJobs, nonPersistentJobQueue));
+                jobs.addAll(nonPersistentJobs);
+            }
+
+            synchronized (persistentJobQueue) {
+                Set<JobHolder> persistentJobs = persistentJobQueue.findJobsByTags(constraint, tags);
+                nonPersistentJobIds.addAll(markJobsAsCanceled(persistentJobs, persistentJobQueue));
+                jobs.addAll(persistentJobs);
+            }
+        }
+
+        try {
+            jobConsumerExecutor.waitUntilDone(persistentJobIds, nonPersistentJobIds);
+        } catch (InterruptedException e) {
+            JqLog.e(e, "error while waiting for jobs to finish");
+        }
+        CancelResult result = new CancelResult();
+        for (JobHolder holder : jobs) {
+            if (holder.isSuccessful()) {
+                result.failedToCancel.add(holder.getJob());
+            } else {
+                result.canceledJobs.add(holder.getJob());
+                holder.getJob().onCancel();
+            }
+        }
+        return result;
+    }
+
+    private Set<Long> markJobsAsCanceled(Set<JobHolder> jobs, JobQueue queue) {
+        Set<Long> ids = new HashSet<Long>();
+        for (JobHolder holder : jobs) {
+            holder.markAsCanceled();
+            ids.add(holder.getId());
+            queue.remove(holder);
+        }
+        return ids;
     }
 
     /**
@@ -344,14 +439,18 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     private void reAddJob(JobHolder jobHolder) {
         JqLog.d("re-adding job %s", jobHolder.getId());
-        if (jobHolder.getJob().isPersistent()) {
-            synchronized (persistentJobQueue) {
-                persistentJobQueue.insertOrReplace(jobHolder);
+        if (!jobHolder.isCanceled()) {
+            if (jobHolder.getJob().isPersistent()) {
+                synchronized (persistentJobQueue) {
+                    persistentJobQueue.insertOrReplace(jobHolder);
+                }
+            } else {
+                synchronized (nonPersistentJobQueue) {
+                    nonPersistentJobQueue.insertOrReplace(jobHolder);
+                }
             }
         } else {
-            synchronized (nonPersistentJobQueue) {
-                nonPersistentJobQueue.insertOrReplace(jobHolder);
-            }
+            JqLog.d("not re-adding canceled job " + jobHolder);
         }
         if(jobHolder.getGroupId() != null) {
             runningJobGroups.remove(jobHolder.getGroupId());
@@ -415,6 +514,16 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
     }
 
+    public synchronized void stopAndWaitUntilConsumersAreFinished() throws InterruptedException {
+        stop();
+        timedExecutor.shutdownNow();
+        synchronized (newJobListeners) {
+            newJobListeners.notifyAll();
+        }
+        jobConsumerExecutor.waitUntilAllConsumersAreFinished();
+        timedExecutor = Executors.newSingleThreadScheduledExecutor();
+    }
+
     public synchronized void clear() {
         synchronized (nonPersistentJobQueue) {
             nonPersistentJobQueue.clear();
@@ -465,7 +574,7 @@ public class JobManager implements NetworkEventProvider.Listener {
             long waitUntil = remainingWait + start;
             //for delayed jobs,
             long nextJobDelay = ensureConsumerWhenNeeded(null);
-            while (nextJob == null && waitUntil > System.nanoTime()) {
+            while (nextJob == null && waitUntil > System.nanoTime() && running) {
                 //keep running inside here to avoid busy loop
                 nextJob = running ? JobManager.this.getNextJob() : null;
                 if(nextJob == null) {
@@ -474,7 +583,7 @@ public class JobManager implements NetworkEventProvider.Listener {
                         //if we can't detect network changes, we won't be notified.
                         //to avoid waiting up to give time, wait in chunks of 500 ms max
                         long maxWait = Math.min(nextJobDelay, TimeUnit.NANOSECONDS.toMillis(remaining));
-                        if(maxWait < 1) {
+                        if(maxWait < 1 || !running) {
                             continue;//wait(0) will cause infinite wait.
                         }
                         if(networkUtil instanceof NetworkEventProvider) {

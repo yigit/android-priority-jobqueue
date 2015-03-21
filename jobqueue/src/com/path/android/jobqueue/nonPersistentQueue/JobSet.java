@@ -1,21 +1,24 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.TagConstraint;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * An interface for Job Containers
  * It is very similar to SortedSet
  */
 public interface JobSet {
-    public JobHolder peek(Collection<String> excludeGroupIds);
-    public JobHolder poll(Collection<String> excludeGroupIds);
-    public JobHolder findById(long id);
-    public boolean offer(JobHolder holder);
-    public boolean remove(JobHolder holder);
-    public void clear();
-    public int size();
-    public CountWithGroupIdsResult countReadyJobs(long now, Collection<String> excludeGroups);
-    public CountWithGroupIdsResult countReadyJobs(Collection<String> excludeGroups);
+    JobHolder peek(Collection<String> excludeGroupIds);
+    JobHolder poll(Collection<String> excludeGroupIds);
+    JobHolder findById(long id);
+    Set<JobHolder> findByTags(TagConstraint constraint, String... tags);
+    boolean offer(JobHolder holder);
+    boolean remove(JobHolder holder);
+    void clear();
+    int size();
+    CountWithGroupIdsResult countReadyJobs(long now, Collection<String> excludeGroups);
+    CountWithGroupIdsResult countReadyJobs(Collection<String> excludeGroups);
 }

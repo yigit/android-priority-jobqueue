@@ -19,6 +19,7 @@ abstract class BaseJob implements Serializable {
     private String groupId;
     private boolean persistent;
     private transient int currentRunCount;
+    transient boolean canceled;
 
     protected BaseJob(boolean requiresNetwork) {
         this(requiresNetwork, false, null);
@@ -97,7 +98,7 @@ abstract class BaseJob implements Serializable {
      * @param currentRunCount
      * @return
      */
-    public final boolean safeRun(int currentRunCount) {
+    public final boolean safeRun(JobHolder holder, int currentRunCount) {
         this.currentRunCount = currentRunCount;
         if (JqLog.isDebugEnabled()) {
             JqLog.d("running job %s", this.getClass().getSimpleName());
@@ -121,13 +122,16 @@ abstract class BaseJob implements Serializable {
                 }
             }
         } finally {
-            if (reRun) {
+            if (!failed) {
+                return true;
+            }
+            if (reRun || holder.isCanceled()) {
                 return false;
-            } else if (failed) {
-                try {
-                    onCancel();
-                } catch (Throwable ignored) {
-                }
+            }
+            // failed.
+            try {
+                onCancel();
+            } catch (Throwable ignored) {
             }
         }
         return true;
@@ -169,5 +173,33 @@ abstract class BaseJob implements Serializable {
      */
     protected int getRetryLimit() {
         return DEFAULT_RETRY_LIMIT;
+    }
+
+    /**
+     * Returns true if job is canceled. Note that if the job is already running when it is canceled,
+     * this flag is still set to true but job is NOT STOPPED (e.g. JobManager does not interrupt
+     * the thread).
+     * If you have a long job that may be canceled, you can check this field and handle it manually.
+     * <p>
+     * Note that, if your job returns successfully from {@link #onRun()} method, it will be considered
+     * as successfully completed, thus will be added to {@link CancelResult#getFailedToCancel()}
+     * list. If you want this job to be considered as canceled, you should throw an exception.
+     * You can also use {@link #assertNotCanceled()} method to do it.
+     * <p>
+     * Calling this method outside {@link #onRun()} method has no meaning since {@link #onRun()} will not
+     * be called if the job is canceled before it is called.
+     */
+    public boolean isCanceled() {
+        return canceled;
+    }
+
+    /**
+     * Convenience method that checks if job is canceled and throws a RuntimeException if it is
+     * canceled.
+     */
+    public void assertNotCanceled() {
+        if (canceled) {
+            throw new RuntimeException("job is canceled");
+        }
     }
 }

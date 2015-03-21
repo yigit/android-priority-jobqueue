@@ -4,17 +4,30 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.fest.reflect.core.*;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
+
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matcher;
+import org.hamcrest.MatcherAssert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import static com.path.android.jobqueue.TagConstraint.ALL;
+import static com.path.android.jobqueue.TagConstraint.ANY;
 
 @Ignore
 public abstract class JobQueueTestBase extends TestBase {
@@ -482,6 +495,192 @@ public abstract class JobQueueTestBase extends TestBase {
             assertJob(jobQueue, "after clear, find by id should return null", ids[i], null);
         }
     }
+
+    @Test
+    public void testTagsWithMultipleHolders() {
+        JobQueue jobQueue = createNewJobQueue();
+        final String tag1 = UUID.randomUUID().toString();
+        String tag2 = UUID.randomUUID().toString();
+        while (tag2.equals(tag1)) {
+            tag2 = UUID.randomUUID().toString();
+        }
+        String tag3 = UUID.randomUUID().toString();
+        while (tag3.equals(tag1) || tag3.equals(tag2)) {
+            tag3 = UUID.randomUUID().toString();
+        }
+
+        JobHolder holder1 = createNewJobHolder(new Params(0).addTags(tag1, tag2));
+        JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1, tag3));
+        jobQueue.insert(holder1);
+        jobQueue.insert(holder2);
+        Set<JobHolder> twoJobs = jobQueue.findJobsByTags(ANY, tag1);
+        Set<Long> resultIds = ids(twoJobs);
+
+        assertThat("two jobs should be returned", twoJobs.size(), is(2));
+        assertThat("should have job id 1", resultIds, hasItems(holder1.getId(), holder2.getId()));
+        for (String tag : new String[]{tag2, tag3}) {
+            Set<JobHolder> oneJob = jobQueue.findJobsByTags(ANY, tag);
+            resultIds = ids(oneJob);
+            assertThat("one job should be returned", oneJob.size(), is(1));
+            if (tag.equals(tag2)) {
+                assertThat("should have job id 1", resultIds, hasItems(holder1.getId()));
+            } else {
+                assertThat("should have job id 2", resultIds, hasItems(holder2.getId()));
+            }
+        }
+        jobQueue.remove(holder1);
+        assertTags("after one of the jobs is removed", jobQueue, holder2);
+    }
+
+    private Set<Long> ids(Collection<JobHolder> result) {
+        HashSet<Long> ids = new HashSet<Long>();
+        for (JobHolder holder : result) {
+            ids.add(holder.getId());
+        }
+        return ids;
+    }
+
+    @Test
+    public void testFindByMultipleTags() {
+        JobQueue jobQueue = createNewJobQueue();
+        final String tag1 = UUID.randomUUID().toString();
+        String tag2 = UUID.randomUUID().toString();
+        while (tag2.equals(tag1)) {
+            tag2 = UUID.randomUUID().toString();
+        }
+        JobHolder holder = createNewJobHolder(new Params(0).addTags(tag1, tag2));
+        jobQueue.insert(holder);
+
+        assertTags("job with two tags", jobQueue, holder);
+        jobQueue.insertOrReplace(holder);
+        assertTags("job with two tags, reinserted", jobQueue, holder);
+        jobQueue.remove(holder);
+        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, tag1).size(), is(0));
+        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, tag2).size(), is(0));
+    }
+
+    @Test
+    public void testFindByTags() {
+        JobQueue jobQueue = createNewJobQueue();
+        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY, "abc").size(), is(0));
+        jobQueue.insert(createNewJobHolder());
+        Set<JobHolder> result = jobQueue.findJobsByTags(ANY, "blah");
+        assertThat("if job does not have a tag, it should return 0", result.size(), is(0));
+
+        final String tag1 = UUID.randomUUID().toString();
+        JobHolder holder = createNewJobHolder(new Params(0).addTags(tag1));
+        jobQueue.insert(holder);
+        assertTags("holder with 1 tag", jobQueue, holder);
+        jobQueue.insertOrReplace(holder);
+        assertTags("holder with 1 tag reinserted", jobQueue, holder);
+        jobQueue.remove(holder);
+        assertThat("when job is removed, it should return none", jobQueue.findJobsByTags(ANY, tag1).size(), is(0));
+    }
+
+    private void assertTags(String msg, JobQueue jobQueue, JobHolder holder) {
+        Set<JobHolder> result;
+        String wrongTag;
+        final long id = holder.getId();
+        boolean found;
+        Matcher allTagsMatcher = CoreMatchers.hasItems(holder.getTags().toArray(new String[holder.getTags().size()]));
+        do {
+            wrongTag = UUID.randomUUID().toString();
+            found = false;
+            if(holder.getTags() != null) {
+                for(String tag : holder.getTags()) {
+                    if(tag.equals(wrongTag)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        } while (found);
+        result = jobQueue.findJobsByTags(ANY, wrongTag);
+        found = false;
+        for(JobHolder received : result) {
+            if(received.getId().equals(holder.getId())) {
+                found = true;
+            }
+        }
+        assertThat(msg + " when wrong tag is given, our job should not return", found, is(false));
+
+        if(holder.getTags() == null) {
+            return;// done
+        }
+        for(String[] tags : combinations(holder.getTags())) {
+            result = jobQueue.findJobsByTags(TagConstraint.ANY, tags);
+            if (tags.length == 0) {
+                assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
+            } else {
+                assertThat(msg + " any combinations: when correct tag is given, it should return one", result.size(), is(1));
+                assertThat(msg + " any combinations: returned job should be the correct one", result.iterator().next().getId(), is(id));
+                assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
+            }
+        }
+
+        for(String[] tags : combinations(holder.getTags())) {
+            result = jobQueue.findJobsByTags(ALL, tags);
+            if (tags.length == 0) {
+                assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
+            } else {
+                assertThat(msg + " all combinations: when correct tag is given, it should return one",
+                        result.size(), is(1));
+                assertThat(msg + " all combinations: returned job should be the correct one",
+                        result.iterator().next().getId(), is(id));
+                assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
+            }
+        }
+
+        for(String[] tags : combinations(holder.getTags())) {
+            String[] tagsWithAdditional = new String[tags.length + 1];
+            System.arraycopy(tags, 0, tagsWithAdditional, 0, tags.length);
+            tagsWithAdditional[tags.length] = wrongTag;
+            result = jobQueue.findJobsByTags(TagConstraint.ANY, tagsWithAdditional);
+            if (tags.length == 0) {
+                assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
+            } else {
+                assertThat(msg + " any combinations with wrong tag: when correct tag is given, it should return one",
+                        result.size(), is(1));
+                assertThat(msg + " any combinations with wrong tag: returned job should be the correct one",
+                        result.iterator().next().getId(), is(id));
+                assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
+            }
+
+            result = jobQueue.findJobsByTags(ALL, tagsWithAdditional);
+            assertThat(msg + " all combinations with wrong tag: when an additional wrong tag is given, it should return 0", result.size(), is(0));
+        }
+    }
+
+    List<String[]> combinations(Set<String> strings) {
+        if(strings.size() == 0) {
+            List<String[]> result = new ArrayList<String[]>();
+            result.add(new String[]{});
+            return result;
+        }
+        Set<String> remaining = new HashSet<String>();
+        boolean skip = true;
+        for(String str : strings) {
+            if(skip) {
+                skip = false;
+            } else {
+                remaining.add(str);
+            }
+        }
+        List<String[]> others = combinations(remaining);
+        List<String[]> result = new ArrayList<String[]>();
+        for(String[] subset : others) {
+            result.add(subset);
+            // add myself
+            String[] copy = new String[subset.length + 1];
+            copy[0] = strings.iterator().next();
+            for(int i = 1; i <= subset.length; i++) {
+                copy[i] = subset[i - 1];
+            }
+            result.add(copy);
+        }
+        return result;
+    }
+
 
     protected JobHolder createNewJobHolder() {
         return createNewJobHolder(new Params(0));

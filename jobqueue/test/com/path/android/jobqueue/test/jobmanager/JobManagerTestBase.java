@@ -14,23 +14,41 @@ import org.fest.reflect.core.*;
 import org.fest.reflect.method.*;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
+import org.junit.After;
 import org.robolectric.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 public class JobManagerTestBase extends TestBase {
+    List<JobManager> createdJobManagers = new ArrayList<JobManager>();
     protected JobManager createJobManager() {
-        return new JobManager(Robolectric.application, UUID.randomUUID().toString());
+        final JobManager jobManager = new JobManager(Robolectric.application,
+                UUID.randomUUID().toString());
+        createdJobManagers.add(jobManager);
+        return jobManager;
     }
 
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
-        return new JobManager(Robolectric.application, configurationBuilder.id(UUID.randomUUID().toString()).build());
+        final JobManager jobManager = new JobManager(Robolectric.application,
+                configurationBuilder.id(UUID.randomUUID().toString()).build());
+        createdJobManagers.add(jobManager);
+        return jobManager;
     }
 
-
+    @After
+    public void tearDown() throws InterruptedException {
+        for (JobManager jobManager : createdJobManagers) {
+            NeverEndingDummyJob.unlockAll();
+            jobManager.stopAndWaitUntilConsumersAreFinished();
+            jobManager.clear();
+        }
+    }
 
     protected static class DummyTwoLatchJob extends DummyJob {
         private final CountDownLatch waitFor;
@@ -96,9 +114,6 @@ public class JobManagerTestBase extends TestBase {
             return 5;
         }
     }
-
-
-
 
     protected static class DummyNetworkUtil implements NetworkUtil {
         private boolean hasNetwork;
@@ -168,12 +183,15 @@ public class JobManagerTestBase extends TestBase {
     }
 
     public static class NeverEndingDummyJob extends DummyJob {
+        // used for cleanup
+        static List<NeverEndingDummyJob> createdJobs = new ArrayList<NeverEndingDummyJob>();
         final Object lock;
         final Semaphore semaphore;
         public NeverEndingDummyJob(Params params, Object lock, Semaphore semaphore) {
             super(params);
             this.lock = lock;
             this.semaphore = semaphore;
+            createdJobs.add(this);
         }
 
         @Override
@@ -185,6 +203,14 @@ public class JobManagerTestBase extends TestBase {
                 lock.wait();
             }
             semaphore.release();
+        }
+
+        static void unlockAll() {
+            for (NeverEndingDummyJob job : createdJobs) {
+                synchronized (job.lock) {
+                    job.lock.notifyAll();
+                }
+            }
         }
     }
 }

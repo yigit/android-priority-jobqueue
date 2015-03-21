@@ -1,4 +1,8 @@
 import java.util.regex.Pattern
+
+Properties releaseConfig = new Properties()
+releaseConfig.load(new FileInputStream("releaseConfig.properties"))
+ext.releaseConfig = releaseConfig
 task wrapper(type: Wrapper) {
     gradleVersion = '1.10'
 }
@@ -12,7 +16,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.8.+'
+        classpath 'com.android.tools.build:gradle:0.11.+'
     }
 }
 
@@ -26,7 +30,7 @@ apply plugin: 'android-library'
 
 android {
     compileSdkVersion 19
-    buildToolsVersion "19.0.1"
+    buildToolsVersion "19.1"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -49,7 +53,7 @@ println "version name:${manifestVersionName}"
 android.libraryVariants.all { variant ->
     def name = variant.buildType.name
     println "checking variant ${name}"
-    if (name.equals(com.android.builder.BuilderConstants.DEBUG)) {
+    if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
         return; // Skip debug builds.
     }
     def suffix = name.capitalize()
@@ -61,7 +65,7 @@ android.libraryVariants.all { variant ->
     }
     def javadocTask = project.tasks.create(name: "javadoc${suffix}", type: Javadoc) {
         source = variant.javaCompile.source
-        ext.androidJar = "${android.plugin.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
+        ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
         classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
     }
 
@@ -71,7 +75,7 @@ android.libraryVariants.all { variant ->
     }
 
     def sourcesJarTask = project.tasks.create(name: "sourceJar${suffix}", type: Jar) {
-        from android.sourceSets.main.allSource
+        from android.sourceSets.main.getJava()
         classifier = 'sources'
     }
     artifacts.add('archives', jarTask);
@@ -88,27 +92,27 @@ afterEvaluate { project ->
                 beforeDeployment {
                     MavenDeployment deployment -> signing.signPom(deployment)
                 }
-                println "sonatype username: ${sonatypeUsername}"
+                println "ossr username: ${releaseConfig.ossrhUsername}"
 
                 pom.artifactId = 'android-priority-jobqueue'
 
                 snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                    authentication(userName: sonatypeUsername, password: sonotypePassword)
+                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
                 }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
-                    authentication(userName: sonatypeUsername, password: sonotypePassword)
+                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
                 }
 
                 pom.project {
                     modelVersion '4.0.0'
-                    groupId 'com.path'
+                    groupId 'com.birbit'
                     artifactId 'android-priority-jobqueue'
                     packaging 'jar'
                     name 'Android Priority Job Queue'
                     version manifestVersionName
                     description 'a Job Queue specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.'
-                    url 'https://github.com/path/android-priority-jobqueue'
+                    url 'https://github.com/yigit/android-priority-jobqueue'
 
                     parent {
                         groupId 'org.sonatype.oss'
@@ -117,9 +121,9 @@ afterEvaluate { project ->
                     }
 
                     scm {
-                        connection 'scm:git:git@github.com:path/android-priority-jobqueue.git'
-                        developerConnection 'scm:git:git@github.com:path/android-priority-jobqueue.git'
-                        url 'git@github.com:path/android-priority-jobqueue.git'
+                        connection 'scm:git:git@github.com:yigit/android-priority-jobqueue.git'
+                        developerConnection 'scm:git:git@github.com:yigit/android-priority-jobqueue.git'
+                        url 'git@github.com:yigit/android-priority-jobqueue.git'
                     }
 
                     licenses {

@@ -1,12 +1,17 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -21,11 +26,13 @@ public class NonPersistentJobSet implements JobSet {
     //groupId -> # of jobs in that group
     private final Map<String, Integer> existingGroups;
     private final Map<Long, JobHolder> idCache;
+    private final Map<String, List<JobHolder>> tagCache;
 
     public NonPersistentJobSet(Comparator<JobHolder> comparator) {
         this.set = new TreeSet<JobHolder>(comparator);
         this.existingGroups = new HashMap<String, Integer>();
         this.idCache = new HashMap<Long, JobHolder>();
+        this.tagCache = new HashMap<String, List<JobHolder>>();
     }
 
     private JobHolder safeFirst() {
@@ -76,6 +83,47 @@ public class NonPersistentJobSet implements JobSet {
     }
 
     @Override
+    public Set<JobHolder> findByTags(TagConstraint constraint, String... tags) {
+        if(tags == null) {
+            return Collections.emptySet();
+        }
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        boolean first = true;
+        for(String tag : tags) {
+            List<JobHolder> found = tagCache.get(tag);
+            if(found == null || found.size() == 0) {
+                if (constraint == TagConstraint.ALL) {
+                    return Collections.emptySet();
+                } else {
+                    continue;
+                }
+            }
+            if (constraint == TagConstraint.ALL) {
+                jobs.addAll(found);
+            } else if (first) {
+                jobs.addAll(found);
+            } else {
+                removeIfNotExists(jobs, found);
+                if (jobs.size() == 0) {
+                    return Collections.emptySet();
+                }
+            }
+            first = false;
+        }
+        return jobs;
+    }
+
+    private void removeIfNotExists(Set<JobHolder> mainSet, List<JobHolder> items) {
+        final Iterator<JobHolder> itr = mainSet.iterator();
+        while (itr.hasNext()) {
+            JobHolder holder = itr.next();
+            if (!items.contains(holder)) {
+                itr.remove();
+            }
+        }
+    }
+
+    @Override
     public boolean offer(JobHolder holder) {
         if(holder.getId() == null) {
             throw new RuntimeException("cannot add job holder w/o an ID");
@@ -88,6 +136,7 @@ public class NonPersistentJobSet implements JobSet {
         }
         if(result) {
             idCache.put(holder.getId(), holder);
+            addToTagCache(holder);
             if(holder.getGroupId() != null) {
                 incGroupCount(holder.getGroupId());
             }
@@ -95,6 +144,42 @@ public class NonPersistentJobSet implements JobSet {
 
         return result;
     }
+
+    private void addToTagCache(JobHolder holder) {
+        final Set<String> tags = holder.getTags();
+        if(tags == null || tags.size() == 0) {
+            return;
+        }
+        for(String tag : tags) {
+            List<JobHolder> jobs = tagCache.get(tag);
+            if(jobs == null) {
+                jobs = new LinkedList<JobHolder>();
+                tagCache.put(tag, jobs);
+            }
+            jobs.add(holder);
+        }
+    }
+
+    private void removeFromTagCache(JobHolder holder) {
+        final Set<String> tags = holder.getTags();
+        if(tags == null || tags.size() == 0) {
+            return;
+        }
+        for(String tag : tags) {
+            List<JobHolder> jobs = tagCache.get(tag);
+            if(jobs == null) {
+                JqLog.e("trying to remove job from tag cache but cannot find the tag cache");
+                return;
+            }
+            if(jobs.remove(holder) == false) {
+                JqLog.e("trying to remove job from tag cache but cannot find it in the cache");
+            } else if(jobs.size() == 0) {
+                tagCache.remove(tag); // TODO pool?
+            }
+
+        }
+    }
+
 
     private void incGroupCount(String groupId) {
         if(existingGroups.containsKey(groupId) == false) {
@@ -122,6 +207,7 @@ public class NonPersistentJobSet implements JobSet {
         boolean removed = set.remove(holder);
         if(removed) {
             idCache.remove(holder.getId());
+            removeFromTagCache(holder);
             if(holder.getGroupId() != null) {
                 decGroupCount(holder.getGroupId());
             }
@@ -136,6 +222,7 @@ public class NonPersistentJobSet implements JobSet {
         set.clear();
         existingGroups.clear();
         idCache.clear();
+        tagCache.clear();
     }
 
     @Override

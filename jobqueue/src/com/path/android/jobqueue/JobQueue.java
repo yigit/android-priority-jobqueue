@@ -1,6 +1,7 @@
 package com.path.android.jobqueue;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * Interface that any JobQueue should implement
@@ -51,8 +52,8 @@ public interface JobQueue {
     /**
      * Returns the next available job in the data set
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
-     * It should filter out all running jobs and
-     * exclude groups are guaranteed to be ordered in natural order
+     * It should filter out all running jobs and exclude groups are guaranteed to be ordered in natural order
+     *
      * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
      * @param excludeGroups if provided, jobs from these groups will NOT be returned
      * @return
@@ -79,4 +80,14 @@ public interface JobQueue {
      */
     JobHolder findJobById(long id);
 
+    /**
+     * Returns jobs that has the given tags.
+     *
+     * @param tagConstraint If set to {@link TagConstraint#ALL}, returned jobs should have all of
+     *                      the tags provided. If set to {@link TagConstraint#ANY}, returned jobs
+     *                      should have at least one of the provided tags
+     * @param tags The list of tags
+     * @return
+     */
+    Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, String... tags);
 }

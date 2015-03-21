@@ -202,6 +202,7 @@ Android Priority Jobqueue is made available under the [MIT license](http://opens
 The MIT License (MIT)
 
 Copyright (c) 2013 Path, Inc.
+Copyright (c) 2014 Google, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
