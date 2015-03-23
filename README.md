@@ -150,7 +150,7 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
-  - 1.1.3 (March 21, 2015)
+  - 1.3 (March 23, 2015)
    - Ability to add tags to jobs. These tags can be used to later retrieve jobs.
    - Added long awaited job cancellation. You can use tags to cancel jobs.
    - Removed deprecated BaseJob class. This may break backward compatibility.
