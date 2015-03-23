@@ -6,6 +6,7 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 
 import org.junit.Test;
@@ -13,7 +14,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 
-import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -42,7 +42,7 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
         final CountDownLatch cancelLatch = new CountDownLatch(1);
         jobManager.cancelJobsInBackground(new CancelResult.AsyncCancelCallback() {
             @Override
-            public void onCanceled(CancelResult cancelResult) {
+            public void onCancelled(CancelResult cancelResult) {
                 resultHolder[0] = cancelResult;
                 cancelLatch.countDown();
             }
@@ -57,19 +57,20 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
         assertThat("when jobs in question are finished, cancel callback should be triggered",
                 cancelLatch.await(1, TimeUnit.SECONDS), is(true));
         final CancelResult result = resultHolder[0];
-
-        assertThat("two jobs should be canceled", result.getCanceledJobs().size(), is(2));
+        JqLog.d("cancelled jobs %s", result.getCancelledJobs());
+        JqLog.d("failed to cancel %s", result.getFailedToCancel());
+        assertThat("two jobs should be cancelled", result.getCancelledJobs().size(), is(2));
         assertThat("two jobs should fail to cancel", result.getFailedToCancel().size(), is(2));
 
-        for (Job j : result.getCanceledJobs()) {
+        for (Job j : result.getCancelledJobs()) {
             FailingJob job = (FailingJob) j;
             if (!job.isPersistent()) {
                 assertThat("job is still added", job.getOnAddedCnt(), is(1));
             }
             if (job.fail) {
-                assertThat("job is canceled", job.getOnCancelCnt(), is(1));
+                assertThat("job is cancelled", job.getOnCancelCnt(), is(1));
             } else {
-                assertThat("job could not be canceled", job.getOnCancelCnt(), is(0));
+                assertThat("job could not be cancelled", job.getOnCancelCnt(), is(0));
             }
         }
 
@@ -79,9 +80,9 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
                 assertThat("job is still added", job.getOnAddedCnt(), is(1));
             }
             if (job.fail) {
-                assertThat("job is canceled", job.getOnCancelCnt(), is(1));
+                assertThat("job is cancelled", job.getOnCancelCnt(), is(1));
             } else {
-                assertThat("job could not be canceled", job.getOnCancelCnt(), is(0));
+                assertThat("job could not be cancelled", job.getOnCancelCnt(), is(0));
             }
         }
     }
@@ -97,11 +98,13 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
 
         @Override
         public void onRun() throws Throwable {
+            JqLog.d("starting running %s", this);
             onStartLatch.countDown();
             onEndLatch.await();
             if (fail) {
                 throw new RuntimeException("been asked to fail");
             }
+            JqLog.d("finished w/ success %s", this);
         }
     }
 
@@ -115,20 +118,29 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
 
         @Override
         public void onRun() throws Throwable {
+            JqLog.d("starting running %s", this);
             onStartLatch.countDown();
             onEndLatch.await();
             if (fail) {
                 throw new RuntimeException("been asked to fail");
             }
+            JqLog.d("finished w/ success %s", this);
         }
     }
 
     public static class FailingJob extends DummyJob {
+        private static int idCounter = 0;
         final boolean fail;
+        final int id = idCounter++;
 
         public FailingJob(Params params, boolean fail) {
             super(params);
             this.fail = fail;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "[" +id + "](" + System.identityHashCode(this) + ")";
         }
     }
 }

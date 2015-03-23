@@ -15,7 +15,7 @@ public class TestBase {
         }
     }
 
-    private void enableDebug() {
+    protected void enableDebug() {
         ShadowLog.stream = System.out;
         JqLog.setCustomLogger(new CustomLogger() {
             private String TAG = "test_logger";

@@ -30,15 +30,21 @@ public class SqliteJobQueue implements JobQueue {
     JobSerializer jobSerializer;
     QueryCache readyJobsQueryCache;
     QueryCache nextJobsQueryCache;
+    // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
+    // queries. Set is cleaned when item is removed
+    Set<Long> pendingCancelations = new HashSet<Long>();
 
     /**
      * @param context application context
      * @param sessionId session id should match {@link JobManager}
      * @param id uses this value to construct database name {@code "db_" + id}
+     * @param jobSerializer The serializer to use while persisting jobs to database
+     * @param inTestMode If true, creates a memory only database
      */
-    public SqliteJobQueue(Context context, long sessionId, String id, JobSerializer jobSerializer) {
+    public SqliteJobQueue(Context context, long sessionId, String id, JobSerializer jobSerializer,
+            boolean inTestMode) {
         this.sessionId = sessionId;
-        dbOpenHelper = new DbOpenHelper(context, "db_" + id);
+        dbOpenHelper = new DbOpenHelper(context, inTestMode ? null : ("db_" + id));
         db = dbOpenHelper.getWritableDatabase();
         sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,
                 DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
@@ -148,6 +154,7 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private void delete(Long id) {
+        pendingCancelations.remove(id);
         SQLiteStatement stmt = sqlHelper.getDeleteStatement();
         synchronized (stmt) {
             stmt.clearBindings();
@@ -212,14 +219,36 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, String... tags) {
+    public Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, boolean excludeCancelled,
+            Collection<Long> exclude, String... tags) {
         if (tags == null || tags.length == 0) {
             return Collections.emptySet();
         }
         Set<JobHolder> jobs = new HashSet<JobHolder>();
-        final String query = sqlHelper.createFindByTagsQuery(tagConstraint, tags.length);
+        int excludeCount = exclude == null ? 0 : exclude.size();
+        if (excludeCancelled) {
+            excludeCount += pendingCancelations.size();
+        }
+        final String query = sqlHelper.createFindByTagsQuery(tagConstraint,
+                excludeCount, tags.length);
         JqLog.d(query);
-        Cursor cursor = db.rawQuery(query, tags);
+        final String[] args;
+        if (excludeCount == 0) {
+            args = tags;
+        } else {
+            args = new String[excludeCount + tags.length];
+            System.arraycopy(tags, 0, args, 0, tags.length);
+            int i = tags.length;
+            for (Long ex : exclude) {
+                args[i ++] = ex.toString();
+            }
+            if (excludeCancelled) {
+                for (Long ex : pendingCancelations) {
+                    args[i ++] = ex.toString();
+                }
+            }
+        }
+        Cursor cursor = db.rawQuery(query, args);
         try {
             while (cursor.moveToNext()) {
                 jobs.add(createJobHolderFromCursor(cursor));
@@ -230,6 +259,12 @@ public class SqliteJobQueue implements JobQueue {
             cursor.close();
         }
         return jobs;
+    }
+
+    @Override
+    public void onJobCancelled(JobHolder holder) {
+        pendingCancelations.add(holder.getId());
+        setSessionIdOnJob(holder);
     }
 
     /**
@@ -256,7 +291,7 @@ public class SqliteJobQueue implements JobQueue {
                 return null;
             }
             JobHolder holder = createJobHolderFromCursor(cursor);
-            onJobFetchedForRunning(holder);
+            setSessionIdOnJob(holder);
             return holder;
         } catch (InvalidJobException e) {
             //delete
@@ -329,7 +364,15 @@ public class SqliteJobQueue implements JobQueue {
         nextJobsQueryCache.clear();
     }
 
-    private void onJobFetchedForRunning(JobHolder jobHolder) {
+    /**
+     * This method is called when a job is pulled to run.
+     * It is properly marked so that it won't be returned from next job queries.
+     * <p/>
+     * Same mechanism is also used for cancelled jobs.
+     *
+     * @param jobHolder
+     */
+    private void setSessionIdOnJob(JobHolder jobHolder) {
         SQLiteStatement stmt = sqlHelper.getOnJobFetchedForRunningStatement();
         jobHolder.setRunCount(jobHolder.getRunCount() + 1);
         jobHolder.setRunningSessionId(sessionId);

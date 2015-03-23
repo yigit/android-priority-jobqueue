@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.executor;
 
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
@@ -139,7 +140,9 @@ public class JobConsumerExecutor {
      * @return true if job is currently handled here
      */
     public boolean isRunning(long id, boolean persistent) {
-        return runningJobHolders.containsKey(createRunningJobHolderKey(id, persistent));
+        synchronized (runningJobHolders) {
+            return runningJobHolders.containsKey(createRunningJobHolderKey(id, persistent));
+        }
     }
 
     public void waitUntilDone(Set<Long> persistentJobIds, Set<Long> nonPersistentJobIds)
@@ -167,11 +170,25 @@ public class JobConsumerExecutor {
         return false;
     }
 
-    public Set<JobHolder> findRunningByTags(TagConstraint constraint, String[] tags, boolean persistent) {
+    public void inRunningJobHoldersLock(Runnable runnable) {
+        synchronized (runnable) {
+            runnable.run();;
+        }
+    }
+
+    /**
+     * Excludes cancelled jobs
+     */
+    public Set<JobHolder> findRunningByTags(TagConstraint constraint, String[] tags,
+            boolean persistent) {
         Set<JobHolder> result = new HashSet<JobHolder>();
         synchronized (runningJobHolders) {
             for (JobHolder holder : runningJobHolders.values()) {
+                JqLog.d("checking job tag %s. tags of job: %s", holder.getJob(), holder.getJob().getTags());
                 if (!holder.hasTags() || persistent != holder.getJob().isPersistent()) {
+                    continue;
+                }
+                if (holder.isCancelled()) {
                     continue;
                 }
                 if (doesHolderMatchTags(holder, constraint, tags)) {
@@ -286,13 +303,23 @@ public class JobConsumerExecutor {
                         nextJob = contract.isRunning() ? contract.getNextJob(executor.keepAliveSeconds, TimeUnit.SECONDS) : null;
                         if (nextJob != null) {
                             executor.onBeforeRun(nextJob);
-                            if (nextJob.safeRun(nextJob.getRunCount())) {
-                                nextJob.markAsSuccessful();
-                                contract.removeJob(nextJob);
-                            } else {
-                                if (!nextJob.isCanceled()) {
+                            int result = nextJob.safeRun(nextJob.getRunCount());
+                            switch (result) {
+                                case JobHolder.RUN_RESULT_SUCCESS:
+                                    nextJob.markAsSuccessful();
+                                    contract.removeJob(nextJob);
+                                    break;
+                                case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
+                                    contract.removeJob(nextJob);
+                                    break;
+                                case JobHolder.RUN_RESULT_TRY_AGAIN:
                                     contract.insertOrReplace(nextJob);
-                                }
+                                    break;
+                                case JobHolder.RUN_RESULT_FAIL_FOR_CANCEL:
+                                    JqLog.d("running job failed and cancelled, doing nothing. "
+                                            + "Will be removed after it's onCancel is called by the "
+                                            + "JobManager");
+                                    break;
                             }
                             executor.onAfterRun(nextJob);
                         }

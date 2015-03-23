@@ -1,8 +1,11 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import android.util.Log;
+
+import com.path.android.jobqueue.CancelResult;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
@@ -30,6 +33,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             .loadFactor(3).maxConsumerCount(10));
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));
+        final String cancelTag = "iWillBeCancelled";
         Collection<Future<?>> futures = new LinkedList<Future<?>>();
         for(int i = 0; i < limit; i++) {
             final int id = i;
@@ -40,9 +44,20 @@ public class MultiThreadTest extends JobManagerTestBase {
                     boolean requiresNetwork = Math.round(Math.random()) % 2 == 0;
                     int priority = (int) (Math.round(Math.random()) % 10);
                     multiThreadedJobCounter.incrementAndGet();
-                    jobManager.addJob(new DummyJobForMultiThread(id, new Params(priority).setRequiresNetwork(requiresNetwork).setPersistent(persistent)));
+                    Params params = new Params(priority).setRequiresNetwork(requiresNetwork)
+                            .setPersistent(persistent);
+                    if (Math.random() < .1) {
+                        params.addTags(cancelTag);
+                    }
+                    jobManager.addJob(new DummyJobForMultiThread(id, params));
                 }
             }));
+        }
+        // wait for some jobs to start
+        Thread.sleep(1000);
+        CancelResult cancelResult = jobManager.cancelJobs(TagConstraint.ALL, cancelTag);
+        for (int  i = 0; i < cancelResult.getCancelledJobs().size(); i++) {
+            multiThreadedJobCounter.decrementAndGet();
         }
         for (Future<?> future:futures) {
             future.get();
@@ -76,7 +91,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             int remaining = multiThreadedJobCounter.decrementAndGet();
             //take some time
             Thread.sleep((long) (Math.random() * 1000));
-            //throw exception w/ small change
+            //throw exception w/ small chance
             if(Math.random() < .1) {
                 throw new Exception("decided to die, will retry");
             }

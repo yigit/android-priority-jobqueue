@@ -158,7 +158,7 @@
     </target>
 
     <target name="coverage-report">
-        <cobertura-report format="html" destdir="${coveragereport.dir}" srcdir="${src.dir}"/>
+        <cobertura-report format="html" destdir="coverage-report" srcdir="${src.dir}"/>
     </target>
 
     <target name="build-jar" depends="release" description="builds jar from compiled code">

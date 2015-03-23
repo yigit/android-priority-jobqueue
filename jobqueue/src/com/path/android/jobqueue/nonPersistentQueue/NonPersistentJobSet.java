@@ -83,7 +83,8 @@ public class NonPersistentJobSet implements JobSet {
     }
 
     @Override
-    public Set<JobHolder> findByTags(TagConstraint constraint, String... tags) {
+    public Set<JobHolder> findByTags(TagConstraint constraint, Collection<Long> exclude,
+            String... tags) {
         if(tags == null) {
             return Collections.emptySet();
         }
@@ -110,9 +111,21 @@ public class NonPersistentJobSet implements JobSet {
             }
             first = false;
         }
+        if (exclude != null) {
+            removeIds(jobs, exclude);
+        }
         return jobs;
     }
 
+    private void removeIds(Set<JobHolder> mainSet, Collection<Long> ids) {
+        final Iterator<JobHolder> itr = mainSet.iterator();
+        while (itr.hasNext()) {
+            JobHolder holder = itr.next();
+            if (ids.contains(holder.getId())) {
+                itr.remove();
+            }
+        }
+    }
     private void removeIfNotExists(Set<JobHolder> mainSet, List<JobHolder> items) {
         final Iterator<JobHolder> itr = mainSet.iterator();
         while (itr.hasNext()) {

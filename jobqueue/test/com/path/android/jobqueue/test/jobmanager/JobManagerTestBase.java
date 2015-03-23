@@ -101,7 +101,7 @@ public class JobManagerTestBase extends TestBase {
         public void onRun() throws Throwable {
             runCount++;
             super.onRun();
-            throw new RuntimeException("i am dummy, i throw exception when running");
+            throw new RuntimeException("i am dummy, i throw exception when running " + runCount);
         }
 
         @Override

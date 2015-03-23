@@ -1,5 +1,7 @@
 package com.path.android.jobqueue;
 
+import com.path.android.jobqueue.log.JqLog;
+
 import java.util.Collections;
 import java.util.Set;
 
@@ -7,6 +9,27 @@ import java.util.Set;
  * Container class to address Jobs inside job manager.
  */
 public class JobHolder {
+
+    /**
+     * Internal constant. Job's onRun method completed w/o any exception.
+     */
+    public static final int RUN_RESULT_SUCCESS = 1;
+    /**
+     * Internal constant. Job's onRun method thrown an exception and either it does not want to
+     * run again or reached retry limit.
+     */
+    public static final int RUN_RESULT_FAIL_RUN_LIMIT = 2;
+
+    /**
+     * Internal constant. Job's onRun method has thrown an exception and it was cancelled after it
+     * started.
+     */
+    public static final int RUN_RESULT_FAIL_FOR_CANCEL = 3;
+    /**
+     * Internal constant. Job's onRun method failed but wants to retry.
+     */
+    public static final int RUN_RESULT_TRY_AGAIN = 4;
+
     protected Long id;
     protected int priority;
     protected String groupId;
@@ -24,7 +47,7 @@ public class JobHolder {
     protected boolean requiresNetwork;
     transient Job job;
     protected final Set<String> tags;
-    private boolean canceled;
+    private boolean cancelled;
     private boolean successful;
 
     /**
@@ -61,9 +84,9 @@ public class JobHolder {
     /**
      * runs the job w/o throwing any exceptions
      * @param currentRunCount
-     * @return
+     * @return RUN_RESULT*
      */
-    public final boolean safeRun(int currentRunCount) {
+    public final int safeRun(int currentRunCount) {
         return job.safeRun(this, currentRunCount);
     }
 
@@ -131,13 +154,13 @@ public class JobHolder {
         return tags;
     }
 
-    public void markAsCanceled() {
-        canceled = true;
-        job.canceled = true;
+    public void markAsCancelled() {
+        cancelled = true;
+        job.cancelled = true;
     }
 
-    public boolean isCanceled() {
-        return canceled;
+    public boolean isCancelled() {
+        return cancelled;
     }
 
     @Override
@@ -165,11 +188,11 @@ public class JobHolder {
         return tags != null && tags.size() > 0;
     }
 
-    public void markAsSuccessful() {
+    public synchronized void markAsSuccessful() {
         successful = true;
     }
 
-    public boolean isSuccessful() {
+    public synchronized boolean isSuccessful() {
         return successful;
     }
 }

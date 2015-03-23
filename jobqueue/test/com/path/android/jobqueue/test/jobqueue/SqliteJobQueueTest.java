@@ -22,7 +22,7 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id) {
-                return new SqliteJobQueue(Robolectric.application, sessionId, id, new SqliteJobQueue.JavaSerializer());
+                return new SqliteJobQueue(Robolectric.application, sessionId, id, new SqliteJobQueue.JavaSerializer(), true);
             }
         });
     }
@@ -45,7 +45,7 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
             }
         };
         SqliteJobQueue jobQueue = new SqliteJobQueue(Robolectric.application, System.nanoTime(), "__" + System.nanoTime(),
-                jobSerializer);
+                jobSerializer, true);
         jobQueue.insert(createNewJobHolder(new Params(0)));
         calledForSerialize.await(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat("custom serializer should be called for serialize", (int) calledForSerialize.getCount(), CoreMatchers.equalTo(0));
