@@ -1,10 +1,12 @@
 import java.util.regex.Pattern
 
+apply plugin: 'com.android.library'
+
 Properties releaseConfig = new Properties()
-releaseConfig.load(new FileInputStream("releaseConfig.properties"))
+releaseConfig.load(new FileInputStream("${projectDir}/releaseConfig.properties"))
 ext.releaseConfig = releaseConfig
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.10'
+    gradleVersion = '1.12'
 }
 
 apply plugin: 'maven'
@@ -16,8 +18,14 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.11.+'
+        classpath 'com.android.tools.build:gradle:1.1.0'
+        classpath 'org.robolectric:robolectric-gradle-plugin:1.0.1'
     }
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
 }
 
 configurations {
@@ -26,22 +34,26 @@ configurations {
     }
 }
 
-apply plugin: 'android-library'
+apply plugin: 'org.robolectric'
+
+dependencies {
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.robolectric:robolectric:2.4'
+    testCompile 'org.hamcrest:hamcrest-core:1.3'
+    testCompile 'org.easytesting:fest-util:1.2.5'
+    testCompile 'org.easytesting:fest-reflect:1.4.1'
+
+}
+
+
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion "19.1"
-    sourceSets {
-        main {
-            manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['src']
-            res.srcDirs = ['res']
-        }
-    }
+    compileSdkVersion 22
+    buildToolsVersion "22"
 }
 
 //READ VERSION NAME
-def manifestFile = file("AndroidManifest.xml")
+def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
 def pattern = Pattern.compile("versionName=\"([\\d\\.\\w\\-]+)\"")
 def manifestText = manifestFile.getText()
 def matcher = pattern.matcher(manifestText)
@@ -83,6 +95,29 @@ android.libraryVariants.all { variant ->
     artifacts.add('archives', sourcesJarTask);
 }
 //create jar tasks end
+
+robolectric {
+    // Configure max heap size of the test JVM
+    maxHeapSize = '2048m'
+
+    // Configure the test JVM arguments - Does not apply to Java 8
+    jvmArgs '-XX:MaxPermSize=512m', '-XX:-UseSplitVerifier'
+
+    // Specify max number of processes (default is 1)
+    maxParallelForks = 1
+
+    // Specify max number of test classes to execute in a test process
+    // before restarting the process (default is unlimited)
+    forkEvery = 150
+
+    // configure whether failing tests should fail the build
+    ignoreFailures true
+
+    // use afterTest to listen to the test execution results
+    afterTest { descriptor, result ->
+        println "Executing test for ${descriptor.name} with result: ${result.resultType}"
+    }
+}
 
 
 afterEvaluate { project ->
