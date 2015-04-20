@@ -1,6 +1,7 @@
 package com.path.android.jobqueue;
 
 import android.content.Context;
+
 import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
@@ -277,6 +278,8 @@ public class JobManager implements NetworkEventProvider.Listener {
         final List<JobHolder> jobs = new ArrayList<JobHolder>();
         final Set<Long> persistentJobIds = new HashSet<Long>();
         final Set<Long> nonPersistentJobIds = new HashSet<Long>();
+        final Set<Long> runningNonPersistentJobIds = new HashSet<>();
+        final Set<Long> runningPersistentJobIds = new HashSet<>();
         synchronized (getNextJobLock) {
             jobConsumerExecutor.inRunningJobHoldersLock(new Runnable() {
                 @Override
@@ -287,6 +290,7 @@ public class JobManager implements NetworkEventProvider.Listener {
                     synchronized (nonPersistentJobQueue) {
                         markJobsAsCancelledAndFilterAlreadyCancelled(nonPersistentRunningJobs,
                                 nonPersistentJobQueue, nonPersistentJobIds);
+                        runningNonPersistentJobIds.addAll(nonPersistentJobIds);
                         Set<JobHolder> nonPersistentJobs = nonPersistentJobQueue
                                 .findJobsByTags(constraint, true, nonPersistentJobIds, tags);
                         markJobsAsCancelledAndFilterAlreadyCancelled(nonPersistentJobs,
@@ -300,6 +304,7 @@ public class JobManager implements NetworkEventProvider.Listener {
                     synchronized (persistentJobQueue) {
                         markJobsAsCancelledAndFilterAlreadyCancelled(persistentRunningJobs,
                                 persistentJobQueue, persistentJobIds);
+                        runningPersistentJobIds.addAll(persistentJobIds);
                         Set<JobHolder> persistentJobs = persistentJobQueue
                                 .findJobsByTags(constraint, true, persistentJobIds, tags);
                         markJobsAsCancelledAndFilterAlreadyCancelled(persistentJobs,
@@ -333,10 +338,19 @@ public class JobManager implements NetworkEventProvider.Listener {
                 } catch (Throwable t) {
                     JqLog.e(t, "cancelled job's onCancel has thrown exception");
                 }
+                // if job is removed while running, make sure we remove it from running job
+                // groups as well. JobExecutor won't remove the job.
                 if (holder.getJob().isPersistent()) {
                     synchronized (persistentJobQueue) {
                         persistentJobQueue.remove(holder);
                     }
+                    if (holder.getGroupId() != null &&
+                            runningPersistentJobIds.contains(holder.getId())) {
+                        runningJobGroups.remove(holder.getGroupId());
+                    }
+                } else if (holder.getGroupId() != null &&
+                        runningNonPersistentJobIds.contains(holder.getId())) {
+                    runningJobGroups.remove(holder.getGroupId());
                 }
             }
         }

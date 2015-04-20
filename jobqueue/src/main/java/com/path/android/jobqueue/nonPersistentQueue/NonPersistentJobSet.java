@@ -204,14 +204,18 @@ public class NonPersistentJobSet implements JobSet {
 
     private void decGroupCount(String groupId) {
         Integer val = existingGroups.get(groupId);
-        if(val == null || val == 0) {
+        if(val == null || val <= 0) {
             //TODO should we crash?
-            JqLog.e("detected inconsistency in NonPersistentJobSet's group id hash");
+            JqLog.e("detected inconsistency in NonPersistentJobSet's group id hash. Please report " +
+                    "a bug");
+            existingGroups.remove(groupId);
             return;
         }
         val -= 1;
         if(val == 0) {
             existingGroups.remove(groupId);
+        } else {
+            existingGroups.put(groupId, val);
         }
     }
 

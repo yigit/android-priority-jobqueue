@@ -18,7 +18,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.0'
+        classpath 'com.android.tools.build:gradle:1.2.0-beta2'
         classpath 'org.robolectric:robolectric-gradle-plugin:1.0.1'
     }
 }
@@ -87,7 +87,7 @@ android.libraryVariants.all { variant ->
     }
 
     def sourcesJarTask = project.tasks.create(name: "sourceJar${suffix}", type: Jar) {
-        from android.sourceSets.main.getJava()
+        from android.sourceSets.main.getJava().getSrcDirs()
         classifier = 'sources'
     }
     artifacts.add('archives', jarTask);
@@ -130,6 +130,7 @@ afterEvaluate { project ->
                 println "ossr username: ${releaseConfig.ossrhUsername}"
 
                 pom.artifactId = 'android-priority-jobqueue'
+
 
                 snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
                     authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
