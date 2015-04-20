@@ -150,6 +150,10 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 1.3.1 (April 19, 2015)
+   - Fixed issue #19 which was blocking a group forever if a job from that group is cancelled while running and then onRun fails.
+   - Updated Robolectric version and moved all testing to Gradle.
+   - Goodbye Cobertura, Welcome Jacoco!
   - 1.3 (March 23, 2015)
    - Ability to add tags to jobs. These tags can be used to later retrieve jobs.
    - Added long awaited job cancellation. You can use tags to cancel jobs.
@@ -178,7 +182,6 @@ We highly recommend checking how you can configure job manager and individual jo
 - - [Fest Util](http://easytesting.org/) ([license](http://www.apache.org/licenses/LICENSE-2.0))
 - - [Hamcrest](https://code.google.com/p/hamcrest/) ([license](http://opensource.org/licenses/BSD-3-Clause))
 - For code coverage report, we use:
-- - [Cobertura](http://cobertura.github.io/cobertura/) ([license](https://github.com/cobertura/cobertura/blob/master/LICENSE.txt/))
 - Sample Twitter client uses:
 - - [Twitter4j](http://twitter4j.org/en)
 - - [EventBus](https://github.com/greenrobot/EventBus)

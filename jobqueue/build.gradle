@@ -11,6 +11,7 @@ task wrapper(type: Wrapper) {
 
 apply plugin: 'maven'
 apply plugin: 'signing'
+apply plugin: 'jacoco'
 
 buildscript {
     repositories {
@@ -19,7 +20,6 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle:1.2.0-beta2'
-        classpath 'org.robolectric:robolectric-gradle-plugin:1.0.1'
     }
 }
 
@@ -33,8 +33,6 @@ configurations {
         extendsFrom configurations.default
     }
 }
-
-apply plugin: 'org.robolectric'
 
 dependencies {
     testCompile 'junit:junit:4.12'
@@ -50,6 +48,12 @@ dependencies {
 android {
     compileSdkVersion 22
     buildToolsVersion "22"
+    buildTypes {
+        debug {
+            testCoverageEnabled = true
+        }
+    }
+
 }
 
 //READ VERSION NAME
@@ -95,30 +99,6 @@ android.libraryVariants.all { variant ->
     artifacts.add('archives', sourcesJarTask);
 }
 //create jar tasks end
-
-robolectric {
-    // Configure max heap size of the test JVM
-    maxHeapSize = '2048m'
-
-    // Configure the test JVM arguments - Does not apply to Java 8
-    jvmArgs '-XX:MaxPermSize=512m', '-XX:-UseSplitVerifier'
-
-    // Specify max number of processes (default is 1)
-    maxParallelForks = 1
-
-    // Specify max number of test classes to execute in a test process
-    // before restarting the process (default is unlimited)
-    forkEvery = 150
-
-    // configure whether failing tests should fail the build
-    ignoreFailures true
-
-    // use afterTest to listen to the test execution results
-    afterTest { descriptor, result ->
-        println "Executing test for ${descriptor.name} with result: ${result.resultType}"
-    }
-}
-
 
 afterEvaluate { project ->
     uploadArchives {
@@ -193,4 +173,28 @@ afterEvaluate { project ->
         required { gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
+}
+
+task jacocoTestReport(type:JacocoReport, dependsOn: "testDebug") {
+    group = "Reporting"
+
+    description = "Generate Jacoco coverage reports"
+
+    classDirectories = fileTree(
+            dir: "$buildDir/intermediates/classes/debug",
+            excludes: ['**/R.class',
+                       '**/R$*.class',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*']
+    )
+
+    additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
+    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
+    executionData = files("$buildDir/jacoco/testDebug.exec")
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
 }
