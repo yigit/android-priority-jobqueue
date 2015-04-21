@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Configuration.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue.config</a> &gt; <span class="el_source">Configuration.java</span></div><h1>Configuration.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue.config;
+
+import android.content.Context;
+import android.net.ConnectivityManager;
+import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.QueueFactory;
+import com.path.android.jobqueue.di.DependencyInjector;
+import com.path.android.jobqueue.log.CustomLogger;
+import com.path.android.jobqueue.network.NetworkUtil;
+import com.path.android.jobqueue.network.NetworkUtilImpl;
+import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
+import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+
+/**
+ * {@link com.path.android.jobqueue.JobManager} configuration object
+ */
+public class Configuration {
+    public static final String DEFAULT_ID = &quot;default_job_manager&quot;;
+    public static final int DEFAULT_THREAD_KEEP_ALIVE_SECONDS = 15;
+    public static final int DEFAULT_LOAD_FACTOR_PER_CONSUMER = 3;
+    public static final int MAX_CONSUMER_COUNT = 5;
+    public static final int MIN_CONSUMER_COUNT = 0;
+
+<span class="fc" id="L25">    private String id = DEFAULT_ID;</span>
+<span class="fc" id="L26">    private int maxConsumerCount = MAX_CONSUMER_COUNT;</span>
+<span class="fc" id="L27">    private int minConsumerCount = MIN_CONSUMER_COUNT;</span>
+<span class="fc" id="L28">    private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;</span>
+<span class="fc" id="L29">    private int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;</span>
+    private QueueFactory queueFactory;
+    private DependencyInjector dependencyInjector;
+    private NetworkUtil networkUtil;
+    private CustomLogger customLogger;
+<span class="fc" id="L34">    private boolean inTestMode = false;</span>
+
+<span class="fc" id="L36">    private Configuration(){</span>
+        //use builder instead
+<span class="fc" id="L38">    }</span>
+
+    public String getId() {
+<span class="fc" id="L41">        return id;</span>
+    }
+
+    public QueueFactory getQueueFactory() {
+<span class="fc" id="L45">        return queueFactory;</span>
+    }
+
+    public DependencyInjector getDependencyInjector() {
+<span class="fc" id="L49">        return dependencyInjector;</span>
+    }
+
+    public int getConsumerKeepAlive() {
+<span class="fc" id="L53">        return consumerKeepAlive;</span>
+    }
+
+    public NetworkUtil getNetworkUtil() {
+<span class="fc" id="L57">        return networkUtil;</span>
+    }
+
+    public int getMaxConsumerCount() {
+<span class="fc" id="L61">        return maxConsumerCount;</span>
+    }
+
+    public int getMinConsumerCount() {
+<span class="fc" id="L65">        return minConsumerCount;</span>
+    }
+
+    public CustomLogger getCustomLogger() {
+<span class="fc" id="L69">        return customLogger;</span>
+    }
+
+    public int getLoadFactor() {
+<span class="fc" id="L73">        return loadFactor;</span>
+    }
+
+    public boolean isInTestMode() {
+<span class="fc" id="L77">        return inTestMode;</span>
+    }
+
+    public static final class Builder {
+        private Configuration configuration;
+        private Context appContext;
+<span class="fc" id="L83">        public Builder(Context context) {</span>
+<span class="fc" id="L84">            this.configuration = new Configuration();</span>
+<span class="fc" id="L85">            appContext = context.getApplicationContext();</span>
+<span class="fc" id="L86">        }</span>
+
+        /**
+         * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
+         * create multiple instances of it.
+         * default id is {@value #DEFAULT_ID}
+         * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
+         */
+        public Builder id(String id) {
+<span class="fc" id="L95">            configuration.id = id;</span>
+<span class="fc" id="L96">            return this;</span>
+        }
+
+        /**
+         * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration. it defaults to {@value #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
+         * @param keepAlive in seconds
+         */
+        public Builder consumerKeepAlive(int keepAlive) {
+<span class="fc" id="L104">            configuration.consumerKeepAlive = keepAlive;</span>
+<span class="fc" id="L105">            return this;</span>
+        }
+
+        /**
+         * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
+         * By default, it will use {@link SqliteJobQueue} and {@link NonPersistentPriorityQueue}
+         * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
+         * {@link JobQueueTestBase} to ensure it will work fine.
+         * @param queueFactory your custom queue factory.
+         */
+        public Builder queueFactory(QueueFactory queueFactory) {
+<span class="nc bnc" id="L116" title="All 2 branches missed.">            if(configuration.queueFactory != null) {</span>
+<span class="nc" id="L117">                throw new RuntimeException(&quot;already set a queue factory. This might happen if you've provided a custom &quot; +</span>
+                        &quot;job serializer&quot;);
+            }
+<span class="nc" id="L120">            configuration.queueFactory = queueFactory;</span>
+<span class="nc" id="L121">            return this;</span>
+        }
+
+        /**
+         * convenient configuration to replace job serializer while using {@link SqliteJobQueue} queue for persistence.
+         * by default, it uses a {@link SqliteJobQueue.JavaSerializer} which will use default Java serialization.
+         * @param JobSerializer
+         * @return
+         */
+        public Builder jobSerializer(SqliteJobQueue.JobSerializer jobSerializer) {
+<span class="nc" id="L131">            configuration.queueFactory = new JobManager.DefaultQueueFactory(jobSerializer);</span>
+<span class="nc" id="L132">            return this;</span>
+        }
+
+        /**
+         * By default, Job Manager comes with a simple {@link NetworkUtilImpl} that queries {@link ConnectivityManager}
+         * to check if network connection exists. You can provide your own if you need a custom logic (e.g. check your
+         * server health etc).
+         */
+        public Builder networkUtil(NetworkUtil networkUtil) {
+<span class="fc" id="L141">            configuration.networkUtil = networkUtil;</span>
+<span class="fc" id="L142">            return this;</span>
+        }
+
+        /**
+         * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
+         * before {Job#onAdded} method is called.
+         * if job is persistent, it will also be called before run method.
+         * @param injector your dependency injector interface, if using one
+         * @return
+         */
+        public Builder injector(DependencyInjector injector) {
+<span class="fc" id="L153">            configuration.dependencyInjector = injector;</span>
+<span class="fc" id="L154">            return this;</span>
+        }
+
+        /**
+         * # of max consumers to run concurrently. defaults to {@value #MAX_CONSUMER_COUNT}
+         * @param count
+         */
+        public Builder maxConsumerCount(int count) {
+<span class="fc" id="L162">            configuration.maxConsumerCount = count;</span>
+<span class="fc" id="L163">            return this;</span>
+        }
+
+        /**
+         * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to {@value #MIN_CONSUMER_COUNT}
+         * @param count
+         */
+        public Builder minConsumerCount(int count) {
+<span class="fc" id="L171">            configuration.minConsumerCount = count;</span>
+<span class="fc" id="L172">            return this;</span>
+        }
+
+        /**
+         * you can provide a custom logger to get logs from JobManager.
+         * by default, logs will go no-where.
+         * @param logger
+         */
+        public Builder customLogger(CustomLogger logger) {
+<span class="fc" id="L181">            configuration.customLogger = logger;</span>
+<span class="fc" id="L182">            return this;</span>
+        }
+
+        /**
+         * calculated by # of jobs (running+waiting) per thread
+         * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
+         * (10/2) =5
+         * defaults to {@value #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
+         * @param loadFactor
+         */
+        public Builder loadFactor(int loadFactor) {
+<span class="fc" id="L193">            configuration.loadFactor = loadFactor;</span>
+<span class="fc" id="L194">            return this;</span>
+        }
+
+        /**
+         * Sets the JobManager in test mode. This information is passed to JobQueue's.
+         * If you are using default JobQueues, calling this method will cause {@link SqliteJobQueue}
+         * to use an in-memory database.
+         */
+        public Builder inTestMode() {
+<span class="nc" id="L203">            configuration.inTestMode = true;</span>
+<span class="nc" id="L204">            return this;</span>
+        }
+
+        public Configuration build() {
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">            if(configuration.queueFactory == null) {</span>
+<span class="fc" id="L209">                configuration.queueFactory = new JobManager.DefaultQueueFactory();</span>
+            }
+<span class="fc bfc" id="L211" title="All 2 branches covered.">            if(configuration.networkUtil == null) {</span>
+<span class="fc" id="L212">                configuration.networkUtil = new NetworkUtilImpl(appContext);</span>
+            }
+<span class="fc" id="L214">            return configuration;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

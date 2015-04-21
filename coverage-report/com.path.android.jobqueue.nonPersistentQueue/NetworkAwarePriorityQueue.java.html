@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>NetworkAwarePriorityQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue.nonPersistentQueue</a> &gt; <span class="el_source">NetworkAwarePriorityQueue.java</span></div><h1>NetworkAwarePriorityQueue.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue.nonPersistentQueue;
+
+import com.path.android.jobqueue.JobHolder;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Queue;
+
+/**
+ * A {@link MergedQueue} class that can separate jobs based on their network requirement
+ */
+public class NetworkAwarePriorityQueue extends MergedQueue {
+
+    /**
+     * create a network aware priority queue with given initial capacity * 2 and comparator
+     * @param initialCapacity
+     * @param comparator
+     */
+    public NetworkAwarePriorityQueue(int initialCapacity, Comparator&lt;JobHolder&gt; comparator) {
+<span class="fc" id="L20">        super(initialCapacity, comparator, new TimeAwareComparator(comparator));</span>
+<span class="fc" id="L21">    }</span>
+
+    /**
+     * {@link java.util.Queue#peek()} implementation with network requirement filter
+     * @param canUseNetwork if {@code true}, does not check network requirement if {@code false}, returns only from
+     *                      no network queue
+     * @return
+     */
+    public JobHolder peek(boolean canUseNetwork, Collection&lt;String&gt; excludeGroupIds) {
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if(canUseNetwork) {</span>
+<span class="fc" id="L31">            return super.peek(excludeGroupIds);</span>
+        } else {
+<span class="fc" id="L33">            return super.peekFromQueue(SetId.S1, excludeGroupIds);</span>
+        }
+    }
+
+    /**
+     * {@link java.util.Queue#poll()} implementation with network requirement filter
+     * @param canUseNetwork if {@code true}, does not check network requirement if {@code false}, returns only from
+     *                      no network queue
+     * @return
+     */
+    public JobHolder poll(boolean canUseNetwork, Collection&lt;String&gt; excludeGroupIds) {
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if(canUseNetwork) {</span>
+<span class="nc" id="L45">            return super.peek(excludeGroupIds);</span>
+        } else {
+<span class="nc" id="L47">            return super.peekFromQueue(SetId.S1, excludeGroupIds);</span>
+        }
+    }
+
+    @Override
+    protected SetId decideQueue(JobHolder jobHolder) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        return jobHolder.requiresNetwork() ? SetId.S0 : SetId.S1;</span>
+    }
+
+    /**
+     * create a {@link TimeAwarePriorityQueue}
+     * @param ignoredQueueId
+     * @param initialCapacity
+     * @param comparator
+     * @return
+     */
+    @Override
+    protected JobSet createQueue(SetId ignoredQueueId, int initialCapacity, Comparator&lt;JobHolder&gt; comparator) {
+<span class="fc" id="L65">        return new TimeAwarePriorityQueue(initialCapacity, comparator);</span>
+    }
+
+
+    public CountWithGroupIdsResult countReadyJobs(boolean hasNetwork, Collection&lt;String&gt; excludeGroups) {
+<span class="fc" id="L70">        long now = System.nanoTime();</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if(hasNetwork) {</span>
+<span class="fc" id="L72">            return super.countReadyJobs(SetId.S0, now, excludeGroups).mergeWith(super.countReadyJobs(SetId.S1, now, excludeGroups));</span>
+        } else {
+<span class="fc" id="L74">            return super.countReadyJobs(SetId.S1, now, excludeGroups);</span>
+        }
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(long now, Collection&lt;String&gt; excludeGroups) {
+<span class="nc" id="L80">        throw new UnsupportedOperationException(&quot;cannot call network aware priority queue count w/o providing network status&quot;);</span>
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(Collection&lt;String&gt; excludeGroups) {
+<span class="nc" id="L85">        throw new UnsupportedOperationException(&quot;cannot call network aware priority queue count w/o providing network status&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

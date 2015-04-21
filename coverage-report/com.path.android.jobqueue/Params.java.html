@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Params.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue</a> &gt; <span class="el_source">Params.java</span></div><h1>Params.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue;
+
+import java.util.HashSet;
+
+/**
+ * Job builder object to have a more readable design.
+ * Methods can be chained to have more readable code.
+ */
+public class Params {
+<span class="fc" id="L10">    private boolean requiresNetwork = false;</span>
+<span class="fc" id="L11">    private String groupId = null;</span>
+<span class="fc" id="L12">    private boolean persistent = false;</span>
+    private int priority;
+    private long delayMs;
+    private HashSet&lt;String&gt; tags;
+
+    /**
+     *
+     * @param priority higher = better
+     */
+<span class="fc" id="L21">    public Params(int priority) {</span>
+<span class="fc" id="L22">        this.priority = priority;</span>
+<span class="fc" id="L23">    }</span>
+
+    /**
+     * Sets the Job as requiring network
+     * @return this
+     */
+    public Params requireNetwork() {
+<span class="fc" id="L30">        requiresNetwork = true;</span>
+<span class="fc" id="L31">        return this;</span>
+    }
+
+    /**
+     * Sets the group id. Jobs in the same group are guaranteed to execute sequentially.
+     * @param groupId which group this job belongs (can be null of course)
+     * @return this
+     */
+    public Params groupBy(String groupId) {
+<span class="fc" id="L40">        this.groupId = groupId;</span>
+<span class="fc" id="L41">        return this;</span>
+    }
+
+    /**
+     * Marks the job as persistent. Make sure your job is serializable.
+     * @return this
+     */
+    public Params persist() {
+<span class="fc" id="L49">        this.persistent = true;</span>
+<span class="fc" id="L50">        return this;</span>
+    }
+
+    /**
+     * Delays the job in given ms.
+     * @param delayMs .
+     * @return this
+     */
+    public Params delayInMs(long delayMs) {
+<span class="fc" id="L59">        this.delayMs = delayMs;</span>
+<span class="fc" id="L60">        return this;</span>
+    }
+
+    /**
+     * convenience method to set network requirement
+     * @param requiresNetwork true|false
+     * @return this
+     */
+    public Params setRequiresNetwork(boolean requiresNetwork) {
+<span class="fc" id="L69">        this.requiresNetwork = requiresNetwork;</span>
+<span class="fc" id="L70">        return this;</span>
+    }
+
+    /**
+     * convenience method to set group id.
+     * @param groupId
+     * @return this
+     */
+    public Params setGroupId(String groupId) {
+<span class="fc" id="L79">        this.groupId = groupId;</span>
+<span class="fc" id="L80">        return this;</span>
+    }
+
+    /**
+     * convenience method to set whether {@link JobManager} should persist this job or not.
+     * @param persistent true|false
+     * @return this
+     */
+    public Params setPersistent(boolean persistent) {
+<span class="fc" id="L89">        this.persistent = persistent;</span>
+<span class="fc" id="L90">        return this;</span>
+    }
+
+    /**
+     * convenience method to set delay
+     * @param delayMs in ms
+     * @return this
+     */
+    public Params setDelayMs(long delayMs) {
+<span class="fc" id="L99">        this.delayMs = delayMs;</span>
+<span class="fc" id="L100">        return this;</span>
+    }
+
+    /**
+     * Attaches given tags to the Job.
+     * These are initially used for cancelling or querying jobs but usage will be extended
+     * @param newTags List of tags to add
+     * @return
+     */
+    public Params addTags(String... newTags) {
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        if(tags == null) {</span>
+<span class="fc" id="L111">            tags = new HashSet&lt;String&gt;();</span>
+        }
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for(String tag : newTags) {</span>
+<span class="fc" id="L114">            tags.add(tag);</span>
+        }
+<span class="fc" id="L116">        return this;</span>
+    }
+
+    /**
+     * Removes the given tags from the Job.
+     *
+     * @param oldTags List of tags to be removed
+     * @return
+     */
+    public Params removeTags(String... oldTags) {
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if(tags == null) {</span>
+<span class="nc" id="L127">            return this;</span>
+        }
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        for(String tag : oldTags) {</span>
+<span class="nc" id="L130">            tags.remove(tag);</span>
+        }
+<span class="nc" id="L132">        return this;</span>
+    }
+
+    public Params clearTags() {
+<span class="nc" id="L136">        tags = null;</span>
+<span class="nc" id="L137">        return this;</span>
+    }
+
+    public boolean doesRequireNetwork() {
+<span class="fc" id="L141">        return requiresNetwork;</span>
+    }
+
+    public String getGroupId() {
+<span class="fc" id="L145">        return groupId;</span>
+    }
+
+    public boolean isPersistent() {
+<span class="fc" id="L149">        return persistent;</span>
+    }
+
+    public int getPriority() {
+<span class="fc" id="L153">        return priority;</span>
+    }
+
+    public long getDelayMs() {
+<span class="fc" id="L157">        return delayMs;</span>
+    }
+
+    public HashSet&lt;String&gt; getTags() {
+<span class="fc" id="L161">        return tags;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

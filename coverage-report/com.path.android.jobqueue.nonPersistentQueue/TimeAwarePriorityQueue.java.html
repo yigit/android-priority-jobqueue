@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>TimeAwarePriorityQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue.nonPersistentQueue</a> &gt; <span class="el_source">TimeAwarePriorityQueue.java</span></div><h1>TimeAwarePriorityQueue.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue.nonPersistentQueue;
+
+import com.path.android.jobqueue.JobHolder;
+
+import java.util.*;
+
+/**
+ * This is a {@link MergedQueue} class that can handle queue updates based on time.
+ * It uses two queues, one for jobs that can run now and the other for jobs that should wait.
+ * Upon retrieval, if it detects a job in delayed queue that can run now, it removes it from there, adds it to S0
+ * and re-runs the operation. This is not very efficient but provides proper ordering for delayed jobs.
+ */
+public class TimeAwarePriorityQueue extends MergedQueue {
+
+    /**
+     * When retrieving jobs, considers current system nanotime to check if jobs are valid. if both jobs are valid
+     * or both jobs are invalid, returns based on regular comparison
+     * @param initialCapacity
+     * @param comparator
+     */
+    public TimeAwarePriorityQueue(int initialCapacity, Comparator&lt;JobHolder&gt; comparator) {
+<span class="fc" id="L22">        super(initialCapacity, comparator, new TimeAwareComparator(comparator));</span>
+<span class="fc" id="L23">    }</span>
+
+    @Override
+    protected SetId decideQueue(JobHolder jobHolder) {
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        return jobHolder.getDelayUntilNs() &lt;= System.nanoTime() ? SetId.S0 : SetId.S1;</span>
+    }
+
+    /**
+     * create a {@link PriorityQueue} with given comparator
+     * @param setId
+     * @param initialCapacity
+     * @param comparator
+     * @return
+     */
+    @Override
+    protected JobSet createQueue(SetId setId, int initialCapacity, Comparator&lt;JobHolder&gt; comparator) {
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if(setId == SetId.S0) {</span>
+<span class="fc" id="L40">            return new NonPersistentJobSet(comparator);</span>
+        } else {
+<span class="fc" id="L42">            return new NonPersistentJobSet(new ConsistentTimedComparator(comparator));</span>
+        }
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(long now, Collection&lt;String&gt; excludeGroups) {
+<span class="fc" id="L48">        return super.countReadyJobs(SetId.S0, excludeGroups).mergeWith(super.countReadyJobs(SetId.S1, now, excludeGroups));</span>
+    }
+
+    @Override
+    public CountWithGroupIdsResult countReadyJobs(Collection&lt;String&gt; excludeGroups) {
+<span class="nc" id="L53">        throw new UnsupportedOperationException(&quot;cannot call time aware priority queue's count ready jobs w/o providing a time&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

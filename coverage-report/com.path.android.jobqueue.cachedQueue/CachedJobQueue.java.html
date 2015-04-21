@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>CachedJobQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue.cachedQueue</a> &gt; <span class="el_source">CachedJobQueue.java</span></div><h1>CachedJobQueue.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue.cachedQueue;
+
+import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.TagConstraint;
+
+import java.util.Collection;
+import java.util.Set;
+
+/**
+ * a class that implements {@link JobQueue} interface, wraps another {@link JobQueue} and caches
+ * results to avoid unnecessary queries to wrapped JobQueue.
+ * does very basic caching but should be sufficient for most of the repeated cases
+ * element
+ */
+public class CachedJobQueue implements JobQueue {
+    JobQueue delegate;
+    private Cache cache;
+
+<span class="fc" id="L20">    public CachedJobQueue(JobQueue delegate) {</span>
+<span class="fc" id="L21">        this.delegate = delegate;</span>
+<span class="fc" id="L22">        this.cache = new Cache();</span>
+<span class="fc" id="L23">    }</span>
+
+    @Override
+    public long insert(JobHolder jobHolder) {
+<span class="fc" id="L27">        cache.invalidateAll();</span>
+<span class="fc" id="L28">        return delegate.insert(jobHolder);</span>
+    }
+
+    @Override
+    public long insertOrReplace(JobHolder jobHolder) {
+<span class="fc" id="L33">        cache.invalidateAll();</span>
+<span class="fc" id="L34">        return delegate.insertOrReplace(jobHolder);</span>
+    }
+
+    @Override
+    public void remove(JobHolder jobHolder) {
+<span class="fc" id="L39">        cache.invalidateAll();</span>
+<span class="fc" id="L40">        delegate.remove(jobHolder);</span>
+<span class="fc" id="L41">    }</span>
+
+    @Override
+    public int count() {
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if(cache.count == null) {</span>
+<span class="fc" id="L46">            cache.count = delegate.count();</span>
+        }
+<span class="fc" id="L48">        return cache.count;</span>
+    }
+
+    @Override
+    public int countReadyJobs(boolean hasNetwork, Collection&lt;String&gt; excludeGroups) {
+<span class="fc bfc" id="L53" title="All 4 branches covered.">        if(cache.count != null &amp;&amp; cache.count &lt; 1) {</span>
+            //we know count is zero, why query?
+<span class="fc" id="L55">            return 0;</span>
+        }
+<span class="fc" id="L57">        int count = delegate.countReadyJobs(hasNetwork, excludeGroups);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if(count == 0) {</span>
+            //warm up cache if this is an empty queue case. if not, we are creating an unncessary query.
+<span class="fc" id="L60">            count();</span>
+        }
+<span class="fc" id="L62">        return count;</span>
+    }
+
+    @Override
+    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection&lt;String&gt; excludeGroups) {
+<span class="fc bfc" id="L67" title="All 4 branches covered.">        if(cache.count != null &amp;&amp; cache.count &lt; 1) {</span>
+<span class="fc" id="L68">            return null;//we know we are empty, no need for querying</span>
+        }
+<span class="fc" id="L70">        JobHolder holder = delegate.nextJobAndIncRunCount(hasNetwork, excludeGroups);</span>
+        //if holder is null, there is a good chance that there aren't any jobs in queue try to cache it by calling count
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if(holder == null) {</span>
+            //warm up empty state cache
+<span class="fc" id="L74">            count();</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        } else if(cache.count != null) {</span>
+            //no need to invalidate cache for count
+<span class="fc" id="L77">            cache.count--;</span>
+        }
+<span class="fc" id="L79">        return holder;</span>
+    }
+
+    @Override
+    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if(cache.delayUntil == null) {</span>
+<span class="fc" id="L85">            cache.delayUntil = new Cache.DelayUntil(hasNetwork, delegate.getNextJobDelayUntilNs(hasNetwork));</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        } else if(!cache.delayUntil.isValid(hasNetwork)) {</span>
+<span class="fc" id="L87">            cache.delayUntil.set(hasNetwork, delegate.getNextJobDelayUntilNs(hasNetwork));</span>
+        }
+<span class="fc" id="L89">        return cache.delayUntil.value;</span>
+    }
+
+    @Override
+    public void clear() {
+<span class="fc" id="L94">        cache.invalidateAll();</span>
+<span class="fc" id="L95">        delegate.clear();</span>
+<span class="fc" id="L96">    }</span>
+
+    @Override
+    public Set&lt;JobHolder&gt; findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
+            Collection&lt;Long&gt; exclude, String... tags) {
+<span class="fc" id="L101">        return delegate.findJobsByTags(constraint, excludeCancelled, exclude, tags);</span>
+    }
+
+    @Override
+    public void onJobCancelled(JobHolder holder) {
+<span class="fc" id="L106">        delegate.onJobCancelled(holder);</span>
+<span class="fc" id="L107">    }</span>
+
+    @Override
+    public JobHolder findJobById(long id) {
+<span class="fc" id="L111">        return delegate.findJobById(id);</span>
+    }
+
+<span class="fc" id="L114">    private static class Cache {</span>
+        Integer count;
+        DelayUntil delayUntil;
+
+        public void invalidateAll() {
+<span class="fc" id="L119">            count = null;</span>
+<span class="fc" id="L120">            delayUntil = null;</span>
+<span class="fc" id="L121">        }</span>
+
+<span class="fc" id="L123">        private static class DelayUntil {</span>
+            //can be null, is OK
+            Long value;
+            boolean hasNetwork;
+
+<span class="fc" id="L128">            private DelayUntil(boolean hasNetwork, Long value) {</span>
+<span class="fc" id="L129">                this.value = value;</span>
+<span class="fc" id="L130">                this.hasNetwork = hasNetwork;</span>
+<span class="fc" id="L131">            }</span>
+
+            private boolean isValid(boolean hasNetwork) {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">                return this.hasNetwork == hasNetwork;</span>
+            }
+
+            public void set(boolean hasNetwork, Long value) {
+<span class="fc" id="L138">                this.value = value;</span>
+<span class="fc" id="L139">                this.hasNetwork = hasNetwork;</span>
+<span class="fc" id="L140">            }</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

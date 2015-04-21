@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>SqliteJobQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue.persistentQueue.sqlite</a> &gt; <span class="el_source">SqliteJobQueue.java</span></div><h1>SqliteJobQueue.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue.persistentQueue.sqlite;
+
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDoneException;
+import android.database.sqlite.SQLiteStatement;
+import com.path.android.jobqueue.*;
+import com.path.android.jobqueue.log.JqLog;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Persistent Job Queue that keeps its data in an sqlite database.
+ */
+public class SqliteJobQueue implements JobQueue {
+    DbOpenHelper dbOpenHelper;
+    private final long sessionId;
+    SQLiteDatabase db;
+    SqlHelper sqlHelper;
+    JobSerializer jobSerializer;
+    QueryCache readyJobsQueryCache;
+    QueryCache nextJobsQueryCache;
+    // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
+    // queries. Set is cleaned when item is removed
+<span class="fc" id="L35">    Set&lt;Long&gt; pendingCancelations = new HashSet&lt;Long&gt;();</span>
+
+    /**
+     * @param context application context
+     * @param sessionId session id should match {@link JobManager}
+     * @param id uses this value to construct database name {@code &quot;db_&quot; + id}
+     * @param jobSerializer The serializer to use while persisting jobs to database
+     * @param inTestMode If true, creates a memory only database
+     */
+    public SqliteJobQueue(Context context, long sessionId, String id, JobSerializer jobSerializer,
+<span class="fc" id="L45">            boolean inTestMode) {</span>
+<span class="fc" id="L46">        this.sessionId = sessionId;</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        dbOpenHelper = new DbOpenHelper(context, inTestMode ? null : (&quot;db_&quot; + id));</span>
+<span class="fc" id="L48">        db = dbOpenHelper.getWritableDatabase();</span>
+<span class="fc" id="L49">        sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME, DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,</span>
+                DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
+<span class="fc" id="L51">        this.jobSerializer = jobSerializer;</span>
+<span class="fc" id="L52">        readyJobsQueryCache = new QueryCache();</span>
+<span class="fc" id="L53">        nextJobsQueryCache = new QueryCache();</span>
+<span class="fc" id="L54">        sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);</span>
+<span class="fc" id="L55">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long insert(JobHolder jobHolder) {
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (jobHolder.hasTags()) {</span>
+<span class="fc" id="L63">            return insertWithTags(jobHolder);</span>
+        }
+<span class="fc" id="L65">        final SQLiteStatement stmt = sqlHelper.getInsertStatement();</span>
+        long id;
+<span class="fc" id="L67">        synchronized (stmt) {</span>
+<span class="fc" id="L68">            stmt.clearBindings();</span>
+<span class="fc" id="L69">            bindValues(stmt, jobHolder);</span>
+<span class="fc" id="L70">            id = stmt.executeInsert();</span>
+<span class="pc" id="L71">        }</span>
+<span class="fc" id="L72">        jobHolder.setId(id);</span>
+<span class="fc" id="L73">        return id;</span>
+    }
+
+    private long insertWithTags(JobHolder jobHolder) {
+<span class="fc" id="L77">        final SQLiteStatement stmt = sqlHelper.getInsertStatement();</span>
+<span class="fc" id="L78">        final SQLiteStatement tagsStmt = sqlHelper.getInsertTagsStatement();</span>
+        long id;
+<span class="fc" id="L80">        synchronized (stmt) {</span>
+<span class="fc" id="L81">            db.beginTransaction();</span>
+            try {
+<span class="fc" id="L83">                stmt.clearBindings();</span>
+<span class="fc" id="L84">                bindValues(stmt, jobHolder);</span>
+<span class="fc" id="L85">                id = stmt.executeInsert();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">                for (String tag : jobHolder.getTags()) {</span>
+<span class="fc" id="L87">                    tagsStmt.clearBindings();</span>
+<span class="fc" id="L88">                    bindTag(tagsStmt, id, tag);</span>
+<span class="fc" id="L89">                    tagsStmt.executeInsert();</span>
+<span class="fc" id="L90">                }</span>
+<span class="fc" id="L91">                db.setTransactionSuccessful();</span>
+            } finally {
+<span class="pc" id="L93">                db.endTransaction();</span>
+<span class="fc" id="L94">            }</span>
+<span class="pc" id="L95">        }</span>
+<span class="fc" id="L96">        jobHolder.setId(id);</span>
+<span class="fc" id="L97">        return id;</span>
+    }
+
+    private void bindTag(SQLiteStatement stmt, long jobId, String tag) {
+<span class="fc" id="L101">        stmt.bindLong(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnIndex + 1, jobId);</span>
+<span class="fc" id="L102">        stmt.bindString(DbOpenHelper.TAGS_NAME_COLUMN.columnIndex + 1, tag);</span>
+<span class="fc" id="L103">    }</span>
+
+    private void bindValues(SQLiteStatement stmt, JobHolder jobHolder) {
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        if (jobHolder.getId() != null) {</span>
+<span class="fc" id="L107">            stmt.bindLong(DbOpenHelper.ID_COLUMN.columnIndex + 1, jobHolder.getId());</span>
+        }
+<span class="fc" id="L109">        stmt.bindLong(DbOpenHelper.PRIORITY_COLUMN.columnIndex + 1, jobHolder.getPriority());</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        if(jobHolder.getGroupId() != null) {</span>
+<span class="fc" id="L111">            stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());</span>
+        }
+<span class="fc" id="L113">        stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());</span>
+<span class="fc" id="L114">        byte[] job = getSerializeJob(jobHolder);</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (job != null) {</span>
+<span class="fc" id="L116">            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, job);</span>
+        }
+<span class="fc" id="L118">        stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());</span>
+<span class="fc" id="L119">        stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());</span>
+<span class="fc" id="L120">        stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1, jobHolder.requiresNetwork() ? 1L : 0L);</span>
+<span class="fc" id="L122">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long insertOrReplace(JobHolder jobHolder) {
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">        if (jobHolder.getId() == null) {</span>
+<span class="nc" id="L130">            return insert(jobHolder);</span>
+        }
+<span class="fc" id="L132">        jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);</span>
+<span class="fc" id="L133">        SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();</span>
+        long id;
+<span class="fc" id="L135">        synchronized (stmt) {</span>
+<span class="fc" id="L136">            stmt.clearBindings();</span>
+<span class="fc" id="L137">            bindValues(stmt, jobHolder);</span>
+<span class="fc" id="L138">            id = stmt.executeInsert();</span>
+<span class="pc" id="L139">        }</span>
+<span class="fc" id="L140">        jobHolder.setId(id);</span>
+<span class="fc" id="L141">        return id;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void remove(JobHolder jobHolder) {
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (jobHolder.getId() == null) {</span>
+<span class="fc" id="L150">            JqLog.e(&quot;called remove with null job id.&quot;);</span>
+<span class="fc" id="L151">            return;</span>
+        }
+<span class="fc" id="L153">        delete(jobHolder.getId());</span>
+<span class="fc" id="L154">    }</span>
+
+    private void delete(Long id) {
+<span class="fc" id="L157">        pendingCancelations.remove(id);</span>
+<span class="fc" id="L158">        SQLiteStatement stmt = sqlHelper.getDeleteStatement();</span>
+<span class="fc" id="L159">        synchronized (stmt) {</span>
+<span class="fc" id="L160">            stmt.clearBindings();</span>
+<span class="fc" id="L161">            stmt.bindLong(1, id);</span>
+<span class="fc" id="L162">            stmt.execute();</span>
+<span class="pc" id="L163">        }</span>
+<span class="fc" id="L164">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int count() {
+<span class="fc" id="L171">        SQLiteStatement stmt = sqlHelper.getCountStatement();</span>
+<span class="fc" id="L172">        synchronized (stmt) {</span>
+<span class="fc" id="L173">            stmt.clearBindings();</span>
+<span class="fc" id="L174">            stmt.bindLong(1, sessionId);</span>
+<span class="fc" id="L175">            return (int) stmt.simpleQueryForLong();</span>
+<span class="nc" id="L176">        }</span>
+    }
+
+    @Override
+    public int countReadyJobs(boolean hasNetwork, Collection&lt;String&gt; excludeGroups) {
+<span class="fc" id="L181">        String sql = readyJobsQueryCache.get(hasNetwork, excludeGroups);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if(sql == null) {</span>
+<span class="fc" id="L183">            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, true);</span>
+<span class="fc" id="L184">            String subSelect = &quot;SELECT count(*) group_cnt, &quot; + DbOpenHelper.GROUP_ID_COLUMN.columnName</span>
+                    + &quot; FROM &quot; + DbOpenHelper.JOB_HOLDER_TABLE_NAME
+                    + &quot; WHERE &quot; + where;
+<span class="fc" id="L187">            sql = &quot;SELECT SUM(case WHEN &quot; + DbOpenHelper.GROUP_ID_COLUMN.columnName</span>
+                    + &quot; is null then group_cnt else 1 end) from (&quot; + subSelect + &quot;)&quot;;
+<span class="fc" id="L189">            readyJobsQueryCache.set(sql, hasNetwork, excludeGroups);</span>
+        }
+<span class="fc" id="L191">        Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});</span>
+        try {
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">            if(!cursor.moveToNext()) {</span>
+<span class="nc" id="L194">                return 0;</span>
+            }
+<span class="fc" id="L196">            return cursor.getInt(0);</span>
+        } finally {
+<span class="pc" id="L198">            cursor.close();</span>
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public JobHolder findJobById(long id) {
+<span class="fc" id="L207">        Cursor cursor = db.rawQuery(sqlHelper.FIND_BY_ID_QUERY, new String[]{Long.toString(id)});</span>
+        try {
+<span class="fc bfc" id="L209" title="All 2 branches covered.">            if(!cursor.moveToFirst()) {</span>
+<span class="fc" id="L210">                return null;</span>
+            }
+<span class="fc" id="L212">            return createJobHolderFromCursor(cursor);</span>
+<span class="nc" id="L213">        } catch (InvalidJobException e) {</span>
+<span class="nc" id="L214">            JqLog.e(e, &quot;invalid job on findJobById&quot;);</span>
+<span class="nc" id="L215">            return null;</span>
+        } finally {
+<span class="pc" id="L217">            cursor.close();</span>
+        }
+    }
+
+    @Override
+    public Set&lt;JobHolder&gt; findJobsByTags(TagConstraint tagConstraint, boolean excludeCancelled,
+            Collection&lt;Long&gt; exclude, String... tags) {
+<span class="pc bpc" id="L224" title="1 of 4 branches missed.">        if (tags == null || tags.length == 0) {</span>
+<span class="fc" id="L225">            return Collections.emptySet();</span>
+        }
+<span class="fc" id="L227">        Set&lt;JobHolder&gt; jobs = new HashSet&lt;JobHolder&gt;();</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">        int excludeCount = exclude == null ? 0 : exclude.size();</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">        if (excludeCancelled) {</span>
+<span class="fc" id="L230">            excludeCount += pendingCancelations.size();</span>
+        }
+<span class="fc" id="L232">        final String query = sqlHelper.createFindByTagsQuery(tagConstraint,</span>
+                excludeCount, tags.length);
+<span class="fc" id="L234">        JqLog.d(query);</span>
+        final String[] args;
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (excludeCount == 0) {</span>
+<span class="fc" id="L237">            args = tags;</span>
+        } else {
+<span class="fc" id="L239">            args = new String[excludeCount + tags.length];</span>
+<span class="fc" id="L240">            System.arraycopy(tags, 0, args, 0, tags.length);</span>
+<span class="fc" id="L241">            int i = tags.length;</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">            for (Long ex : exclude) {</span>
+<span class="fc" id="L243">                args[i ++] = ex.toString();</span>
+<span class="fc" id="L244">            }</span>
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">            if (excludeCancelled) {</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">                for (Long ex : pendingCancelations) {</span>
+<span class="fc" id="L247">                    args[i ++] = ex.toString();</span>
+<span class="fc" id="L248">                }</span>
+            }
+        }
+<span class="fc" id="L251">        Cursor cursor = db.rawQuery(query, args);</span>
+        try {
+<span class="fc bfc" id="L253" title="All 2 branches covered.">            while (cursor.moveToNext()) {</span>
+<span class="fc" id="L254">                jobs.add(createJobHolderFromCursor(cursor));</span>
+            }
+<span class="nc" id="L256">        } catch (InvalidJobException e) {</span>
+<span class="nc" id="L257">            JqLog.e(e, &quot;invalid job found by tags.&quot;);</span>
+        } finally {
+<span class="pc" id="L259">            cursor.close();</span>
+<span class="pc" id="L260">        }</span>
+<span class="fc" id="L261">        return jobs;</span>
+    }
+
+    @Override
+    public void onJobCancelled(JobHolder holder) {
+<span class="fc" id="L266">        pendingCancelations.add(holder.getId());</span>
+<span class="fc" id="L267">        setSessionIdOnJob(holder);</span>
+<span class="fc" id="L268">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection&lt;String&gt; excludeGroups) {
+        //we can even keep these prepared but not sure the cost of them in db layer
+<span class="fc" id="L276">        String selectQuery = nextJobsQueryCache.get(hasNetwork, excludeGroups);</span>
+<span class="fc bfc" id="L277" title="All 2 branches covered.">        if(selectQuery == null) {</span>
+<span class="fc" id="L278">            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, false);</span>
+<span class="fc" id="L279">            selectQuery = sqlHelper.createSelect(</span>
+                    where,
+                    1,
+                    new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
+                    new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
+                    new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
+            );
+<span class="fc" id="L286">            nextJobsQueryCache.set(selectQuery, hasNetwork, excludeGroups);</span>
+        }
+<span class="fc" id="L288">        Cursor cursor = db.rawQuery(selectQuery, new String[]{Long.toString(sessionId),Long.toString(System.nanoTime())});</span>
+        try {
+<span class="fc bfc" id="L290" title="All 2 branches covered.">            if (!cursor.moveToNext()) {</span>
+<span class="fc" id="L291">                return null;</span>
+            }
+<span class="fc" id="L293">            JobHolder holder = createJobHolderFromCursor(cursor);</span>
+<span class="fc" id="L294">            setSessionIdOnJob(holder);</span>
+<span class="fc" id="L295">            return holder;</span>
+<span class="nc" id="L296">        } catch (InvalidJobException e) {</span>
+            //delete
+<span class="nc" id="L298">            Long jobId = cursor.getLong(0);</span>
+<span class="nc" id="L299">            delete(jobId);</span>
+<span class="nc" id="L300">            return nextJobAndIncRunCount(true, null);</span>
+        } finally {
+<span class="pc" id="L302">            cursor.close();</span>
+        }
+    }
+
+    private String createReadyJobWhereSql(boolean hasNetwork, Collection&lt;String&gt; excludeGroups, boolean groupByRunningGroup) {
+<span class="fc" id="L307">        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + &quot; != ? &quot;</span>
+                + &quot; AND &quot; + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + &quot; &lt;= ? &quot;;
+<span class="fc bfc" id="L309" title="All 2 branches covered.">        if(hasNetwork == false) {</span>
+<span class="fc" id="L310">            where += &quot; AND &quot; + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + &quot; != 1 &quot;;</span>
+        }
+<span class="fc" id="L312">        String groupConstraint = null;</span>
+<span class="fc bfc" id="L313" title="All 4 branches covered.">        if(excludeGroups != null &amp;&amp; excludeGroups.size() &gt; 0) {</span>
+<span class="fc" id="L314">            groupConstraint = DbOpenHelper.GROUP_ID_COLUMN.columnName + &quot; IS NULL OR &quot; +</span>
+                    DbOpenHelper.GROUP_ID_COLUMN.columnName + &quot; NOT IN('&quot; + joinStrings(&quot;','&quot;, excludeGroups) + &quot;')&quot;;
+        }
+<span class="fc bfc" id="L317" title="All 2 branches covered.">        if(groupByRunningGroup) {</span>
+<span class="fc" id="L318">            where += &quot; GROUP BY &quot; + DbOpenHelper.GROUP_ID_COLUMN.columnName;</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">            if(groupConstraint != null) {</span>
+<span class="fc" id="L320">                where += &quot; HAVING &quot; + groupConstraint;</span>
+            }
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        } else if(groupConstraint != null) {</span>
+<span class="fc" id="L323">            where += &quot; AND ( &quot; + groupConstraint + &quot; )&quot;;</span>
+        }
+<span class="fc" id="L325">        return where;</span>
+    }
+
+    private static String joinStrings(String glue, Collection&lt;String&gt; strings) {
+<span class="fc" id="L329">        StringBuilder builder = new StringBuilder();</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">        for(String str : strings) {</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">            if(builder.length() != 0) {</span>
+<span class="fc" id="L332">                builder.append(glue);</span>
+            }
+<span class="fc" id="L334">            builder.append(str);</span>
+<span class="fc" id="L335">        }</span>
+<span class="fc" id="L336">        return builder.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
+<span class="fc bfc" id="L344" title="All 2 branches covered.">        SQLiteStatement stmt =</span>
+                hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()
+                : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
+<span class="fc" id="L347">        synchronized (stmt) {</span>
+            try {
+<span class="fc" id="L349">                stmt.clearBindings();</span>
+<span class="fc" id="L350">                return stmt.simpleQueryForLong();</span>
+<span class="fc" id="L351">            } catch (SQLiteDoneException e){</span>
+<span class="fc" id="L352">                return null;</span>
+            }
+<span class="nc" id="L354">        }</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clear() {
+<span class="fc" id="L362">        sqlHelper.truncate();</span>
+<span class="fc" id="L363">        readyJobsQueryCache.clear();</span>
+<span class="fc" id="L364">        nextJobsQueryCache.clear();</span>
+<span class="fc" id="L365">    }</span>
+
+    /**
+     * This method is called when a job is pulled to run.
+     * It is properly marked so that it won't be returned from next job queries.
+     * &lt;p/&gt;
+     * Same mechanism is also used for cancelled jobs.
+     *
+     * @param jobHolder
+     */
+    private void setSessionIdOnJob(JobHolder jobHolder) {
+<span class="fc" id="L376">        SQLiteStatement stmt = sqlHelper.getOnJobFetchedForRunningStatement();</span>
+<span class="fc" id="L377">        jobHolder.setRunCount(jobHolder.getRunCount() + 1);</span>
+<span class="fc" id="L378">        jobHolder.setRunningSessionId(sessionId);</span>
+<span class="fc" id="L379">        synchronized (stmt) {</span>
+<span class="fc" id="L380">            stmt.clearBindings();</span>
+<span class="fc" id="L381">            stmt.bindLong(1, jobHolder.getRunCount());</span>
+<span class="fc" id="L382">            stmt.bindLong(2, sessionId);</span>
+<span class="fc" id="L383">            stmt.bindLong(3, jobHolder.getId());</span>
+<span class="fc" id="L384">            stmt.execute();</span>
+<span class="pc" id="L385">        }</span>
+<span class="fc" id="L386">    }</span>
+
+    private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidJobException {
+<span class="fc" id="L389">        Job job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));</span>
+<span class="pc bpc" id="L390" title="1 of 2 branches missed.">        if (job == null) {</span>
+<span class="nc" id="L391">            throw new InvalidJobException();</span>
+        }
+<span class="fc" id="L393">        return new JobHolder(</span>
+                cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
+                cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex),
+                cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex),
+                cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
+                job,
+                cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),
+                cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex),
+                cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex)
+        );
+
+    }
+
+    private Job safeDeserialize(byte[] bytes) {
+        try {
+<span class="fc" id="L408">            return jobSerializer.deserialize(bytes);</span>
+<span class="nc" id="L409">        } catch (Throwable t) {</span>
+<span class="nc" id="L410">            JqLog.e(t, &quot;error while deserializing job&quot;);</span>
+        }
+<span class="nc" id="L412">        return null;</span>
+    }
+
+    private byte[] getSerializeJob(JobHolder jobHolder) {
+<span class="fc" id="L416">        return safeSerialize(jobHolder.getJob());</span>
+    }
+
+    private byte[] safeSerialize(Object object) {
+        try {
+<span class="fc" id="L421">            return jobSerializer.serialize(object);</span>
+<span class="nc" id="L422">        } catch (Throwable t) {</span>
+<span class="nc" id="L423">            JqLog.e(t, &quot;error while serializing object %s&quot;, object.getClass().getSimpleName());</span>
+        }
+<span class="nc" id="L425">        return null;</span>
+    }
+
+<span class="nc" id="L428">    private static class InvalidJobException extends Exception {</span>
+
+    }
+
+<span class="fc" id="L432">    public static class JavaSerializer implements JobSerializer {</span>
+
+        @Override
+        public byte[] serialize(Object object) throws IOException {
+<span class="pc bpc" id="L436" title="1 of 2 branches missed.">            if (object == null) {</span>
+<span class="nc" id="L437">                return null;</span>
+            }
+<span class="fc" id="L439">            ByteArrayOutputStream bos = null;</span>
+            try {
+<span class="fc" id="L441">                ObjectOutput out = null;</span>
+<span class="fc" id="L442">                bos = new ByteArrayOutputStream();</span>
+<span class="fc" id="L443">                out = new ObjectOutputStream(bos);</span>
+<span class="fc" id="L444">                out.writeObject(object);</span>
+                // Get the bytes of the serialized object
+<span class="fc" id="L446">                return bos.toByteArray();</span>
+            } finally {
+<span class="pc bpc" id="L448" title="3 of 4 branches missed.">                if (bos != null) {</span>
+<span class="pc" id="L449">                    bos.close();</span>
+                }
+            }
+        }
+
+        @Override
+        public &lt;T extends Job&gt; T deserialize(byte[] bytes) throws IOException, ClassNotFoundException {
+<span class="pc bpc" id="L456" title="2 of 4 branches missed.">            if (bytes == null || bytes.length == 0) {</span>
+<span class="nc" id="L457">                return null;</span>
+            }
+<span class="fc" id="L459">            ObjectInputStream in = null;</span>
+            try {
+<span class="fc" id="L461">                in = new ObjectInputStream(new ByteArrayInputStream(bytes));</span>
+<span class="fc" id="L462">                return (T) in.readObject();</span>
+            } finally {
+<span class="pc bpc" id="L464" title="3 of 4 branches missed.">                if (in != null) {</span>
+<span class="pc" id="L465">                    in.close();</span>
+                }
+            }
+        }
+    }
+
+    public static interface JobSerializer {
+        public byte[] serialize(Object object) throws IOException;
+        public &lt;T extends Job&gt; T deserialize(byte[] bytes) throws IOException, ClassNotFoundException;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

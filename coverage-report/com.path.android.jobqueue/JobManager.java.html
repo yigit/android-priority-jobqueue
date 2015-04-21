@@ -1,0 +1,754 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>JobManager.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.path.android.jobqueue</a> &gt; <span class="el_source">JobManager.java</span></div><h1>JobManager.java</h1><pre class="source lang-java linenums">package com.path.android.jobqueue;
+
+import android.content.Context;
+
+import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
+import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.di.DependencyInjector;
+import com.path.android.jobqueue.executor.JobConsumerExecutor;
+import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.network.NetworkEventProvider;
+import com.path.android.jobqueue.network.NetworkUtil;
+import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
+import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.*;
+
+/**
+ * a JobManager that supports;
+ * -&gt; Persistent / Non Persistent Jobs
+ * -&gt; Job Priority
+ * -&gt; Running Jobs in Parallel
+ * -&gt; Grouping jobs so that they won't run at the same time
+ * -&gt; Stats like waiting Job Count
+ */
+public class JobManager implements NetworkEventProvider.Listener {
+    public static final long NS_PER_MS = 1000000;
+    public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
+    public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
+    @SuppressWarnings(&quot;FieldCanBeLocal&quot;)//used for testing
+    private final long sessionId;
+    private volatile boolean running;
+
+    private final Context appContext;
+    private final NetworkUtil networkUtil;
+    private final DependencyInjector dependencyInjector;
+    private final JobQueue persistentJobQueue;
+    private final JobQueue nonPersistentJobQueue;
+    private final CopyOnWriteGroupSet runningJobGroups;
+    private final JobConsumerExecutor jobConsumerExecutor;
+<span class="fc" id="L46">    private final Object newJobListeners = new Object();</span>
+    private final ConcurrentHashMap&lt;Long, CountDownLatch&gt; persistentOnAddedLocks;
+    private final ConcurrentHashMap&lt;Long, CountDownLatch&gt; nonPersistentOnAddedLocks;
+    private ScheduledExecutorService timedExecutor;
+    // lazily created
+    private Executor cancelExecutor;
+<span class="fc" id="L52">    private final Object getNextJobLock = new Object();</span>
+
+    /**
+     * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
+     * @param context job manager will use applicationContext.
+     */
+    public JobManager(Context context) {
+<span class="nc" id="L59">        this(context, &quot;default&quot;);</span>
+<span class="nc" id="L60">    }</span>
+
+
+    /**
+     * Default constructor that will create a JobManager with a default {@link Configuration}
+     * @param context application context
+     * @param id an id that is unique to this JobManager
+     */
+    public JobManager(Context context, String id) {
+<span class="fc" id="L69">        this(context, new Configuration.Builder(context).id(id).build());</span>
+<span class="fc" id="L70">    }</span>
+
+    /**
+     *
+     * @param context used to acquire ApplicationContext
+     * @param config
+     */
+<span class="fc" id="L77">    public JobManager(Context context, Configuration config) {</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if(config.getCustomLogger() != null) {</span>
+<span class="fc" id="L79">            JqLog.setCustomLogger(config.getCustomLogger());</span>
+        }
+<span class="fc" id="L81">        appContext = context.getApplicationContext();</span>
+<span class="fc" id="L82">        running = true;</span>
+<span class="fc" id="L83">        runningJobGroups = new CopyOnWriteGroupSet();</span>
+<span class="fc" id="L84">        sessionId = System.nanoTime();</span>
+<span class="fc" id="L85">        this.persistentJobQueue = config.getQueueFactory()</span>
+                .createPersistentQueue(context, sessionId, config.getId(), config.isInTestMode());
+<span class="fc" id="L87">        this.nonPersistentJobQueue = config.getQueueFactory()</span>
+                .createNonPersistent(context, sessionId, config.getId(), config.isInTestMode());
+<span class="fc" id="L89">        persistentOnAddedLocks = new ConcurrentHashMap&lt;Long, CountDownLatch&gt;();</span>
+<span class="fc" id="L90">        nonPersistentOnAddedLocks = new ConcurrentHashMap&lt;Long, CountDownLatch&gt;();</span>
+
+<span class="fc" id="L92">        networkUtil = config.getNetworkUtil();</span>
+<span class="fc" id="L93">        dependencyInjector = config.getDependencyInjector();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if(networkUtil instanceof NetworkEventProvider) {</span>
+<span class="fc" id="L95">            ((NetworkEventProvider) networkUtil).setListener(this);</span>
+        }
+        //is important to initialize consumers last so that they can start running
+<span class="fc" id="L98">        jobConsumerExecutor = new JobConsumerExecutor(config,consumerContract);</span>
+<span class="fc" id="L99">        timedExecutor = Executors.newSingleThreadScheduledExecutor();</span>
+<span class="fc" id="L100">        start();</span>
+<span class="fc" id="L101">    }</span>
+
+
+    /**
+     * Stops consuming jobs. Currently running jobs will be finished but no new jobs will be run.
+     */
+    public void stop() {
+<span class="fc" id="L108">        running = false;</span>
+<span class="fc" id="L109">    }</span>
+
+    /**
+     * restarts the JobManager. Will create a new consumer if necessary.
+     */
+    public void start() {
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if(running) {</span>
+<span class="fc" id="L116">            return;</span>
+        }
+<span class="fc" id="L118">        running = true;</span>
+<span class="fc" id="L119">        notifyJobConsumer();</span>
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * returns the # of jobs that are waiting to be executed.
+     * This might be a good place to decide whether you should wake your app up on boot etc. to complete pending jobs.
+     * @return # of total jobs.
+     */
+    public int count() {
+<span class="fc" id="L128">        int cnt = 0;</span>
+<span class="fc" id="L129">        synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L130">            cnt += nonPersistentJobQueue.count();</span>
+<span class="pc" id="L131">        }</span>
+<span class="fc" id="L132">        synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L133">            cnt += persistentJobQueue.count();</span>
+<span class="pc" id="L134">        }</span>
+<span class="fc" id="L135">        return cnt;</span>
+    }
+
+    private int countReadyJobs(boolean hasNetwork) {
+        //TODO we can cache this
+<span class="fc" id="L140">        int total = 0;</span>
+<span class="fc" id="L141">        synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L142">            total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());</span>
+<span class="pc" id="L143">        }</span>
+<span class="fc" id="L144">        synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L145">            total += persistentJobQueue.countReadyJobs(hasNetwork, runningJobGroups.getSafe());</span>
+<span class="pc" id="L146">        }</span>
+<span class="fc" id="L147">        return total;</span>
+    }
+
+    /**
+     * Adds a new Job to the list and returns an ID for it.
+     * @param job to add
+     * @return id for the job.
+     */
+    public long addJob(Job job) {
+        //noinspection deprecation
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        JobHolder jobHolder = new JobHolder(job.getPriority(), job</span>
+                , job.getDelayInMs() &gt; 0 ? System.nanoTime() + job.getDelayInMs() * NS_PER_MS : NOT_DELAYED_JOB_DELAY
+                , NOT_RUNNING_SESSION_ID);
+        long id;
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (job.isPersistent()) {</span>
+<span class="fc" id="L162">            synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L163">                id = persistentJobQueue.insert(jobHolder);</span>
+<span class="fc" id="L164">                addOnAddedLock(persistentOnAddedLocks, id);</span>
+<span class="pc" id="L165">            }</span>
+        } else {
+<span class="fc" id="L167">            synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L168">                id = nonPersistentJobQueue.insert(jobHolder);</span>
+<span class="fc" id="L169">                addOnAddedLock(nonPersistentOnAddedLocks, id);</span>
+<span class="pc" id="L170">            }</span>
+        }
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        if(JqLog.isDebugEnabled()) {</span>
+<span class="fc" id="L173">            JqLog.d(&quot;added job id: %d class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s&quot;</span>
+                    , id, job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
+                    , job.isPersistent(), job.requiresNetwork());
+        }
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        if(dependencyInjector != null) {</span>
+            //inject members b4 calling onAdded
+<span class="fc" id="L179">            dependencyInjector.inject(job);</span>
+        }
+<span class="fc" id="L181">        jobHolder.getJob().onAdded();</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if(job.isPersistent()) {</span>
+<span class="fc" id="L183">            synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L184">                clearOnAddedLock(persistentOnAddedLocks, id);</span>
+<span class="pc" id="L185">            }</span>
+        } else {
+<span class="fc" id="L187">            synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L188">                clearOnAddedLock(nonPersistentOnAddedLocks, id);</span>
+<span class="pc" id="L189">            }</span>
+        }
+<span class="fc" id="L191">        notifyJobConsumer();</span>
+<span class="fc" id="L192">        return id;</span>
+    }
+
+    /**
+     * Cancels all jobs matching the list of tags.
+     * &lt;p&gt;
+     * Note that, if any of the matching jobs is running, this method WILL wait for them to finish
+     * or fail.
+     * &lt;p&gt;
+     * This method uses a separate single threaded executor pool just for cancelling jobs
+     * because it may potentially wait for a long running job (if query matches that job). This
+     * pool is lazily created when the very first cancel request arrives.
+     * &lt;p&gt;
+     * A job may be already running when cancelJob is called. In this case, JobManager will wait
+     * until job fails or ends before returning from this method. If jobs succeeds before
+     * JobManager can cancel it, it will be added into {@link CancelResult#getFailedToCancel()}
+     * list.
+     * &lt;p&gt;
+     * If you call {@link #addJob(Job)} while {@link #cancelJobs(TagConstraint, String...)} is
+     * running, the behavior of that job will be undefined. If that jobs gets added to the queue
+     * before cancel query runs, it may be cancelled before running. It is up to you to sync these
+     * two requests if such cases may happen for you.
+     * &lt;p/&gt;
+     * This query is not atomic. If application terminates while jobs are being cancelled, some of
+     * them may be cancelled while some remain in the queue (for persistent jobs).
+     * &lt;p/&gt;
+     * This method guarantees calling {@link Job#onCancel()} before job is removed
+     * from the queue. If application terminates while {@link Job#onCancel()} is running, the
+     * Job will not be removed from disk (same behavior with jobs failing due to other reasons like
+     * hitting retry limit).
+     *
+     * @param constraint The constraint to use while selecting jobs. If set to {@link TagConstraint#ANY},
+     *                   any job that has one of the given tags will be cancelled. If set to
+     *                   {@link TagConstraint#ALL}, jobs that has all of the given tags will be cancelled.
+     * @param tags The list of tags
+     */
+    public void cancelJobsInBackground(final CancelResult.AsyncCancelCallback cancelCallback,
+            final TagConstraint constraint, final String... tags) {
+<span class="fc" id="L230">        synchronized (this) {</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">            if (cancelExecutor == null) {</span>
+<span class="fc" id="L232">                cancelExecutor = Executors.newSingleThreadExecutor();</span>
+            }
+<span class="fc" id="L234">            cancelExecutor.execute(new Runnable() {</span>
+                @Override
+                public void run() {
+<span class="fc" id="L237">                    CancelResult result = cancelJobs(constraint, tags);</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">                    if (cancelCallback != null) {</span>
+<span class="fc" id="L239">                        cancelCallback.onCancelled(result);</span>
+                    }
+<span class="fc" id="L241">                }</span>
+            });
+<span class="pc" id="L243">        }</span>
+<span class="fc" id="L244">    }</span>
+
+    /**
+     * Cancel all jobs matching the list of tags.
+     * &lt;p&gt;
+     * Note that, you should NOT call this method on main thread because it queries database and
+     * may also need to wait for running jobs to finish.
+     * &lt;p&gt;
+     * A job may be already running when cancelJob is called. In this case, JobManager will wait
+     * until job fails or ends before returning from this method. If jobs succeeds before
+     * JobManager can cancel it, it will be added into {@link CancelResult#getFailedToCancel()}
+     * list.
+     * &lt;p&gt;
+     * If you call {@link #addJob(Job)} while {@link #cancelJobs(TagConstraint, String...)} is
+     * running, the behavior of that job will be undefined. If that jobs gets added to the queue
+     * before cancel query runs, it may be cancelled before running. It is up to you to sync these
+     * two requests if such cases may happen for you.
+     * &lt;p/&gt;
+     * This query is not atomic. If application terminates while jobs are being cancelled, some of
+     * them may be cancelled while some remain in the queue (for persistent jobs).
+     * &lt;p/&gt;
+     * This method guarantees calling {@link Job#onCancel()} before job is removed
+     * from the queue. If application terminates while {@link Job#onCancel()} is running, the
+     * Job will not be removed from disk (same behavior with jobs failing due to other reasons like
+     * hitting retry limit).
+     *
+     * @param constraint The constraint to use while selecting jobs. If set to {@link TagConstraint#ANY},
+     *                   any job that has one of the given tags will be cancelled. If set to
+     *                   {@link TagConstraint#ALL}, jobs that has all of the given tags will be cancelled.
+     * @param tags       The list of tags
+     * @return A Cancel result containing the list of jobs.
+     * @see #cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)
+     */
+    public CancelResult cancelJobs(final TagConstraint constraint, final String... tags) {
+<span class="fc" id="L278">        final List&lt;JobHolder&gt; jobs = new ArrayList&lt;JobHolder&gt;();</span>
+<span class="fc" id="L279">        final Set&lt;Long&gt; persistentJobIds = new HashSet&lt;Long&gt;();</span>
+<span class="fc" id="L280">        final Set&lt;Long&gt; nonPersistentJobIds = new HashSet&lt;Long&gt;();</span>
+<span class="fc" id="L281">        final Set&lt;Long&gt; runningNonPersistentJobIds = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L282">        final Set&lt;Long&gt; runningPersistentJobIds = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L283">        synchronized (getNextJobLock) {</span>
+<span class="fc" id="L284">            jobConsumerExecutor.inRunningJobHoldersLock(new Runnable() {</span>
+                @Override
+                public void run() {
+                    // TODO if app terminates while cancelling, job will be removed w/o receiving an onCancel call!!!
+<span class="fc" id="L288">                    Set&lt;JobHolder&gt; nonPersistentRunningJobs = jobConsumerExecutor</span>
+                            .findRunningByTags(constraint, tags, false);
+<span class="fc" id="L290">                    synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L291">                        markJobsAsCancelledAndFilterAlreadyCancelled(nonPersistentRunningJobs,</span>
+                                nonPersistentJobQueue, nonPersistentJobIds);
+<span class="fc" id="L293">                        runningNonPersistentJobIds.addAll(nonPersistentJobIds);</span>
+<span class="fc" id="L294">                        Set&lt;JobHolder&gt; nonPersistentJobs = nonPersistentJobQueue</span>
+                                .findJobsByTags(constraint, true, nonPersistentJobIds, tags);
+<span class="fc" id="L296">                        markJobsAsCancelledAndFilterAlreadyCancelled(nonPersistentJobs,</span>
+                                nonPersistentJobQueue, nonPersistentJobIds);
+<span class="fc" id="L298">                        jobs.addAll(nonPersistentJobs);</span>
+<span class="pc" id="L299">                    }</span>
+<span class="fc" id="L300">                    jobs.addAll(nonPersistentRunningJobs);</span>
+
+<span class="fc" id="L302">                    Set&lt;JobHolder&gt; persistentRunningJobs = jobConsumerExecutor</span>
+                            .findRunningByTags(constraint, tags, true);
+<span class="fc" id="L304">                    synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L305">                        markJobsAsCancelledAndFilterAlreadyCancelled(persistentRunningJobs,</span>
+                                persistentJobQueue, persistentJobIds);
+<span class="fc" id="L307">                        runningPersistentJobIds.addAll(persistentJobIds);</span>
+<span class="fc" id="L308">                        Set&lt;JobHolder&gt; persistentJobs = persistentJobQueue</span>
+                                .findJobsByTags(constraint, true, persistentJobIds, tags);
+<span class="fc" id="L310">                        markJobsAsCancelledAndFilterAlreadyCancelled(persistentJobs,</span>
+                                persistentJobQueue, persistentJobIds);
+<span class="fc" id="L312">                        jobs.addAll(persistentJobs);</span>
+<span class="pc" id="L313">                    }</span>
+<span class="fc" id="L314">                    jobs.addAll(persistentRunningJobs);</span>
+<span class="fc" id="L315">                }</span>
+            });
+<span class="pc" id="L317">        }</span>
+
+        try {
+            // non persistent jobs are removed from queue as soon as they are marked as cancelled
+            // persistent jobs are given a running session id upon cancellation.
+            // this ensures that these jobs won't show up in next job queries.
+            // if subsequent cancel requests come for these jobs, they won't show up again either
+            // because markJobsAsCancelledAndFilterAlreadyCancelled will filter them out
+<span class="fc" id="L325">            jobConsumerExecutor.waitUntilDone(persistentJobIds, nonPersistentJobIds);</span>
+<span class="nc" id="L326">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L327">            JqLog.e(e, &quot;error while waiting for jobs to finish&quot;);</span>
+<span class="fc" id="L328">        }</span>
+<span class="fc" id="L329">        CancelResult result = new CancelResult();</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">        for (JobHolder holder : jobs) {</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">            JqLog.d(&quot;checking if I could cancel %s. Result: %s&quot;, holder.getJob(), !holder.isSuccessful());</span>
+<span class="fc bfc" id="L332" title="All 2 branches covered.">            if (holder.isSuccessful()) {</span>
+<span class="fc" id="L333">                result.failedToCancel.add(holder.getJob());</span>
+            } else {
+<span class="fc" id="L335">                result.cancelledJobs.add(holder.getJob());</span>
+                try {
+<span class="fc" id="L337">                    holder.getJob().onCancel();</span>
+<span class="nc" id="L338">                } catch (Throwable t) {</span>
+<span class="nc" id="L339">                    JqLog.e(t, &quot;cancelled job's onCancel has thrown exception&quot;);</span>
+<span class="fc" id="L340">                }</span>
+                // if job is removed while running, make sure we remove it from running job
+                // groups as well. JobExecutor won't remove the job.
+<span class="fc bfc" id="L343" title="All 2 branches covered.">                if (holder.getJob().isPersistent()) {</span>
+<span class="fc" id="L344">                    synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L345">                        persistentJobQueue.remove(holder);</span>
+<span class="pc" id="L346">                    }</span>
+<span class="pc bpc" id="L347" title="1 of 4 branches missed.">                    if (holder.getGroupId() != null &amp;&amp;</span>
+                            runningPersistentJobIds.contains(holder.getId())) {
+<span class="nc" id="L349">                        runningJobGroups.remove(holder.getGroupId());</span>
+                    }
+<span class="fc bfc" id="L351" title="All 4 branches covered.">                } else if (holder.getGroupId() != null &amp;&amp;</span>
+                        runningNonPersistentJobIds.contains(holder.getId())) {
+<span class="fc" id="L353">                    runningJobGroups.remove(holder.getGroupId());</span>
+                }
+            }
+<span class="fc" id="L356">        }</span>
+<span class="fc" id="L357">        return result;</span>
+    }
+
+    private void markJobsAsCancelledAndFilterAlreadyCancelled(Set&lt;JobHolder&gt; jobs, JobQueue queue,
+            Set&lt;Long&gt; outIds) {
+<span class="fc" id="L362">        Iterator&lt;JobHolder&gt; itr = jobs.iterator();</span>
+<span class="fc bfc" id="L363" title="All 2 branches covered.">        while (itr.hasNext()) {</span>
+<span class="fc" id="L364">            JobHolder holder = itr.next();</span>
+            // although cancelled is not persistent to disk, this will still work because we would
+            // receive the same job back if it was just cancelled in this session.
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">            if (holder.isCancelled()) {</span>
+<span class="nc" id="L368">                itr.remove();</span>
+            } else {
+<span class="fc" id="L370">                holder.markAsCancelled();</span>
+<span class="fc" id="L371">                outIds.add(holder.getId());</span>
+<span class="fc" id="L372">                queue.onJobCancelled(holder);</span>
+            }
+<span class="fc" id="L374">        }</span>
+<span class="fc" id="L375">    }</span>
+
+    /**
+     * Non-blocking convenience method to add a job in background thread.
+     * @see #addJob(Job)
+     * @param job job to add
+     *
+     */
+    public void addJobInBackground(Job job) {
+        //noinspection deprecation
+<span class="fc" id="L385">        addJobInBackground(job, null);</span>
+<span class="fc" id="L386">    }</span>
+
+    public void addJobInBackground(final Job job, /*nullable*/ final AsyncAddCallback callback) {
+<span class="fc" id="L389">        timedExecutor.execute(new Runnable() {</span>
+            @Override
+            public void run() {
+                try {
+<span class="fc" id="L393">                    long id = addJob(job);</span>
+<span class="fc bfc" id="L394" title="All 2 branches covered.">                    if(callback != null) {</span>
+<span class="fc" id="L395">                        callback.onAdded(id);</span>
+                    }
+<span class="fc" id="L397">                } catch (Throwable t) {</span>
+<span class="fc" id="L398">                    JqLog.e(t, &quot;addJobInBackground received an exception. job class: %s&quot;, job.getClass().getSimpleName());</span>
+<span class="fc" id="L399">                }</span>
+<span class="fc" id="L400">            }</span>
+        });
+<span class="fc" id="L402">    }</span>
+
+    //need to sync on related job queue before calling this
+    private void addOnAddedLock(ConcurrentHashMap&lt;Long, CountDownLatch&gt; lockMap, long id) {
+<span class="fc" id="L406">        lockMap.put(id, new CountDownLatch(1));</span>
+<span class="fc" id="L407">    }</span>
+
+    //need to sync on related job queue before calling this
+    private void waitForOnAddedLock(ConcurrentHashMap&lt;Long, CountDownLatch&gt; lockMap, long id) {
+<span class="fc" id="L411">        CountDownLatch latch = lockMap.get(id);</span>
+<span class="fc bfc" id="L412" title="All 2 branches covered.">        if(latch == null) {</span>
+<span class="fc" id="L413">            return;</span>
+        }
+        try {
+<span class="fc" id="L416">            latch.await();</span>
+<span class="nc" id="L417">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L418">            JqLog.e(e, &quot;could not wait for onAdded lock&quot;);</span>
+<span class="fc" id="L419">        }</span>
+<span class="fc" id="L420">    }</span>
+
+    //need to sync on related job queue before calling this
+    private void clearOnAddedLock(ConcurrentHashMap&lt;Long, CountDownLatch&gt; lockMap, long id) {
+<span class="fc" id="L424">        CountDownLatch latch = lockMap.get(id);</span>
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">        if(latch != null) {</span>
+<span class="fc" id="L426">            latch.countDown();</span>
+        }
+<span class="fc" id="L428">        lockMap.remove(id);</span>
+<span class="fc" id="L429">    }</span>
+
+    /**
+     * checks next available job and returns when it will be available (if it will, otherwise returns {@link Long#MAX_VALUE})
+     * also creates a timer to notify listeners at that time
+     * @param hasNetwork .
+     * @return time wait until next job (in milliseconds)
+     */
+    private long ensureConsumerWhenNeeded(Boolean hasNetwork) {
+<span class="fc bfc" id="L438" title="All 2 branches covered.">        if(hasNetwork == null) {</span>
+            //if network util can inform us when network is recovered, we we'll check only next job that does not
+            //require network. if it does not know how to inform us, we have to keep a busy loop.
+            //noinspection SimplifiableConditionalExpression
+<span class="fc bfc" id="L442" title="All 2 branches covered.">            hasNetwork = networkUtil instanceof NetworkEventProvider ? hasNetwork() : true;</span>
+        }
+        //this method is called when there are jobs but job consumer was not given any
+        //this may happen in a race condition or when the latest job is a delayed job
+        Long nextRunNs;
+<span class="fc" id="L447">        synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L448">            nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);</span>
+<span class="pc" id="L449">        }</span>
+<span class="fc bfc" id="L450" title="All 4 branches covered.">        if(nextRunNs != null &amp;&amp; nextRunNs &lt;= System.nanoTime()) {</span>
+<span class="fc" id="L451">            notifyJobConsumer();</span>
+<span class="fc" id="L452">            return 0L;</span>
+        }
+        Long persistedJobRunNs;
+<span class="fc" id="L455">        synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L456">            persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);</span>
+<span class="pc" id="L457">        }</span>
+<span class="fc bfc" id="L458" title="All 2 branches covered.">        if(persistedJobRunNs != null) {</span>
+<span class="pc bpc" id="L459" title="1 of 2 branches missed.">            if(nextRunNs == null) {</span>
+<span class="fc" id="L460">                nextRunNs = persistedJobRunNs;</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">            } else if(persistedJobRunNs &lt; nextRunNs) {</span>
+<span class="nc" id="L462">                nextRunNs = persistedJobRunNs;</span>
+            }
+        }
+<span class="fc bfc" id="L465" title="All 2 branches covered.">        if(nextRunNs != null) {</span>
+            //to avoid overflow, we need to check equality first
+<span class="fc bfc" id="L467" title="All 2 branches covered.">            if(nextRunNs &lt; System.nanoTime()) {</span>
+<span class="fc" id="L468">                notifyJobConsumer();</span>
+<span class="fc" id="L469">                return 0L;</span>
+            }
+<span class="fc" id="L471">            long diff = (long)Math.ceil((double)(nextRunNs - System.nanoTime()) / NS_PER_MS);</span>
+<span class="fc" id="L472">            ensureConsumerOnTime(diff);</span>
+<span class="fc" id="L473">            return diff;</span>
+        }
+<span class="fc" id="L475">        return Long.MAX_VALUE;</span>
+    }
+
+    private void notifyJobConsumer() {
+<span class="fc" id="L479">        synchronized (newJobListeners) {</span>
+<span class="fc" id="L480">            newJobListeners.notifyAll();</span>
+<span class="pc" id="L481">        }</span>
+<span class="fc" id="L482">        jobConsumerExecutor.considerAddingConsumer();</span>
+<span class="fc" id="L483">    }</span>
+
+<span class="fc" id="L485">    private final Runnable notifyRunnable = new Runnable() {</span>
+        @Override
+        public void run() {
+<span class="fc" id="L488">            notifyJobConsumer();</span>
+<span class="fc" id="L489">        }</span>
+    };
+
+    private void ensureConsumerOnTime(long waitMs) {
+<span class="fc" id="L493">        timedExecutor.schedule(notifyRunnable, waitMs, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L494">    }</span>
+
+    private boolean hasNetwork() {
+<span class="pc bpc" id="L497" title="1 of 4 branches missed.">        return networkUtil == null || networkUtil.isConnected(appContext);</span>
+    }
+
+    private JobHolder getNextJob() {
+<span class="fc" id="L501">        boolean haveNetwork = hasNetwork();</span>
+        JobHolder jobHolder;
+<span class="fc" id="L503">        boolean persistent = false;</span>
+<span class="fc" id="L504">        synchronized (getNextJobLock) {</span>
+<span class="fc" id="L505">            final Collection&lt;String&gt; runningJobGroups = this.runningJobGroups.getSafe();</span>
+<span class="fc" id="L506">            synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L507">                jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);</span>
+<span class="pc" id="L508">            }</span>
+<span class="fc bfc" id="L509" title="All 2 branches covered.">            if (jobHolder == null) {</span>
+                //go to disk, there aren't any non-persistent jobs
+<span class="fc" id="L511">                synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L512">                    jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);</span>
+<span class="fc" id="L513">                    persistent = true;</span>
+<span class="pc" id="L514">                }</span>
+            }
+<span class="fc bfc" id="L516" title="All 2 branches covered.">            if(jobHolder == null) {</span>
+<span class="fc" id="L517">                return null;</span>
+            }
+<span class="fc bfc" id="L519" title="All 4 branches covered.">            if(persistent &amp;&amp; dependencyInjector != null) {</span>
+<span class="fc" id="L520">                dependencyInjector.inject(jobHolder.getJob());</span>
+            }
+<span class="fc bfc" id="L522" title="All 2 branches covered.">            if(jobHolder.getGroupId() != null) {</span>
+<span class="fc" id="L523">                this.runningJobGroups.add(jobHolder.getGroupId());</span>
+            }
+<span class="pc" id="L525">        }</span>
+
+        //wait for onAdded locks. wait for locks after job is selected so that we minimize the lock
+<span class="fc bfc" id="L528" title="All 2 branches covered.">        if(persistent) {</span>
+<span class="fc" id="L529">            waitForOnAddedLock(persistentOnAddedLocks, jobHolder.getId());</span>
+        } else {
+<span class="fc" id="L531">            waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());</span>
+        }
+
+<span class="fc" id="L534">        return jobHolder;</span>
+    }
+
+    private void reAddJob(JobHolder jobHolder) {
+<span class="fc" id="L538">        JqLog.d(&quot;re-adding job %s&quot;, jobHolder.getId());</span>
+<span class="pc bpc" id="L539" title="1 of 2 branches missed.">        if (!jobHolder.isCancelled()) {</span>
+<span class="fc bfc" id="L540" title="All 2 branches covered.">            if (jobHolder.getJob().isPersistent()) {</span>
+<span class="fc" id="L541">                synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L542">                    persistentJobQueue.insertOrReplace(jobHolder);</span>
+<span class="pc" id="L543">                }</span>
+            } else {
+<span class="fc" id="L545">                synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L546">                    nonPersistentJobQueue.insertOrReplace(jobHolder);</span>
+<span class="pc" id="L547">                }</span>
+            }
+        } else {
+<span class="nc" id="L550">            JqLog.d(&quot;not re-adding cancelled job &quot; + jobHolder);</span>
+        }
+<span class="pc bpc" id="L552" title="1 of 2 branches missed.">        if(jobHolder.getGroupId() != null) {</span>
+<span class="nc" id="L553">            runningJobGroups.remove(jobHolder.getGroupId());</span>
+        }
+<span class="fc" id="L555">    }</span>
+
+    /**
+     * Returns the current status of a {@link Job}.
+     * &lt;p&gt;
+     *     You should not call this method on the UI thread because it may make a db request.
+     * &lt;/p&gt;
+     * &lt;p&gt;
+     *     This is not a very fast call so try not to make it unless necessary. Consider using events if you need to be
+     *     informed about a job's lifecycle.
+     * &lt;/p&gt;
+     * @param id the ID, returned by the addJob method
+     * @param isPersistent Jobs are added to different queues depending on if they are persistent or not. This is necessary
+     *                     because each queue has independent id sets.
+     * @return
+     */
+    public JobStatus getJobStatus(long id, boolean isPersistent) {
+<span class="fc bfc" id="L572" title="All 2 branches covered.">        if(jobConsumerExecutor.isRunning(id, isPersistent)) {</span>
+<span class="fc" id="L573">            return JobStatus.RUNNING;</span>
+        }
+        JobHolder holder;
+<span class="fc bfc" id="L576" title="All 2 branches covered.">        if(isPersistent) {</span>
+<span class="fc" id="L577">            synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L578">                holder = persistentJobQueue.findJobById(id);</span>
+<span class="pc" id="L579">            }</span>
+        } else {
+<span class="fc" id="L581">            synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L582">                holder = nonPersistentJobQueue.findJobById(id);</span>
+<span class="pc" id="L583">            }</span>
+        }
+<span class="fc bfc" id="L585" title="All 2 branches covered.">        if(holder == null) {</span>
+<span class="fc" id="L586">            return JobStatus.UNKNOWN;</span>
+        }
+<span class="fc" id="L588">        boolean network = hasNetwork();</span>
+<span class="fc bfc" id="L589" title="All 4 branches covered.">        if(holder.requiresNetwork() &amp;&amp; !network) {</span>
+<span class="fc" id="L590">            return JobStatus.WAITING_NOT_READY;</span>
+        }
+<span class="fc bfc" id="L592" title="All 2 branches covered.">        if(holder.getDelayUntilNs() &gt; System.nanoTime()) {</span>
+<span class="fc" id="L593">            return JobStatus.WAITING_NOT_READY;</span>
+        }
+
+<span class="fc" id="L596">        return JobStatus.WAITING_READY;</span>
+    }
+
+    private void removeJob(JobHolder jobHolder) {
+<span class="fc bfc" id="L600" title="All 2 branches covered.">        if (jobHolder.getJob().isPersistent()) {</span>
+<span class="fc" id="L601">            synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L602">                persistentJobQueue.remove(jobHolder);</span>
+<span class="pc" id="L603">            }</span>
+        } else {
+<span class="fc" id="L605">            synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L606">                nonPersistentJobQueue.remove(jobHolder);</span>
+<span class="pc" id="L607">            }</span>
+        }
+<span class="fc bfc" id="L609" title="All 2 branches covered.">        if(jobHolder.getGroupId() != null) {</span>
+<span class="fc" id="L610">            runningJobGroups.remove(jobHolder.getGroupId());</span>
+        }
+<span class="fc" id="L612">    }</span>
+
+    public synchronized void stopAndWaitUntilConsumersAreFinished() throws InterruptedException {
+<span class="fc" id="L615">        stop();</span>
+<span class="fc" id="L616">        timedExecutor.shutdownNow();</span>
+<span class="fc" id="L617">        synchronized (newJobListeners) {</span>
+<span class="fc" id="L618">            newJobListeners.notifyAll();</span>
+<span class="pc" id="L619">        }</span>
+<span class="fc" id="L620">        jobConsumerExecutor.waitUntilAllConsumersAreFinished();</span>
+<span class="fc" id="L621">        timedExecutor = Executors.newSingleThreadScheduledExecutor();</span>
+<span class="fc" id="L622">    }</span>
+
+    public synchronized void clear() {
+<span class="fc" id="L625">        synchronized (nonPersistentJobQueue) {</span>
+<span class="fc" id="L626">            nonPersistentJobQueue.clear();</span>
+<span class="fc" id="L627">            nonPersistentOnAddedLocks.clear();</span>
+<span class="pc" id="L628">        }</span>
+<span class="fc" id="L629">        synchronized (persistentJobQueue) {</span>
+<span class="fc" id="L630">            persistentJobQueue.clear();</span>
+<span class="fc" id="L631">            persistentOnAddedLocks.clear();</span>
+<span class="pc" id="L632">        }</span>
+<span class="fc" id="L633">        runningJobGroups.clear();</span>
+<span class="fc" id="L634">    }</span>
+
+    /**
+     * if {@link NetworkUtil} implements {@link NetworkEventProvider}, this method is called when network is recovered
+     * @param isConnected network connection state.
+     */
+    @Override
+    public void onNetworkChange(boolean isConnected) {
+<span class="fc" id="L642">        ensureConsumerWhenNeeded(isConnected);</span>
+<span class="fc" id="L643">    }</span>
+
+<span class="fc" id="L645">    @SuppressWarnings(&quot;FieldCanBeLocal&quot;)</span>
+<span class="fc" id="L646">    private final JobConsumerExecutor.Contract consumerContract = new JobConsumerExecutor.Contract() {</span>
+        @Override
+        public boolean isRunning() {
+<span class="fc" id="L649">            return running;</span>
+        }
+
+        @Override
+        public void insertOrReplace(JobHolder jobHolder) {
+<span class="fc" id="L654">            reAddJob(jobHolder);</span>
+<span class="fc" id="L655">        }</span>
+
+        @Override
+        public void removeJob(JobHolder jobHolder) {
+<span class="fc" id="L659">            JobManager.this.removeJob(jobHolder);</span>
+<span class="fc" id="L660">        }</span>
+
+        @Override
+        public JobHolder getNextJob(int wait, TimeUnit waitDuration) {
+            //be optimistic
+<span class="fc" id="L665">            JobHolder nextJob = JobManager.this.getNextJob();</span>
+<span class="fc bfc" id="L666" title="All 2 branches covered.">            if(nextJob != null) {</span>
+<span class="fc" id="L667">                return nextJob;</span>
+            }
+<span class="fc" id="L669">            long start = System.nanoTime();</span>
+<span class="fc" id="L670">            long remainingWait = waitDuration.toNanos(wait);</span>
+<span class="fc" id="L671">            long waitUntil = remainingWait + start;</span>
+            //for delayed jobs,
+<span class="fc" id="L673">            long nextJobDelay = ensureConsumerWhenNeeded(null);</span>
+<span class="fc bfc" id="L674" title="All 6 branches covered.">            while (nextJob == null &amp;&amp; waitUntil &gt; System.nanoTime() &amp;&amp; running) {</span>
+                //keep running inside here to avoid busy loop
+<span class="pc bpc" id="L676" title="1 of 2 branches missed.">                nextJob = running ? JobManager.this.getNextJob() : null;</span>
+<span class="fc bfc" id="L677" title="All 2 branches covered.">                if(nextJob == null) {</span>
+<span class="fc" id="L678">                    long remaining = waitUntil - System.nanoTime();</span>
+<span class="fc bfc" id="L679" title="All 2 branches covered.">                    if(remaining &gt; 0) {</span>
+                        //if we can't detect network changes, we won't be notified.
+                        //to avoid waiting up to give time, wait in chunks of 500 ms max
+<span class="fc" id="L682">                        long maxWait = Math.min(nextJobDelay, TimeUnit.NANOSECONDS.toMillis(remaining));</span>
+<span class="pc bpc" id="L683" title="1 of 4 branches missed.">                        if(maxWait &lt; 1 || !running) {</span>
+<span class="nc" id="L684">                            continue;//wait(0) will cause infinite wait.</span>
+                        }
+<span class="fc bfc" id="L686" title="All 2 branches covered.">                        if(networkUtil instanceof NetworkEventProvider) {</span>
+                            //to handle delayed jobs, make sure we trigger this first
+                            //looks like there is no job available right now, wait for an event.
+                            //there is a chance that if it triggers a timer and it gets called before I enter
+                            //sync block, i am going to lose it
+                            //TODO fix above case where we may wait unnecessarily long if a job is about to become available
+<span class="fc" id="L692">                            synchronized (newJobListeners) {</span>
+                                try {
+<span class="fc" id="L694">                                    newJobListeners.wait(maxWait);</span>
+<span class="nc" id="L695">                                } catch (InterruptedException e) {</span>
+<span class="nc" id="L696">                                    JqLog.e(e, &quot;exception while waiting for a new job.&quot;);</span>
+<span class="fc" id="L697">                                }</span>
+<span class="pc" id="L698">                            }</span>
+                        } else {
+                            //we cannot detect network changes. our best option is to wait for some time and try again
+                            //then trigger {@link ensureConsumerWhenNeeded)
+<span class="fc" id="L702">                            synchronized (newJobListeners) {</span>
+                                try {
+<span class="fc" id="L704">                                    newJobListeners.wait(Math.min(500, maxWait));</span>
+<span class="nc" id="L705">                                } catch (InterruptedException e) {</span>
+<span class="nc" id="L706">                                    JqLog.e(e, &quot;exception while waiting for a new job.&quot;);</span>
+<span class="fc" id="L707">                                }</span>
+<span class="pc" id="L708">                            }</span>
+                        }
+                    }
+<span class="fc" id="L711">                }</span>
+            }
+<span class="fc" id="L713">            return nextJob;</span>
+        }
+
+        @Override
+        public int countRemainingReadyJobs() {
+            //if we can't detect network changes, assume we have network otherwise nothing will trigger a consumer
+            //noinspection SimplifiableConditionalExpression
+<span class="fc bfc" id="L720" title="All 2 branches covered.">            return countReadyJobs(networkUtil instanceof NetworkEventProvider ? hasNetwork() : true);</span>
+        }
+    };
+
+
+    /**
+     * Default implementation of QueueFactory that creates one {@link SqliteJobQueue} and one {@link NonPersistentPriorityQueue}
+     * both are wrapped inside a {@link CachedJobQueue} to improve performance
+     */
+    public static class DefaultQueueFactory implements QueueFactory {
+        SqliteJobQueue.JobSerializer jobSerializer;
+
+<span class="fc" id="L732">        public DefaultQueueFactory() {</span>
+<span class="fc" id="L733">            jobSerializer = new SqliteJobQueue.JavaSerializer();</span>
+<span class="fc" id="L734">        }</span>
+
+<span class="nc" id="L736">        public DefaultQueueFactory(SqliteJobQueue.JobSerializer jobSerializer) {</span>
+<span class="nc" id="L737">            this.jobSerializer = jobSerializer;</span>
+<span class="nc" id="L738">        }</span>
+
+        @Override
+        public JobQueue createPersistentQueue(Context context, Long sessionId, String id,
+                boolean inTestMode) {
+<span class="fc" id="L743">            return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id, jobSerializer,</span>
+                    inTestMode));
+        }
+
+        @Override
+        public JobQueue createNonPersistent(Context context, Long sessionId, String id,
+                boolean inTestMode) {
+<span class="fc" id="L750">            return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id, inTestMode));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>
