@@ -5,11 +5,13 @@ import com.path.android.jobqueue.Params;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.annotation.Config;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class ReRunWithLimitTest extends JobManagerTestBase {
     @Test
     public void testReRunWithLimit() throws Exception {

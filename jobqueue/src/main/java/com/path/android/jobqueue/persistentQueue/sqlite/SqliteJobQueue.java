@@ -274,32 +274,37 @@ public class SqliteJobQueue implements JobQueue {
     public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
         //we can even keep these prepared but not sure the cost of them in db layer
         String selectQuery = nextJobsQueryCache.get(hasNetwork, excludeGroups);
-        if(selectQuery == null) {
+        if (selectQuery == null) {
             String where = createReadyJobWhereSql(hasNetwork, excludeGroups, false);
             selectQuery = sqlHelper.createSelect(
                     where,
                     1,
-                    new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN, SqlHelper.Order.Type.DESC),
-                    new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN, SqlHelper.Order.Type.ASC),
+                    new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
+                            SqlHelper.Order.Type.DESC),
+                    new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,
+                            SqlHelper.Order.Type.ASC),
                     new SqlHelper.Order(DbOpenHelper.ID_COLUMN, SqlHelper.Order.Type.ASC)
             );
             nextJobsQueryCache.set(selectQuery, hasNetwork, excludeGroups);
         }
-        Cursor cursor = db.rawQuery(selectQuery, new String[]{Long.toString(sessionId),Long.toString(System.nanoTime())});
-        try {
-            if (!cursor.moveToNext()) {
-                return null;
+        while (true) {
+            Cursor cursor = db.rawQuery(selectQuery,
+                    new String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});
+            try {
+                if (!cursor.moveToNext()) {
+                    return null;
+                }
+                JobHolder holder = createJobHolderFromCursor(cursor);
+                setSessionIdOnJob(holder);
+                return holder;
+            } catch (InvalidJobException e) {
+                //delete
+                Long jobId = cursor.getLong(0);
+                delete(jobId);
+                return nextJobAndIncRunCount(true, null);
+            } finally {
+                cursor.close();
             }
-            JobHolder holder = createJobHolderFromCursor(cursor);
-            setSessionIdOnJob(holder);
-            return holder;
-        } catch (InvalidJobException e) {
-            //delete
-            Long jobId = cursor.getLong(0);
-            delete(jobId);
-            return nextJobAndIncRunCount(true, null);
-        } finally {
-            cursor.close();
         }
     }
 

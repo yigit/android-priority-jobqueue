@@ -9,11 +9,13 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class RunFailingJobTest extends JobManagerTestBase {
     @Test
     public void runFailingJob() throws Exception {

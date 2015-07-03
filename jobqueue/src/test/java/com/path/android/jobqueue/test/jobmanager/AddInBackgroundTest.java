@@ -13,11 +13,13 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class AddInBackgroundTest extends JobManagerTestBase {
     @Test
     public void testAddInBackground() throws InterruptedException {

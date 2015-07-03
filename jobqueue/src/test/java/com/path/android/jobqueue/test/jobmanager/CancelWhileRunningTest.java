@@ -12,7 +12,9 @@ import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -20,11 +22,12 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class CancelWhileRunningTest extends JobManagerTestBase {
     @Test
     public void testCancelBeforeRunning() throws InterruptedException {
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).minConsumerCount(5));
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).minConsumerCount(5));
         JobWithEndLatch nonPersistent1 = new JobWithEndLatch(new Params(0).addTags("dummyTag"), true);
         JobWithEndLatch nonPersistent2 = new JobWithEndLatch(new Params(0).addTags("dummyTag"), false);
         DummyJob persistentJob1 = new PersistentJobWithEndLatch(new Params(0).addTags("dummyTag"), false);

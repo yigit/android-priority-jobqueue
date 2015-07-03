@@ -10,6 +10,7 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class LoadFactorTest extends JobManagerTestBase {
     @Test
     public void testLoadFactor() throws Exception {
@@ -25,7 +27,7 @@ public class LoadFactorTest extends JobManagerTestBase {
         int maxConsumerCount = 5;
         int minConsumerCount = 2;
         int loadFactor = 5;
-        com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
+        com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .maxConsumerCount(maxConsumerCount)
                 .minConsumerCount(minConsumerCount)
                 .customLogger(new CustomLogger() {

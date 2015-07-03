@@ -11,11 +11,13 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class GroupingTest extends JobManagerTestBase {
     @Test
     public void testGrouping() throws Exception {
@@ -43,7 +45,7 @@ public class GroupingTest extends JobManagerTestBase {
     @Test
     public void testGroupingRaceCondition() throws Exception {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .minConsumerCount(5).maxConsumerCount(10)
                 .networkUtil(dummyNetworkUtil));
         dummyNetworkUtil.setHasNetwork(false, true);

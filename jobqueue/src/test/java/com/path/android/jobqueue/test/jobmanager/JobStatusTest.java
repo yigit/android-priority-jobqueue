@@ -11,18 +11,20 @@ import static org.hamcrest.MatcherAssert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class JobStatusTest extends JobManagerTestBase {
     @Test
     public void testJobStatus() throws InterruptedException {
         DummyNetworkUtilWithConnectivityEventSupport networkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
         networkUtil.setHasNetwork(false, true);
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).networkUtil(networkUtil));
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).networkUtil(networkUtil));
         jobManager.stop();
         List<Integer> networkRequiringJobIndices = new ArrayList<Integer>();
         Job[] jobs = new Job[] {

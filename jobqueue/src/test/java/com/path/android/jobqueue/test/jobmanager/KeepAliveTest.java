@@ -9,20 +9,22 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class KeepAliveTest extends JobManagerTestBase {
     @Test
     public void testKeepAlive() throws Exception {
         int keepAlive = 3 + (int)(Math.random() * 5);
         DummyNetworkUtil networkUtilWithoutEventSupport = new DummyNetworkUtil();
         DummyNetworkUtilWithConnectivityEventSupport networkUtilWithEventSupport = new DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager1 = createJobManager(new Configuration.Builder(Robolectric.application)
+        JobManager jobManager1 = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .consumerKeepAlive(keepAlive).networkUtil(networkUtilWithoutEventSupport));
-        JobManager jobManager2 = createJobManager(new Configuration.Builder(Robolectric.application)
+        JobManager jobManager2 = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .consumerKeepAlive(keepAlive)
                 .networkUtil(networkUtilWithEventSupport));
         //give it a little time to create first consumer

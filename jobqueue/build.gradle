@@ -6,7 +6,7 @@ Properties releaseConfig = new Properties()
 releaseConfig.load(new FileInputStream("${projectDir}/releaseConfig.properties"))
 ext.releaseConfig = releaseConfig
 task wrapper(type: Wrapper) {
-    gradleVersion = '1.12'
+    gradleVersion = '2.2.1'
 }
 
 apply plugin: 'maven'
@@ -19,7 +19,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.2.0-beta2'
+        classpath 'com.android.tools.build:gradle:1.1.3'
     }
 }
 
@@ -36,7 +36,7 @@ configurations {
 
 dependencies {
     testCompile 'junit:junit:4.12'
-    testCompile 'org.robolectric:robolectric:2.4'
+    testCompile "org.robolectric:robolectric:3.0-rc3"
     testCompile 'org.hamcrest:hamcrest-core:1.3'
     testCompile 'org.easytesting:fest-util:1.2.5'
     testCompile 'org.easytesting:fest-reflect:1.4.1'
@@ -46,14 +46,18 @@ dependencies {
 
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22"
+    compileSdkVersion 21
+    buildToolsVersion "22.0.1"
     buildTypes {
         debug {
             testCoverageEnabled = true
         }
     }
 
+    defaultConfig {
+        minSdkVersion 7
+        targetSdkVersion 21
+    }
 }
 
 //READ VERSION NAME
@@ -154,14 +158,6 @@ afterEvaluate { project ->
                         developer {
                             id "yigit"
                             name "Yigit Boyar"
-                        }
-                    }
-
-                    dependencies {
-                        dependency {
-                            groupId 'com.google.android'
-                            artifactId 'android'
-                            version '2.2.1'
                         }
                     }
                 }
