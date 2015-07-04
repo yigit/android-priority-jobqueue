@@ -13,13 +13,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(RobolectricTestRunner.class)
-
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class CancelWithNetworkToggleTest extends JobManagerTestBase {
 
     @Test
@@ -47,7 +49,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
             throws InterruptedException {
         DummyNetworkUtilWithConnectivityEventSupport networkUtil = new
                 DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .minConsumerCount(5)
                 .networkUtil(networkUtil));
         networkUtil.setHasNetwork(false, true);
@@ -111,7 +113,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
             throws InterruptedException {
         DummyNetworkUtilWithConnectivityEventSupport networkUtil = new
                 DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application)
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .minConsumerCount(5)
                 .networkUtil(networkUtil));
         networkUtil.setHasNetwork(false, true);

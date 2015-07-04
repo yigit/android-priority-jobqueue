@@ -7,8 +7,10 @@ import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class CachedNonPersistentJobQueueTest extends JobQueueTestBase {
     public CachedNonPersistentJobQueueTest() {
         super(new JobQueueFactory() {

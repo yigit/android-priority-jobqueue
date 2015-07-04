@@ -13,16 +13,18 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class InjectorTest extends JobManagerTestBase {
     @Test
     public void testInjector() throws Exception {
-        Configuration.Builder builder = new Configuration.Builder(Robolectric.application);
+        Configuration.Builder builder = new Configuration.Builder(RuntimeEnvironment.application);
         final JobManagerTestBase.ObjectReference injectedJobReference = new JobManagerTestBase.ObjectReference();
         final AtomicInteger injectionCallCount = new AtomicInteger(0);
         DependencyInjector dependencyInjector = new DependencyInjector() {
@@ -81,7 +83,7 @@ public class InjectorTest extends JobManagerTestBase {
                 //
             }
         };
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).injector(dummyDependencyInjector).customLogger(customLogger));
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).injector(dummyDependencyInjector).customLogger(customLogger));
         Throwable addException = null;
         try {
             jobManager.addJob(new DummyJob(new Params(0)));

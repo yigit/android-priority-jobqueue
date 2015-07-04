@@ -12,12 +12,14 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.Collections;
 
 import static com.path.android.jobqueue.TagConstraint.ANY;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class NonPersistentJobQueueTest extends JobQueueTestBase {
     public NonPersistentJobQueueTest() {
         super(new JobQueueFactory() {

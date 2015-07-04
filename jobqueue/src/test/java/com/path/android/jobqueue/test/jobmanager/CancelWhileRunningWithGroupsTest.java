@@ -10,7 +10,9 @@ import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -18,13 +20,14 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class CancelWhileRunningWithGroupsTest extends JobManagerTestBase {
     public static CountDownLatch[] endLatches = new CountDownLatch[]{new CountDownLatch(2), new CountDownLatch(2)};
     public static CountDownLatch[] startLatches = new CountDownLatch[]{new CountDownLatch(2), new CountDownLatch(2)};
     @Test
     public void testCancelBeforeRunning() throws InterruptedException {
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).minConsumerCount(5));
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).minConsumerCount(5));
         jobManager.addJob(new DummyJobWithLatches(0, new Params(1).addTags("dummyTag").groupBy("group1")));
         jobManager.addJob(new DummyJobWithLatches(0, new Params(1).addTags("dummyTag").groupBy("group2").persist()));
         assertThat("both jobs should start", startLatches[0].await(2, TimeUnit.SECONDS), is(true));

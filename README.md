@@ -15,8 +15,7 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
   - [Advantages](#advantages)
   - [Getting Started](#getting-started)
   - [Version History](#version-history)
-  - [Building](#building)
-   - [Running Tests](#running-tests)
+  - [Running Tests](#running-tests)
   - [wiki][9]
   - [Dependencies](#dependencies)
   - [License](#license)
@@ -188,17 +187,16 @@ We highly recommend checking how you can configure job manager and individual jo
 - - [Path's fork of greenDAO](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
 
 ### Building
-We are in the process of moving build system from ant to gradle. Right now, you can build with gradle but if you want to run tests, you'll need ant.
 
 * Clone the repo
 * `> cd jobqueue`
-* `> ant clean build-jar`
+* `> ./gradlew clean assembleDebug assembleDebugUnitTest test`
 *
 This will create a jar file under _release_ folder.
 
 #### Running Tests
 * > `cd jobqueue`
-* > `ant clean test`
+* > `./gradlew clean assembleDebug assembleDebugUnitTest test`
 
 
 ## License

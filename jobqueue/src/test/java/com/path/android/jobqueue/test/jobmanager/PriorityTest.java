@@ -9,18 +9,20 @@ import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
+import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(RobolectricGradleTestRunner.class)
+@Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class PriorityTest extends JobManagerTestBase {
     private static CountDownLatch priorityRunLatch;
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createJobManager(new Configuration.Builder(Robolectric.application).maxConsumerCount(1));
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).maxConsumerCount(1));
         testPriority(jobManager, false);
     }
 

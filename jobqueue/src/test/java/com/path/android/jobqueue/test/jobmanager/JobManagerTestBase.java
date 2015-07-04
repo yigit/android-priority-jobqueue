@@ -28,14 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class JobManagerTestBase extends TestBase {
     List<JobManager> createdJobManagers = new ArrayList<JobManager>();
     protected JobManager createJobManager() {
-        final JobManager jobManager = new JobManager(Robolectric.application,
+        final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
                 UUID.randomUUID().toString());
         createdJobManagers.add(jobManager);
         return jobManager;
     }
 
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
-        final JobManager jobManager = new JobManager(Robolectric.application,
+        final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
                 configurationBuilder.id(UUID.randomUUID().toString()).build());
         createdJobManagers.add(jobManager);
         return jobManager;
