@@ -110,6 +110,11 @@ abstract public class Job implements Serializable {
      * Changes to this class will not be preserved if your job is persistent !!!
      * <p>
      * Also, if your app crashes right after adding the job, {@code onRun} might be called without an {@code onAdded} call
+     * <p>
+     * Note that this method is called on the thread the job is added. (e.g. {@link JobManager#addJob(Job)})
+     * is called. If job was added via {@link  JobManager#addJobInBackground(Job)} or
+     * {@link JobManager#addJobInBackground(Job, AsyncAddCallback)}, it will be run on JobManager's
+     * utility thread.
      */
     abstract public void onAdded();
 
