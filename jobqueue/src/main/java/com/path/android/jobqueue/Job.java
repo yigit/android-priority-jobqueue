@@ -26,11 +26,16 @@ abstract public class Job implements Serializable {
     private Set<String> readonlyTags;
 
     private transient int currentRunCount;
-    private transient int priority;
+    transient int priority;
     private transient long delayInMs;
     transient boolean cancelled;
 
     private transient Context applicationContext;
+
+    /**
+     * Only set if a job fails. Will be cleared by JobManager after it is handled
+     */
+    transient RetryConstraint retryConstraint;
 
 
     protected Job(Params params) {
@@ -45,7 +50,6 @@ abstract public class Job implements Serializable {
 
     /**
      * used by {@link JobManager} to assign proper priority at the time job is added.
-     * This field is not preserved!
      * @return priority (higher = better)
      */
     public final int getPriority() {
@@ -54,7 +58,7 @@ abstract public class Job implements Serializable {
 
     /**
      * used by {@link JobManager} to assign proper delay at the time job is added.
-     * This field is not preserved!
+     * This field is not persisted!
      * @return delay in ms
      */
     public final long getDelayInMs() {
@@ -120,7 +124,8 @@ abstract public class Job implements Serializable {
 
     /**
      * The actual method that should to the work.
-     * It should finish w/o any exception. If it throws any exception, {@code shouldReRunOnThrowable} will be called to
+     * It should finish w/o any exception. If it throws any exception,
+     * {@link #shouldReRunOnThrowable(Throwable, int, int)} will be called to
      * decide either to dismiss the job or re-run it.
      * @throws Throwable
      */
@@ -132,11 +137,41 @@ abstract public class Job implements Serializable {
     abstract protected void onCancel();
 
     /**
-     * If {@code onRun} method throws an exception, this method is called.
-     * return true if you want to run your job again, return false if you want to dismiss it. If you return false,
-     * onCancel will be called.
+     * @deprecated use {@link #shouldReRunOnThrowable(Throwable, int, int)}
+     * This method will be removed in v2.0 and {@link #shouldReRunOnThrowable(Throwable, int, int)}
+     * will become abstract.
      */
-    abstract protected boolean shouldReRunOnThrowable(Throwable throwable);
+    @Deprecated
+    protected boolean shouldReRunOnThrowable(Throwable throwable) {
+        return true;
+    }
+
+    /**
+     * If {@code onRun} method throws an exception, this method is called.
+     * <p>
+     * If you simply want to return retry or cancel, you can use {@link RetryConstraint#RETRY} or
+     * {@link RetryConstraint#CANCEL}.
+     * <p>
+     * You can also use a custom {@link RetryConstraint} where you can change the Job's priority or
+     * add a delay until the next run (e.g. exponential back off).
+     * <p>
+     * Note that changing the Job's priority or adding a delay may alter the original run order of
+     * the job. So if the job was added to the queue with other jobs and their execution order is
+     * important (e.g. they use the same groupId), you should not change job's priority or add a
+     * delay unless you really want to change their execution order.
+     *
+     * @param throwable The exception that was thrown from {@link #onRun()}
+     * @param runCount The number of times this job run. Starts from 1.
+     * @param maxRunCount The max number of times this job can run. Decided by {@link #getRetryLimit()}
+     * @return A {@link RetryConstraint} to decide whether this Job should be tried again or not and
+     * if yes, whether we should add a delay or alter its priority. Returning null from this method
+     * is equal to returning {@link RetryConstraint#RETRY}. Default implementation calls
+     * {@link #shouldReRunOnThrowable(Throwable)}.
+     */
+    protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        boolean reRun = shouldReRunOnThrowable(throwable);
+        return reRun ? RetryConstraint.RETRY : RetryConstraint.CANCEL;
+    }
 
     /**
      * Runs the job and catches any exception
@@ -161,7 +196,13 @@ abstract public class Job implements Serializable {
             reRun = currentRunCount < getRetryLimit();
             if(reRun && !cancelled) {
                 try {
-                    reRun = shouldReRunOnThrowable(t);
+                    RetryConstraint retryConstraint = shouldReRunOnThrowable(t, currentRunCount,
+                            getRetryLimit());
+                    if (retryConstraint == null) {
+                        retryConstraint = RetryConstraint.RETRY;
+                    }
+                    this.retryConstraint = retryConstraint;
+                    reRun = retryConstraint.shouldRetry();
                 } catch (Throwable t2) {
                     JqLog.e(t2, "shouldReRunOnThrowable did throw an exception");
                 }
@@ -215,7 +256,7 @@ abstract public class Job implements Serializable {
 
     /**
      * By default, jobs will be retried {@code DEFAULT_RETRY_LIMIT}  times.
-     * If job fails this many times, onCancel will be called w/o calling {@code shouldReRunOnThrowable}
+     * If job fails this many times, onCancel will be called w/o calling {@link #shouldReRunOnThrowable(Throwable, int, int)}
      * @return
      */
     protected int getRetryLimit() {
