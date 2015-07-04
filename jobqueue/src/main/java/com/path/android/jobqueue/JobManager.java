@@ -178,6 +178,7 @@ public class JobManager implements NetworkEventProvider.Listener {
             //inject members b4 calling onAdded
             dependencyInjector.inject(job);
         }
+        jobHolder.getJob().setApplicationContext(appContext);
         jobHolder.getJob().onAdded();
         if(job.isPersistent()) {
             synchronized (persistentJobQueue) {
@@ -530,7 +531,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         } else {
             waitForOnAddedLock(nonPersistentOnAddedLocks, jobHolder.getId());
         }
-
+        jobHolder.getJob().setApplicationContext(appContext);
         return jobHolder;
     }
 

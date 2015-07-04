@@ -2,6 +2,8 @@ package com.path.android.jobqueue;
 
 import com.path.android.jobqueue.log.JqLog;
 
+import android.content.Context;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -27,6 +29,8 @@ abstract public class Job implements Serializable {
     private transient int priority;
     private transient long delayInMs;
     transient boolean cancelled;
+
+    private transient Context applicationContext;
 
 
     protected Job(Params params) {
@@ -239,5 +243,20 @@ abstract public class Job implements Serializable {
         if (cancelled) {
             throw new RuntimeException("job is cancelled");
         }
+    }
+
+    /*package*/ void setApplicationContext(Context context) {
+        this.applicationContext = context;
+    }
+
+    /**
+     * Convenience method to get the application context in a Job.
+     * <p>
+     * This context is set when job is added to a JobManager.
+     *
+     * @return The application context
+     */
+    public Context getApplicationContext() {
+        return applicationContext;
     }
 }
