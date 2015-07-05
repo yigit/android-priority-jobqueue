@@ -50,11 +50,12 @@ public class RetryLogicTest extends JobManagerTestBase {
 
     @Test
     public void testExponential() {
-        assertThat("exp 1",RetryConstraint.createExponentialBackoff(1, 10).getNewDelayInMs(), is(10L));
-        assertThat("exp 2",RetryConstraint.createExponentialBackoff(2, 10).getNewDelayInMs(), is(
-                100L));
-        assertThat("exp 3",RetryConstraint.createExponentialBackoff(3, 10).getNewDelayInMs(), is(
-                1000L));
+        assertThat("exp 1",RetryConstraint.createExponentialBackoff(1, 10).getNewDelayInMs(),
+                is(10L));
+        assertThat("exp 2",RetryConstraint.createExponentialBackoff(2, 10).getNewDelayInMs(),
+                is(100L));
+        assertThat("exp 3",RetryConstraint.createExponentialBackoff(3, 10).getNewDelayInMs(),
+                is(1000L));
     }
 
     @Test
@@ -77,7 +78,7 @@ public class RetryLogicTest extends JobManagerTestBase {
             }
         };
         canRun = true;
-        RetryJob job = new RetryJob(new Params(0));
+        RetryJob job = new RetryJob(new Params(0).setPersistent(persistent));
         job.retryLimit = 10;
         createJobManager().addJob(job);
         assertThat("", cancelLatch.await(4, TimeUnit.SECONDS), is(true));
