@@ -189,7 +189,7 @@ public class JobManager implements NetworkEventProvider.Listener {
                 clearOnAddedLock(nonPersistentOnAddedLocks, id);
             }
         }
-        notifyJobConsumer();
+        ensureConsumerWhenNeeded(null);
         return id;
     }
 
