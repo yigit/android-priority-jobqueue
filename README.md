@@ -128,7 +128,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.birbit:android-priority-jobqueue:1.3.1'`
+Gradle: `compile 'com.birbit:android-priority-jobqueue:1.3.2'`
 
 Maven:
 
@@ -136,7 +136,7 @@ Maven:
 <dependency>
     <groupId>com.birbit</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.3.1</version>
+    <version>1.3.2</version>
 </dependency>
 ```
 
@@ -149,6 +149,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 1.3.2 (July 5, 2015)
+   - Added ability to change a Job's priority or add delay before it is retried. This mechanism can be used to add exponential backoff to jobs.
+   - Added `Job#getApplicationContext` as a convenience method to get the Context inside a Job.
   - 1.3.1 (April 19, 2015)
    - Fixed issue #19 which was blocking a group forever if a job from that group is cancelled while running and then onRun fails.
    - Updated Robolectric version and moved all testing to Gradle.
