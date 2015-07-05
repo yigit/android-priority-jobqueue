@@ -68,6 +68,7 @@ public class JobHolder {
         this.createdNs = createdNs;
         this.delayUntilNs = delayUntilNs;
         this.job = job;
+        job.priority = priority;
         this.runningSessionId = runningSessionId;
         this.requiresNetwork = job.requiresNetwork();
         this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
@@ -108,6 +109,11 @@ public class JobHolder {
 
     public void setPriority(int priority) {
         this.priority = priority;
+        this.job.priority = this.priority;
+    }
+
+    void setDelayUntilNs(long delayUntilNs) {
+        this.delayUntilNs = delayUntilNs;
     }
 
     public int getRunCount() {

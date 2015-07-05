@@ -652,6 +652,21 @@ public class JobManager implements NetworkEventProvider.Listener {
 
         @Override
         public void insertOrReplace(JobHolder jobHolder) {
+            RetryConstraint retryConstraint = jobHolder.getJob().retryConstraint;
+            if (retryConstraint == null) {
+                reAddJob(jobHolder);
+                return;
+            }
+            if (retryConstraint.getNewPriority() != null) {
+                jobHolder.setPriority(retryConstraint.getNewPriority());
+            }
+            long delay = -1;
+            if (retryConstraint.getNewDelayInMs() != null) {
+                delay = retryConstraint.getNewDelayInMs();
+            }
+            jobHolder.setDelayUntilNs(
+                    delay > 0 ? System.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY
+            );
             reAddJob(jobHolder);
         }
 
