@@ -63,9 +63,12 @@ public class PostTweetJob extends Job {
         webservice.postTweet(text);
     }
     @Override
-    protected boolean shouldReRunOnThrowable(Throwable throwable) {
+    protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount,
+            int maxRunCount) {
         // An error occurred in onRun.
-        // Return value determines whether this job should retry running (true) or abort (false).
+        // Return value determines whether this job should retry or cancel. You can further
+        // specifcy a backoff strategy or change the job's priority.
+        return RetryConstraint.createExponentialBackoff(runCount, 1000);
     }
     @Override
     protected void onCancel() {

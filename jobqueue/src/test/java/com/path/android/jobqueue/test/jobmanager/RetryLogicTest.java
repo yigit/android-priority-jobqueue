@@ -330,7 +330,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         @Override
         protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount,
                 int maxRunCount) {
-            return retryProvider.build(this, throwable, runCount, maxRunCount);
+            return RetryConstraint.createExponentialBackoff(runCount, 1000);
         }
 
         @Override
