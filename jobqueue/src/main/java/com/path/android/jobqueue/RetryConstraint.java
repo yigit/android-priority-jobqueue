@@ -60,7 +60,8 @@ public class RetryConstraint {
 
     public static RetryConstraint createExponentialBackoff(int runCount, long initialBackOffInMs) {
         RetryConstraint constraint = new RetryConstraint(true);
-        constraint.setNewDelayInMs((long) Math.pow(initialBackOffInMs, runCount));
+        constraint.setNewDelayInMs(initialBackOffInMs *
+                (long) Math.pow(2, Math.max(0, runCount - 1)));
         return constraint;
     }
 

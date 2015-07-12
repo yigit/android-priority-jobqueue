@@ -53,9 +53,16 @@ public class RetryLogicTest extends JobManagerTestBase {
         assertThat("exp 1",RetryConstraint.createExponentialBackoff(1, 10).getNewDelayInMs(),
                 is(10L));
         assertThat("exp 2",RetryConstraint.createExponentialBackoff(2, 10).getNewDelayInMs(),
-                is(100L));
+                is(20L));
         assertThat("exp 3",RetryConstraint.createExponentialBackoff(3, 10).getNewDelayInMs(),
-                is(1000L));
+                is(40L));
+
+        assertThat("exp 1",RetryConstraint.createExponentialBackoff(1, 5).getNewDelayInMs(),
+                is(5L));
+        assertThat("exp 2",RetryConstraint.createExponentialBackoff(2, 5).getNewDelayInMs(),
+                is(10L));
+        assertThat("exp 3",RetryConstraint.createExponentialBackoff(3, 5).getNewDelayInMs(),
+                is(20L));
     }
 
     @Test
