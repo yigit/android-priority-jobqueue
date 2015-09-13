@@ -84,6 +84,13 @@ public class RetryLogicTest extends JobManagerTestBase {
                         is(runCnt.incrementAndGet()));
             }
         };
+        retryProvider = new RetryProvider() {
+            @Override
+            public RetryConstraint build(Job job, Throwable throwable, int runCount,
+                    int maxRunCount) {
+                return RetryConstraint.RETRY;
+            }
+        };
         canRun = true;
         RetryJob job = new RetryJob(new Params(0).setPersistent(persistent));
         job.retryLimit = 10;
@@ -330,6 +337,9 @@ public class RetryLogicTest extends JobManagerTestBase {
         @Override
         protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount,
                 int maxRunCount) {
+            if (retryProvider != null) {
+                return retryProvider.build(this, throwable, runCount, maxRunCount);
+            }
             return RetryConstraint.createExponentialBackoff(runCount, 1000);
         }
 
