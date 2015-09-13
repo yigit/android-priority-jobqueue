@@ -48,8 +48,10 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final ConcurrentHashMap<Long, CountDownLatch> nonPersistentOnAddedLocks;
     private ScheduledExecutorService timedExecutor;
     // lazily created
+    private final Object cancelExecutorInitLock = new Object();
     private Executor cancelExecutor;
     private final Object getNextJobLock = new Object();
+
 
     /**
      * Default constructor that will create a JobManager with 1 {@link SqliteJobQueue} and 1 {@link NonPersistentPriorityQueue}
@@ -228,7 +230,7 @@ public class JobManager implements NetworkEventProvider.Listener {
      */
     public void cancelJobsInBackground(final CancelResult.AsyncCancelCallback cancelCallback,
             final TagConstraint constraint, final String... tags) {
-        synchronized (this) {
+        synchronized (cancelExecutorInitLock) {
             if (cancelExecutor == null) {
                 cancelExecutor = Executors.newSingleThreadExecutor();
             }
