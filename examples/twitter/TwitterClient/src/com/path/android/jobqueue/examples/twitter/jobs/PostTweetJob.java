@@ -2,6 +2,7 @@ package com.path.android.jobqueue.examples.twitter.jobs;
 
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.RetryConstraint;
 import com.path.android.jobqueue.examples.twitter.controllers.TwitterController;
 import com.path.android.jobqueue.examples.twitter.entities.Tweet;
 import com.path.android.jobqueue.examples.twitter.events.DeletedTweetEvent;
@@ -73,12 +74,14 @@ public class PostTweetJob extends Job {
     }
 
     @Override
-    protected boolean shouldReRunOnThrowable(Throwable throwable) {
+    protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount,
+            int maxRunCount) {
         if(throwable instanceof TwitterException) {
             //if it is a 4xx error, stop
             TwitterException twitterException = (TwitterException) throwable;
-            return twitterException.getStatusCode() < 400 || twitterException.getStatusCode() > 499;
+            int errorCode = twitterException.getErrorCode();
+            return errorCode < 400 || errorCode > 499 ? RetryConstraint.RETRY : RetryConstraint.CANCEL;
         }
-        return true;
+        return RetryConstraint.RETRY;
     }
 }
