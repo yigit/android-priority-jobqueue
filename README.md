@@ -131,7 +131,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.birbit:android-priority-jobqueue:1.3.3'`
+Gradle: `compile 'com.birbit:android-priority-jobqueue:1.3.4'`
 
 Maven:
 
@@ -139,7 +139,7 @@ Maven:
 <dependency>
     <groupId>com.birbit</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.3.3</version>
+    <version>1.3.4</version>
 </dependency>
 ```
 
@@ -152,6 +152,8 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 1.3.4 (Sept 12, 2015)
+   - Fixed a potential ANR that was caused by sync on main thread. Issue #40
   - 1.3.3 (July 12, 2015)
    - Fixed default exponential backoff. Issue #33
   - 1.3.2 (July 5, 2015)
