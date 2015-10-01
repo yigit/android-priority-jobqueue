@@ -1,5 +1,3 @@
-![logo](http://downloads.path.com/logo.png)
-
 Android Priority Job Queue (Job Manager)
 ==========================
 
