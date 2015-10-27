@@ -1,3 +1,5 @@
+import com.android.builder.core.BuilderConstants
+
 import java.util.regex.Pattern
 
 apply plugin: 'com.android.library'
@@ -6,7 +8,7 @@ Properties releaseConfig = new Properties()
 releaseConfig.load(new FileInputStream("${projectDir}/releaseConfig.properties"))
 ext.releaseConfig = releaseConfig
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
+    gradleVersion = '2.8.0'
 }
 
 apply plugin: 'maven'
@@ -19,7 +21,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.3'
+        classpath 'com.android.tools.build:gradle:1.3.1'
     }
 }
 
@@ -43,8 +45,8 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 23
+    buildToolsVersion "23.0.1"
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -67,10 +69,11 @@ def manifestVersionName = matcher.group(1)
 println "version name:${manifestVersionName}"
 
 //create jar tasks
+
 android.libraryVariants.all { variant ->
     def name = variant.buildType.name
     println "checking variant ${name}"
-    if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
+    if (name.equals(BuilderConstants.DEBUG)) {
         return; // Skip debug builds.
     }
     def suffix = name.capitalize()
