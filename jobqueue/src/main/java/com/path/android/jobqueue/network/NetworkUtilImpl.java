@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
+import android.os.PowerManager;
 
 /**
  * default implementation for network Utility to observe network events
@@ -13,6 +16,10 @@ import android.net.NetworkInfo;
 public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     private Listener listener;
     public NetworkUtilImpl(Context context) {
+        IntentFilter networkIntentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        if (VERSION.SDK_INT >= VERSION_CODES.M) {
+            networkIntentFilter.addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED);
+        }
         context.getApplicationContext().registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -24,11 +31,18 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
                 // through getActiveNetworkInfo() or getAllNetworkInfo().
                 listener.onNetworkChange(isConnected(context));
             }
-        }, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        }, networkIntentFilter);
     }
 
     @Override
     public boolean isConnected(Context context) {
+        if (VERSION.SDK_INT >= VERSION_CODES.M) {
+            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            if (powerManager.isDeviceIdleMode()) {
+                return false;
+            }
+        }
+
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
         return netInfo != null && netInfo.isConnectedOrConnecting();
