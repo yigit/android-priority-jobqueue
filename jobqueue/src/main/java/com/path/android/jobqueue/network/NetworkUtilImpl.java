@@ -36,6 +36,9 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
 
     @Override
     public boolean isConnected(Context context) {
+        // During Doze mode, also called Idle, the network is unavailable but isConnectedOrConnecting()
+        // will return true. So we first check if we are in idle mode through the PowerManager before
+        // trusting the ConnectivityManager.
         if (VERSION.SDK_INT >= VERSION_CODES.M) {
             PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
             if (powerManager.isDeviceIdleMode()) {
