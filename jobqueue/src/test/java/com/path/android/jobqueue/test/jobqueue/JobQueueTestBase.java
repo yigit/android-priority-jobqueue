@@ -105,7 +105,8 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(lowPriorityHolder);
         jobQueue.insert(highPriorityHolder);
         assertThat("when asked, if lower priority job has less delay until, we should return it",
-                jobQueue.getNextJobDelayUntilNs(true), equalTo(lowPriorityHolder.getDelayUntilNs()));
+                jobQueue.getNextJobDelayUntilNs(true, null), equalTo(
+                lowPriorityHolder.getDelayUntilNs()));
 
     }
 
@@ -176,7 +177,7 @@ public abstract class JobQueueTestBase extends TestBase {
         long highestPriorityDelayedJobId = jobQueue.insert(highestPriorityDelayedJob);
         assertThat("when asked, if job's due has passed, highest priority jobs's delay until should be " +
                 "returned",
-                jobQueue.getNextJobDelayUntilNs(true), equalTo(highPriorityHolder.getDelayUntilNs()));
+                jobQueue.getNextJobDelayUntilNs(true, null), equalTo(highPriorityHolder.getDelayUntilNs()));
         //make sure soon job is valid now
         Thread.sleep(soonJobDelay);
 
@@ -196,16 +197,59 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(noNetworkJobHolder);
 
         assertThat("if there is no network, delay until should be provided for no network job",
-            jobQueue.getNextJobDelayUntilNs(false), equalTo(noNetworkJobHolder.getDelayUntilNs()));
+            jobQueue.getNextJobDelayUntilNs(false, null), equalTo(noNetworkJobHolder.getDelayUntilNs()));
 
         assertThat("if there is network, delay until should be provided for network job because it is " +
-                "sooner", jobQueue.getNextJobDelayUntilNs(true), equalTo(networkJobHolder.getDelayUntilNs()));
+                "sooner", jobQueue.getNextJobDelayUntilNs(true, null), equalTo(networkJobHolder.getDelayUntilNs()));
 
         JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(new Params(0), now + 100000 * JobManager.NS_PER_MS);
 
         jobQueue.insert(noNetworkJobHolder2);
         assertThat("if there is network, any job's delay until should be returned",
-                jobQueue.getNextJobDelayUntilNs(true), equalTo(noNetworkJobHolder2.getDelayUntilNs()));
+                jobQueue.getNextJobDelayUntilNs(true, null), equalTo(noNetworkJobHolder2.getDelayUntilNs()));
+    }
+
+    @Test
+    public void testDelayUntilWithExcludeGroups() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        long now = System.nanoTime();
+        JobHolder networkJobHolder = createNewJobHolderWithDelayUntil(new Params(0).requireNetwork()
+                .groupBy("group1"), now + 200000 * JobManager.NS_PER_MS);
+
+        JobHolder noNetworkJobHolder = createNewJobHolderWithDelayUntil(new Params(0)
+                .groupBy("group2"), now + 500000 * JobManager.NS_PER_MS);
+
+        jobQueue.insert(networkJobHolder);
+        jobQueue.insert(noNetworkJobHolder);
+
+        assertThat("if there is no network, delay until should be provided for no network job",
+                jobQueue.getNextJobDelayUntilNs(false, null),
+                equalTo(noNetworkJobHolder.getDelayUntilNs()));
+        assertThat("if there is no network, delay until should be provided for no network job",
+                jobQueue.getNextJobDelayUntilNs(false, new ArrayList<String>()),
+                equalTo(noNetworkJobHolder.getDelayUntilNs()));
+
+        assertThat("if there is no network, but the group is disabled, delay until should be null",
+                jobQueue.getNextJobDelayUntilNs(false, Arrays.asList("group2")), nullValue());
+
+        assertThat("if there is network, but both groups are disabled, delay until should be null"
+                , jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group1", "group2")),
+                nullValue());
+        assertThat("if there is network, but group1 is disabled, delay should come from group2"
+                , jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group1")),
+                equalTo(noNetworkJobHolder.getDelayUntilNs()));
+        assertThat("if there is network, but group2 is disabled, delay should come from group1"
+                , jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group2")),
+                equalTo(networkJobHolder.getDelayUntilNs()));
+
+        JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(new Params(0),
+                now + 100000 * JobManager.NS_PER_MS);
+
+        jobQueue.insert(noNetworkJobHolder2);
+        assertThat("if there is a 3rd job and other gorups are disabled. 3rd job's delay should be "
+                        + "returned",
+                jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group1", "group2")),
+                equalTo(noNetworkJobHolder2.getDelayUntilNs()));
     }
 
     @Test

@@ -30,6 +30,7 @@ public class SqliteJobQueue implements JobQueue {
     JobSerializer jobSerializer;
     QueryCache readyJobsQueryCache;
     QueryCache nextJobsQueryCache;
+    QueryCache nextJobDelayUntilQueryCache;
     // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
     // queries. Set is cleaned when item is removed
     Set<Long> pendingCancelations = new HashSet<Long>();
@@ -51,6 +52,7 @@ public class SqliteJobQueue implements JobQueue {
         this.jobSerializer = jobSerializer;
         readyJobsQueryCache = new QueryCache();
         nextJobsQueryCache = new QueryCache();
+        nextJobDelayUntilQueryCache = new QueryCache();
         sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
     }
 
@@ -118,7 +120,8 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
-        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1, jobHolder.requiresNetwork() ? 1L : 0L);
+        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1,
+                jobHolder.requiresNetwork() ? 1L : 0L);
     }
 
     /**
@@ -317,7 +320,8 @@ public class SqliteJobQueue implements JobQueue {
         String groupConstraint = null;
         if(excludeGroups != null && excludeGroups.size() > 0) {
             groupConstraint = DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
-                    DbOpenHelper.GROUP_ID_COLUMN.columnName + " NOT IN('" + joinStrings("','", excludeGroups) + "')";
+                    DbOpenHelper.GROUP_ID_COLUMN.columnName + " NOT IN('" +
+                    SqlHelper.joinStrings("','", excludeGroups) + "')";
         }
         if(groupByRunningGroup) {
             where += " GROUP BY " + DbOpenHelper.GROUP_ID_COLUMN.columnName;
@@ -330,31 +334,38 @@ public class SqliteJobQueue implements JobQueue {
         return where;
     }
 
-    private static String joinStrings(String glue, Collection<String> strings) {
-        StringBuilder builder = new StringBuilder();
-        for(String str : strings) {
-            if(builder.length() != 0) {
-                builder.append(glue);
-            }
-            builder.append(str);
-        }
-        return builder.toString();
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
-        SQLiteStatement stmt =
-                hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()
-                : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
-        synchronized (stmt) {
+    public Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups) {
+        boolean hasExcludes = excludeGroups != null && !excludeGroups.isEmpty();
+        if (!hasExcludes) {
+            SQLiteStatement stmt =
+                    hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()
+                            : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
+            synchronized (stmt) {
+                try {
+                    stmt.clearBindings();
+                    return stmt.simpleQueryForLong();
+                } catch (SQLiteDoneException e) {
+                    return null;
+                }
+            }
+        } else {
+            String sql = nextJobDelayUntilQueryCache.get(hasNetwork, excludeGroups);
+            if (sql == null) {
+                sql = sqlHelper.createNextJobDelayUntilQuery(hasNetwork, excludeGroups);
+                nextJobDelayUntilQueryCache.set(sql, hasNetwork, excludeGroups);
+            }
+            Cursor cursor = db.rawQuery(sql, new String[0]);
             try {
-                stmt.clearBindings();
-                return stmt.simpleQueryForLong();
-            } catch (SQLiteDoneException e){
-                return null;
+                if(!cursor.moveToNext()) {
+                    return null;
+                }
+                return cursor.getLong(0);
+            } finally {
+                cursor.close();
             }
         }
     }

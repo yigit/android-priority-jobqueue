@@ -65,7 +65,8 @@ public class PostTweetJob extends Job {
             int maxRunCount) {
         // An error occurred in onRun.
         // Return value determines whether this job should retry or cancel. You can further
-        // specifcy a backoff strategy or change the job's priority.
+        // specifcy a backoff strategy or change the job's priority. You can also apply the
+        // delay to the whole group to preserve jobs' running order.
         return RetryConstraint.createExponentialBackoff(runCount, 1000);
     }
     @Override
@@ -137,7 +138,7 @@ Maven:
 <dependency>
     <groupId>com.birbit</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.3.4</version>
+    <version>1.3.5</version>
 </dependency>
 ```
 
@@ -150,6 +151,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 1.3.5 (Nov 7, 2015)
+   - Default NetworkUtil is now Doze aware. (thanks @coltin)
+   - RetryConstraint Delay can be applied to the group to preserve jobs' execution order. (#41)
   - 1.3.4 (Sept 12, 2015)
    - Fixed a potential ANR that was caused by sync on main thread. Issue #40
   - 1.3.3 (July 12, 2015)

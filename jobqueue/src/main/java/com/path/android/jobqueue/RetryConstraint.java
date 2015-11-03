@@ -1,5 +1,9 @@
 package com.path.android.jobqueue;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Created by {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
  * <p>
@@ -17,6 +21,7 @@ public class RetryConstraint {
     private boolean retry;
     private Long newDelayInMs;
     private Integer newPriority;
+    private boolean applyNewDelayToGroup = false;
 
     public RetryConstraint(boolean retry) {
         this.retry = retry;
@@ -58,11 +63,50 @@ public class RetryConstraint {
         this.newPriority = newPriority;
     }
 
+    /**
+     * Creates a response that will exponentially back off the job.
+     *
+     * @param runCount The run count that was passed to
+     * {@link Job#shouldReRunOnThrowable(Throwable, int, int)}
+     * @param initialBackOffInMs The initial back off time. This will be the back off for the inital
+     *                           run and then it will exponentially grow from this number.
+     *
+     * @return A RetryContraint that will report exponential back off.
+     */
     public static RetryConstraint createExponentialBackoff(int runCount, long initialBackOffInMs) {
         RetryConstraint constraint = new RetryConstraint(true);
         constraint.setNewDelayInMs(initialBackOffInMs *
                 (long) Math.pow(2, Math.max(0, runCount - 1)));
         return constraint;
+    }
+
+    /**
+     * Sets whether the delay in the constraint should be applied to the whole group.
+     * <p>
+     * Note that the delay will effect any Job that is added after this call until the delay ends.
+     * This will ensure that the Job execution order will be preserved.
+     * <p>
+     * If the job does not have a group id ({@link Job#getRunGroupId()}, calling this method has no
+     * effect.
+     * <p>
+     * The group delay is global so even after you cancel the jobs, it will still affect the group
+     * until delay times out.
+     *
+     * @param applyDelayToGroup Sets whether the delay should be applied to all jobs in this group.
+     *
+     */
+    public void setApplyNewDelayToGroup(boolean applyDelayToGroup) {
+        this.applyNewDelayToGroup = applyDelayToGroup;
+    }
+
+    /**
+     * Returns whether the delay in this retry constraint will be applied to all jobs in this group.
+     *
+     * @return Whether the delay will be applied to all jobs in this group or not. Defaults to
+     * false.
+     */
+    public boolean willApplyNewDelayToGroup() {
+        return applyNewDelayToGroup;
     }
 
     private static class ImmutableRetryConstraint extends RetryConstraint {

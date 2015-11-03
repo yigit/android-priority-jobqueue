@@ -5,6 +5,8 @@ import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.TagConstraint;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -80,11 +82,13 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
+    public Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups) {
         if(cache.delayUntil == null) {
-            cache.delayUntil = new Cache.DelayUntil(hasNetwork, delegate.getNextJobDelayUntilNs(hasNetwork));
-        } else if(!cache.delayUntil.isValid(hasNetwork)) {
-            cache.delayUntil.set(hasNetwork, delegate.getNextJobDelayUntilNs(hasNetwork));
+            cache.delayUntil = new Cache.DelayUntil(hasNetwork,
+                    delegate.getNextJobDelayUntilNs(hasNetwork, excludeGroups), excludeGroups);
+        } else if(!cache.delayUntil.isValid(hasNetwork, excludeGroups)) {
+            cache.delayUntil.set(hasNetwork,
+                    delegate.getNextJobDelayUntilNs(hasNetwork, excludeGroups), excludeGroups);
         }
         return cache.delayUntil.value;
     }
@@ -124,19 +128,42 @@ public class CachedJobQueue implements JobQueue {
             //can be null, is OK
             Long value;
             boolean hasNetwork;
+            Collection<String> excludeGroups;
 
-            private DelayUntil(boolean hasNetwork, Long value) {
+            private DelayUntil(boolean hasNetwork, Long value, Collection<String> excludeGroups) {
                 this.value = value;
                 this.hasNetwork = hasNetwork;
+                this.excludeGroups = excludeGroups;
             }
 
-            private boolean isValid(boolean hasNetwork) {
-                return this.hasNetwork == hasNetwork;
+            private boolean isValid(boolean hasNetwork, Collection<String> excludeGroups) {
+                return this.hasNetwork == hasNetwork && validateExcludes(excludeGroups);
             }
 
-            public void set(boolean hasNetwork, Long value) {
+            private boolean validateExcludes(Collection<String> excludeGroups) {
+                if (this.excludeGroups == excludeGroups) {
+                    return true;
+                }
+                if (this.excludeGroups == null || excludeGroups == null) {
+                    return false;
+                }
+                if (this.excludeGroups.size() != excludeGroups.size()) {
+                    return false;
+                }
+                Iterator<String> itr1 = this.excludeGroups.iterator();
+                Iterator<String> itr2 = excludeGroups.iterator();
+                while (itr1.hasNext()) {
+                    if (!itr1.next().equals(itr2.next())) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            public void set(boolean hasNetwork, Long value, Collection<String> excludeGroups) {
                 this.value = value;
                 this.hasNetwork = hasNetwork;
+                this.excludeGroups = excludeGroups;
             }
         }
     }

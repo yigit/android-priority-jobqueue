@@ -6,6 +6,8 @@ import android.database.sqlite.SQLiteStatement;
 import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.log.JqLog;
 
+import java.util.Collection;
+
 /**
  * Helper class for {@link SqliteJobQueue} to generate sql queries and statements.
  */
@@ -202,6 +204,24 @@ public class SqlHelper {
         return nextJobDelayedUntilWithoutNetworkStatement;
     }
 
+    public String createNextJobDelayUntilQuery(boolean hasNetwork, Collection<String> excludeGroups) {
+        String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
+                + " FROM " + tableName + " WHERE "
+                + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId;
+        if (!hasNetwork) {
+            sql += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1";
+        }
+        if(excludeGroups != null && excludeGroups.size() > 0) {
+            sql +=  " AND (" + DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
+                    DbOpenHelper.GROUP_ID_COLUMN.columnName +
+                    " NOT IN('" + joinStrings("','", excludeGroups) + "'))";
+        }
+        sql += " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " ASC"
+                + " LIMIT 1";
+        return sql;
+    }
+
+
     public String createSelect(String where, Integer limit, Order... orders) {
         StringBuilder builder = new StringBuilder("SELECT * FROM ");
         builder.append(tableName);
@@ -250,8 +270,21 @@ public class SqlHelper {
     }
 
     public void resetDelayTimesTo(long newDelayTime) {
-        db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
+        db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET "
+                + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
             , new Object[]{newDelayTime});
+    }
+
+    // TODO we are using this to merge groups but not escaping :/
+    public static String joinStrings(String glue, Collection<String> strings) {
+        StringBuilder builder = new StringBuilder();
+        for(String str : strings) {
+            if(builder.length() != 0) {
+                builder.append(glue);
+            }
+            builder.append(str);
+        }
+        return builder.toString();
     }
 
     public static class Property {
@@ -295,6 +328,5 @@ public class SqlHelper {
             ASC,
             DESC
         }
-
     }
 }

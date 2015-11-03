@@ -56,7 +56,6 @@ public interface JobQueue {
      *
      * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
      * @param excludeGroups if provided, jobs from these groups will NOT be returned
-     * @return
      */
     JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups);
 
@@ -64,9 +63,9 @@ public interface JobQueue {
      * returns when the next job should run (in nanoseconds), should return null if there are no jobs to run.
      * @param hasNetwork if true, should return nanoseconds for any job, if false, should return nanoseconds for next
      *                   job's delay until.
-     * @return
+     *  @param excludeGroups if provided, jobs from these groups will NOT be considered
      */
-    Long getNextJobDelayUntilNs(boolean hasNetwork);
+    Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups);
 
     /**
      * clear all jobs in the queue. should probably be called when user logs out.

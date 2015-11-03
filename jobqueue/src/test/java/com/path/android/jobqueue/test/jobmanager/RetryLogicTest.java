@@ -4,6 +4,8 @@ import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.RetryConstraint;
+import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.test.jobs.DummyJob;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -12,12 +14,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
+
+import android.util.Pair;
+
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.CoreMatchers.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +44,11 @@ public class RetryLogicTest extends JobManagerTestBase {
 
     static Callback onRunCallback;
 
+    static Callback onCancelCallback;
+
     static CountDownLatch cancelLatch;
+
+    static CountDownLatch dummyJobRunLatch;
 
     @Before
     public void clear() {
@@ -45,7 +57,9 @@ public class RetryLogicTest extends JobManagerTestBase {
         runCount = 0;
         onRunLatch = null;
         onRunCallback = null;
+        onCancelCallback = null;
         cancelLatch = new CountDownLatch(1);
+        dummyJobRunLatch = new CountDownLatch(1);
     }
 
     @Test
@@ -61,7 +75,7 @@ public class RetryLogicTest extends JobManagerTestBase {
                 is(5L));
         assertThat("exp 2",RetryConstraint.createExponentialBackoff(2, 5).getNewDelayInMs(),
                 is(10L));
-        assertThat("exp 3",RetryConstraint.createExponentialBackoff(3, 5).getNewDelayInMs(),
+        assertThat("exp 3", RetryConstraint.createExponentialBackoff(3, 5).getNewDelayInMs(),
                 is(20L));
     }
 
@@ -97,6 +111,97 @@ public class RetryLogicTest extends JobManagerTestBase {
         createJobManager().addJob(job);
         assertThat("", cancelLatch.await(4, TimeUnit.SECONDS), is(true));
         assertThat("", runCount, is(10));
+    }
+
+    @Test
+    public void testChangeDelayOfTheGroup() throws InterruptedException {
+        testChangeDelayOfTheGroup(null);
+    }
+
+    @Test
+    public void testChangeDelayOfTheGroupPersistent() throws InterruptedException {
+        testChangeDelayOfTheGroup(true);
+    }
+
+    @Test
+    public void testChangeDelayOfTheGroupNonPersistent() throws InterruptedException {
+        testChangeDelayOfTheGroup(false);
+    }
+
+    public void testChangeDelayOfTheGroup(Boolean persistent) throws InterruptedException {
+        canRun = true;
+        enableDebug();
+        RetryJob job1 = new RetryJob(new Params(2).setPersistent(Boolean.TRUE.equals(persistent)).groupBy("g1"));
+        job1.identifier = "job 1 id";
+        RetryJob job2 = new RetryJob(new Params(2).setPersistent(!Boolean.FALSE.equals(persistent)).groupBy("g1"));
+        job2.identifier = "job 2 id";
+        job1.retryLimit = 2;
+        job2.retryLimit = 2;
+        final String job1Id = job1.identifier;
+        final String job2Id = job2.identifier;
+        final PersistableDummyJob postTestJob = new PersistableDummyJob(new Params(1)
+        .groupBy("g1").setPersistent(Boolean.TRUE.equals(persistent)));
+        retryProvider = new RetryProvider() {
+            @Override
+            public RetryConstraint build(Job job, Throwable throwable, int runCount,
+                    int maxRunCount) {
+                RetryConstraint constraint = new RetryConstraint(true);
+                constraint.setNewDelayInMs(2000L);
+                constraint.setApplyNewDelayToGroup(true);
+                return constraint;
+            }
+        };
+        final List<Pair<String, Long>> runTimes = new ArrayList<>();
+        final Map<String, Long> cancelTimes = new HashMap<>();
+        onRunCallback = new Callback() {
+            @Override
+            public void on(Job job) {
+                RetryJob retryJob = (RetryJob) job;
+                runTimes.add(new Pair<>(retryJob.identifier, System.nanoTime()));
+            }
+        };
+        onCancelCallback = new Callback() {
+            @Override
+            public void on(Job job) {
+                JqLog.d("on cancel of job %s", job);
+                RetryJob retryJob = (RetryJob) job;
+                assertThat("Job should cancel only once",
+                        cancelTimes.containsKey(retryJob.identifier), is(false));
+                cancelTimes.put(retryJob.identifier, System.nanoTime());
+                if (!job.isPersistent() || postTestJob.isPersistent()) {
+                    assertThat("the 3rd job should not run until others cancel fully",
+                            dummyJobRunLatch.getCount(), is(1L));
+                }
+            }
+        };
+        cancelLatch = new CountDownLatch(2);
+
+        JobManager jobManager = createJobManager();
+        jobManager.addJob(job1);
+        jobManager.addJob(job2);
+        jobManager.addJob(postTestJob);
+
+        assertThat("jobs should be canceled", cancelLatch.await(7, TimeUnit.SECONDS), is(true));
+        assertThat("should run 4 times", runTimes.size(), is(4));
+        for (int i = 0; i < 4; i ++) {
+            assertThat("first two runs should be job1, last two jobs should be job 2. checking " + i,
+                    runTimes.get(i).first, is(i < 2 ? job1Id : job2Id));
+        }
+        long timeInBetween = TimeUnit.NANOSECONDS.toSeconds(
+                runTimes.get(1).second - runTimes.get(0).second);
+        assertThat("time between two runs should be at least 2 seconds. job 1 and 2" + ":"
+                + timeInBetween, 2 <= timeInBetween, is(true));
+        timeInBetween = TimeUnit.NANOSECONDS.toSeconds(
+                runTimes.get(3).second - runTimes.get(2).second);
+        assertThat("time between two runs should be at least 2 seconds. job 3 and 4" + ":"
+                + timeInBetween, 2 <= timeInBetween, is(true));
+        assertThat("the other job should run after others are cancelled",
+                dummyJobRunLatch.await(1, TimeUnit.SECONDS), is(true));
+        // another job should just run
+        dummyJobRunLatch = new CountDownLatch(1);
+        jobManager.addJob(new PersistableDummyJob(new Params(1).groupBy("g1")));
+        assertThat("a newly added job should just run quickly", dummyJobRunLatch.await(500,
+                TimeUnit.MILLISECONDS), is(true));
     }
 
     @Test
@@ -331,6 +436,9 @@ public class RetryLogicTest extends JobManagerTestBase {
 
         @Override
         protected void onCancel() {
+            if (onCancelCallback != null) {
+                onCancelCallback.on(this);
+            }
             cancelLatch.countDown();
         }
 
@@ -348,6 +456,19 @@ public class RetryLogicTest extends JobManagerTestBase {
             return super.getCurrentRunCount();
         }
     }
+
+    private static class PersistableDummyJob extends DummyJob {
+        public PersistableDummyJob(Params params) {
+            super(params);
+        }
+
+        @Override
+        public void onRun() throws Throwable {
+            super.onRun();
+            dummyJobRunLatch.countDown();
+        }
+    }
+
 
     interface RetryProvider {
         RetryConstraint build(Job job, Throwable throwable, int runCount,

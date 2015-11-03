@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.path.android.jobqueue"
           android:versionCode="2"
-          android:versionName="1.3.4">
+          android:versionName="1.3.5">
     <application>
     </application>
 </manifest>

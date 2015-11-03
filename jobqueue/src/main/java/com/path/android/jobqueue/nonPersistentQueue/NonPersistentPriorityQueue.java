@@ -87,8 +87,8 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs(boolean hasNetwork) {
-        JobHolder next = jobs.peek(hasNetwork, null);
+    public Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups) {
+        JobHolder next = jobs.peek(hasNetwork, excludeGroups);
         return next == null ? null : next.getDelayUntilNs();
     }
 

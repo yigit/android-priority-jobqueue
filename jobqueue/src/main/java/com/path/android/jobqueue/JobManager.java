@@ -10,6 +10,7 @@ import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
+import com.path.android.jobqueue.persistentQueue.sqlite.SqlHelper;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final DependencyInjector dependencyInjector;
     private final JobQueue persistentJobQueue;
     private final JobQueue nonPersistentJobQueue;
-    private final CopyOnWriteGroupSet runningJobGroups;
+    private final RunningJobSet runningJobGroups;
     private final JobConsumerExecutor jobConsumerExecutor;
     private final Object newJobListeners = new Object();
     private final ConcurrentHashMap<Long, CountDownLatch> persistentOnAddedLocks;
@@ -82,7 +83,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         appContext = context.getApplicationContext();
         running = true;
-        runningJobGroups = new CopyOnWriteGroupSet();
+        runningJobGroups = new RunningJobSet();
         sessionId = System.nanoTime();
         this.persistentJobQueue = config.getQueueFactory()
                 .createPersistentQueue(context, sessionId, config.getId(), config.isInTestMode());
@@ -394,11 +395,12 @@ public class JobManager implements NetworkEventProvider.Listener {
             public void run() {
                 try {
                     long id = addJob(job);
-                    if(callback != null) {
+                    if (callback != null) {
                         callback.onAdded(id);
                     }
                 } catch (Throwable t) {
-                    JqLog.e(t, "addJobInBackground received an exception. job class: %s", job.getClass().getSimpleName());
+                    JqLog.e(t, "addJobInBackground received an exception. job class: %s",
+                            job.getClass().getSimpleName());
                 }
             }
         });
@@ -446,9 +448,14 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         //this method is called when there are jobs but job consumer was not given any
         //this may happen in a race condition or when the latest job is a delayed job
-        Long nextRunNs;
+        Long nextRunNs = runningJobGroups.getNextDelayForGroups();
+        Collection<String> runningGroups = runningJobGroups.getSafe();
+        Long nonPersistedJobRunNs;
         synchronized (nonPersistentJobQueue) {
-            nextRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
+            nonPersistedJobRunNs = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork, runningGroups);
+        }
+        if (nextRunNs == null || (nonPersistedJobRunNs != null && nonPersistedJobRunNs < nextRunNs)) {
+            nextRunNs = nonPersistedJobRunNs;
         }
         if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
             notifyJobConsumer();
@@ -456,7 +463,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         Long persistedJobRunNs;
         synchronized (persistentJobQueue) {
-            persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork);
+            persistedJobRunNs = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork, runningGroups);
         }
         if(persistedJobRunNs != null) {
             if(nextRunNs == null) {
@@ -504,17 +511,23 @@ public class JobManager implements NetworkEventProvider.Listener {
         boolean haveNetwork = hasNetwork();
         JobHolder jobHolder;
         boolean persistent = false;
+        JqLog.d("looking for next job");
         synchronized (getNextJobLock) {
             final Collection<String> runningJobGroups = this.runningJobGroups.getSafe();
+            if (JqLog.isDebugEnabled()) {
+                JqLog.d("running groups %s", SqlHelper.joinStrings(",", runningJobGroups));
+            }
             synchronized (nonPersistentJobQueue) {
                 jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
             }
+            JqLog.d("non persistent result %s", jobHolder);
             if (jobHolder == null) {
                 //go to disk, there aren't any non-persistent jobs
                 synchronized (persistentJobQueue) {
                     jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
                     persistent = true;
                 }
+                JqLog.d("persistent result %s", jobHolder);
             }
             if(jobHolder == null) {
                 return null;
@@ -664,7 +677,12 @@ public class JobManager implements NetworkEventProvider.Listener {
             }
             long delay = -1;
             if (retryConstraint.getNewDelayInMs() != null) {
-                delay = retryConstraint.getNewDelayInMs();
+                if (retryConstraint.willApplyNewDelayToGroup() && jobHolder.getGroupId() != null) {
+                    runningJobGroups.addGroupUntil(jobHolder.getGroupId(),
+                            System.nanoTime() + retryConstraint.getNewDelayInMs() * NS_PER_MS);
+                } else {
+                    delay = retryConstraint.getNewDelayInMs();
+                }
             }
             jobHolder.setDelayUntilNs(
                     delay > 0 ? System.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY
