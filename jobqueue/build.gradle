@@ -7,7 +7,7 @@ releaseConfig.load(new FileInputStream("${projectDir}/releaseConfig.properties")
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.8'
+    gradleVersion = '2.2.1'
 }
 
 apply plugin: 'maven'
