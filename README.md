@@ -208,7 +208,7 @@ This will create a jar file under _release_ folder.
 
 #### Running Tests
 * > `cd jobqueue`
-* > `./gradlew clean assembleDebug assembleDebugUnitTest test`
+* > `./gradlew clean check`
 
 
 ## License
