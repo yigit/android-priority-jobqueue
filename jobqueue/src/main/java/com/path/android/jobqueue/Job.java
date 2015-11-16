@@ -123,7 +123,7 @@ abstract public class Job implements Serializable {
     abstract public void onAdded();
 
     /**
-     * The actual method that should to the work.
+     * The actual method that should do the work.
      * It should finish w/o any exception. If it throws any exception,
      * {@link #shouldReRunOnThrowable(Throwable, int, int)} will be called to
      * decide either to dismiss the job or re-run it.
