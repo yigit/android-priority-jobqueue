@@ -1,7 +1,4 @@
 language: android
-branches:
-  only:
-    - travis
 android:
   components:
     - tools
