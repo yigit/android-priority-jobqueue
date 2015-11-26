@@ -3,5 +3,4 @@ android:
   components:
     - platform-tools
     - tools
-script:
-  - cd jobqueue && ./gradlew clean check
+script: cd jobqueue && ./gradlew --stacktrace --debug clean check 
