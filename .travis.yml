@@ -4,6 +4,6 @@ branches:
     - travis
 android:
   components:
-    - platform-tools
-    - tools
+    - build-tools-23.0.2
+    - android-23
 script: cd jobqueue && ./gradlew --stacktrace clean check 
