@@ -1,0 +1,7 @@
+language: android
+android:
+  components:
+    - platform-tools
+    - tools
+script:
+  - cd jobqueue && ./gradlew clean check
