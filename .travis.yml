@@ -1,6 +1,9 @@
 language: android
+branches:
+  only:
+    - travis
 android:
   components:
     - platform-tools
     - tools
-script: cd jobqueue && ./gradlew --stacktrace --debug clean check 
+script: cd jobqueue && ./gradlew --stacktrace clean check 
