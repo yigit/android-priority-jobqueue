@@ -49,13 +49,15 @@ public class CancelFailingJobsTest extends JobManagerTestBase {
 
     public void testCancelWithoutNetwork(boolean async, TagConstraint constraint)
             throws InterruptedException {
+        final int jobCount = 30;
         JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .minConsumerCount(5)
                 .networkUtil(networkUtil));
         networkUtil.setHasNetwork(false, true);
-        jobManager.addJob(new FailingJob(new Params(1).groupBy("group").addTags("tag")));
-        jobManager.addJob(new FailingJob(new Params(2).groupBy("group").addTags("tag")));
-        jobManager.addJob(new FailingJob(new Params(3).groupBy("group").addTags("tag")));
+        for (int i = 0; i < jobCount; i ++) {
+            jobManager.addJob(new FailingJob(new Params(i).groupBy("group").addTags("tag")));
+        }
+
         final CancelResult[] result = new CancelResult[1];
         if (async) {
             final CountDownLatch cancelLatch = new CountDownLatch(1);
@@ -66,12 +68,12 @@ public class CancelFailingJobsTest extends JobManagerTestBase {
                     cancelLatch.countDown();
                 }
             }, constraint, "tag");
-            cancelLatch.await(2, TimeUnit.SECONDS);
+            assertThat(cancelLatch.await(jobCount, TimeUnit.SECONDS), is(true));
         } else {
             result[0] = jobManager.cancelJobs(TagConstraint.ANY, "tag");
         }
 
-        assertThat("all jobs should be cancelled", result[0].getCancelledJobs().size(), is(3));
+        assertThat("all jobs should be cancelled", result[0].getCancelledJobs().size(), is(jobCount));
         assertThat("no jobs should fail to cancel", result[0].getFailedToCancel().size(), is(0));
         final CountDownLatch runLatch = new CountDownLatch(1);
         jobManager.addJob(new DummyJob(new Params(1).groupBy("group").addTags("tag")) {

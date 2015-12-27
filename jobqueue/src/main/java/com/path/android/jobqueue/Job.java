@@ -218,13 +218,11 @@ abstract public class Job implements Serializable {
         if (reRun) {
             return JobHolder.RUN_RESULT_TRY_AGAIN;
         }
-        // failed.
-        try {
-            onCancel();
-        } catch (Throwable ignored) {
+        if (currentRunCount < getRetryLimit()) {
+            return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
+        } else {
+            return JobHolder.RUN_RESULT_FAIL_RUN_LIMIT;
         }
-        return JobHolder.RUN_RESULT_FAIL_RUN_LIMIT;
-
     }
 
     /**
