@@ -5,6 +5,7 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.TagConstraint;
+import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
@@ -171,8 +172,8 @@ public class JobConsumerExecutor {
     }
 
     public void inRunningJobHoldersLock(Runnable runnable) {
-        synchronized (runnable) {
-            runnable.run();;
+        synchronized (runningJobHolders) {
+            runnable.run();
         }
     }
 
@@ -271,6 +272,20 @@ public class JobConsumerExecutor {
          * @return the number of Jobs that are ready to be run
          */
         public int countRemainingReadyJobs();
+
+        /**
+         * Calls onCancel on the job, notifies listeners
+         * @param nextJob
+         * @param byCancelRequest
+         */
+        void callJobCancel(JobHolder nextJob, boolean byCancelRequest);
+
+        /**
+         * Calls the listeners about job state.
+         * @param nextJob
+         * @param result
+         */
+        void notifyJobRun(JobHolder nextJob, int result);
     }
 
     /**
@@ -304,12 +319,15 @@ public class JobConsumerExecutor {
                         if (nextJob != null) {
                             executor.onBeforeRun(nextJob);
                             int result = nextJob.safeRun(nextJob.getRunCount());
+                            contract.notifyJobRun(nextJob, result);
                             switch (result) {
                                 case JobHolder.RUN_RESULT_SUCCESS:
                                     nextJob.markAsSuccessful();
                                     contract.removeJob(nextJob);
                                     break;
                                 case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
+                                case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
+                                    contract.callJobCancel(nextJob, false);
                                     contract.removeJob(nextJob);
                                     break;
                                 case JobHolder.RUN_RESULT_TRY_AGAIN:

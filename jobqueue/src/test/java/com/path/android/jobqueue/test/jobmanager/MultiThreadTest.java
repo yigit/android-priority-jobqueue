@@ -95,6 +95,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             Thread.sleep((long) (Math.random() * 1000));
             //throw exception w/ small chance
             if(Math.random() < .1) {
+                multiThreadedJobCounter.incrementAndGet();
                 throw new Exception("decided to die, will retry");
             }
             Log.d("DummyJobForMultiThread", "persistent:" + isPersistent() + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
@@ -102,7 +103,6 @@ public class MultiThreadTest extends JobManagerTestBase {
 
         @Override
         protected boolean shouldReRunOnThrowable(Throwable throwable) {
-            multiThreadedJobCounter.incrementAndGet();
             return true;
         }
     };

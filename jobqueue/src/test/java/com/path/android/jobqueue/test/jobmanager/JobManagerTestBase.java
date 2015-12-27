@@ -15,6 +15,7 @@ import org.fest.reflect.method.*;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.After;
+import org.junit.Assert;
 import org.robolectric.*;
 
 import java.util.ArrayList;
@@ -32,6 +33,16 @@ public class JobManagerTestBase extends TestBase {
                 UUID.randomUUID().toString());
         createdJobManagers.add(jobManager);
         return jobManager;
+    }
+
+    public void busyDrain(JobManager jobManager, int limitInSeconds) throws InterruptedException {
+        int totalSleep = 0;
+        while (jobManager.count() > 0 && limitInSeconds * 1000 > totalSleep) {
+            Thread.sleep(100);
+            totalSleep += 100;
+        }
+        jobManager.stopAndWaitUntilConsumersAreFinished();
+        Assert.assertThat(limitInSeconds * 1000 > totalSleep, is(true));
     }
 
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {

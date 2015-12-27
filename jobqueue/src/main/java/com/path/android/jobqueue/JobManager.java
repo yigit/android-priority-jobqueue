@@ -3,6 +3,7 @@ package com.path.android.jobqueue;
 import android.content.Context;
 
 import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
+import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
@@ -50,8 +51,9 @@ public class JobManager implements NetworkEventProvider.Listener {
     private ScheduledExecutorService timedExecutor;
     // lazily created
     private final Object cancelExecutorInitLock = new Object();
-    private Executor cancelExecutor;
+    private ExecutorService cancelExecutor;
     private final Object getNextJobLock = new Object();
+    private final CopyOnWriteArrayList<JobManagerCallback> callbacks = new CopyOnWriteArrayList<>();
 
 
     /**
@@ -122,6 +124,14 @@ public class JobManager implements NetworkEventProvider.Listener {
         notifyJobConsumer();
     }
 
+    public void addCallback(JobManagerCallback callback) {
+        callbacks.add(callback);
+    }
+
+    public boolean removeCallback(JobManagerCallback callback) {
+        return callbacks.remove(callback);
+    }
+
     /**
      * returns the # of jobs that are waiting to be executed.
      * This might be a good place to decide whether you should wake your app up on boot etc. to complete pending jobs.
@@ -182,7 +192,8 @@ public class JobManager implements NetworkEventProvider.Listener {
             dependencyInjector.inject(job);
         }
         jobHolder.getJob().setApplicationContext(appContext);
-        jobHolder.getJob().onAdded();
+        callOnAddedAndNotifyListeners(jobHolder);
+
         if(job.isPersistent()) {
             synchronized (persistentJobQueue) {
                 clearOnAddedLock(persistentOnAddedLocks, id);
@@ -338,7 +349,7 @@ public class JobManager implements NetworkEventProvider.Listener {
             } else {
                 result.cancelledJobs.add(holder.getJob());
                 try {
-                    holder.getJob().onCancel();
+                    callOnCancelAndNotifyListeners(holder, true);
                 } catch (Throwable t) {
                     JqLog.e(t, "cancelled job's onCancel has thrown exception");
                 }
@@ -628,13 +639,21 @@ public class JobManager implements NetworkEventProvider.Listener {
     }
 
     public synchronized void stopAndWaitUntilConsumersAreFinished() throws InterruptedException {
-        stop();
-        timedExecutor.shutdownNow();
         synchronized (newJobListeners) {
             newJobListeners.notifyAll();
         }
+        stop();
         jobConsumerExecutor.waitUntilAllConsumersAreFinished();
+        timedExecutor.shutdown();
+        timedExecutor.awaitTermination(100, TimeUnit.SECONDS);
         timedExecutor = Executors.newSingleThreadScheduledExecutor();
+        synchronized (cancelExecutorInitLock) {
+            if (cancelExecutor != null) {
+                cancelExecutor.shutdown();
+                cancelExecutor.awaitTermination(100, TimeUnit.SECONDS);
+            }
+            cancelExecutor = Executors.newSingleThreadExecutor();
+        }
     }
 
     public synchronized void clear() {
@@ -656,6 +675,40 @@ public class JobManager implements NetworkEventProvider.Listener {
     @Override
     public void onNetworkChange(boolean isConnected) {
         ensureConsumerWhenNeeded(isConnected);
+    }
+
+    private void callOnCancelAndNotifyListeners(JobHolder jobHolder, boolean byCancelRequest) {
+        try {
+            jobHolder.job.onCancel();
+        } catch (Throwable t) {
+            JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
+        }
+        for (JobManagerCallback callback : callbacks) {
+            try {
+                callback.onJobCancelled(jobHolder.job, byCancelRequest);
+            } catch (Throwable t){}
+        }
+    }
+
+    private void notifyOnRunListeners(JobHolder jobHolder, int resultCode) {
+        for (JobManagerCallback callback : callbacks) {
+            try {
+                callback.onJobRun(jobHolder.job, resultCode);
+            } catch (Throwable t){}
+        }
+    }
+
+    private void callOnAddedAndNotifyListeners(JobHolder jobHolder) {
+        try {
+            jobHolder.job.onAdded();
+        } catch (Throwable t) {
+            JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
+        }
+        for (JobManagerCallback callback : callbacks) {
+            try {
+                callback.onJobAdded(jobHolder.job);
+            } catch (Throwable t){}
+        }
     }
 
     @SuppressWarnings("FieldCanBeLocal")
@@ -754,6 +807,16 @@ public class JobManager implements NetworkEventProvider.Listener {
             //if we can't detect network changes, assume we have network otherwise nothing will trigger a consumer
             //noinspection SimplifiableConditionalExpression
             return countReadyJobs(networkUtil instanceof NetworkEventProvider ? hasNetwork() : true);
+        }
+
+        @Override
+        public void callJobCancel(JobHolder jobHolder, boolean byCancelRequest) {
+            JobManager.this.callOnCancelAndNotifyListeners(jobHolder, byCancelRequest);
+        }
+
+        @Override
+        public void notifyJobRun(JobHolder jobHolder, int result) {
+            JobManager.this.notifyOnRunListeners(jobHolder, result);
         }
     };
 
