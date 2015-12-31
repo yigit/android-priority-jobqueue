@@ -30,6 +30,11 @@ public class JobHolder {
      */
     public static final int RUN_RESULT_TRY_AGAIN = 4;
 
+    /**
+     * The job decided not to run in shouldReRun method.
+     */
+    public static final int RUN_RESULT_FAIL_SHOULD_RE_RUN = 5;
+
     protected Long id;
     protected int priority;
     protected String groupId;
