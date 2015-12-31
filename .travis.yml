@@ -2,6 +2,9 @@ language: android
 android:
   components:
     - tools
+    - platform-tools
+    - platform-tools-23.1
+    - tools-24.4.1
     - build-tools-23.0.2
     - android-23
 script: cd jobqueue && ./gradlew --stacktrace clean check --info
