@@ -58,7 +58,8 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     private static boolean isDozing(Context context) {
         if (VERSION.SDK_INT >= 23) {
             PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-            return powerManager.isDeviceIdleMode();
+            return powerManager.isDeviceIdleMode() &&
+                    !powerManager.isIgnoringBatteryOptimizations(context.getPackageName());
         } else {
             return false;
         }
