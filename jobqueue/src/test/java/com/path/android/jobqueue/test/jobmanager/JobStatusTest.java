@@ -95,28 +95,33 @@ public class JobStatusTest extends JobManagerTestBase {
             //after all jobs finish, state should be unknown
             assertThat("all jobs finished, states should be unknown", jobManager.getJobStatus(ids[i], jobs[i].isPersistent()), is(JobStatus.UNKNOWN));
         }
-        final long SHORT_SLEEP = 1000;
+        final long SHORT_SLEEP = 2000;
         Job[] delayedJobs = new Job[]{
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP)),
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP).persist()),
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP * 10)),
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP * 10).persist())};
         long[] delayedIds = new long[delayedJobs.length];
+        long start = System.currentTimeMillis();
         for(int i = 0; i < delayedJobs.length; i ++) {
             delayedIds[i] = jobManager.addJob(delayedJobs[i]);
         }
-
+        assertThat("test sanity.", System.currentTimeMillis() - start < SHORT_SLEEP, is(true));
         for(int i = 0; i < delayedJobs.length; i ++) {
-            assertThat("delayed job(" + i + ") should receive not ready status", jobManager.getJobStatus(delayedIds[i], delayedJobs[i].isPersistent()), is(JobStatus.WAITING_NOT_READY));
+            assertThat("delayed job(" + i + ") should receive not ready status. startMs:" + start
+                            + ", now:" + System.currentTimeMillis() + ", limit:" + SHORT_SLEEP,
+                    jobManager.getJobStatus(delayedIds[i], delayedJobs[i].isPersistent()), is(JobStatus.WAITING_NOT_READY));
         }
         jobManager.stop();
         //sleep
         Thread.sleep(SHORT_SLEEP * 2);
         for(int i = 0; i < delayedJobs.length; i ++) {
             if(delayedJobs[i].getDelayInMs() == SHORT_SLEEP) {
-                assertThat("when enough time passes, delayed jobs should move to ready state", jobManager.getJobStatus(delayedIds[i], delayedJobs[i].isPersistent()), is(JobStatus.WAITING_READY));
+                assertThat("when enough time passes, delayed jobs should move to ready state",
+                        jobManager.getJobStatus(delayedIds[i], delayedJobs[i].isPersistent()),is(JobStatus.WAITING_READY));
             } else {
-                assertThat("delayed job should receive not ready status until their time comes", jobManager.getJobStatus(delayedIds[i], delayedJobs[i].isPersistent()), is(JobStatus.WAITING_NOT_READY));
+                assertThat("delayed job should receive not ready status until their time comes",
+                        jobManager.getJobStatus(delayedIds[i], delayedJobs[i].isPersistent()), is(JobStatus.WAITING_NOT_READY));
             }
         }
     }

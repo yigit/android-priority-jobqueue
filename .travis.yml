@@ -7,7 +7,7 @@ android:
     - tools-24.4.1
     - build-tools-23.0.2
     - android-23
-script: cd jobqueue && ./gradlew --stacktrace clean check --info
+script: cd jobqueue && ./gradlew --stacktrace clean check
 addons:
   artifacts: true
   s3_region: "us-west-1"
