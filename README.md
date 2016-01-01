@@ -1,8 +1,6 @@
 Android Priority Job Queue (Job Manager)
 ==========================
 
-[![Build Status](https://travis-ci.org/yigit/android-priority-jobqueue.svg?branch=master)](https://travis-ci.org/yigit/android-priority-jobqueue)
-
 Priority Job Queue is an implementation of a [Job Queue](http://en.wikipedia.org/wiki/Job_queue) specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.
 
 It is written primarily with [flexibility][10] & [functionality][11] in mind. This is an ongoing project, which we will continue to add stability and performance improvements.
