@@ -49,9 +49,11 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
             throws InterruptedException {
         DummyNetworkUtilWithConnectivityEventSupport networkUtil = new
                 DummyNetworkUtilWithConnectivityEventSupport();
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-                .minConsumerCount(5)
-                .networkUtil(networkUtil));
+        JobManager jobManager = createJobManager(
+                new Configuration.Builder(RuntimeEnvironment.application)
+                        .minConsumerCount(5)
+                        .networkUtil(networkUtil)
+                        .timer(mockTimer));
         networkUtil.setHasNetwork(false, true);
         jobManager.addJob(new DummyJob(new Params(1).requireNetwork().groupBy("group").addTags("tag")));
         jobManager.addJob(new DummyJob(new Params(2).requireNetwork().groupBy("group").addTags("tag")));

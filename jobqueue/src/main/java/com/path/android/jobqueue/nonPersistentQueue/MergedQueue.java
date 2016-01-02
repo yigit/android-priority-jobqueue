@@ -2,8 +2,12 @@ package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.TagConstraint;
+import com.path.android.jobqueue.timer.Timer;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A queue implementation that utilize two queues depending on one or multiple properties of the {@link JobHolder}
@@ -16,19 +20,21 @@ abstract public class MergedQueue implements JobSet {
 
     final Comparator<JobHolder> comparator;
     final Comparator<JobHolder> retrieveComparator;
+    protected final Timer timer;
 
     /**
      *
-     * @param initialCapacity passed to {@link MergedQueue#createQueue(com.path.android.jobqueue.nonPersistentQueue.MergedQueue.SetId, int, java.util.Comparator)}
-     * @param comparator passed to {@link MergedQueue#createQueue(com.path.android.jobqueue.nonPersistentQueue.MergedQueue.SetId, int, java.util.Comparator)}
+     * @param initialCapacity passed to {@link MergedQueue#createQueue(SetId, int, Comparator, Timer)}
+     * @param comparator passed to {@link MergedQueue#createQueue(SetId, int, Comparator, Timer)}
      * @param retrieveComparator upon retrieval, if both queues return items, this comparator is used to decide which
      *                           one should be returned
      */
-    public MergedQueue(int initialCapacity, Comparator<JobHolder> comparator, Comparator<JobHolder> retrieveComparator) {
+    public MergedQueue(int initialCapacity, Comparator<JobHolder> comparator, Comparator<JobHolder> retrieveComparator, Timer timer) {
         this.comparator = comparator;
         this.retrieveComparator = retrieveComparator;
-        queue0 = createQueue(SetId.S0, initialCapacity, comparator);
-        queue1 = createQueue(SetId.S1, initialCapacity, comparator);
+        this.timer = timer;
+        queue0 = createQueue(SetId.S0, initialCapacity, comparator, timer);
+        queue1 = createQueue(SetId.S1, initialCapacity, comparator, timer);
     }
 
     /**
@@ -182,9 +188,10 @@ abstract public class MergedQueue implements JobSet {
      * called when we want to create the subsequent queues
      * @param initialCapacity
      * @param comparator
+     * @param timer
      * @return
      */
-    abstract protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator);
+    abstract protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator, Timer timer);
 
     public CountWithGroupIdsResult countReadyJobs(SetId setId, long now, Collection<String> excludeGroups) {
         if(setId == SetId.S0) {
@@ -216,7 +223,7 @@ abstract public class MergedQueue implements JobSet {
     @Override
     public Set<JobHolder> findByTags(TagConstraint constraint, Collection<Long> exclude,
             String... tags) {
-        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        Set<JobHolder> jobs = new HashSet<>();
         jobs.addAll(queue0.findByTags(constraint, exclude, tags));
         jobs.addAll(queue1.findByTags(constraint, exclude, tags));
         return jobs;

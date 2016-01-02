@@ -8,6 +8,7 @@ import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,12 +17,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * An executor class that takes care of spinning consumer threads and making sure enough is alive.
  * works deeply coupled with {@link JobManager}
  */
 public class JobConsumerExecutor {
+    private AtomicLong consumerThreadCounter = new AtomicLong(0);
     private int maxConsumerSize;
     private int minConsumerSize;
     private int loadFactor;
@@ -31,6 +34,7 @@ public class JobConsumerExecutor {
     private final AtomicInteger activeConsumerCount = new AtomicInteger(0);
     // key : id + (isPersistent)
     private final ConcurrentHashMap<String, JobHolder> runningJobHolders;
+    private final Timer timer;
 
 
     public JobConsumerExecutor(Configuration config, Contract contract) {
@@ -39,6 +43,7 @@ public class JobConsumerExecutor {
         this.minConsumerSize = config.getMinConsumerCount();
         this.keepAliveSeconds = config.getConsumerKeepAlive();
         this.contract = contract;
+        this.timer = config.timer();
         threadGroup = new ThreadGroup("JobConsumers");
         runningJobHolders = new ConcurrentHashMap<String, JobHolder>();
     }
@@ -83,7 +88,7 @@ public class JobConsumerExecutor {
     private void addConsumer() {
         JqLog.d("adding another consumer");
         synchronized (threadGroup) {
-            Thread thread = new Thread(threadGroup, new JobConsumer(contract, this));
+            Thread thread = new Thread(threadGroup, new JobConsumer(contract, this), "job-consumer-" + consumerThreadCounter.get());
             activeConsumerCount.incrementAndGet();
             thread.start();
         }
@@ -122,8 +127,9 @@ public class JobConsumerExecutor {
     private void onAfterRun(JobHolder jobHolder) {
         synchronized (runningJobHolders) {
             runningJobHolders.remove(createRunningJobHolderKey(jobHolder));
-            runningJobHolders.notifyAll();
+            timer.notifyObject(runningJobHolders);
         }
+
     }
 
     private String createRunningJobHolderKey(JobHolder jobHolder) {
@@ -157,7 +163,7 @@ public class JobConsumerExecutor {
         }
         synchronized (runningJobHolders) {
             while (containsAny(ids)) {
-                runningJobHolders.wait();
+                timer.waitOnObject(runningJobHolders);
             }
         }
     }
@@ -232,7 +238,7 @@ public class JobConsumerExecutor {
         Thread[] threads = new Thread[threadGroup.activeCount() * 3];
         threadGroup.enumerate(threads);
         for (Thread thread : threads) {
-            if (thread != null) {
+            if (thread != null && thread.isAlive()) {
                 thread.join();
             }
         }
@@ -286,6 +292,15 @@ public class JobConsumerExecutor {
          * @param result
          */
         void notifyJobRun(JobHolder nextJob, int result);
+
+        /**
+         * Called after a Job is run and its run action has been handled. For instance, if the job
+         * is cancelled, this method will be called after the job has been removed from the queue.
+         *
+         * @param job The job that just completed running
+         * @param result
+         */
+        void notifyAfterJobRun(JobHolder job, int result);
     }
 
     /**
@@ -340,6 +355,7 @@ public class JobConsumerExecutor {
                                     break;
                             }
                             executor.onAfterRun(nextJob);
+                            contract.notifyAfterJobRun(nextJob, result);
                         }
                     } while (nextJob != null);
                 } finally {

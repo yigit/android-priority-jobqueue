@@ -1,8 +1,10 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.timer.Timer;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
 
 /**
  * This is a {@link MergedQueue} class that can handle queue updates based on time.
@@ -18,24 +20,25 @@ public class TimeAwarePriorityQueue extends MergedQueue {
      * @param initialCapacity
      * @param comparator
      */
-    public TimeAwarePriorityQueue(int initialCapacity, Comparator<JobHolder> comparator) {
-        super(initialCapacity, comparator, new TimeAwareComparator(comparator));
+    public TimeAwarePriorityQueue(int initialCapacity, Comparator<JobHolder> comparator, Timer timer) {
+        super(initialCapacity, comparator, new TimeAwareComparator(comparator, timer), timer);
     }
 
     @Override
     protected SetId decideQueue(JobHolder jobHolder) {
-        return jobHolder.getDelayUntilNs() <= System.nanoTime() ? SetId.S0 : SetId.S1;
+        return jobHolder.getDelayUntilNs() <= timer.nanoTime() ? SetId.S0 : SetId.S1;
     }
 
     /**
-     * create a {@link PriorityQueue} with given comparator
+     * create a {@link JobSet} with given comparator
      * @param setId
      * @param initialCapacity
      * @param comparator
+     * @param timer
      * @return
      */
     @Override
-    protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator) {
+    protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator, Timer timer) {
         if(setId == SetId.S0) {
             return new NonPersistentJobSet(comparator);
         } else {

@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.timer.Timer;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -16,8 +17,8 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
      * @param initialCapacity
      * @param comparator
      */
-    public NetworkAwarePriorityQueue(int initialCapacity, Comparator<JobHolder> comparator) {
-        super(initialCapacity, comparator, new TimeAwareComparator(comparator));
+    public NetworkAwarePriorityQueue(int initialCapacity, Comparator<JobHolder> comparator, Timer timer) {
+        super(initialCapacity, comparator, new TimeAwareComparator(comparator, timer), timer);
     }
 
     /**
@@ -61,13 +62,13 @@ public class NetworkAwarePriorityQueue extends MergedQueue {
      * @return
      */
     @Override
-    protected JobSet createQueue(SetId ignoredQueueId, int initialCapacity, Comparator<JobHolder> comparator) {
-        return new TimeAwarePriorityQueue(initialCapacity, comparator);
+    protected JobSet createQueue(SetId ignoredQueueId, int initialCapacity, Comparator<JobHolder> comparator, Timer timer) {
+        return new TimeAwarePriorityQueue(initialCapacity, comparator, timer);
     }
 
 
     public CountWithGroupIdsResult countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
-        long now = System.nanoTime();
+        long now = timer.nanoTime();
         if(hasNetwork) {
             return super.countReadyJobs(SetId.S0, now, excludeGroups).mergeWith(super.countReadyJobs(SetId.S1, now, excludeGroups));
         } else {

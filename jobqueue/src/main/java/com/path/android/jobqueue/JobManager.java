@@ -13,6 +13,8 @@ import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqlHelper;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+import com.path.android.jobqueue.timer.SystemTimer;
+import com.path.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * a JobManager that supports;
@@ -34,10 +37,12 @@ public class JobManager implements NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
+    // need a memory barrier around the running field
     @SuppressWarnings("FieldCanBeLocal")//used for testing
     private final long sessionId;
     private volatile boolean running;
 
+    private final Timer timer;
     private final Context appContext;
     private final NetworkUtil networkUtil;
     private final DependencyInjector dependencyInjector;
@@ -48,7 +53,6 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final Object newJobListeners = new Object();
     private final ConcurrentHashMap<Long, CountDownLatch> persistentOnAddedLocks;
     private final ConcurrentHashMap<Long, CountDownLatch> nonPersistentOnAddedLocks;
-    private ScheduledExecutorService timedExecutor;
     // lazily created
     private final Object cancelExecutorInitLock = new Object();
     private ExecutorService cancelExecutor;
@@ -83,14 +87,17 @@ public class JobManager implements NetworkEventProvider.Listener {
         if(config.getCustomLogger() != null) {
             JqLog.setCustomLogger(config.getCustomLogger());
         }
+        timer = config.timer();
         appContext = context.getApplicationContext();
         running = true;
-        runningJobGroups = new RunningJobSet();
-        sessionId = System.nanoTime();
+        runningJobGroups = new RunningJobSet(timer);
+        sessionId = timer.nanoTime();
         this.persistentJobQueue = config.getQueueFactory()
-                .createPersistentQueue(context, sessionId, config.getId(), config.isInTestMode());
+                .createPersistentQueue(context, sessionId, config.getId(), config.isInTestMode(),
+                        timer);
         this.nonPersistentJobQueue = config.getQueueFactory()
-                .createNonPersistent(context, sessionId, config.getId(), config.isInTestMode());
+                .createNonPersistent(context, sessionId, config.getId(), config.isInTestMode(),
+                        timer);
         persistentOnAddedLocks = new ConcurrentHashMap<Long, CountDownLatch>();
         nonPersistentOnAddedLocks = new ConcurrentHashMap<Long, CountDownLatch>();
 
@@ -101,7 +108,6 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         //is important to initialize consumers last so that they can start running
         jobConsumerExecutor = new JobConsumerExecutor(config,consumerContract);
-        timedExecutor = Executors.newSingleThreadScheduledExecutor();
         start();
     }
 
@@ -110,17 +116,21 @@ public class JobManager implements NetworkEventProvider.Listener {
      * Stops consuming jobs. Currently running jobs will be finished but no new jobs will be run.
      */
     public void stop() {
-        running = false;
+        synchronized (getNextJobLock) {
+            running = false;
+        }
     }
 
     /**
      * restarts the JobManager. Will create a new consumer if necessary.
      */
     public void start() {
-        if(running) {
+        if(isRunning()) {
             return;
         }
-        running = true;
+        synchronized (getNextJobLock) {
+            running = true;
+        }
         notifyJobConsumer();
     }
 
@@ -148,6 +158,21 @@ public class JobManager implements NetworkEventProvider.Listener {
         return cnt;
     }
 
+    /**
+     * Returns the # of jobs that can be run now but waiting to be executed.
+     * <b>
+     * Note that if a job has delay or has other jobs running with the same group, it will not be
+     * included in the returned count. This is simply the number of jobs that could be run if there
+     * were enough consumer threads to run them.
+     * <b>
+     * This count also does not include any job that is running right now.
+     *
+     * @return # of total jobs that can be run right now
+     */
+    public int countReadyJobs() {
+        return consumerContract.countRemainingReadyJobs();
+    }
+
     private int countReadyJobs(boolean hasNetwork) {
         //TODO we can cache this
         int total = 0;
@@ -167,9 +192,13 @@ public class JobManager implements NetworkEventProvider.Listener {
      */
     public long addJob(Job job) {
         //noinspection deprecation
-        JobHolder jobHolder = new JobHolder(job.getPriority(), job
-                , job.getDelayInMs() > 0 ? System.nanoTime() + job.getDelayInMs() * NS_PER_MS : NOT_DELAYED_JOB_DELAY
-                , NOT_RUNNING_SESSION_ID);
+        JobHolder jobHolder = new JobHolder.Builder()
+                .priority(job.getPriority())
+                .job(job)
+                .groupId(job.getRunGroupId())
+                .createdNs(timer.nanoTime())
+                .delayUntilNs(job.getDelayInMs() > 0 ? timer.nanoTime() + job.getDelayInMs() * NS_PER_MS : NOT_DELAYED_JOB_DELAY)
+                .runningSessionId(NOT_RUNNING_SESSION_ID).build();
         long id;
         if (job.isPersistent()) {
             synchronized (persistentJobQueue) {
@@ -401,7 +430,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     }
 
     public void addJobInBackground(final Job job, /*nullable*/ final AsyncAddCallback callback) {
-        timedExecutor.execute(new Runnable() {
+        timer.schedule(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -414,7 +443,7 @@ public class JobManager implements NetworkEventProvider.Listener {
                             job.getClass().getSimpleName());
                 }
             }
-        });
+        }, 0);
     }
 
     //need to sync on related job queue before calling this
@@ -468,7 +497,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         if (nextRunNs == null || (nonPersistedJobRunNs != null && nonPersistedJobRunNs < nextRunNs)) {
             nextRunNs = nonPersistedJobRunNs;
         }
-        if(nextRunNs != null && nextRunNs <= System.nanoTime()) {
+        if(nextRunNs != null && nextRunNs <= timer.nanoTime()) {
             notifyJobConsumer();
             return 0L;
         }
@@ -485,11 +514,11 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         if(nextRunNs != null) {
             //to avoid overflow, we need to check equality first
-            if(nextRunNs < System.nanoTime()) {
+            if(nextRunNs < timer.nanoTime()) {
                 notifyJobConsumer();
                 return 0L;
             }
-            long diff = (long)Math.ceil((double)(nextRunNs - System.nanoTime()) / NS_PER_MS);
+            long diff = (long)Math.ceil((double)(nextRunNs - timer.nanoTime()) / NS_PER_MS);
             ensureConsumerOnTime(diff);
             return diff;
         }
@@ -498,7 +527,7 @@ public class JobManager implements NetworkEventProvider.Listener {
 
     private void notifyJobConsumer() {
         synchronized (newJobListeners) {
-            newJobListeners.notifyAll();
+            timer.notifyObject(newJobListeners);
         }
         jobConsumerExecutor.considerAddingConsumer();
     }
@@ -511,11 +540,26 @@ public class JobManager implements NetworkEventProvider.Listener {
     };
 
     private void ensureConsumerOnTime(long waitMs) {
-        timedExecutor.schedule(notifyRunnable, waitMs, TimeUnit.MILLISECONDS);
+        timer.schedule(notifyRunnable, TimeUnit.MILLISECONDS.toNanos(waitMs));
     }
 
     private boolean hasNetwork() {
         return networkUtil == null || networkUtil.isConnected(appContext);
+    }
+
+    /**
+     * Returns whether JobManager is currently running or not. This does not mean it is actually
+     * processing any jobs but instead means it is not stopped and will process any available job.
+     *
+     * @return True if JobManager is not stopped.
+     *
+     * @see #stop()
+     * @see #start()
+     */
+    public boolean isRunning() {
+        synchronized (getNextJobLock) {
+            return running;
+        }
     }
 
     private JobHolder getNextJob() {
@@ -616,7 +660,7 @@ public class JobManager implements NetworkEventProvider.Listener {
         if(holder.requiresNetwork() && !network) {
             return JobStatus.WAITING_NOT_READY;
         }
-        if(holder.getDelayUntilNs() > System.nanoTime()) {
+        if(holder.getDelayUntilNs() > timer.nanoTime()) {
             return JobStatus.WAITING_NOT_READY;
         }
 
@@ -636,17 +680,27 @@ public class JobManager implements NetworkEventProvider.Listener {
         if(jobHolder.getGroupId() != null) {
             runningJobGroups.remove(jobHolder.getGroupId());
         }
+        for (JobManagerCallback callback : callbacks) {
+            callback.onDone(jobHolder.job);
+        }
     }
 
     public synchronized void stopAndWaitUntilConsumersAreFinished() throws InterruptedException {
-        synchronized (newJobListeners) {
-            newJobListeners.notifyAll();
-        }
+        final AtomicBoolean keepRunning = new AtomicBoolean(true);
+        final Thread timerThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (keepRunning.get()) {
+                    synchronized (newJobListeners) {
+                        timer.notifyObject(newJobListeners);
+                    }
+                    timer.waitUntilDrained();
+                }
+            }
+        });
+        timerThread.start();
         stop();
         jobConsumerExecutor.waitUntilAllConsumersAreFinished();
-        timedExecutor.shutdown();
-        timedExecutor.awaitTermination(100, TimeUnit.SECONDS);
-        timedExecutor = Executors.newSingleThreadScheduledExecutor();
         synchronized (cancelExecutorInitLock) {
             if (cancelExecutor != null) {
                 cancelExecutor.shutdown();
@@ -654,6 +708,8 @@ public class JobManager implements NetworkEventProvider.Listener {
             }
             cancelExecutor = Executors.newSingleThreadExecutor();
         }
+        keepRunning.set(false);
+        timerThread.join();
     }
 
     public synchronized void clear() {
@@ -684,17 +740,19 @@ public class JobManager implements NetworkEventProvider.Listener {
             JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
         }
         for (JobManagerCallback callback : callbacks) {
-            try {
-                callback.onJobCancelled(jobHolder.job, byCancelRequest);
-            } catch (Throwable t){}
+            callback.onJobCancelled(jobHolder.job, byCancelRequest);
         }
     }
 
     private void notifyOnRunListeners(JobHolder jobHolder, int resultCode) {
         for (JobManagerCallback callback : callbacks) {
-            try {
-                callback.onJobRun(jobHolder.job, resultCode);
-            } catch (Throwable t){}
+            callback.onJobRun(jobHolder.job, resultCode);
+        }
+    }
+
+    private void notifyAfterRunListeners(JobHolder jobHolder, int resultCode) {
+        for (JobManagerCallback callback : callbacks) {
+            callback.onAfterJobRun(jobHolder.job, resultCode);
         }
     }
 
@@ -705,9 +763,7 @@ public class JobManager implements NetworkEventProvider.Listener {
             JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
         }
         for (JobManagerCallback callback : callbacks) {
-            try {
-                callback.onJobAdded(jobHolder.job);
-            } catch (Throwable t){}
+            callback.onJobAdded(jobHolder.job);
         }
     }
 
@@ -715,7 +771,7 @@ public class JobManager implements NetworkEventProvider.Listener {
     private final JobConsumerExecutor.Contract consumerContract = new JobConsumerExecutor.Contract() {
         @Override
         public boolean isRunning() {
-            return running;
+            return JobManager.this.isRunning();
         }
 
         @Override
@@ -732,13 +788,13 @@ public class JobManager implements NetworkEventProvider.Listener {
             if (retryConstraint.getNewDelayInMs() != null) {
                 if (retryConstraint.willApplyNewDelayToGroup() && jobHolder.getGroupId() != null) {
                     runningJobGroups.addGroupUntil(jobHolder.getGroupId(),
-                            System.nanoTime() + retryConstraint.getNewDelayInMs() * NS_PER_MS);
+                            timer.nanoTime() + retryConstraint.getNewDelayInMs() * NS_PER_MS);
                 } else {
                     delay = retryConstraint.getNewDelayInMs();
                 }
             }
             jobHolder.setDelayUntilNs(
-                    delay > 0 ? System.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY
+                    delay > 0 ? timer.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY
             );
             reAddJob(jobHolder);
         }
@@ -755,16 +811,16 @@ public class JobManager implements NetworkEventProvider.Listener {
             if(nextJob != null) {
                 return nextJob;
             }
-            long start = System.nanoTime();
+            long start = timer.nanoTime();
             long remainingWait = waitDuration.toNanos(wait);
             long waitUntil = remainingWait + start;
             //for delayed jobs,
             long nextJobDelay = ensureConsumerWhenNeeded(null);
-            while (nextJob == null && waitUntil > System.nanoTime() && running) {
+            while (nextJob == null && waitUntil > timer.nanoTime() && running) {
                 //keep running inside here to avoid busy loop
-                nextJob = running ? JobManager.this.getNextJob() : null;
+                nextJob = JobManager.this.getNextJob();
                 if(nextJob == null) {
-                    long remaining = waitUntil - System.nanoTime();
+                    long remaining = waitUntil - timer.nanoTime();
                     if(remaining > 0) {
                         //if we can't detect network changes, we won't be notified.
                         //to avoid waiting up to give time, wait in chunks of 500 ms max
@@ -779,20 +835,24 @@ public class JobManager implements NetworkEventProvider.Listener {
                             //sync block, i am going to lose it
                             //TODO fix above case where we may wait unnecessarily long if a job is about to become available
                             synchronized (newJobListeners) {
-                                try {
-                                    newJobListeners.wait(maxWait);
-                                } catch (InterruptedException e) {
-                                    JqLog.e(e, "exception while waiting for a new job.");
+                                if (consumerContract.isRunning()) {
+                                    try {
+                                        timer.waitOnObject(newJobListeners, maxWait);
+                                    } catch (InterruptedException e) {
+                                        JqLog.e(e, "exception while waiting for a new job.");
+                                    }
                                 }
                             }
                         } else {
                             //we cannot detect network changes. our best option is to wait for some time and try again
                             //then trigger {@link ensureConsumerWhenNeeded)
                             synchronized (newJobListeners) {
-                                try {
-                                    newJobListeners.wait(Math.min(500, maxWait));
-                                } catch (InterruptedException e) {
-                                    JqLog.e(e, "exception while waiting for a new job.");
+                                if (consumerContract.isRunning()) {
+                                    try {
+                                        timer.waitOnObject(newJobListeners, Math.min(500, maxWait));
+                                    } catch (InterruptedException e) {
+                                        JqLog.e(e, "exception while waiting for a new job.");
+                                    }
                                 }
                             }
                         }
@@ -818,6 +878,11 @@ public class JobManager implements NetworkEventProvider.Listener {
         public void notifyJobRun(JobHolder jobHolder, int result) {
             JobManager.this.notifyOnRunListeners(jobHolder, result);
         }
+
+        @Override
+        public void notifyAfterJobRun(JobHolder jobHolder, int result) {
+            JobManager.this.notifyAfterRunListeners(jobHolder, result);
+        }
     };
 
 
@@ -838,15 +903,15 @@ public class JobManager implements NetworkEventProvider.Listener {
 
         @Override
         public JobQueue createPersistentQueue(Context context, Long sessionId, String id,
-                boolean inTestMode) {
+                boolean inTestMode, Timer timer) {
             return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id, jobSerializer,
-                    inTestMode));
+                    inTestMode, timer));
         }
 
         @Override
         public JobQueue createNonPersistent(Context context, Long sessionId, String id,
-                boolean inTestMode) {
-            return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id, inTestMode));
+                boolean inTestMode, Timer timer) {
+            return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id, inTestMode, timer));
         }
     }
 }

@@ -37,12 +37,12 @@ public class DelayTest extends JobManagerTestBase {
         MatcherAssert.assertThat("non-delayed job should be served", receivedJob, notNullValue());
         MatcherAssert.assertThat("non-delayed job should id should match",  receivedJob.getId(), equalTo(nonDelayedJobId));
         removeJobMethod.invoke(receivedJob);
-        MatcherAssert.assertThat("delayed job should not be served",  nextJobMethod.invoke(), nullValue());
+        MatcherAssert.assertThat("delayed job should not be served", nextJobMethod.invoke(), nullValue());
         MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
-        Thread.sleep(500);
-        MatcherAssert.assertThat("delayed job should not be served",  nextJobMethod.invoke(), nullValue());
+        mockTimer.incrementMs(500);
+        MatcherAssert.assertThat("delayed job should not be served", nextJobMethod.invoke(), nullValue());
         MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
-        Thread.sleep(2000);
+        mockTimer.incrementMs(2000);
         MatcherAssert.assertThat("job count should still be 1",  jobManager.count(), equalTo(1));
         receivedJob = nextJobMethod.invoke();
         MatcherAssert.assertThat("now should be able to receive the delayed job.", receivedJob, notNullValue());

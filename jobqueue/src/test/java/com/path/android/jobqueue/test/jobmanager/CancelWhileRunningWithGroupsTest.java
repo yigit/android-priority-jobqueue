@@ -27,9 +27,13 @@ public class CancelWhileRunningWithGroupsTest extends JobManagerTestBase {
     public static CountDownLatch[] startLatches = new CountDownLatch[]{new CountDownLatch(2), new CountDownLatch(2)};
     @Test
     public void testCancelBeforeRunning() throws InterruptedException {
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).minConsumerCount(5));
-        jobManager.addJob(new DummyJobWithLatches(0, new Params(1).addTags("dummyTag").groupBy("group1")));
-        jobManager.addJob(new DummyJobWithLatches(0, new Params(1).addTags("dummyTag").groupBy("group2").persist()));
+        JobManager jobManager = createJobManager(
+                new Configuration.Builder(RuntimeEnvironment.application)
+                        .minConsumerCount(5).timer(mockTimer));
+        DummyJobWithLatches nonPersistentJob = new DummyJobWithLatches(0, new Params(1).addTags("dummyTag").groupBy("group1"));
+        jobManager.addJob(nonPersistentJob);
+        DummyJobWithLatches persistentJob = new DummyJobWithLatches(0, new Params(1).addTags("dummyTag").groupBy("group2").persist());
+        jobManager.addJob(persistentJob);
         assertThat("both jobs should start", startLatches[0].await(2, TimeUnit.SECONDS), is(true));
         final CancelResult[] cancelResults = new CancelResult[1];
         final CountDownLatch resultLatch = new CountDownLatch(1);
@@ -41,8 +45,9 @@ public class CancelWhileRunningWithGroupsTest extends JobManagerTestBase {
                 resultLatch.countDown();
             }
         }, TagConstraint.ANY, "dummyTag");
-        // give time to cancel request to be processed
-        Thread.sleep(1000);
+        while (!nonPersistentJob.isCancelled()) {
+            // wait
+        }
         endLatches[0].countDown();
         endLatches[0].countDown();
 

@@ -35,6 +35,7 @@ public class InjectorTest extends JobManagerTestBase {
             }
         };
         builder.injector(dependencyInjector);
+        builder.timer(mockTimer);
         JobManager jobManager = createJobManager(builder);
         jobManager.stop();
         jobManager.addJob(new DummyJob(new Params(4)));
@@ -83,7 +84,8 @@ public class InjectorTest extends JobManagerTestBase {
                 //
             }
         };
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).injector(dummyDependencyInjector).customLogger(customLogger));
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+                .injector(dummyDependencyInjector).customLogger(customLogger).timer(mockTimer));
         Throwable addException = null;
         try {
             jobManager.addJob(new DummyJob(new Params(0)));

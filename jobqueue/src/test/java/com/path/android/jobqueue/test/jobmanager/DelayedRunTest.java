@@ -1,13 +1,14 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
 import org.hamcrest.*;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
@@ -21,10 +22,22 @@ import java.util.concurrent.TimeUnit;
 public class DelayedRunTest extends JobManagerTestBase {
     @Test
     public void testDelayedRun() throws Exception {
-        testDelayedRun(false, false);
-        testDelayedRun(true, false);
-        testDelayedRun(false, true);
-        testDelayedRun(true, true);
+        delayedRunTest(false, false);
+    }
+
+    @Test
+    public void testDelayedRunPersist() throws Exception {
+        delayedRunTest(true, false);
+    }
+
+    @Test
+    public void testDelayedRunTryToStop() throws Exception {
+        delayedRunTest(false, true);
+    }
+
+    @Test
+    public void testDelayedRunPersistAndTryToStop() throws Exception {
+        delayedRunTest(true, true);
     }
 
     @Test
@@ -32,9 +45,10 @@ public class DelayedRunTest extends JobManagerTestBase {
         JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .minConsumerCount(0)
-                        .maxConsumerCount(3));
+                        .maxConsumerCount(3)
+                        .timer(mockTimer));
         final CountDownLatch latch = new CountDownLatch(1);
-        DummyJob dummyJob = new DummyJob(new Params(0).delayInMs(2000)) {
+        final DummyJob dummyJob = new DummyJob(new Params(0).delayInMs(2000)) {
             @Override
             public void onRun() throws Throwable {
                 super.onRun();
@@ -42,26 +56,89 @@ public class DelayedRunTest extends JobManagerTestBase {
             }
         };
         jobManager.addJob(dummyJob);
-        assertThat("job should run in 3 seconds", latch.await(3, TimeUnit.DAYS),
+        mockTimer.incrementMs(1999);
+        assertThat("there should not be any ready jobs", jobManager.countReadyJobs(), is(0));
+        waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
+            @Override
+            public void run() {
+                mockTimer.incrementMs(1002);
+            }
+
+            @Override
+            public void assertJob(Job job) {
+                assertThat("should be the dummy job", job, is((Job) dummyJob));
+            }
+        });
+        assertThat("job should run in 3 seconds", latch.await(3, TimeUnit.NANOSECONDS),
                 is(true));
     }
 
-    public void testDelayedRun(boolean persist, boolean tryToStop) throws Exception {
-        JobManager jobManager = createJobManager();
-        DummyJob delayedJob = new DummyJob(new Params(10).delayInMs(2000).setPersistent(persist));
-        DummyJob nonDelayedJob = new DummyJob(new Params(0).setPersistent(persist));
-        jobManager.addJob(delayedJob);
-        jobManager.addJob(nonDelayedJob);
-        Thread.sleep(500);
+    public void delayedRunTest(boolean persist, boolean tryToStop) throws Exception {
+        final JobManager jobManager = createJobManager();
+        jobManager.addCallback(new JobManagerCallbackAdapter() {
+            @Override
+            public void onJobRun(Job job, int resultCode) {
+                super.onJobRun(job, resultCode);
+                System.out.println("CB job run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime() + " , " + jobManager.isRunning());
+            }
+
+            @Override
+            public void onDone(Job job) {
+                System.out.println("CB job done " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime() + " , " + jobManager.isRunning());
+            }
+
+            @Override
+            public void onAfterJobRun(Job job, int resultCode) {
+                System.out.println("CB job after run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime() + " , " + jobManager.isRunning());
+            }
+        });
+        final DummyJob delayedJob = new DummyJob(new Params(10).delayInMs(2000).setPersistent(persist).addTags("delayed"));
+        final DummyJob nonDelayedJob = new DummyJob(new Params(0).setPersistent(persist).addTags("notDelayed"));
+        waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
+            @Override
+            public void run() {
+                jobManager.addJob(delayedJob);
+                jobManager.addJob(nonDelayedJob);
+            }
+
+            @Override
+            public void assertJob(Job job) {
+                assertThat("correct job should run first", (String) job.getTags().toArray()[0], is("notDelayed"));
+            }
+        });
         MatcherAssert.assertThat("there should be 1 delayed job waiting to be run", jobManager.count(), equalTo(1));
         if(tryToStop) {//see issue #11
             jobManager.stop();
-            Thread.sleep(3000);
+            mockTimer.incrementMs(3000);
+            if (jobManager.count() != 1) {
+                System.out.println("wtf");
+            }
             MatcherAssert.assertThat("there should still be 1 delayed job waiting to be run when job manager is stopped",
                     jobManager.count(), equalTo(1));
-            jobManager.start();
+            waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
+                @Override
+                public void run() {
+                    jobManager.start();
+                }
+
+                @Override
+                public void assertJob(Job job) {
+                    assertThat("correct job should run first", (String) job.getTags().toArray()[0], is("delayed"));
+                }
+            });
+        } else {
+            waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
+                @Override
+                public void run() {
+                    mockTimer.incrementMs(3000);
+                }
+
+                @Override
+                public void assertJob(Job job) {
+                    assertThat("correct job should run first", (String) job.getTags().toArray()[0], is("delayed"));
+                }
+            });
         }
-        Thread.sleep(3000);
         MatcherAssert.assertThat("all jobs should be completed", jobManager.count(), equalTo(0));
     }
 }

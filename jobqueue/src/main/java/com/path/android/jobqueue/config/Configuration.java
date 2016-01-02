@@ -2,6 +2,8 @@ package com.path.android.jobqueue.config;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
+
+import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.QueueFactory;
@@ -11,6 +13,8 @@ import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.network.NetworkUtilImpl;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+import com.path.android.jobqueue.timer.SystemTimer;
+import com.path.android.jobqueue.timer.Timer;
 
 /**
  * {@link com.path.android.jobqueue.JobManager} configuration object
@@ -31,6 +35,7 @@ public class Configuration {
     private DependencyInjector dependencyInjector;
     private NetworkUtil networkUtil;
     private CustomLogger customLogger;
+    private Timer timer;
     private boolean inTestMode = false;
 
     private Configuration(){
@@ -77,9 +82,14 @@ public class Configuration {
         return inTestMode;
     }
 
+    public Timer timer() {
+        return timer;
+    }
+
     public static final class Builder {
         private Configuration configuration;
         private Context appContext;
+
         public Builder(Context context) {
             this.configuration = new Configuration();
             appContext = context.getApplicationContext();
@@ -173,6 +183,16 @@ public class Configuration {
         }
 
         /**
+         * You can specify a custom timer to control task execution. Useful for testing.
+         *
+         * @param timer The timer to use
+         */
+        public Builder timer(Timer timer) {
+            configuration.timer = timer;
+            return this;
+        }
+
+        /**
          * you can provide a custom logger to get logs from JobManager.
          * by default, logs will go no-where.
          * @param logger
@@ -210,6 +230,9 @@ public class Configuration {
             }
             if(configuration.networkUtil == null) {
                 configuration.networkUtil = new NetworkUtilImpl(appContext);
+            }
+            if (configuration.timer == null) {
+                configuration.timer = new SystemTimer();
             }
             return configuration;
         }

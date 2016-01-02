@@ -1,6 +1,9 @@
 package com.path.android.jobqueue.test.util;
 
 import com.path.android.jobqueue.RunningJobSet;
+import com.path.android.jobqueue.test.timer.MockTimer;
+import com.path.android.jobqueue.timer.SystemTimer;
+import com.path.android.jobqueue.timer.Timer;
 
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -21,7 +24,7 @@ public class RunningJobSetTest {
     RunningJobSet set;
     @Before
     public void setUp() {
-        set = new RunningJobSet();
+        set = new RunningJobSet(new SystemTimer());
     }
 
     @Test
@@ -68,57 +71,42 @@ public class RunningJobSetTest {
 
     @Test
     public void testAddWithTimeout() {
-        final AtomicLong time = new AtomicLong();
-        set = new RunningJobSet() {
-            @Override
-            protected long now() {
-                return time.get();
-            }
-        };
+        MockTimer timer = new MockTimer();
+        set = new RunningJobSet(timer);
         set.addGroupUntil("g1", 10L);
-        time.set(5);
+        timer.setNow(5);
         assertList("g1");
-        time.set(11);
+        timer.setNow(11);
         assertList();
-        time.set(3);
+        timer.setNow(3);
         assertList(); // should've pruned the list
     }
 
     @Test
     public void testAddSameGroupTwiceWithTimeout() {
-        final AtomicLong time = new AtomicLong();
-        set = new RunningJobSet() {
-            @Override
-            protected long now() {
-                return time.get();
-            }
-        };
+        MockTimer timer = new MockTimer();
+        set = new RunningJobSet(timer);
         set.addGroupUntil("g1", 10L);
         set.addGroupUntil("g1", 12L);
-        time.set(5);
+        timer.setNow(5);
         assertList("g1");
-        time.set(11);
+        timer.setNow(11);
         assertList("g1");
-        time.set(13);
+        timer.setNow(13);
         assertList();
     }
 
     @Test
     public void testAddMultipleGroupTimeouts() {
-        final AtomicLong time = new AtomicLong();
-        set = new RunningJobSet() {
-            @Override
-            protected long now() {
-                return time.get();
-            }
-        };
+        MockTimer timer = new MockTimer();
+        set = new RunningJobSet(timer);
         set.addGroupUntil("g1", 10L);
         set.addGroupUntil("g2", 20L);
-        time.set(5);
+        timer.setNow(5);
         assertList("g1", "g2");
-        time.set(11);
+        timer.setNow(11);
         assertList("g2");
-        time.set(21);
+        timer.setNow(21);
         assertList();
     }
 }

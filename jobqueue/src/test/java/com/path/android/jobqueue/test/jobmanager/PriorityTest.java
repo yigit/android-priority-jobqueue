@@ -22,7 +22,10 @@ public class PriorityTest extends JobManagerTestBase {
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).maxConsumerCount(1));
+        JobManager jobManager = createJobManager(
+                new Configuration.Builder(RuntimeEnvironment.application)
+                        .maxConsumerCount(1)
+                        .timer(mockTimer));
         testPriority(jobManager, false);
     }
 

@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
 import com.path.android.jobqueue.*;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.timer.Timer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,6 +35,7 @@ public class SqliteJobQueue implements JobQueue {
     // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
     // queries. Set is cleaned when item is removed
     Set<Long> pendingCancelations = new HashSet<Long>();
+    final Timer timer;
 
     /**
      * @param context application context
@@ -43,7 +45,8 @@ public class SqliteJobQueue implements JobQueue {
      * @param inTestMode If true, creates a memory only database
      */
     public SqliteJobQueue(Context context, long sessionId, String id, JobSerializer jobSerializer,
-            boolean inTestMode) {
+            boolean inTestMode, Timer timer) {
+        this.timer = timer;
         this.sessionId = sessionId;
         dbOpenHelper = new DbOpenHelper(context, inTestMode ? null : ("db_" + id));
         db = dbOpenHelper.getWritableDatabase();
@@ -55,6 +58,8 @@ public class SqliteJobQueue implements JobQueue {
         nextJobDelayUntilQueryCache = new QueryCache();
         sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
     }
+
+
 
     /**
      * {@inheritDoc}
@@ -191,7 +196,7 @@ public class SqliteJobQueue implements JobQueue {
                     + " is null then group_cnt else 1 end) from (" + subSelect + ")";
             readyJobsQueryCache.set(sql, hasNetwork, excludeGroups);
         }
-        Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});
+        Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(sessionId), Long.toString(timer.nanoTime())});
         try {
             if(!cursor.moveToNext()) {
                 return 0;
@@ -292,7 +297,7 @@ public class SqliteJobQueue implements JobQueue {
         }
         while (true) {
             Cursor cursor = db.rawQuery(selectQuery,
-                    new String[]{Long.toString(sessionId), Long.toString(System.nanoTime())});
+                    new String[]{Long.toString(sessionId), Long.toString(timer.nanoTime())});
             try {
                 if (!cursor.moveToNext()) {
                     return null;
@@ -406,16 +411,16 @@ public class SqliteJobQueue implements JobQueue {
         if (job == null) {
             throw new InvalidJobException();
         }
-        return new JobHolder(
-                cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
-                cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex),
-                cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex),
-                cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
-                job,
-                cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),
-                cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex),
-                cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex)
-        );
+        return new JobHolder.Builder()
+                .id(cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex))
+                .priority(cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex))
+                .groupId(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
+                .runCount(cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex))
+                .job(job)
+                .createdNs(cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex))
+                .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
+                .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
+                .build();
 
     }
 

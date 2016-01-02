@@ -76,4 +76,23 @@ public interface JobManagerCallback {
      *                         {@link JobManager#cancelJobs(TagConstraint, String...)} request.
      */
     void onJobCancelled(Job job, boolean byCancelRequest);
+
+    /**
+     * Called <b>after</b> a Job is removed from the JobManager. It might be cancelled or finished.
+     * This call is a good place to be sure that JobManager is done with the Job.
+     *
+     * @param job The Job that was just removed from the JobManager.
+     */
+    void onDone(Job job);
+
+    /**
+     * Called <b>after</b> a Job is run and its run result has been handled. For instance, if the
+     * Job is cancelled, this method is called after the job is removed from the queue.
+     *
+     * @param job The Job that just finished a run call.
+     * @param resultCode The result of the run call.
+     *
+     * @see #onJobRun(Job, int)
+     */
+    void onAfterJobRun(Job job, int resultCode);
 }

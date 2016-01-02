@@ -1,8 +1,10 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.fest.reflect.method.*;
@@ -14,6 +16,7 @@ import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricGradleTestRunner.class)
@@ -25,7 +28,6 @@ public class GroupingTest extends JobManagerTestBase {
         jobManager.stop();
         Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
         Invoker<Void> removeJobMethod = getRemoveJobMethod(jobManager);
-
         long jobId1 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
         long jobId2 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
         long jobId3 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group2")));
@@ -47,7 +49,8 @@ public class GroupingTest extends JobManagerTestBase {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
         JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .minConsumerCount(5).maxConsumerCount(10)
-                .networkUtil(dummyNetworkUtil));
+                .networkUtil(dummyNetworkUtil)
+                .timer(mockTimer));
         dummyNetworkUtil.setHasNetwork(false, true);
         //add a bunch of network requring jobs
         final String GROUP_ID = "shared_group_id";
@@ -57,6 +60,13 @@ public class GroupingTest extends JobManagerTestBase {
         final int FIRST_JOB_ID = -10;
         final CountDownLatch onAddedCalled = new CountDownLatch(1);
         final CountDownLatch remainingJobsOnAddedCalled = new CountDownLatch(AFTER_ADDED_JOBS_COUNT);
+        final CountDownLatch aJobRun = new CountDownLatch(1);
+        jobManager.addCallback(new JobManagerCallbackAdapter() {
+            @Override
+            public void onJobRun(Job job, int resultCode) {
+                aJobRun.countDown();
+            }
+        });
         jobManager.addJobInBackground(new DummyJob(new Params(10).requireNetwork().groupBy(GROUP_ID)) {
             @Override
             public void onAdded() {
@@ -65,8 +75,6 @@ public class GroupingTest extends JobManagerTestBase {
                 try {
                     //wait until all other jobs are added
                     remainingJobsOnAddedCalled.await();
-                    //wait a bit after all are added,
-                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                 }
             }
@@ -99,9 +107,7 @@ public class GroupingTest extends JobManagerTestBase {
         }
         dummyNetworkUtil.setHasNetwork(true, true);
         //wait until all jobs are completed
-        while(firstRunJob.get() == NOT_SET_JOB_ID) {
-            Thread.sleep(100);
-        }
+        aJobRun.await(1, TimeUnit.MINUTES);
         MatcherAssert.assertThat("highest priority job should run if it is added before others", firstRunJob.get(), is(FIRST_JOB_ID));
 
     }

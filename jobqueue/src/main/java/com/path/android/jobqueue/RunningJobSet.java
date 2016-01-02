@@ -1,5 +1,7 @@
 package com.path.android.jobqueue;
 
+import com.path.android.jobqueue.timer.Timer;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,11 +18,13 @@ public class RunningJobSet {
     private final TreeSet<String> internalSet;
     private final Map<String, Long> groupDelays;
     private long groupDelayTimeout;
+    private final Timer timer;
 
-    public RunningJobSet() {
+    public RunningJobSet(Timer timer) {
         internalSet = new TreeSet<>();
         groupDelays = new HashMap<>();
         groupDelayTimeout = Long.MAX_VALUE;
+        this.timer = timer;
     }
 
     public synchronized void addGroupUntil(String group, long until) {
@@ -36,7 +40,7 @@ public class RunningJobSet {
     }
 
     public synchronized Collection<String> getSafe() {
-        final long now = now();
+        final long now = timer.nanoTime();
         if(publicClone == null || now > groupDelayTimeout) {
             if (groupDelays.isEmpty()) {
                 publicClone = new ArrayList<>(internalSet);
@@ -92,9 +96,5 @@ public class RunningJobSet {
         internalSet.clear();
         groupDelays.clear();
         publicClone = null;
-    }
-
-    protected long now() {
-        return System.nanoTime();
     }
 }

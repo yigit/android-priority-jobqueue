@@ -4,8 +4,11 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.TagConstraint;
+import com.path.android.jobqueue.timer.Timer;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Set;
 
 public class NonPersistentPriorityQueue implements JobQueue {
     private long nonPersistentJobIdGenerator = Integer.MIN_VALUE;
@@ -13,11 +16,13 @@ public class NonPersistentPriorityQueue implements JobQueue {
     private NetworkAwarePriorityQueue jobs;
     private final String id;
     private final long sessionId;
+    private final Timer timer;
 
-    public NonPersistentPriorityQueue(long sessionId, String id, boolean inTestMode) {
+    public NonPersistentPriorityQueue(long sessionId, String id, boolean inTestMode, Timer timer) {
         this.id = id;
         this.sessionId = sessionId;
-        jobs = new NetworkAwarePriorityQueue(5, jobComparator);
+        this.timer = timer;
+        jobs = new NetworkAwarePriorityQueue(5, jobComparator, timer);
     }
 
     /**
@@ -72,7 +77,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
 
         if (jobHolder != null) {
             //check if job can run
-            if(jobHolder.getDelayUntilNs() > System.nanoTime()) {
+            if(jobHolder.getDelayUntilNs() > timer.nanoTime()) {
                 jobHolder = null;
             } else {
                 jobHolder.setRunningSessionId(sessionId);

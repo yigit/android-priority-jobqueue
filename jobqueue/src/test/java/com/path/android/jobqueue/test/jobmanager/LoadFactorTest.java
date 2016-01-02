@@ -5,6 +5,8 @@ import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.test.jobs.DummyJob;
+import com.path.android.jobqueue.test.timer.MockTimer;
+
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.Test;
@@ -30,13 +32,8 @@ public class LoadFactorTest extends JobManagerTestBase {
         com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .maxConsumerCount(maxConsumerCount)
                 .minConsumerCount(minConsumerCount)
-                .customLogger(new CustomLogger() {
-                    public boolean isDebugEnabled() {return true;}
-                    public void d(String text, Object... args) {System.out.println(String.format(text, args));}
-                    public void e(Throwable t, String text, Object... args) {t.printStackTrace(); System.out.println(String.format(text, args));}
-                    public void e(String text, Object... args) {System.out.println(String.format(text, args));}
-                })
-                .loadFactor(loadFactor));
+                .loadFactor(loadFactor)
+                .timer(mockTimer));
         JobConsumerExecutor consumerExecutor = getConsumerExecutor(jobManager);
         org.fest.reflect.field.Invoker<AtomicInteger> activeConsumerCnt = getActiveConsumerCount(consumerExecutor);
         Object runLock = new Object();
@@ -53,9 +50,9 @@ public class LoadFactorTest extends JobManagerTestBase {
                 expectedConsumerCount = Math.max(minConsumerCount, expectedConsumerCount);
             }
             //wait till enough jobs start
-            long now = System.nanoTime();
+            long now = mockTimer.nanoTime();
             long waitTill = now + TimeUnit.SECONDS.toNanos(10);
-            while(System.nanoTime() < waitTill) {
+            while(mockTimer.nanoTime() < waitTill) {
                 if(semaphore.availablePermits() == maxConsumerCount - expectedConsumerCount) {
                     //enough # of jobs started
                     break;
@@ -74,9 +71,9 @@ public class LoadFactorTest extends JobManagerTestBase {
         }
 
         //finish all jobs
-        long now = System.nanoTime();
+        long now = mockTimer.nanoTime();
         long waitTill = now + TimeUnit.SECONDS.toNanos(10);
-        while(System.nanoTime() < waitTill) {
+        while(mockTimer.nanoTime() < waitTill) {
             synchronized (runLock) {
                 runLock.notifyAll();
             }

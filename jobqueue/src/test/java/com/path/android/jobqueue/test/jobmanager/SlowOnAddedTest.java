@@ -54,6 +54,7 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         @Override
         public void onAdded() {
             try {
+                //noinspection SLEEP_IN_CODE
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 //
@@ -88,6 +89,7 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         @Override
         public void onAdded() {
             try {
+                //noinspection SLEEP_IN_CODE
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();

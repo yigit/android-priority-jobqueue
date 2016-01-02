@@ -5,6 +5,8 @@ import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
+import com.path.android.jobqueue.timer.Timer;
+
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
@@ -24,8 +26,8 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
     public SqliteJobQueueTest() {
         super(new JobQueueFactory() {
             @Override
-            public JobQueue createNew(long sessionId, String id) {
-                return new SqliteJobQueue(RuntimeEnvironment.application, sessionId, id, new SqliteJobQueue.JavaSerializer(), true);
+            public JobQueue createNew(long sessionId, String id, Timer timer) {
+                return new SqliteJobQueue(RuntimeEnvironment.application, sessionId, id, new SqliteJobQueue.JavaSerializer(), true, timer);
             }
         });
     }
@@ -47,8 +49,8 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
                 return super.deserialize(bytes);
             }
         };
-        SqliteJobQueue jobQueue = new SqliteJobQueue(RuntimeEnvironment.application, System.nanoTime(), "__" + System.nanoTime(),
-                jobSerializer, true);
+        SqliteJobQueue jobQueue = new SqliteJobQueue(RuntimeEnvironment.application, mockTimer.nanoTime(), "__" + mockTimer.nanoTime(),
+                jobSerializer, true, mockTimer);
         jobQueue.insert(createNewJobHolder(new Params(0)));
         calledForSerialize.await(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat("custom serializer should be called for serialize", (int) calledForSerialize.getCount(), CoreMatchers.equalTo(0));

@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import org.hamcrest.MatcherAssert;
@@ -7,6 +8,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
+
+import java.util.concurrent.CountDownLatch;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
@@ -17,18 +20,31 @@ public class ReRunWithLimitTest extends JobManagerTestBase {
     public void testReRunWithLimit() throws Exception {
         JobManager jobManager = createJobManager();
         testReRun(jobManager, false);
+    }
+
+    @Test
+    public void testReRunWithLimitPersist() throws Exception {
+        JobManager jobManager = createJobManager();
         testReRun(jobManager, true);
     }
 
-    private void testReRun(JobManager jobManager, boolean persist) throws InterruptedException {
+    private void testReRun(final JobManager jobManager, boolean persist) throws InterruptedException {
         enableDebug();
         DummyJobWithRunCount.runCount = 0;//reset
-        DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
-        jobManager.addJob(job);
-        int limit = 25;
-        while (limit-- > 0 && DummyJobWithRunCount.runCount != job.getRetryLimit()) {
-            Thread.sleep(100);
-        }
+        final DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
+        waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
+            @Override
+            public void run() {
+                jobManager.addJob(job);
+            }
+
+            @Override
+            public void assertJob(Job job) {
+
+            }
+        });
+
+
         MatcherAssert.assertThat(DummyJobWithRunCount.runCount, equalTo(job.getRetryLimit()));
         MatcherAssert.assertThat((int) jobManager.count(), equalTo(0));
     }

@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.timer.Timer;
 
 import java.util.Comparator;
 
@@ -10,21 +11,23 @@ import java.util.Comparator;
  */
 public class TimeAwareComparator implements Comparator<JobHolder> {
     final Comparator<JobHolder> baseComparator;
+    final Timer timer;
 
-    public TimeAwareComparator(Comparator<JobHolder> baseComparator) {
+    public TimeAwareComparator(Comparator<JobHolder> baseComparator, Timer timer) {
         this.baseComparator = baseComparator;
+        this.timer = timer;
     }
 
     @Override
     public int compare(JobHolder jobHolder, JobHolder jobHolder2) {
-        long now = System.nanoTime();
+        long now = timer.nanoTime();
         boolean job1Valid = jobHolder.getDelayUntilNs() <= now;
         boolean job2Valid = jobHolder2.getDelayUntilNs() <= now;
         if(job1Valid) {
             return job2Valid ? baseComparator.compare(jobHolder, jobHolder2) : -1;
         }
         if(job2Valid) {
-            return job1Valid ? baseComparator.compare(jobHolder, jobHolder2) : 1;
+            return 1;
         }
         //if both jobs are invalid, return the job that can run earlier. if the want to run at the same time, use base
         //comparison

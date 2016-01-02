@@ -22,7 +22,10 @@ public class NetworkNextJobTest extends JobManagerTestBase {
     @Test
     public void testNetworkNextJob() throws Exception {
         DummyNetworkUtil dummyNetworkUtil = new DummyNetworkUtil();
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).networkUtil(dummyNetworkUtil));
+        JobManager jobManager = createJobManager(
+                new Configuration.Builder(RuntimeEnvironment.application)
+                        .networkUtil(dummyNetworkUtil)
+                        .timer(mockTimer));
         jobManager.stop();
         DummyJob dummyJob = new DummyJob(new Params(0).requireNetwork());
         long dummyJobId = jobManager.addJob(dummyJob);

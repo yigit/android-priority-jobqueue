@@ -21,4 +21,14 @@ public class JobManagerCallbackAdapter implements JobManagerCallback {
     public void onJobCancelled(Job job, boolean byCancelRequest) {
 
     }
+
+    @Override
+    public void onDone(Job job) {
+
+    }
+
+    @Override
+    public void onAfterJobRun(Job job, int resultCode) {
+
+    }
 }

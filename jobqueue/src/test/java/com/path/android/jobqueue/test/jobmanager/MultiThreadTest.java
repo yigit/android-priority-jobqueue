@@ -56,6 +56,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             }));
         }
         // wait for some jobs to start
+        //noinspection SLEEP_IN_CODE
         Thread.sleep(1000);
         CancelResult cancelResult = jobManager.cancelJobs(TagConstraint.ALL, cancelTag);
         for (int  i = 0; i < cancelResult.getCancelledJobs().size(); i++) {
@@ -66,12 +67,14 @@ public class MultiThreadTest extends JobManagerTestBase {
         }
         Log.d("TAG", "added all jobs");
         //wait until all jobs are added
+        //noinspection DIRECT_TIME_ACCESS
         long start = System.nanoTime();
         long timeLimit = JobManager.NS_PER_MS * 20000;//20 seconds
+        //noinspection DIRECT_TIME_ACCESS
         while(System.nanoTime() - start < timeLimit && multiThreadedJobCounter.get() != 0) {
+            //noinspection SLEEP_IN_CODE
             Thread.sleep(1000);
         }
-        Log.d("TAG", "did we reach timeout? " + (System.nanoTime() - start >= timeLimit));
 
         MatcherAssert.assertThat("jobmanager count should be 0",
                 jobManager.count(), equalTo(0));
@@ -92,6 +95,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             super.onRun();
             int remaining = multiThreadedJobCounter.decrementAndGet();
             //take some time
+            //noinspection SLEEP_IN_CODE
             Thread.sleep((long) (Math.random() * 1000));
             //throw exception w/ small chance
             if(Math.random() < .1) {
@@ -106,4 +110,9 @@ public class MultiThreadTest extends JobManagerTestBase {
             return true;
         }
     };
+
+    @Override
+    protected boolean canUseRealTimer() {
+        return true;
+    }
 }

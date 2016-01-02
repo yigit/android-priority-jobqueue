@@ -50,9 +50,9 @@ public class CancelFailingJobsTest extends JobManagerTestBase {
     public void testCancelWithoutNetwork(boolean async, TagConstraint constraint)
             throws InterruptedException {
         final int jobCount = 30;
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-                .minConsumerCount(5)
-                .networkUtil(networkUtil));
+        JobManager jobManager = createJobManager(
+                new Configuration.Builder(RuntimeEnvironment.application)
+                    .minConsumerCount(5).networkUtil(networkUtil).timer(mockTimer));
         networkUtil.setHasNetwork(false, true);
         for (int i = 0; i < jobCount; i ++) {
             jobManager.addJob(new FailingJob(new Params(i).groupBy("group").addTags("tag")));
@@ -157,6 +157,7 @@ public class CancelFailingJobsTest extends JobManagerTestBase {
         public void onRun() throws Throwable {
             super.onRun();
             if (!networkUtil.isConnected()) {
+                //noinspection SLEEP_IN_CODE
                 Thread.sleep(getCurrentRunCount() * 200);
                 throw new RuntimeException("I'm bad, i crash!");
             }
@@ -174,6 +175,7 @@ public class CancelFailingJobsTest extends JobManagerTestBase {
         public void onRun() throws Throwable {
             super.onRun();
             if (!networkUtil.isConnected()) {
+                //noinspection SLEEP_IN_CODE
                 Thread.sleep(getCurrentRunCount() * 200);
                 throw new RuntimeException("I'm bad, i crash!");
             }

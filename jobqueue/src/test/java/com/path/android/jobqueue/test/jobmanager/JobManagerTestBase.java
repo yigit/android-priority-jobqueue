@@ -1,21 +1,31 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import android.content.Context;
+
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
+import com.path.android.jobqueue.test.timer.MockTimer;
+import com.path.android.jobqueue.timer.Timer;
+
 import org.fest.reflect.core.*;
-import org.fest.reflect.method.*;
+
 import static org.hamcrest.CoreMatchers.*;
+
+import org.fest.reflect.method.Invoker;
 import org.hamcrest.*;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 import org.robolectric.*;
 
 import java.util.ArrayList;
@@ -23,42 +33,41 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class JobManagerTestBase extends TestBase {
     List<JobManager> createdJobManagers = new ArrayList<JobManager>();
+    final MockTimer mockTimer = new MockTimer();
+    @Rule public TestName name = new TestName();
     protected JobManager createJobManager() {
-        final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
-                UUID.randomUUID().toString());
+        final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+            .timer(mockTimer)
+            .inTestMode());
         createdJobManagers.add(jobManager);
         return jobManager;
     }
 
-    public void busyDrain(JobManager jobManager, int limitInSeconds) throws InterruptedException {
-        int totalSleep = 0;
-        while (jobManager.count() > 0 && limitInSeconds * 1000 > totalSleep) {
-            Thread.sleep(100);
-            totalSleep += 100;
-        }
-        jobManager.stopAndWaitUntilConsumersAreFinished();
-        Assert.assertThat(limitInSeconds * 1000 > totalSleep, is(true));
-    }
-
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
         final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
-                configurationBuilder.id(UUID.randomUUID().toString()).build());
+                configurationBuilder.inTestMode().id(UUID.randomUUID().toString()).build());
         createdJobManagers.add(jobManager);
+        if ((getTimer(jobManager).get() != mockTimer) && !canUseRealTimer()) {
+            throw new IllegalArgumentException("must use mock timer");
+        }
         return jobManager;
     }
 
     @After
     public void tearDown() throws InterruptedException {
+        System.out.println("tear down " + name.getMethodName() + "/" + getClass().getSimpleName());
         for (JobManager jobManager : createdJobManagers) {
             NeverEndingDummyJob.unlockAll();
             jobManager.stopAndWaitUntilConsumersAreFinished();
             jobManager.clear();
         }
+        System.out.println("finished tear down of " + name.getMethodName() + "/" + getClass().getSimpleName());
     }
 
     protected static class DummyTwoLatchJob extends DummyJob {
@@ -181,6 +190,10 @@ public class JobManagerTestBase extends TestBase {
         return Reflection.method("getNextJob").withReturnType(JobHolder.class).in(jobManager);
     }
 
+    protected org.fest.reflect.field.Invoker<Timer> getTimer(JobManager jobManager) {
+        return Reflection.field("timer").ofType(Timer.class).in(jobManager);
+    }
+
     protected Invoker<Void> getRemoveJobMethod(JobManager jobManager) {
         return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
     }
@@ -223,5 +236,34 @@ public class JobManagerTestBase extends TestBase {
                 }
             }
         }
+    }
+
+    protected boolean canUseRealTimer() {
+        return false;
+    }
+
+    protected void waitUntilAJobIsDone(final JobManager jobManager, final WaitUntilCallback callback) throws InterruptedException {
+        final CountDownLatch runJob = new CountDownLatch(1);
+        jobManager.addCallback(new JobManagerCallbackAdapter() {
+            @Override
+            public void onDone(Job job) {
+                synchronized (this) {
+                    super.onDone(job);
+                    if (callback != null) {
+                        callback.assertJob(job);
+                    }
+                    runJob.countDown();
+                    jobManager.removeCallback(this);
+                }
+            }
+        });
+        if (callback != null) {
+            callback.run();
+        }
+        MatcherAssert.assertThat("The job should be done", runJob.await(1, TimeUnit.MINUTES), is(true));
+    }
+    protected interface WaitUntilCallback {
+        void run();
+        void assertJob(Job job);
     }
 }

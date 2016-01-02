@@ -65,7 +65,7 @@ public class JobHolder {
      * @param delayUntilNs     System.nanotime value where job can be run the very first time
      * @param runningSessionId
      */
-    public JobHolder(Long id, int priority, String groupId, int runCount, Job job, long createdNs, long delayUntilNs, long runningSessionId) {
+    private JobHolder(Long id, int priority, String groupId, int runCount, Job job, long createdNs, long delayUntilNs, long runningSessionId) {
         this.id = id;
         this.priority = priority;
         this.groupId = groupId;
@@ -77,14 +77,6 @@ public class JobHolder {
         this.runningSessionId = runningSessionId;
         this.requiresNetwork = job.requiresNetwork();
         this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
-    }
-
-    public JobHolder(int priority, Job job, long runningSessionId) {
-        this(null, priority, null, 0, job, System.nanoTime(), Long.MIN_VALUE, runningSessionId);
-    }
-
-    public JobHolder(int priority, Job job, long delayUntilNs, long runningSessionId) {
-        this(null, priority, job.getRunGroupId(), 0, job, System.nanoTime(), delayUntilNs, runningSessionId);
     }
 
     /**
@@ -205,5 +197,71 @@ public class JobHolder {
 
     public synchronized boolean isSuccessful() {
         return successful;
+    }
+
+    public static class Builder {
+        private Long id;
+        private int priority;
+        private String groupId;
+        private int runCount;
+        private Job job;
+        private long createdNs;
+        private long delayUntilNs = JobManager.NOT_DELAYED_JOB_DELAY;
+        private long runningSessionId;
+        private int providedFlags = 0;
+        private static final int FLAG_SESSION_ID = 1;
+        private static final int FLAG_PRIORITY = 1 << 1;
+        private static final int FLAG_CREATED_AT = 1 << 2;
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
+        public Builder priority(int priority) {
+            this.priority = priority;
+            providedFlags |= FLAG_PRIORITY;
+            return this;
+        }
+        public Builder groupId(String groupId) {
+            this.groupId = groupId;
+            return this;
+        }
+        public Builder runCount(int runCount) {
+            this.runCount = runCount;
+            return this;
+        }
+        public Builder job(Job job) {
+            this.job = job;
+            return this;
+        }
+        public Builder createdNs(long createdNs) {
+            this.createdNs = createdNs;
+            providedFlags |= FLAG_CREATED_AT;
+            return this;
+        }
+        public Builder delayUntilNs(long delayUntilNs) {
+            this.delayUntilNs = delayUntilNs;
+            return this;
+        }
+        public Builder runningSessionId(long runningSessionId) {
+            this.runningSessionId = runningSessionId;
+            providedFlags |= FLAG_SESSION_ID;
+            return this;
+        }
+        public JobHolder build() {
+            if (job == null) {
+                throw new IllegalArgumentException("must provide a job");
+            }
+            if ((providedFlags & FLAG_PRIORITY) == 0) {
+                throw new IllegalArgumentException("must provide a priority");
+            }
+            if ((providedFlags & FLAG_SESSION_ID) == 0) {
+                throw new IllegalArgumentException("must provide a session id");
+            }
+            if ((providedFlags & FLAG_CREATED_AT) == 0) {
+                throw new IllegalArgumentException("must provide a created timestamp");
+            }
+            return new JobHolder(id, priority, groupId, runCount, job, createdNs, delayUntilNs,
+                    runningSessionId);
+        }
     }
 }
