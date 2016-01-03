@@ -9,6 +9,8 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.birbit.android.jobqueue.JobManager2;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.examples.twitter.activities.BaseActivity;
 import com.path.android.jobqueue.examples.twitter.adapters.LazyListAdapter;
@@ -27,7 +29,7 @@ import de.greenrobot.event.EventBus;
 public class SampleTwitterClient extends BaseActivity {
     private TweetAdapter tweetAdapter;
     private boolean dataDirty = true;
-    JobManager jobManager;
+    JobManager2 jobManager;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

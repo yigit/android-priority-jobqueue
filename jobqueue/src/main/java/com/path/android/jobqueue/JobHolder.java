@@ -1,5 +1,7 @@
 package com.path.android.jobqueue;
 
+import android.content.Context;
+
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.Collections;
@@ -109,7 +111,7 @@ public class JobHolder {
         this.job.priority = this.priority;
     }
 
-    void setDelayUntilNs(long delayUntilNs) {
+    public void setDelayUntilNs(long delayUntilNs) {
         this.delayUntilNs = delayUntilNs;
     }
 
@@ -197,6 +199,18 @@ public class JobHolder {
 
     public synchronized boolean isSuccessful() {
         return successful;
+    }
+
+    public void setApplicationContext(Context applicationContext) {
+        this.job.setApplicationContext(applicationContext);
+    }
+
+    public void onCancel() {
+        job.onCancel();
+    }
+
+    public RetryConstraint getRetryConstraint() {
+        return job.retryConstraint;
     }
 
     public static class Builder {

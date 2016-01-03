@@ -31,6 +31,7 @@ public class Configuration {
     private int minConsumerCount = MIN_CONSUMER_COUNT;
     private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
     private int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;
+    private Context appContext;
     private QueueFactory queueFactory;
     private DependencyInjector dependencyInjector;
     private NetworkUtil networkUtil;
@@ -40,6 +41,10 @@ public class Configuration {
 
     private Configuration(){
         //use builder instead
+    }
+
+    public Context getAppContext() {
+        return appContext;
     }
 
     public String getId() {
@@ -88,11 +93,10 @@ public class Configuration {
 
     public static final class Builder {
         private Configuration configuration;
-        private Context appContext;
 
         public Builder(Context context) {
             this.configuration = new Configuration();
-            appContext = context.getApplicationContext();
+            this.configuration.appContext = context.getApplicationContext();
         }
 
         /**
@@ -229,7 +233,7 @@ public class Configuration {
                 configuration.queueFactory = new JobManager.DefaultQueueFactory();
             }
             if(configuration.networkUtil == null) {
-                configuration.networkUtil = new NetworkUtilImpl(appContext);
+                configuration.networkUtil = new NetworkUtilImpl(configuration.appContext);
             }
             if (configuration.timer == null) {
                 configuration.timer = new SystemTimer();

@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Base class for all of your jobs.
@@ -19,7 +20,7 @@ import java.util.Set;
 abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     public static final int DEFAULT_RETRY_LIMIT = 20;
-
+    private final String uuid = UUID.randomUUID().toString();
     private boolean requiresNetwork;
     private String groupId;
     private boolean persistent;
@@ -46,6 +47,10 @@ abstract public class Job implements Serializable {
         this.delayInMs = params.getDelayMs();
         final Set<String> tags = params.getTags();
         this.readonlyTags = tags == null ? null : Collections.unmodifiableSet(tags);
+    }
+
+    public String getUuid() {
+        return uuid;
     }
 
     /**

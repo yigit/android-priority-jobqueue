@@ -2,13 +2,15 @@ package com.path.android.jobqueue.examples.twitter;
 
 import android.app.Application;
 import android.util.Log;
+
+import com.birbit.android.jobqueue.JobManager2;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.CustomLogger;
 
 public class TwitterApplication extends Application {
     private static TwitterApplication instance;
-    private JobManager jobManager;
+    private JobManager2 jobManager;
 
     public TwitterApplication() {
         instance = this;
@@ -50,10 +52,10 @@ public class TwitterApplication extends Application {
         .loadFactor(3)//3 jobs per consumer
         .consumerKeepAlive(120)//wait 2 minute
         .build();
-        jobManager = new JobManager(this, configuration);
+        jobManager = new JobManager2(configuration);
     }
 
-    public JobManager getJobManager() {
+    public JobManager2 getJobManager() {
         return jobManager;
     }
 
