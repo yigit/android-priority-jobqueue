@@ -24,4 +24,9 @@ public class CommandMessage extends Message {
     public void set(int what) {
         this.what = what;
     }
+
+    @Override
+    public String toString() {
+        return "Command[" + what + "]";
+    }
 }

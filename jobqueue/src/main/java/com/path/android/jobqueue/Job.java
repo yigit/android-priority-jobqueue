@@ -20,7 +20,7 @@ import java.util.UUID;
 abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     public static final int DEFAULT_RETRY_LIMIT = 20;
-    private final String uuid = UUID.randomUUID().toString();
+    private String uuid = UUID.randomUUID().toString();
     private boolean requiresNetwork;
     private String groupId;
     private boolean persistent;
@@ -89,6 +89,7 @@ abstract public class Job implements Serializable {
                 oos.writeUTF(tag);
             }
         }
+        oos.writeUTF(uuid);
     }
 
 
@@ -102,6 +103,11 @@ abstract public class Job implements Serializable {
             for (int i = 0; i < tagCount; i ++) {
                 readonlyTags.add(ois.readUTF());
             }
+        }
+        if (ois.available() > 0) {
+            uuid = ois.readUTF();
+        } else {
+            uuid = UUID.randomUUID().toString();
         }
     }
 

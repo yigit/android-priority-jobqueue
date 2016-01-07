@@ -207,31 +207,7 @@ public class JobConsumerExecutor {
     }
 
     private boolean doesHolderMatchTags(JobHolder holder, TagConstraint constraint, String[] tags) {
-        if (constraint == TagConstraint.ANY) {
-            for (String tag : holder.getTags()) {
-                if (contains(tags, tag)) {
-                    return true;
-                }
-            }
-            return false;
-        } else {
-            final Set<String> holderTags = holder.getTags();
-            for (String tag : tags) {
-                if (!holderTags.contains(tag)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    private boolean contains(String[] arr, String val) {
-        for (int i = 0; i < arr.length; i ++) {
-            if (val.equals(arr[i])) {
-                return true;
-            }
-        }
-        return false;
+        return constraint.matches(tags, holder.getTags());
     }
 
     public void waitUntilAllConsumersAreFinished() throws InterruptedException {

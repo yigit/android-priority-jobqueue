@@ -8,5 +8,5 @@ import android.app.Activity;
  * anonymous class inside an {@link Activity} context, it may leak the activity until the job is added.
  */
 public interface AsyncAddCallback {
-    public void onAdded(long jobId);
+    public void onAdded();
 }

@@ -3,7 +3,6 @@ package com.birbit.android.jobqueue.messaging.message;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
 import com.path.android.jobqueue.Job;
-import com.path.android.jobqueue.JobHolder;
 
 /**
  * Used for external callbacks to user code
@@ -18,31 +17,31 @@ public class CallbackMessage extends Message {
     private int what;
     private int resultCode;
     private boolean byUserRequest;
-    private JobHolder jobHolder;
+    private Job job;
     public CallbackMessage() {
         super(Type.CALLBACK);
     }
 
     @Override
     protected void onRecycled() {
-        jobHolder = null;
+        job = null;
     }
 
-    public void set(JobHolder jobHolder, int what) {
+    public void set(Job job, int what) {
         this.what = what;
-        this.jobHolder = jobHolder;
+        this.job = job;
     }
 
-    public void set(JobHolder jobHolder, int what, int resultCode) {
+    public void set(Job job, int what, int resultCode) {
         this.what = what;
         this.resultCode = resultCode;
-        this.jobHolder = jobHolder;
+        this.job = job;
     }
 
-    public void set(JobHolder jobHolder, int what, boolean byUserRequest) {
+    public void set(Job job, int what, boolean byUserRequest) {
         this.what = what;
         this.byUserRequest = byUserRequest;
-        this.jobHolder = jobHolder;
+        this.job = job;
     }
 
     public int getWhat() {
@@ -57,7 +56,7 @@ public class CallbackMessage extends Message {
         return byUserRequest;
     }
 
-    public JobHolder getJobHolder() {
-        return jobHolder;
+    public Job getJob() {
+        return job;
     }
 }

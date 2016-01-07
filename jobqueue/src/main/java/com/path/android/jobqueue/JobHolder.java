@@ -86,7 +86,7 @@ public class JobHolder {
      * @param currentRunCount
      * @return RUN_RESULT*
      */
-    public final int safeRun(int currentRunCount) {
+    public int safeRun(int currentRunCount) {
         return job.safeRun(this, currentRunCount);
     }
 

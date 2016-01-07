@@ -152,6 +152,7 @@ public class RetryLogicTest extends JobManagerTestBase {
                     int maxRunCount) {
                 RetryConstraint constraint = new RetryConstraint(true);
                 constraint.setNewDelayInMs(2000L);
+                JqLog.d("setting new delay in mS to %s. now is %s. job is %s", 2000, mockTimer.nanoTime(), ((RetryJob)job).identifier);
                 constraint.setApplyNewDelayToGroup(true);
                 return constraint;
             }
@@ -220,8 +221,10 @@ public class RetryLogicTest extends JobManagerTestBase {
                                 assertThat("no jobs should be ready", jobManager.countReadyJobs(), is(0));
                                 jobsCanRun.release();
                                 mockTimer.incrementMs(2);
-                                assertThat("some jobs should be ready " + jobRunLatch.getCount()
-                                        , jobManager.countReadyJobs() > 0, is(true));
+                                // constraint change will be handled first and a job should start
+                                // running immediately
+                                assertThat("no jobs should be ready " + jobRunLatch.getCount()
+                                        , jobManager.countReadyJobs(), is(0));
                             }
                         }
                     } catch (Throwable t) {

@@ -14,7 +14,6 @@ import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.timer.MockTimer;
-import com.path.android.jobqueue.timer.Timer;
 
 import org.fest.reflect.core.*;
 
@@ -23,7 +22,7 @@ import static org.hamcrest.CoreMatchers.*;
 import org.fest.reflect.method.Invoker;
 import org.hamcrest.*;
 import org.junit.After;
-import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.robolectric.*;
@@ -41,6 +40,12 @@ public class JobManagerTestBase extends TestBase {
     List<JobManager> createdJobManagers = new ArrayList<JobManager>();
     final MockTimer mockTimer = new MockTimer();
     @Rule public TestName name = new TestName();
+
+    @Before
+    public void logInfo() {
+        System.out.println("started test " + name.getMethodName() + "/" + getClass().getSimpleName());
+    }
+
     protected JobManager createJobManager() {
         final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
             .timer(mockTimer)
@@ -50,12 +55,15 @@ public class JobManagerTestBase extends TestBase {
     }
 
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
-        final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
-                configurationBuilder.inTestMode().id(UUID.randomUUID().toString()).build());
-        createdJobManagers.add(jobManager);
-        if ((getTimer(jobManager).get() != mockTimer) && !canUseRealTimer()) {
+        Configuration config = configurationBuilder.inTestMode().id(UUID.randomUUID().toString())
+                .build();
+        if (config.timer() != mockTimer && !canUseRealTimer()) {
             throw new IllegalArgumentException("must use mock timer");
         }
+        final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
+                config);
+        createdJobManagers.add(jobManager);
+
         return jobManager;
     }
 
@@ -64,8 +72,7 @@ public class JobManagerTestBase extends TestBase {
         System.out.println("tear down " + name.getMethodName() + "/" + getClass().getSimpleName());
         for (JobManager jobManager : createdJobManagers) {
             NeverEndingDummyJob.unlockAll();
-            jobManager.stopAndWaitUntilConsumersAreFinished();
-            jobManager.clear();
+            jobManager.destroy();
         }
         System.out.println("finished tear down of " + name.getMethodName() + "/" + getClass().getSimpleName());
     }
@@ -188,10 +195,6 @@ public class JobManagerTestBase extends TestBase {
 
     protected Invoker<JobHolder> getNextJobMethod(JobManager jobManager) {
         return Reflection.method("getNextJob").withReturnType(JobHolder.class).in(jobManager);
-    }
-
-    protected org.fest.reflect.field.Invoker<Timer> getTimer(JobManager jobManager) {
-        return Reflection.field("timer").ofType(Timer.class).in(jobManager);
     }
 
     protected Invoker<Void> getRemoveJobMethod(JobManager jobManager) {

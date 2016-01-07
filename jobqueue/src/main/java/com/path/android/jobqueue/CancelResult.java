@@ -24,6 +24,11 @@ public class CancelResult {
         this.failedToCancel = new HashSet<Job>();
     }
 
+    public CancelResult(Collection<Job> cancelledJobs, Collection<Job> failedToCancel) {
+        this.cancelledJobs = cancelledJobs;
+        this.failedToCancel = failedToCancel;
+    }
+
     /**
      * @return The list of jobs that are cancelled before they did run
      */

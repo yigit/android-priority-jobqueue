@@ -28,6 +28,7 @@ public class CallbackTest extends JobManagerTestBase {
     public void successNonPersistent() throws Throwable {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final Job job = mock(Job.class);
+        doReturn("a").when(job).getUuid();
         doNothing().when(job).onAdded();
         doNothing().when(job).onRun();
         final JobManager jobManager = createJobManager();
@@ -54,6 +55,7 @@ public class CallbackTest extends JobManagerTestBase {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final PublicJob job = mock(PublicJob.class);
         doNothing().when(job).onAdded();
+        doReturn("a").when(job).getUuid();
         doThrow(new Exception()).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
         doReturn(RetryConstraint.RETRY).when(job).shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());
@@ -82,6 +84,7 @@ public class CallbackTest extends JobManagerTestBase {
     public void cancelViaShouldReRun() throws Throwable {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final PublicJob job = mock(PublicJob.class);
+        doReturn("a").when(job).getUuid();
         doNothing().when(job).onAdded();
         doThrow(new Exception()).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
@@ -118,6 +121,7 @@ public class CallbackTest extends JobManagerTestBase {
                 throw new Exception("blah");
             }
         });
+        doReturn("a").when(job).getUuid();
         doCallRealMethod().when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
         verify(job, times(0)).shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());

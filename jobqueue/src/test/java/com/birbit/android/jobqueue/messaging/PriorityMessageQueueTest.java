@@ -2,6 +2,7 @@ package com.birbit.android.jobqueue.messaging;
 
 import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
+import com.path.android.jobqueue.test.timer.MockTimer;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,7 +16,7 @@ import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(JUnit4.class)
 public class PriorityMessageQueueTest {
-    PriorityMessageQueue mq = new PriorityMessageQueue();
+    PriorityMessageQueue mq = new PriorityMessageQueue(new MockTimer());
 
     @Test
     public void test1() {

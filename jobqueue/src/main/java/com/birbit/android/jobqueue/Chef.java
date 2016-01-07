@@ -7,13 +7,16 @@ import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
 import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
 import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
-import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
+import com.birbit.android.jobqueue.messaging.message.CancelMessage;
+import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
+import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.JobStatus;
 import com.path.android.jobqueue.RetryConstraint;
 import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.config.Configuration;
@@ -24,25 +27,29 @@ import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqlHelper;
 import com.path.android.jobqueue.timer.Timer;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 class Chef implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
+    public static final long NETWORK_CHECK_INTERVAL = TimeUnit.MILLISECONDS.toNanos(10000);
 
     private final Timer timer;
     private final Context appContext;
     private final long sessionId;
-    private final JobQueue persistentJobQueue;
-    private final JobQueue nonPersistentJobQueue;
+    final JobQueue persistentJobQueue;
+    final JobQueue nonPersistentJobQueue;
     private final NetworkUtil networkUtil;
     private final DependencyInjector dependencyInjector;
     private final MessageFactory messageFactory;
-    private final ConsumerController consumerController;
+    final ConsumerController consumerController;
+    private List<CancelHandler> pendingCancelHandlers;
 
-    private final CallbackManager callbackManager;
+    final CallbackManager callbackManager;
 
     private boolean running = true;
 
@@ -69,7 +76,8 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
             ((NetworkEventProvider) networkUtil).setListener(this);
         }
         consumerController = new ConsumerController(this, timer, messageFactory, config);
-        callbackManager = new CallbackManager(messageFactory);
+        callbackManager = new CallbackManager(messageFactory, timer);
+        consumerController.handleConstraintChange();
     }
 
     void addCallback(JobManagerCallback callback) {
@@ -114,7 +122,7 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
         } catch (Throwable t) {
             JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
         }
-        callbackManager.notifyOnAdded(jobHolder);
+        callbackManager.notifyOnAdded(jobHolder.getJob());
         consumerController.onJobAdded();
     }
 
@@ -136,20 +144,127 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
                     case CONSTRAINT_CHANGE:
                         consumerController.handleConstraintChange();
                         break;
+                    case CANCEL:
+                        handleCancel((CancelMessage) message);
+                        break;
+                    case PUBLIC_QUERY:
+                        handlePublicQuery((PublicQueryMessage) message);
+                        break;
+                    case COMMAND:
+                        handleCommand((CommandMessage) message);
+                        break;
                 }
             }
 
             @Override
             public void onIdle() {
-
+                JqLog.d("joq idle. running:? %s", running);
+                if (!running) {
+                    return;
+                }
+                Long nextJobTimeNs = getNextWakeUpNs();
+                JqLog.d("Job queue idle. next job at: %s", nextJobTimeNs);
+                if (nextJobTimeNs != null) {
+                    long waitInNs = nextJobTimeNs - timer.nanoTime();
+                    ConstraintChangeMessage constraintMessage = messageFactory.obtain(ConstraintChangeMessage.class);
+                    if (waitInNs > 0) {
+                        messageQueue.postAt(constraintMessage, nextJobTimeNs);
+                        JqLog.d("wake up jobque at %s", nextJobTimeNs);
+                    }
+                }
             }
         });
+    }
+
+    private void handleCommand(CommandMessage message) {
+        if (message.getWhat() == CommandMessage.QUIT) {
+            messageQueue.stop();
+        }
+    }
+
+    int count() {
+        return persistentJobQueue.count() + nonPersistentJobQueue.count();
+    }
+
+    private void handlePublicQuery(PublicQueryMessage message) {
+        switch (message.getWhat()) {
+            case PublicQueryMessage.COUNT:
+                message.getCallback().onResult(count());
+                break;
+            case PublicQueryMessage.COUNT_READY:
+                message.getCallback().onResult(countReadyJobs(hasNetwork()));
+                break;
+            case PublicQueryMessage.START:
+                if (running) {
+                    return;
+                }
+                running = true;
+                consumerController.handleConstraintChange();
+                break;
+            case PublicQueryMessage.STOP:
+                JqLog.d("handling stop request...");
+                running = false;
+                consumerController.handleStop();
+                break;
+            case PublicQueryMessage.JOB_STATUS:
+                JobStatus status = getJobStatus(message.getLongArg(), message.getBooleanArg());
+                message.getCallback().onResult(status.ordinal());
+                break;
+            case PublicQueryMessage.CLEAR:
+                clear();
+                if (message.getCallback() != null) {
+                    message.getCallback().onResult(0);
+                }
+                break;
+        }
+    }
+
+    private void clear() {
+        nonPersistentJobQueue.clear();
+        persistentJobQueue.clear();
+    }
+
+    private JobStatus getJobStatus(long id, boolean isPersistent) {
+        if (consumerController.isJobRunning(id, isPersistent)) {
+            return JobStatus.RUNNING;
+        }
+        JobHolder holder;
+        if(isPersistent) {
+            holder = persistentJobQueue.findJobById(id);
+        } else {
+            holder = nonPersistentJobQueue.findJobById(id);
+        }
+        if(holder == null) {
+            return JobStatus.UNKNOWN;
+        }
+        boolean network = hasNetwork();
+        if(holder.requiresNetwork() && !network) {
+            return JobStatus.WAITING_NOT_READY;
+        }
+        if(holder.getDelayUntilNs() > timer.nanoTime()) {
+            return JobStatus.WAITING_NOT_READY;
+        }
+        return JobStatus.WAITING_READY;
+    }
+
+    private void handleCancel(CancelMessage message) {
+        CancelHandler handler = new CancelHandler(message.getConstraint(), message.getTags(),
+                message.getCallback());
+        handler.query(this, consumerController);
+        if (handler.isDone()) {
+            handler.commit(this);
+        } else {
+            if (pendingCancelHandlers == null) {
+                pendingCancelHandlers = new ArrayList<>();
+            }
+            pendingCancelHandlers.add(handler);
+        }
     }
 
     private void handleRunJobResult(RunJobResultMessage message) {
         final int result = message.getResult();
         final JobHolder jobHolder = message.getJobHolder();
-        callbackManager.notifyOnRun(jobHolder, result);
+        callbackManager.notifyOnRun(jobHolder.getJob(), result);
         RetryConstraint retryConstraint = null;
         switch (result) {
             case JobHolder.RUN_RESULT_SUCCESS:
@@ -163,7 +278,7 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
                 } catch (Throwable t) {
                     JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
                 }
-                callbackManager.notifyOnCancel(jobHolder, false);
+                callbackManager.notifyOnCancel(jobHolder.getJob(), false);
                 removeJob(jobHolder);
                 break;
             case JobHolder.RUN_RESULT_TRY_AGAIN:
@@ -176,8 +291,21 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
                         + "JobManager");
                 break;
         }
-        consumerController.handleRunJobResult(jobHolder, retryConstraint);
-        callbackManager.notifyAfterRun(jobHolder, result);
+        consumerController.handleRunJobResult(message, jobHolder, retryConstraint);
+        callbackManager.notifyAfterRun(jobHolder.getJob(), result);
+        if (pendingCancelHandlers != null) {
+            int limit = pendingCancelHandlers.size();
+            for (int i = 0; i < limit; i ++) {
+                CancelHandler handler = pendingCancelHandlers.get(i);
+                handler.onJobRun(jobHolder, result);
+                if (handler.isDone()) {
+                    handler.commit(this);
+                    pendingCancelHandlers.remove(i);
+                    i--;
+                    limit--;
+                }
+            }
+        }
     }
 
     private void insertOrReplace(JobHolder jobHolder) {
@@ -217,7 +345,7 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
         } else {
             nonPersistentJobQueue.remove(jobHolder);
         }
-        callbackManager.notifyOnDone(jobHolder);
+        callbackManager.notifyOnDone(jobHolder.getJob());
     }
 
     @Override
@@ -227,7 +355,7 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
         messageQueue.post(constraint);
     }
 
-    public boolean isRunning() {
+    boolean isRunning() {
         return running;
     }
 
@@ -246,6 +374,30 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
 
     private boolean hasNetwork() {
         return networkUtil == null || networkUtil.isConnected(appContext);
+    }
+
+    Long getNextWakeUpNs() {
+        final Long groupDelay = consumerController.runningJobGroups.getNextDelayForGroups();
+        final boolean hasNetwork = hasNetwork();
+        final Collection<String> groups = consumerController.runningJobGroups.getSafe();
+        final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork, groups);
+        final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork, groups);
+        Long delay = null;
+        if (groupDelay != null) {
+            delay = groupDelay;
+        }
+        if (nonPersistent != null) {
+            delay = delay == null ? nonPersistent : Math.min(nonPersistent, delay);
+        }
+        if (persistent != null) {
+            delay = delay == null ? persistent : Math.min(persistent, delay);
+        }
+        if (!(networkUtil instanceof NetworkEventProvider)) {
+            // if network cannot provide events, we need to wake up :/
+            long checkNetworkAt = timer.nanoTime() + NETWORK_CHECK_INTERVAL;
+            delay = delay == null ? checkNetworkAt : Math.min(checkNetworkAt, delay);
+        }
+        return delay;
     }
 
     JobHolder getNextJob(Collection<String> runningJobGroups) {

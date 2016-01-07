@@ -2,6 +2,7 @@ package com.path.android.jobqueue.test.jobmanager;
 
 import android.util.Log;
 
+import com.birbit.android.jobqueue.JobManager2;
 import com.path.android.jobqueue.CancelResult;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
@@ -31,8 +32,10 @@ public class MultiThreadTest extends JobManagerTestBase {
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
-        final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-            .loadFactor(3).maxConsumerCount(10));
+//        final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+//            .loadFactor(3).maxConsumerCount(10));
+        final JobManager2 jobManager = new JobManager2(new Configuration.Builder(RuntimeEnvironment.application)
+            .loadFactor(3).maxConsumerCount(10).inTestMode().timer(mockTimer).build());
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));
         final String cancelTag = "iWillBeCancelled";
@@ -76,8 +79,7 @@ public class MultiThreadTest extends JobManagerTestBase {
             Thread.sleep(1000);
         }
 
-        MatcherAssert.assertThat("jobmanager count should be 0",
-                jobManager.count(), equalTo(0));
+        MatcherAssert.assertThat("jobmanager count should be 0", jobManager.count(), equalTo(0));
 
         MatcherAssert.assertThat("multiThreadedJobCounter should be 0",
                 multiThreadedJobCounter.get(), equalTo(0));

@@ -49,8 +49,7 @@ public class AddInBackgroundTest extends JobManagerTestBase {
         if(useCallback) {
             jobManager.addJobInBackground(dummyJob, new AsyncAddCallback() {
                 @Override
-                public void onAdded(long id) {
-                    jobId.set(id);
+                public void onAdded() {
                     addedLatch.countDown();
                 }
             });

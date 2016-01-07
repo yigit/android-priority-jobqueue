@@ -72,11 +72,6 @@ public class GroupingTest extends JobManagerTestBase {
             public void onAdded() {
                 super.onAdded();
                 onAddedCalled.countDown();
-                try {
-                    //wait until all other jobs are added
-                    remainingJobsOnAddedCalled.await();
-                } catch (InterruptedException e) {
-                }
             }
 
             @Override

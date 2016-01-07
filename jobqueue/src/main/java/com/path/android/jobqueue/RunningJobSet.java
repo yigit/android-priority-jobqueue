@@ -1,5 +1,6 @@
 package com.path.android.jobqueue;
 
+import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public class RunningJobSet {
     }
 
     public synchronized void addGroupUntil(String group, long until) {
+        JqLog.d("add group delay to %s until %s", group, until);
         Long current = groupDelays.get(group);
         if (current != null) {
              if (current > until) {
@@ -81,12 +83,18 @@ public class RunningJobSet {
     }
 
     public synchronized void add(String group) {
+        if (group == null) {
+            return;
+        }
         if(internalSet.add(group)) {
             publicClone = null;//invalidate
         }
     }
 
     public synchronized void remove(String group) {
+        if (group == null) {
+            return;
+        }
         if(internalSet.remove(group)) {
             publicClone = null;
         }

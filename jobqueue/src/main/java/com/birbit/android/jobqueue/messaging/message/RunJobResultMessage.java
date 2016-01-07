@@ -6,6 +6,7 @@ import com.path.android.jobqueue.JobHolder;
 
 public class RunJobResultMessage extends Message {
     private JobHolder jobHolder;
+    private Object worker;
     private int result;
 
     public RunJobResultMessage() {
@@ -31,5 +32,13 @@ public class RunJobResultMessage extends Message {
 
     public int getResult() {
         return result;
+    }
+
+    public Object getWorker() {
+        return worker;
+    }
+
+    public void setWorker(Object worker) {
+        this.worker = worker;
     }
 }

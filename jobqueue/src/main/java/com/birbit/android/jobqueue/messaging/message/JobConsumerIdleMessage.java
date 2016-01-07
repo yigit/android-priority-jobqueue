@@ -6,7 +6,7 @@ import com.birbit.android.jobqueue.messaging.SafeMessageQueue;
 import com.birbit.android.jobqueue.messaging.Type;
 
 public class JobConsumerIdleMessage extends Message {
-    private SafeMessageQueue consumerQueue;
+    private Object worker;
     private long lastJobCompleted;
 
     public JobConsumerIdleMessage() {
@@ -15,19 +15,19 @@ public class JobConsumerIdleMessage extends Message {
 
     @Override
     protected void onRecycled() {
-        consumerQueue = null;
-    }
-
-    public SafeMessageQueue getConsumerQueue() {
-        return consumerQueue;
+        worker = null;
     }
 
     public long getLastJobCompleted() {
         return lastJobCompleted;
     }
 
-    public void setConsumerQueue(SafeMessageQueue consumerQueue) {
-        this.consumerQueue = consumerQueue;
+    public Object getWorker() {
+        return worker;
+    }
+
+    public void setWorker(Object worker) {
+        this.worker = worker;
     }
 
     public void setLastJobCompleted(long lastJobCompleted) {

@@ -1,7 +1,9 @@
 package com.birbit.android.jobqueue.messaging;
 
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.timer.Timer;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -10,11 +12,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class PriorityMessageQueue implements MessageQueue {
     private final Object LOCK = new Object();
     private final UnsafeMessageQueue[] queues;
+    private final DelayedMessageBag delayedBag;
+    private final Timer timer;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     @SuppressWarnings("unused")
-    public PriorityMessageQueue() {
+    public PriorityMessageQueue(Timer timer) {
+        delayedBag = new DelayedMessageBag();
         queues = new UnsafeMessageQueue[Type.MAX_PRIORITY + 1];
+        this.timer = timer;
     }
 
     public void consume(MessageQueueConsumer consumer) {
@@ -30,13 +36,15 @@ public class PriorityMessageQueue implements MessageQueue {
     public void stop() {
         running.set(false);
         synchronized (LOCK) {
-            LOCK.notifyAll();
+            timer.notifyObject(LOCK);
         }
     }
 
-    private Message next(MessageQueueConsumer consumer) {
+    public Message next(MessageQueueConsumer consumer) {
         synchronized (LOCK) {
             while (true) {
+                long now = timer.nanoTime();
+                long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
                 for (int i = Type.MAX_PRIORITY; i >= 0; i--) {
                     UnsafeMessageQueue mq = queues[i];
                     if (mq == null) {
@@ -47,12 +55,17 @@ public class PriorityMessageQueue implements MessageQueue {
                         return message;
                     }
                 }
+                // this may create too many wake up messages but we can avoid them by simply
+                // clearing delayed messages by a constraint query
                 consumer.onIdle();
+                long waitMs = TimeUnit.NANOSECONDS.toMillis(nextDelayedReadyAt - now);
                 try {
-                    LOCK.wait();
-                } catch (InterruptedException e) {
-                    JqLog.e(e, "PMQ is interrupted");
-                }
+                    if (waitMs > 0) {
+                        timer.waitOnObject(LOCK, waitMs);
+                    } else {
+                        timer.waitOnObject(LOCK);
+                    }
+                }  catch (InterruptedException ignored) {}
             }
         }
     }
@@ -65,7 +78,15 @@ public class PriorityMessageQueue implements MessageQueue {
                 queues[index] = new UnsafeMessageQueue();
             }
             queues[index].post(message);
-            LOCK.notifyAll();
+            timer.notifyObject(LOCK);
+        }
+    }
+
+    @Override
+    public void postAt(Message message, long readyNs) {
+        synchronized (LOCK) {
+            delayedBag.add(message, readyNs);
+            timer.notifyObject(LOCK);
         }
     }
 }

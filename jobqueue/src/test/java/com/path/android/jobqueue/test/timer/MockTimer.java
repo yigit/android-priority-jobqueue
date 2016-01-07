@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.timer;
 
 import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.timer.Timer;
 
 import java.lang.ref.WeakReference;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,7 +22,7 @@ import java.util.concurrent.Executors;
 public class MockTimer implements Timer {
     private long now;
     private volatile Thread incrementThread;
-    private ArrayList<ObjectWait> waitingList = new ArrayList<>();
+    private CopyOnWriteArrayList<ObjectWait> waitingList = new CopyOnWriteArrayList<>();
     private ExecutorService callbackRunner = Executors.newSingleThreadExecutor();
     // MockTimer introduces a potential race condition in waits which may prevent it from stopping
     // properly. To avoid this, it keeps a track of all objects it should notify and notify them
@@ -49,19 +51,17 @@ public class MockTimer implements Timer {
 
     public synchronized void setNow(long now) {
         this.now = now;
+        JqLog.d("set time to %s", now);
         invokeTasks(now);
         notifyObjectWaits(now);
     }
 
     private void notifyObjectWaits(long now) {
-        synchronized (waitingList) {
-            for (int i = waitingList.size() - 1; i >= 0; i --) {
-                ObjectWait objectWait = waitingList.get(i);
-                if (objectWait.timeUntil < now) {
-                    synchronized (objectWait.target) {
-                        waitingList.remove(i);
-                        objectWait.target.notifyAll();
-                    }
+        for (ObjectWait objectWait : waitingList) {
+            if (objectWait.timeUntil < now) {
+                synchronized (objectWait.target) {
+                    waitingList.remove(objectWait);
+                    objectWait.target.notifyAll();
                 }
             }
         }
@@ -106,25 +106,20 @@ public class MockTimer implements Timer {
                 return;
             }
         }
-        synchronized (waitingList) {
-            synchronized (anyObjectToNotify) {
-                anyObjectToNotify.put(object, true);
-            }
-            ObjectWait objectWait = new ObjectWait(object, timeout > 0 ? now + timeout : Long.MAX_VALUE);
-            waitingList.add(objectWait);
+        synchronized (anyObjectToNotify) {
+            anyObjectToNotify.put(object, true);
         }
+        ObjectWait objectWait = new ObjectWait(object, timeout > 0 ? now + timeout : Long.MAX_VALUE);
+        waitingList.add(objectWait);
         object.wait();
     }
 
     @Override
     public void notifyObject(Object object) {
-        synchronized (waitingList) {
-            for (int i = waitingList.size() - 1; i >= 0; i--) {
-                ObjectWait objectWait = waitingList.get(i);
-                if (objectWait.target == object) {
-                    waitingList.remove(i);
-                    object.notifyAll();
-                }
+        for (ObjectWait objectWait : waitingList) {
+            if (objectWait.target == object) {
+                waitingList.remove(objectWait);
+                object.notifyAll();
             }
         }
     }

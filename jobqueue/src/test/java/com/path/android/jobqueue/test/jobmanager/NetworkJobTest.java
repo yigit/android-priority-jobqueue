@@ -75,6 +75,7 @@ public class NetworkJobTest extends JobManagerTestBase {
             }
         });
         dummyNetworkUtil.setHasNetwork(true);
+        mockTimer.incrementMs(10000); // network check delay, make public?
         networkLatch.await(1, TimeUnit.MINUTES);
         MatcherAssert.assertThat("when network is recovered, all network jobs should be automatically consumed", jobManager.count(), equalTo(0));
     }

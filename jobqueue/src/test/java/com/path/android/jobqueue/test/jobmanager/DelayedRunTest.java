@@ -79,17 +79,17 @@ public class DelayedRunTest extends JobManagerTestBase {
             @Override
             public void onJobRun(Job job, int resultCode) {
                 super.onJobRun(job, resultCode);
-                System.out.println("CB job run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime() + " , " + jobManager.isRunning());
+                System.out.println("CB job run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime());
             }
 
             @Override
             public void onDone(Job job) {
-                System.out.println("CB job done " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime() + " , " + jobManager.isRunning());
+                System.out.println("CB job done " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime());
             }
 
             @Override
             public void onAfterJobRun(Job job, int resultCode) {
-                System.out.println("CB job after run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime() + " , " + jobManager.isRunning());
+                System.out.println("CB job after run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime());
             }
         });
         final DummyJob delayedJob = new DummyJob(new Params(10).delayInMs(2000).setPersistent(persist).addTags("delayed"));
@@ -108,11 +108,12 @@ public class DelayedRunTest extends JobManagerTestBase {
         });
         MatcherAssert.assertThat("there should be 1 delayed job waiting to be run", jobManager.count(), equalTo(1));
         if(tryToStop) {//see issue #11
-            jobManager.stop();
+            jobManager.stopAndWaitUntilConsumersAreFinished();
             mockTimer.incrementMs(3000);
             if (jobManager.count() != 1) {
                 System.out.println("wtf");
             }
+            jobManager.start();
             MatcherAssert.assertThat("there should still be 1 delayed job waiting to be run when job manager is stopped",
                     jobManager.count(), equalTo(1));
             waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
