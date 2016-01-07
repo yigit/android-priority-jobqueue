@@ -15,4 +15,6 @@ addons:
   paths:
       - $(ls jobqueue/build/outputs/* | tr "\n" ":")
       - $(ls jobqueue/build/reports/* | tr "\n" ":")
-
+branches:
+  except:
+    - message-queue
