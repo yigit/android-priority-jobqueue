@@ -20,14 +20,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(Parameterized.class)
-
-public class DelayedMessageBagTest {
+public class DelayedMessageBagAddTest {
     DelayedMessageBag bag = new DelayedMessageBag();
     MessageFactory factory = new MessageFactory();
     List<Long> ordered;
     Map<Long, Message> added = new HashMap<>();
 
-    public DelayedMessageBagTest(List<Long> ordered) {
+    public DelayedMessageBagAddTest(List<Long> ordered) {
         this.ordered = ordered;
     }
 
@@ -54,6 +53,7 @@ public class DelayedMessageBagTest {
         }
         return result;
     }
+
     @Test
     public void testAddOrdered() {
         for (Long readyNs : ordered) {

@@ -41,6 +41,33 @@ class UnsafeMessageQueue {
         queue = message;
     }
 
+    protected void removeMessages(MessagePredicate predicate) {
+        Message prev = null;
+        Message curr = queue;
+        while (curr != null) {
+            final boolean remove = predicate.onMessage(curr);
+            if (remove) {
+                final Message next = curr.next;
+                remove(prev, curr);
+                curr = next;
+            } else {
+                prev = curr;
+                curr = curr.next;
+            }
+        }
+    }
+
+    private void remove(Message prev, Message curr) {
+        if (tail == curr) {
+            tail = prev;
+        }
+        if (prev == null) {
+            queue = curr.next;
+        } else {
+            prev.next = curr.next;
+        }
+    }
+
     public void clear() {
         queue = tail = null;
     }

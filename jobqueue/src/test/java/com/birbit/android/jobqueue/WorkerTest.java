@@ -6,6 +6,7 @@ import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
 import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
 import com.birbit.android.jobqueue.messaging.SafeMessageQueue;
+import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
@@ -20,6 +21,8 @@ import org.junit.runners.JUnit4;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,5 +84,32 @@ public class WorkerTest {
         assertThat(result.getResult(), CoreMatchers.is(JobHolder.RUN_RESULT_SUCCESS));
         assertThat(result.getJobHolder(), CoreMatchers.is(mockHolder));
         assertThat(worker.lastJobCompleted, CoreMatchers.is(3001L));
+    }
+
+    @Test
+    public void removePokesAfterJobTest() {
+        PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
+        SafeMessageQueue mq = spy(new SafeMessageQueue(timer));
+        timer.setNow(2001);
+        Worker worker = new ConsumerController.Worker(pmq, mq, factory, timer);
+        RunJobMessage rjm = factory.obtain(RunJobMessage.class);
+        JobHolder mockHolder = mock(JobHolder.class);
+        when(mockHolder.safeRun(0)).thenReturn(JobHolder.RUN_RESULT_SUCCESS);
+        rjm.setJobHolder(mockHolder);
+        timer.setNow(3001);
+        verify(mq, times(0)).cancelMessages(Worker.pokeMessagePredicate);
+        worker.queueConsumer.handleMessage(rjm);
+        verify(mq, times(1)).cancelMessages(Worker.pokeMessagePredicate);
+    }
+
+    @Test
+    public void pokePredicateTest() {
+        CommandMessage cm = new CommandMessage();
+        cm.set(CommandMessage.POKE);
+        assertThat(Worker.pokeMessagePredicate.onMessage(cm), CoreMatchers.is(true));
+        cm.set(CommandMessage.QUIT);
+        assertThat(Worker.pokeMessagePredicate.onMessage(cm), CoreMatchers.is(false));
+        assertThat(Worker.pokeMessagePredicate.onMessage(new RunJobMessage()),
+                CoreMatchers.is(false));
     }
 }

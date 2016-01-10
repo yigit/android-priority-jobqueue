@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-class Chef implements Runnable, NetworkEventProvider.Listener {
+class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
@@ -55,7 +55,8 @@ class Chef implements Runnable, NetworkEventProvider.Listener {
 
     final PriorityMessageQueue messageQueue;
 
-    Chef(Configuration config, PriorityMessageQueue messageQueue, MessageFactory messageFactory) {
+    JobQueueThread(Configuration config, PriorityMessageQueue messageQueue,
+            MessageFactory messageFactory) {
         this.messageQueue = messageQueue;
         if(config.getCustomLogger() != null) {
             JqLog.setCustomLogger(config.getCustomLogger());

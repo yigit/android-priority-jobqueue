@@ -2,9 +2,11 @@ package com.birbit.android.jobqueue;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
+import com.birbit.android.jobqueue.messaging.MessagePredicate;
 import com.birbit.android.jobqueue.messaging.MessageQueue;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
 import com.birbit.android.jobqueue.messaging.SafeMessageQueue;
+import com.birbit.android.jobqueue.messaging.Type;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
@@ -38,21 +40,21 @@ class ConsumerController {
     private final long consumerKeepAliveNs;
     private final int loadFactor;
     private final ThreadGroup threadGroup;
-    private final Chef chef;
+    private final JobQueueThread mJobQueueThread;
     private final Timer timer;
     private final MessageFactory factory;
     private final Map<String, JobHolder> runningJobHolders;
     final RunningJobSet runningJobGroups;
     private CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners = new CopyOnWriteArrayList<>();
 
-    ConsumerController(Chef chef, Timer timer, MessageFactory factory, Configuration configuration) {
-        this.chef = chef;
+    ConsumerController(JobQueueThread jobQueueThread, Timer timer, MessageFactory factory, Configuration configuration) {
+        this.mJobQueueThread = jobQueueThread;
         this.timer = timer;
         this.factory = factory;
         this.loadFactor = configuration.getLoadFactor();
         this.minConsumerCount = configuration.getMinConsumerCount();
         this.maxConsumerCount = configuration.getMaxConsumerCount();
-        this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000 * Chef.NS_PER_MS;
+        this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000 * JobQueueThread.NS_PER_MS;
         runningJobHolders = new HashMap<>();
         runningJobGroups = new RunningJobSet(timer);
         threadGroup = new ThreadGroup("JobConsumers");
@@ -90,7 +92,7 @@ class ConsumerController {
     }
 
     private void considerAddingConsumers(boolean pokeAllWaiting) {
-        if (!chef.isRunning()) {
+        if (!mJobQueueThread.isRunning()) {
             return;
         }
         if (waitingWorkers.size() > 0) {
@@ -112,7 +114,7 @@ class ConsumerController {
 
     private void addConsumer() {
         JqLog.d("adding another consumer");
-        Worker worker = new Worker(chef.messageQueue, new SafeMessageQueue(timer), factory, timer);
+        Worker worker = new Worker(mJobQueueThread.messageQueue, new SafeMessageQueue(timer), factory, timer);
         Thread thread = new Thread(threadGroup, worker, "job-queue-worker-" + UUID.randomUUID());
         totalConsumers++;
         workers.add(worker);
@@ -123,7 +125,7 @@ class ConsumerController {
         return totalConsumers < maxConsumerCount &&
                 (totalConsumers < minConsumerCount ||
                         totalConsumers * loadFactor <
-                                chef.countRemainingReadyJobs() + runningJobHolders.size());
+                                mJobQueueThread.countRemainingReadyJobs() + runningJobHolders.size());
     }
 
     void handleIdle(JobConsumerIdleMessage message) {
@@ -132,8 +134,8 @@ class ConsumerController {
             return;// ignore, it has a job to process.
         }
         JobHolder nextJob = null;
-        if (chef.isRunning()) {
-            nextJob = chef.getNextJob(runningJobGroups.getSafe());
+        if (mJobQueueThread.isRunning()) {
+            nextJob = mJobQueueThread.getNextJob(runningJobGroups.getSafe());
         }
         if (nextJob != null) {
             worker.hasJob = true;
@@ -149,10 +151,10 @@ class ConsumerController {
             long keepAliveTimeout = message.getLastJobCompleted() + consumerKeepAliveNs;
             JqLog.d("keep alive: %s", keepAliveTimeout);
             boolean kill = false;
-            if (!chef.isRunning()) {
+            if (!mJobQueueThread.isRunning()) {
                 kill = true;
             } else {
-                Long wakeUpAt = chef.getNextWakeUpNs();
+                Long wakeUpAt = mJobQueueThread.getNextWakeUpNs();
                 boolean tooMany = totalConsumers > minConsumerCount
                         && keepAliveTimeout > timer.nanoTime();
                 JqLog.d("wake up at: %s . too many? %s", wakeUpAt, tooMany);
@@ -224,7 +226,7 @@ class ConsumerController {
             if (retryConstraint != null && retryConstraint.willApplyNewDelayToGroup()
                     && retryConstraint.getNewDelayInMs() > 0) {
                 runningJobGroups.addGroupUntil(jobHolder.getGroupId(),
-                        timer.nanoTime() + retryConstraint.getNewDelayInMs() * Chef.NS_PER_MS);
+                        timer.nanoTime() + retryConstraint.getNewDelayInMs() * JobQueueThread.NS_PER_MS);
             }
         }
     }
@@ -245,6 +247,14 @@ class ConsumerController {
         final Timer timer;
         boolean hasJob;// controlled by the consumer controller to avoid multiple idle-job loops
         long lastJobCompleted;
+        static final MessagePredicate pokeMessagePredicate =
+                new MessagePredicate() {
+                    @Override
+                    public boolean onMessage(Message message) {
+                        return message.type == Type.COMMAND &&
+                                ((CommandMessage) message).getWhat() == CommandMessage.POKE;
+                    }
+                };
 
         final MessageQueueConsumer queueConsumer = new MessageQueueConsumer() {
             @Override
@@ -253,7 +263,7 @@ class ConsumerController {
                     case RUN_JOB:
                         handleRunJob((RunJobMessage) message);
                         lastJobCompleted = timer.nanoTime();
-                        messageQueue.clearDelayedMessages();
+                        removePokeMessages();
                         break;
                     case COMMAND:
                         handleCommand((CommandMessage) message);
@@ -269,6 +279,10 @@ class ConsumerController {
                 parentMessageQueue.post(idle);
             }
         };
+
+        private void removePokeMessages() {
+            messageQueue.cancelMessages(pokeMessagePredicate);
+        }
 
         public Worker(MessageQueue parentMessageQueue, SafeMessageQueue messageQueue,
                       MessageFactory factory, Timer timer) {

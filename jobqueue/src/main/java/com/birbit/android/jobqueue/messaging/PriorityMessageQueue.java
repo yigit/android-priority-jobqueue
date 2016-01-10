@@ -89,4 +89,18 @@ public class PriorityMessageQueue implements MessageQueue {
             timer.notifyObject(LOCK);
         }
     }
+
+    @Override
+    public void cancelMessages(MessagePredicate predicate) {
+        synchronized (LOCK) {
+            for (int i = 0; i <= Type.MAX_PRIORITY; i++) {
+                UnsafeMessageQueue mq = queues[i];
+                if (mq == null) {
+                    continue;
+                }
+                mq.removeMessages(predicate);
+            }
+            delayedBag.removeMessages(predicate);
+        }
+    }
 }

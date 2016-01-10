@@ -19,15 +19,15 @@ import com.path.android.jobqueue.log.JqLog;
 import java.util.concurrent.CountDownLatch;
 
 public class JobManager2 {
-    private final Chef chef;
+    private final JobQueueThread mJobQueueThread;
     private final PriorityMessageQueue messageQueue;
     private final MessageFactory messageFactory;
     private Thread chefThread;
     public JobManager2(Configuration configuration) {
         messageQueue = new PriorityMessageQueue(configuration.timer());
         messageFactory = new MessageFactory();
-        chef = new Chef(configuration, messageQueue, messageFactory);
-        chefThread = new Thread(chef, "job-manager");
+        mJobQueueThread = new JobQueueThread(configuration, messageQueue, messageFactory);
+        chefThread = new Thread(mJobQueueThread, "job-manager");
         chefThread.start();
     }
 
@@ -49,20 +49,20 @@ public class JobManager2 {
         CommandMessage message = messageFactory.obtain(CommandMessage.class);
         message.set(CommandMessage.QUIT);
         messageQueue.post(message);
-        chef.callbackManager.destroy();
+        mJobQueueThread.callbackManager.destroy();
     }
 
     public void stopAndWaitUntilConsumersAreFinished() {
         final CountDownLatch latch = new CountDownLatch(1);
-        chef.consumerController.addNoConsumersListener(new Runnable() {
+        mJobQueueThread.consumerController.addNoConsumersListener(new Runnable() {
             @Override
             public void run() {
                 latch.countDown();
-                chef.consumerController.removeNoConsumersListener(this);
+                mJobQueueThread.consumerController.removeNoConsumersListener(this);
             }
         });
         stop();
-        if(chef.consumerController.totalConsumers == 0) {
+        if(mJobQueueThread.consumerController.totalConsumers == 0) {
             return;
         }
         try {
@@ -96,11 +96,11 @@ public class JobManager2 {
     }
 
     public void addCallback(JobManagerCallback callback) {
-        chef.addCallback(callback);
+        mJobQueueThread.addCallback(callback);
     }
 
     public boolean removeCallback(JobManagerCallback callback) {
-        return chef.removeCallback(callback);
+        return mJobQueueThread.removeCallback(callback);
     }
 
     public long addJob(Job job) {

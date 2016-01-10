@@ -8,7 +8,6 @@ import com.path.android.jobqueue.log.JqLog;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -31,26 +30,26 @@ class CancelHandler {
         this.callback = callback;
     }
     
-    void query(Chef chef, ConsumerController consumerController) {
+    void query(JobQueueThread jobQueueThread, ConsumerController consumerController) {
         runningNonPersistent = consumerController.markJobsCancelled(constraint, tags, false);
         runningPersistent = consumerController.markJobsCancelled(constraint, tags, true);
-        Set<JobHolder> nonPersistentInQueue = chef.nonPersistentJobQueue
+        Set<JobHolder> nonPersistentInQueue = jobQueueThread.nonPersistentJobQueue
                 .findJobsByTags(constraint, true, runningNonPersistent, tags);
-        Set<JobHolder> persistentInQueue = chef.persistentJobQueue
+        Set<JobHolder> persistentInQueue = jobQueueThread.persistentJobQueue
                 .findJobsByTags(constraint, true, runningPersistent, tags);
         for (JobHolder nonPersistent : nonPersistentInQueue) {
             nonPersistent.markAsCancelled();
             cancelled.add(nonPersistent);
-            chef.nonPersistentJobQueue.onJobCancelled(nonPersistent);
+            jobQueueThread.nonPersistentJobQueue.onJobCancelled(nonPersistent);
         }
         for (JobHolder persistent : persistentInQueue) {
             persistent.markAsCancelled();
             cancelled.add(persistent);
-            chef.persistentJobQueue.onJobCancelled(persistent);
+            jobQueueThread.persistentJobQueue.onJobCancelled(persistent);
         }
     }
 
-    void commit(Chef chef) {
+    void commit(JobQueueThread jobQueueThread) {
         for (JobHolder jobHolder : cancelled) {
             try {
                 jobHolder.onCancel();
@@ -58,7 +57,7 @@ class CancelHandler {
                 JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
             }
             if (jobHolder.getJob().isPersistent()) {
-                chef.nonPersistentJobQueue.remove(jobHolder);
+                jobQueueThread.nonPersistentJobQueue.remove(jobHolder);
             }
         }
         if (callback != null) {
@@ -71,7 +70,7 @@ class CancelHandler {
                 failedToCancelJobs.add(holder.getJob());
             }
             CancelResult result = new CancelResult(cancelledJobs, failedToCancelJobs);
-            chef.callbackManager.notifyCancelResult(result, callback);
+            jobQueueThread.callbackManager.notifyCancelResult(result, callback);
         }
     }
 

@@ -90,16 +90,18 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     }
 
     @Override
+    public void cancelMessages(MessagePredicate predicate) {
+        synchronized (LOCK) {
+            super.removeMessages(predicate);
+            delayedBag.removeMessages(predicate);
+        }
+    }
+
+    @Override
     public void postAtFront(Message message) {
         synchronized (LOCK) {
             super.postAtFront(message);
             timer.notifyObject(LOCK);
-        }
-    }
-
-    public void clearDelayedMessages() {
-        synchronized (LOCK) {
-            delayedBag.clear();
         }
     }
 }

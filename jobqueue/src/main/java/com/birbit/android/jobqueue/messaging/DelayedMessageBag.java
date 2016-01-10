@@ -39,4 +39,23 @@ class DelayedMessageBag {
     public void clear() {
         queue = null;
     }
+
+    public void removeMessages(MessagePredicate predicate) {
+        Message prev = null;
+        Message curr = queue;
+        while (curr != null) {
+            final boolean remove = predicate.onMessage(curr);
+            final Message next = curr.next;
+            if (remove) {
+                if (prev == null) {
+                    queue = curr.next;
+                } else {
+                    prev.next = curr.next;
+                }
+            } else {
+                prev = curr;
+            }
+            curr = next;
+        }
+    }
 }
