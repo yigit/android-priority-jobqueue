@@ -20,6 +20,8 @@ import java.util.UUID;
 abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     public static final int DEFAULT_RETRY_LIMIT = 20;
+    private static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
+    private static final int SINGLE_ID_TAG_PREFIX_LENGTH = 14;
     private String id = UUID.randomUUID().toString();
     private boolean requiresNetwork;
     private String groupId;
@@ -45,8 +47,14 @@ abstract public class Job implements Serializable {
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
         this.delayInMs = params.getDelayMs();
-        final Set<String> tags = params.getTags();
-        this.readonlyTags = tags == null ? null : Collections.unmodifiableSet(tags);
+        final String singleId = params.getSingleId();
+        if (params.getTags() != null || singleId != null) {
+            final Set<String> tags = params.getTags() != null ? params.getTags() : new HashSet<String>();
+            if (singleId != null) {
+                tags.add(createTagForSingleId(singleId));
+            }
+            this.readonlyTags = Collections.unmodifiableSet(tags);
+        }
     }
 
     public String getId() {
@@ -255,6 +263,21 @@ abstract public class Job implements Serializable {
      */
     public final String getRunGroupId() {
         return groupId;
+    }
+
+    public final String getSingleInstanceId() {
+        if (readonlyTags != null) {
+            for (String tag : readonlyTags) {
+                if (tag.startsWith(SINGLE_ID_TAG_PREFIX)) {
+                    return tag.substring(SINGLE_ID_TAG_PREFIX_LENGTH, tag.length());
+                }
+            }
+        }
+        return null;
+    }
+
+    private String createTagForSingleId(String singleId) {
+        return SINGLE_ID_TAG_PREFIX + singleId;
     }
 
     /**
