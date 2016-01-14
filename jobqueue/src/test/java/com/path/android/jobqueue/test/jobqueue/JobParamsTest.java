@@ -34,14 +34,15 @@ public class JobParamsTest extends TestBase {
         assertThat("require unmetered network param should be understood properly",
                 j2.getRequiresUnmeteredNetworkUntilNs(), equalTo(Params.NEVER));
         DummyJob j3 = new DummyJob(new Params(1).persist());
-        assertThat("group param should be understood properly", j3.isPersistent(), equalTo(true));
-        DummyJob j4 = new DummyJob(new Params(1).setPersistent(false).setRequiresNetwork(false).setGroupId(null));
+        assertThat("persist param should be understood properly", j3.isPersistent(), equalTo(true));
+        DummyJob j4 = new DummyJob(new Params(1).setPersistent(false).setRequiresNetwork(false).setGroupId(null).setSingleId(null));
         assertThat("persist param should be understood properly", j4.isPersistent(), equalTo(false));
         assertThat("require network param should be understood properly", j4.requiresNetwork(
                 mockTimer), equalTo(false));
         assertThat("require unmetered network param should be understood properly",
                 j4.requiresUnmeteredNetwork(mockTimer), equalTo(false));
         assertThat("group param should be understood properly", j4.getRunGroupId(), nullValue());
+        assertThat("single param should be understood properly", j4.getSingleInstanceId(), nullValue());
 
         DummyJob j5 = new DummyJob(new Params(1).requireNetworkWithTimeout(15));
         mockTimer.incrementMs(2);
@@ -84,5 +85,8 @@ public class JobParamsTest extends TestBase {
                 j9.getRequiresNetworkUntilNs(), is(25000000L));
         assertThat("network unmetered requirement with timeout should be understood properly",
                 j9.getRequiresUnmeteredNetworkUntilNs(), is(25000000L));
+
+        DummyJob j10 = new DummyJob(new Params(1).singleInstanceBy("bloop"));
+        assertThat("single param should be understood properly", j10.getSingleInstanceId(), endsWith("bloop"));
     }
 }
