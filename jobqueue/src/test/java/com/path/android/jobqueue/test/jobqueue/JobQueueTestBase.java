@@ -119,7 +119,7 @@ public abstract class JobQueueTestBase extends TestBase {
         long jobId4 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group2")));
         long jobId5 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group1")));
         JobHolder holder1 = jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group2"}));
-        assertThat("first jobs should be from group group2 if group1 is excluded",
+        assertThat("first jobs should be from group group1 if group2 is excluded",
                 holder1.getJob().getRunGroupId(), equalTo("group1"));
         assertThat("correct job should be returned if groupId is provided",
                 holder1.getId(), equalTo(jobId1));
