@@ -1,0 +1,2 @@
+include ':jobqueue'
+project(':jobqueue').projectDir = new File(settingsDir, '../../../jobqueue')
