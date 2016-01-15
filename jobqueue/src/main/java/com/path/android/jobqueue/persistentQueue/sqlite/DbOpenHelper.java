@@ -62,9 +62,16 @@ public class DbOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-        sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
-        sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));
-        sqLiteDatabase.execSQL("DROP INDEX IF EXISTS " + TAG_INDEX_NAME);
-        onCreate(sqLiteDatabase);
+        if (oldVersion < 4) {
+            sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
+            sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));
+            sqLiteDatabase.execSQL("DROP INDEX IF EXISTS " + TAG_INDEX_NAME);
+            onCreate(sqLiteDatabase);
+        } else if (oldVersion == 4) {
+            //We add single_id column in version 5
+            String addSingleIdColQuery = "ALTER TABLE " + JOB_HOLDER_TABLE_NAME
+                    + " ADD COLUMN `" + SINGLE_ID_COLUMN.columnName + "` " + SINGLE_ID_COLUMN.type;
+            sqLiteDatabase.execSQL(addSingleIdColQuery);
+        }
     }
 }
