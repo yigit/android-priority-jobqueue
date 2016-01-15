@@ -165,7 +165,7 @@ public class JobHolder {
     }
 
     public String getSingleId() {
-        return groupId;
+        return singleId;
     }
 
     public Set<String> getTags() {
