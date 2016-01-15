@@ -726,6 +726,32 @@ public abstract class JobQueueTestBase extends TestBase {
         }
     }
 
+    @Test
+    public void testFindAll() {
+        JobQueue jobQueue = createNewJobQueue();
+        assertThat("empty queue should return 0",jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(0));
+        jobQueue.insert(createNewJobHolder());
+        Set<JobHolder> result = jobQueue.findAllJobs(true, Collections.<Long>emptyList());
+        assertThat("if job was not cancelled, it should still return it", result.size(), is(1));
+
+        final String singleId = UUID.randomUUID().toString();
+        JobHolder holder = createNewJobHolder(new Params(0).singleWith(singleId));
+        jobQueue.insert(holder);
+        assertThat("when second job is inserted, it should return it", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(2));
+        jobQueue.insertOrReplace(holder);
+        assertThat("when second job is reinserted, result should not change", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(2));
+        jobQueue.remove(holder);
+        assertThat("when job is removed, it should return one less", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(1));
+
+        JobHolder holder2 = createNewJobHolder(new Params(0).singleWith(singleId));
+        jobQueue.insert(holder2);
+        assertThat("it should return the job", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(2));
+        jobQueue.onJobCancelled(holder2);
+        assertThat("when queried w/ exclude cancelled, it should not return the job",
+                jobQueue.findAllJobs(true, Collections.<Long>emptyList()).size(), is(1));
+
+    }
+
     List<String[]> combinations(Set<String> strings) {
         if(strings.size() == 0) {
             List<String[]> result = new ArrayList<String[]>();

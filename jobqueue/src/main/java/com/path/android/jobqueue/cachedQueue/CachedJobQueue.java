@@ -106,6 +106,11 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
+    public Set<JobHolder> findAllJobs(boolean excludeCancelled, Collection<Long> exclude) {
+        return delegate.findAllJobs(excludeCancelled, exclude);
+    }
+
+    @Override
     public void onJobCancelled(JobHolder holder) {
         delegate.onJobCancelled(holder);
     }

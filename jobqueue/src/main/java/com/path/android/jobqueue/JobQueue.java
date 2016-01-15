@@ -95,6 +95,16 @@ public interface JobQueue {
             Collection<Long> excludeIds, String... tags);
 
     /**
+     * Returns all jobs not excluded by the conditions passed.
+     *
+     * @param excludeCancelled If true, cancelled jobs will not be returned. A job may be in cancelled
+     *                        state if a cancel request has arrived but it has not been removed from
+     *                        queue yet (e.g. still running).
+     * @param excludeIds Ids of jobs to ignore in the result
+     */
+    Set<JobHolder> findAllJobs(boolean excludeCancelled, Collection<Long> excludeIds);
+
+    /**
      * Called when a job is cancelled by the user.
      * <p/>
      * It is important to not return this job from queries anymore.

@@ -117,6 +117,16 @@ public class NonPersistentJobSet implements JobSet {
         return jobs;
     }
 
+    @Override
+    public Set<JobHolder> findAll(Collection<Long> exclude) {
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        jobs.addAll(set);
+        if (exclude != null) {
+            removeIds(jobs, exclude);
+        }
+        return jobs;
+    }
+
     private void removeIds(Set<JobHolder> mainSet, Collection<Long> ids) {
         final Iterator<JobHolder> itr = mainSet.iterator();
         while (itr.hasNext()) {

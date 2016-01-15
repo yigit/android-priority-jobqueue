@@ -222,6 +222,14 @@ abstract public class MergedQueue implements JobSet {
         return jobs;
     }
 
+    @Override
+    public Set<JobHolder> findAll(Collection<Long> exclude) {
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        jobs.addAll(queue0.findAll(exclude));
+        jobs.addAll(queue1.findAll(exclude));
+        return jobs;
+    }
+
     /**
      * simple enum to identify queues
      */
