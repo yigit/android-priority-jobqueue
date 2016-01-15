@@ -113,7 +113,11 @@ abstract public class Job implements Serializable {
 
     /**
      * Called when the job is added to disk and committed.
-     * This means job will eventually run. This is a good time to update local database and dispatch events.
+     * This means job will eventually run except in the case described below.
+     * This is a good time to update local database and dispatch events.
+     * <p>
+     * If the job has a singleId and another job with the same singleId is already queued and not yet
+     * running, only the previous job will run.
      * <p>
      * Changes to this class will not be preserved if your job is persistent !!!
      * <p>

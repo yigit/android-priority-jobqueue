@@ -45,7 +45,7 @@ public class Params {
     /**
      * Sets the single id. Jobs with the same single id will always get {@link Job#onAdded()}
      * called, but {@link Job#onRun()} will only run once if there are other non-running
-     * Jobs queued.
+     * Jobs queued. You will probably also want to use {@link #groupBy(String)}.
      * @param singleId which group this job belongs (can be null of course)
      * @return this
      */
