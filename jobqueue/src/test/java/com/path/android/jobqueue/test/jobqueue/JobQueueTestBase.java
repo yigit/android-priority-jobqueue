@@ -318,6 +318,10 @@ public abstract class JobQueueTestBase extends TestBase {
         return Reflection.field("groupId").ofType(String.class).in(params);
     }
 
+    private org.fest.reflect.field.Invoker<String> getSingleIdField(Params params) {
+        return Reflection.field("singleId").ofType(String.class).in(params);
+    }
+
     @Test
     public void testSessionId() throws Exception {
         long sessionId = (long) (Math.random() * 100000);
@@ -759,7 +763,8 @@ public abstract class JobQueueTestBase extends TestBase {
 
     protected JobHolder createNewJobHolder(Params params) {
         long delay = getDelayMsField(params).get();
-        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(), 0, new DummyJob(params), System.nanoTime(),
+        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(),
+                getSingleIdField(params).get(), 0, new DummyJob(params), System.nanoTime(),
                 delay > 0 ? System.nanoTime() +  delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY, JobManager.NOT_RUNNING_SESSION_ID);
     }
 

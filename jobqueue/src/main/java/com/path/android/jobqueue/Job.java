@@ -22,6 +22,7 @@ abstract public class Job implements Serializable {
 
     private boolean requiresNetwork;
     private String groupId;
+    private String singleId;
     private boolean persistent;
     private Set<String> readonlyTags;
 
@@ -42,6 +43,7 @@ abstract public class Job implements Serializable {
         this.requiresNetwork = params.doesRequireNetwork();
         this.persistent = params.isPersistent();
         this.groupId = params.getGroupId();
+        this.singleId = params.getSingleId();
         this.priority = params.getPriority();
         this.delayInMs = params.getDelayMs();
         final Set<String> tags = params.getTags();
@@ -76,6 +78,7 @@ abstract public class Job implements Serializable {
     private void writeObject(ObjectOutputStream oos) throws IOException {
         oos.writeBoolean(requiresNetwork);
         oos.writeObject(groupId);
+        oos.writeObject(singleId);
         oos.writeBoolean(persistent);
         final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();
         oos.writeInt(tagCount);
@@ -90,6 +93,7 @@ abstract public class Job implements Serializable {
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         requiresNetwork = ois.readBoolean();
         groupId = (String) ois.readObject();
+        singleId = (String) ois.readObject();
         persistent = ois.readBoolean();
         final int tagCount = ois.readInt();
         if (tagCount > 0) {
@@ -250,6 +254,16 @@ abstract public class Job implements Serializable {
      */
     public final String getRunGroupId() {
         return groupId;
+    }
+
+    /**
+     * Some jobs only need a single instance to be queued to run. For instance, if a user has made several changes
+     * to a resource while offline, you can save every change locally during {@link #onAdded()}, but
+     * only update the resource remotely once with the latest changes.
+     * @return
+     */
+    public final String getRunSingleId() {
+        return singleId;
     }
 
     /**

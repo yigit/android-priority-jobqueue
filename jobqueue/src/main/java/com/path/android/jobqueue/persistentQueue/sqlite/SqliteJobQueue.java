@@ -112,6 +112,9 @@ public class SqliteJobQueue implements JobQueue {
         if(jobHolder.getGroupId() != null) {
             stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
         }
+        if(jobHolder.getSingleId() != null) {
+            stmt.bindString(DbOpenHelper.SINGLE_ID_COLUMN.columnIndex + 1, jobHolder.getSingleId());
+        }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
         byte[] job = getSerializeJob(jobHolder);
         if (job != null) {
@@ -410,6 +413,7 @@ public class SqliteJobQueue implements JobQueue {
                 cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
                 cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex),
                 cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex),
+                cursor.getString(DbOpenHelper.SINGLE_ID_COLUMN.columnIndex),
                 cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
                 job,
                 cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),

@@ -38,6 +38,7 @@ public class JobHolder {
     protected Long id;
     protected int priority;
     protected String groupId;
+    protected String singleId;
     protected int runCount;
     /**
      * job will be delayed until this nanotime
@@ -59,16 +60,18 @@ public class JobHolder {
      * @param id               Unique ID for the job. Should be unique per queue
      * @param priority         Higher is better
      * @param groupId          which group does this job belong to? default null
+     * @param singleId         which group should only be queued to run once? default null
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
      * @param job              Actual job to run
      * @param createdNs        System.nanotime
      * @param delayUntilNs     System.nanotime value where job can be run the very first time
      * @param runningSessionId
      */
-    public JobHolder(Long id, int priority, String groupId, int runCount, Job job, long createdNs, long delayUntilNs, long runningSessionId) {
+    public JobHolder(Long id, int priority, String groupId, String singleId, int runCount, Job job, long createdNs, long delayUntilNs, long runningSessionId) {
         this.id = id;
         this.priority = priority;
         this.groupId = groupId;
+        this.singleId = singleId;
         this.runCount = runCount;
         this.createdNs = createdNs;
         this.delayUntilNs = delayUntilNs;
@@ -80,11 +83,11 @@ public class JobHolder {
     }
 
     public JobHolder(int priority, Job job, long runningSessionId) {
-        this(null, priority, null, 0, job, System.nanoTime(), Long.MIN_VALUE, runningSessionId);
+        this(null, priority, null, null, 0, job, System.nanoTime(), Long.MIN_VALUE, runningSessionId);
     }
 
     public JobHolder(int priority, Job job, long delayUntilNs, long runningSessionId) {
-        this(null, priority, job.getRunGroupId(), 0, job, System.nanoTime(), delayUntilNs, runningSessionId);
+        this(null, priority, job.getRunGroupId(), job.getRunSingleId(), 0, job, System.nanoTime(), delayUntilNs, runningSessionId);
     }
 
     /**
@@ -158,6 +161,10 @@ public class JobHolder {
     }
 
     public String getGroupId() {
+        return groupId;
+    }
+
+    public String getSingleId() {
         return groupId;
     }
 

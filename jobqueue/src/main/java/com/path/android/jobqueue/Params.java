@@ -9,6 +9,7 @@ import java.util.HashSet;
 public class Params {
     private boolean requiresNetwork = false;
     private String groupId = null;
+    private String singleId = null;
     private boolean persistent = false;
     private int priority;
     private long delayMs;
@@ -38,6 +39,18 @@ public class Params {
      */
     public Params groupBy(String groupId) {
         this.groupId = groupId;
+        return this;
+    }
+
+    /**
+     * Sets the single id. Jobs with the same single id will always get {@link Job#onAdded()}
+     * called, but {@link Job#onRun()} will only run once if there are other non-running
+     * Jobs queued.
+     * @param singleId which group this job belongs (can be null of course)
+     * @return this
+     */
+    public Params singleWith(String singleId) {
+        this.singleId = singleId;
         return this;
     }
 
@@ -77,6 +90,16 @@ public class Params {
      */
     public Params setGroupId(String groupId) {
         this.groupId = groupId;
+        return this;
+    }
+
+    /**
+     * convenience method to set single id.
+     * @param singleId
+     * @return this
+     */
+    public Params setSingleId(String singleId) {
+        this.singleId = singleId;
         return this;
     }
 
@@ -143,6 +166,10 @@ public class Params {
 
     public String getGroupId() {
         return groupId;
+    }
+
+    public String getSingleId() {
+        return singleId;
     }
 
     public boolean isPersistent() {

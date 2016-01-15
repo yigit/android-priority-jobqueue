@@ -19,11 +19,14 @@ public class JobParamsTest extends TestBase {
         assertThat("require network param should be understood properly", j1.requiresNetwork(), equalTo(true));
         DummyJob j2 = new DummyJob(new Params(1).groupBy("blah"));
         assertThat("group param should be understood properly", j2.getRunGroupId(), equalTo("blah"));
+        DummyJob j5 = new DummyJob(new Params(1).singleWith("bloop"));
+        assertThat("single param should be understood properly", j5.getRunSingleId(), equalTo("bloop"));
         DummyJob j3 = new DummyJob(new Params(1).persist());
         assertThat("persist param should be understood properly", j3.isPersistent(), equalTo(true));
-        DummyJob j4 = new DummyJob(new Params(1).setPersistent(false).setRequiresNetwork(false).setGroupId(null));
+        DummyJob j4 = new DummyJob(new Params(1).setPersistent(false).setRequiresNetwork(false).setGroupId(null).setSingleId(null));
         assertThat("persist param should be understood properly", j4.isPersistent(), equalTo(false));
         assertThat("require network param should be understood properly", j4.requiresNetwork(), equalTo(false));
         assertThat("group param should be understood properly", j4.getRunGroupId(), nullValue());
+        assertThat("single param should be understood properly", j4.getRunSingleId(), nullValue());
     }
 }
