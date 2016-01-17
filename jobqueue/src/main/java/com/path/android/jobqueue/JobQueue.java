@@ -16,7 +16,7 @@ public interface JobQueue {
      * @param jobHolder
      * @return
      */
-    long insert(JobHolder jobHolder);
+    boolean insert(JobHolder jobHolder);
 
     /**
      * Does the same thing with insert but the only difference is that
@@ -26,7 +26,7 @@ public interface JobQueue {
      * @param jobHolder
      * @return
      */
-    long insertOrReplace(JobHolder jobHolder);
+    boolean insertOrReplace(JobHolder jobHolder);
 
     /**
      * Removes the job from the data store.
@@ -74,10 +74,10 @@ public interface JobQueue {
 
     /**
      * returns the job with the given id if it exists in the queue
-     * @param id id of the job, returned by insert method
+     * @param id id of the job
      * @return JobHolder with the given id or null if it does not exists
      */
-    JobHolder findJobById(long id);
+    JobHolder findJobById(String id);
 
     /**
      * Returns jobs that has the given tags.
@@ -88,11 +88,11 @@ public interface JobQueue {
      * @param excludeCancelled If true, cancelled jobs will not be returned. A job may be in cancelled
      *                        state if a cancel request has arrived but it has not been removed from
      *                        queue yet (e.g. still running).
-     * @param excludeIds Ids of jobs to ignore in the result
+     * @param excludeIds IDs of jobs to ignore in the result
      * @param tags The list of tags
      */
     Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, boolean excludeCancelled,
-            Collection<Long> excludeIds, String... tags);
+            Collection<String> excludeIds, String... tags);
 
     /**
      * Called when a job is cancelled by the user.

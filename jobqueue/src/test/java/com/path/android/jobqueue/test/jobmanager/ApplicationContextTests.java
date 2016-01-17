@@ -16,6 +16,8 @@ import org.robolectric.annotation.Config;
 
 import android.content.Context;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -26,11 +28,11 @@ import static org.hamcrest.MatcherAssert.*;
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class ApplicationContextTests extends JobManagerTestBase {
     static int retryCount = 0;
-    static CountDownLatch doneLatch;
+    static List<Throwable> errors = new ArrayList<>();
     @Before
     public void clear() {
         retryCount = 0;
-        doneLatch = new CountDownLatch(1);
+        errors.clear();
     }
 
     @Test
@@ -44,10 +46,19 @@ public class ApplicationContextTests extends JobManagerTestBase {
     }
 
     public void getContextTest(boolean persistent) throws InterruptedException {
-        ContextCheckJob job = new ContextCheckJob(new Params(1).setPersistent(persistent));
-        JobManager jobManager = createJobManager();
-        jobManager.addJob(job);
-        doneLatch.await(2, TimeUnit.SECONDS);
+        final ContextCheckJob addedJob = new ContextCheckJob(new Params(1).setPersistent(persistent));
+        final JobManager jobManager = createJobManager();
+        waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
+            @Override
+            public void run() {
+                jobManager.addJob(addedJob);
+            }
+
+            @Override
+            public void assertJob(Job job) {
+                job.getId().equals(addedJob.getId());
+            }
+        });
     }
 
     public static class ContextCheckJob extends Job {
@@ -57,8 +68,12 @@ public class ApplicationContextTests extends JobManagerTestBase {
 
         private void assertContext(String method) {
             Context applicationContext = getApplicationContext();
-            assertThat("Context should be application context in " + method,
-                    applicationContext, sameInstance((Context)RuntimeEnvironment.application));
+            try {
+                assertThat("Context should be application context in " + method,
+                        applicationContext, sameInstance((Context) RuntimeEnvironment.application));
+            } catch (Throwable t) {
+                errors.add(t);
+            }
         }
 
         @Override
@@ -78,7 +93,6 @@ public class ApplicationContextTests extends JobManagerTestBase {
         @Override
         protected void onCancel() {
             assertContext("onCancel");
-            doneLatch.countDown();
         }
 
         @Override

@@ -58,7 +58,7 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
     public void testFindByTags() {
         JobQueue jobQueue = createNewJobQueue();
         assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY,
-                false, Collections.<Long>emptyList(), "abc").size(), is(0));
+                false, Collections.<String>emptyList(), "abc").size(), is(0));
 
     }
 }

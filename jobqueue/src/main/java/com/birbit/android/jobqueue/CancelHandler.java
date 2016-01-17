@@ -14,8 +14,8 @@ import java.util.Set;
  * Temporary object to keep track of cancel handling
  */
 class CancelHandler {
-    private Set<Long> runningNonPersistent;
-    private Set<Long> runningPersistent;
+    private Set<String> runningNonPersistent;
+    private Set<String> runningPersistent;
     private final TagConstraint constraint;
     private final String[] tags;
     private final Collection<JobHolder> cancelled;
@@ -30,26 +30,26 @@ class CancelHandler {
         this.callback = callback;
     }
     
-    void query(JobQueueThread jobQueueThread, ConsumerController consumerController) {
+    void query(JobManagerThread jobManagerThread, ConsumerController consumerController) {
         runningNonPersistent = consumerController.markJobsCancelled(constraint, tags, false);
         runningPersistent = consumerController.markJobsCancelled(constraint, tags, true);
-        Set<JobHolder> nonPersistentInQueue = jobQueueThread.nonPersistentJobQueue
+        Set<JobHolder> nonPersistentInQueue = jobManagerThread.nonPersistentJobQueue
                 .findJobsByTags(constraint, true, runningNonPersistent, tags);
-        Set<JobHolder> persistentInQueue = jobQueueThread.persistentJobQueue
+        Set<JobHolder> persistentInQueue = jobManagerThread.persistentJobQueue
                 .findJobsByTags(constraint, true, runningPersistent, tags);
         for (JobHolder nonPersistent : nonPersistentInQueue) {
             nonPersistent.markAsCancelled();
             cancelled.add(nonPersistent);
-            jobQueueThread.nonPersistentJobQueue.onJobCancelled(nonPersistent);
+            jobManagerThread.nonPersistentJobQueue.onJobCancelled(nonPersistent);
         }
         for (JobHolder persistent : persistentInQueue) {
             persistent.markAsCancelled();
             cancelled.add(persistent);
-            jobQueueThread.persistentJobQueue.onJobCancelled(persistent);
+            jobManagerThread.persistentJobQueue.onJobCancelled(persistent);
         }
     }
 
-    void commit(JobQueueThread jobQueueThread) {
+    void commit(JobManagerThread jobManagerThread) {
         for (JobHolder jobHolder : cancelled) {
             try {
                 jobHolder.onCancel();
@@ -57,7 +57,7 @@ class CancelHandler {
                 JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
             }
             if (jobHolder.getJob().isPersistent()) {
-                jobQueueThread.nonPersistentJobQueue.remove(jobHolder);
+                jobManagerThread.nonPersistentJobQueue.remove(jobHolder);
             }
         }
         if (callback != null) {
@@ -70,7 +70,10 @@ class CancelHandler {
                 failedToCancelJobs.add(holder.getJob());
             }
             CancelResult result = new CancelResult(cancelledJobs, failedToCancelJobs);
-            jobQueueThread.callbackManager.notifyCancelResult(result, callback);
+            jobManagerThread.callbackManager.notifyCancelResult(result, callback);
+        }
+        for (JobHolder jobHolder : cancelled) {
+            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true);
         }
     }
 

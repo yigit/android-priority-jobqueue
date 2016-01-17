@@ -8,6 +8,7 @@ import com.birbit.android.jobqueue.messaging.Type;
 import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
+import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.path.android.jobqueue.CancelResult;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.callback.JobManagerCallback;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Although this costs an additional thread, it is worth for the benefit of isolation.
  */
 public class CallbackManager {
-    private final SafeMessageQueue messageQueue;
+    final SafeMessageQueue messageQueue;
     private final CopyOnWriteArrayList<JobManagerCallback> callbacks;
     private final MessageFactory factory;
     private final AtomicInteger callbacksSize = new AtomicInteger(0);
@@ -83,6 +84,8 @@ public class CallbackManager {
                                 messageQueue.stop();
                                 started.set(false);
                             }
+                        } else if (message.type == Type.PUBLIC_QUERY) {
+                            ((PublicQueryMessage) message).getCallback().onResult(0);
                         }
                     }
 

@@ -29,7 +29,6 @@ public class ReRunWithLimitTest extends JobManagerTestBase {
     }
 
     private void testReRun(final JobManager jobManager, boolean persist) throws InterruptedException {
-        enableDebug();
         DummyJobWithRunCount.runCount = 0;//reset
         final DummyJobWithRunCount job = new DummyJobWithRunCount(persist);
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {

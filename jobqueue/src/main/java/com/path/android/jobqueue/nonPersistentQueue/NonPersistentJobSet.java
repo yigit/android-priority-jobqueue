@@ -25,14 +25,14 @@ public class NonPersistentJobSet implements JobSet {
     private final TreeSet<JobHolder> set;
     //groupId -> # of jobs in that group
     private final Map<String, Integer> existingGroups;
-    private final Map<Long, JobHolder> idCache;
+    private final Map<String, JobHolder> idCache;
     private final Map<String, List<JobHolder>> tagCache;
 
     public NonPersistentJobSet(Comparator<JobHolder> comparator) {
-        this.set = new TreeSet<JobHolder>(comparator);
-        this.existingGroups = new HashMap<String, Integer>();
-        this.idCache = new HashMap<Long, JobHolder>();
-        this.tagCache = new HashMap<String, List<JobHolder>>();
+        this.set = new TreeSet<>(comparator);
+        this.existingGroups = new HashMap<>();
+        this.idCache = new HashMap<>();
+        this.tagCache = new HashMap<>();
     }
 
     private JobHolder safeFirst() {
@@ -61,13 +61,6 @@ public class NonPersistentJobSet implements JobSet {
         return null;
     }
 
-    private JobHolder safePeek() {
-        if(set.size() == 0) {
-            return null;
-        }
-        return safeFirst();
-    }
-
     @Override
     public JobHolder poll(Collection<String> excludeGroupIds) {
         JobHolder peek = peek(excludeGroupIds);
@@ -78,17 +71,17 @@ public class NonPersistentJobSet implements JobSet {
     }
 
     @Override
-    public JobHolder findById(long id) {
+    public JobHolder findById(String id) {
         return idCache.get(id);
     }
 
     @Override
-    public Set<JobHolder> findByTags(TagConstraint constraint, Collection<Long> exclude,
+    public Set<JobHolder> findByTags(TagConstraint constraint, Collection<String> exclude,
             String... tags) {
         if(tags == null) {
             return Collections.emptySet();
         }
-        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        Set<JobHolder> jobs = new HashSet<>();
         boolean first = true;
         for(String tag : tags) {
             List<JobHolder> found = tagCache.get(tag);
@@ -117,7 +110,7 @@ public class NonPersistentJobSet implements JobSet {
         return jobs;
     }
 
-    private void removeIds(Set<JobHolder> mainSet, Collection<Long> ids) {
+    private void removeIds(Set<JobHolder> mainSet, Collection<String> ids) {
         final Iterator<JobHolder> itr = mainSet.iterator();
         while (itr.hasNext()) {
             JobHolder holder = itr.next();
@@ -142,7 +135,7 @@ public class NonPersistentJobSet implements JobSet {
             throw new RuntimeException("cannot add job holder w/o an ID");
         }
         boolean result = set.add(holder);
-        if(result == false) {
+        if(!result) {
             //remove the existing element and add new one
             remove(holder);
             result = set.add(holder);
@@ -166,7 +159,7 @@ public class NonPersistentJobSet implements JobSet {
         for(String tag : tags) {
             List<JobHolder> jobs = tagCache.get(tag);
             if(jobs == null) {
-                jobs = new LinkedList<JobHolder>();
+                jobs = new LinkedList<>();
                 tagCache.put(tag, jobs);
             }
             jobs.add(holder);
@@ -184,7 +177,7 @@ public class NonPersistentJobSet implements JobSet {
                 JqLog.e("trying to remove job from tag cache but cannot find the tag cache");
                 return;
             }
-            if(jobs.remove(holder) == false) {
+            if(!jobs.remove(holder)) {
                 JqLog.e("trying to remove job from tag cache but cannot find it in the cache");
             } else if(jobs.size() == 0) {
                 tagCache.remove(tag); // TODO pool?
@@ -195,7 +188,7 @@ public class NonPersistentJobSet implements JobSet {
 
 
     private void incGroupCount(String groupId) {
-        if(existingGroups.containsKey(groupId) == false) {
+        if(!existingGroups.containsKey(groupId)) {
             existingGroups.put(groupId, 1);
         } else {
             existingGroups.put(groupId, existingGroups.get(groupId) + 1);
@@ -254,7 +247,7 @@ public class NonPersistentJobSet implements JobSet {
         int groupCnt = existingGroups.keySet().size();
         Set<String> groupIdSet = null;
         if(groupCnt > 0) {
-            groupIdSet = new HashSet<String>();//we have to track :/
+            groupIdSet = new HashSet<>();//we have to track :/
         }
         for(JobHolder holder : set) {
             if(holder.getDelayUntilNs() < now) {
@@ -267,6 +260,7 @@ public class NonPersistentJobSet implements JobSet {
                     //we should not need to check groupCnt but what if sth is wrong in hashmap, be defensive till
                     //we write unit tests around NonPersistentJobSet
                     if(groupCnt > 0) {
+                        //noinspection ConstantConditions
                         if(groupIdSet.add(holder.getGroupId())) {
                             total++;
                         }
@@ -293,9 +287,9 @@ public class NonPersistentJobSet implements JobSet {
                     if(excludeGroups != null && excludeGroups.contains(holder.getGroupId())) {
                         continue;
                     } else if(existingGroupIds == null) {
-                        existingGroupIds = new HashSet<String>();
+                        existingGroupIds = new HashSet<>();
                         existingGroupIds.add(holder.getGroupId());
-                    } else if(existingGroupIds.add(holder.getGroupId()) == false) {
+                    } else if(!existingGroupIds.add(holder.getGroupId())) {
                         continue;
                     }
 

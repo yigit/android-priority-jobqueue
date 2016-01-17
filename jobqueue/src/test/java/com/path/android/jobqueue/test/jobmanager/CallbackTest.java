@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.testing.StackTraceRule;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobStatus;
@@ -9,7 +10,9 @@ import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.callback.JobManagerCallback;
 
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -28,7 +31,7 @@ public class CallbackTest extends JobManagerTestBase {
     public void successNonPersistent() throws Throwable {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final Job job = mock(Job.class);
-        doReturn("a").when(job).getUuid();
+        doReturn("a").when(job).getId();
         doNothing().when(job).onAdded();
         doNothing().when(job).onRun();
         final JobManager jobManager = createJobManager();
@@ -55,10 +58,11 @@ public class CallbackTest extends JobManagerTestBase {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final PublicJob job = mock(PublicJob.class);
         doNothing().when(job).onAdded();
-        doReturn("a").when(job).getUuid();
+        doReturn("a").when(job).getId();
         doThrow(new Exception()).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
-        doReturn(RetryConstraint.RETRY).when(job).shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());
+        doReturn(RetryConstraint.RETRY).when(job)
+                .shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());
         final JobManager jobManager = createJobManager();
         jobManager.addCallback(callback);
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
@@ -84,7 +88,7 @@ public class CallbackTest extends JobManagerTestBase {
     public void cancelViaShouldReRun() throws Throwable {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final PublicJob job = mock(PublicJob.class);
-        doReturn("a").when(job).getUuid();
+        doReturn("a").when(job).getId();
         doNothing().when(job).onAdded();
         doThrow(new Exception()).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
@@ -113,35 +117,44 @@ public class CallbackTest extends JobManagerTestBase {
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final CountDownLatch startLatch = new CountDownLatch(1);
         final CountDownLatch endLatch = new CountDownLatch(1);
+        final Throwable[] jobError = new Throwable[1];
         PublicJob job = spy(new PublicJob(new Params(1).addTags("tag1")) {
             @Override
             public void onRun() throws Throwable {
                 startLatch.countDown();
-                Assert.assertThat(endLatch.await(2, TimeUnit.SECONDS), CoreMatchers.is(true));
+                try {
+                    Assert.assertThat(endLatch.await(30, TimeUnit.SECONDS), CoreMatchers.is(true));
+                } catch (Throwable t) {
+                    jobError[0] = t;
+                }
                 throw new Exception("blah");
             }
         });
-        doReturn("a").when(job).getUuid();
         doCallRealMethod().when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
-        verify(job, times(0)).shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());
         JobManager jobManager = createJobManager();
         jobManager.addCallback(callback);
 
-        long jobId = jobManager.addJob(job);
-        Assert.assertThat(startLatch.await(2, TimeUnit.SECONDS), CoreMatchers.is(true));
+        jobManager.addJob(job);
+        Assert.assertThat(startLatch.await(30, TimeUnit.SECONDS), CoreMatchers.is(true));
+
         jobManager.cancelJobsInBackground(null, TagConstraint.ANY, "tag1");
+        //noinspection StatementWithEmptyBody
         while (!job.isCancelled()) {
             // busy wait until cancel arrives
+            //noinspection SLEEP_IN_CODE
+            Thread.sleep(100);
         }
         endLatch.countDown();
-        //noinspection SLEEP_IN_CODE
-        Thread.sleep(500);
-        while (jobManager.getJobStatus(jobId, false) != JobStatus.UNKNOWN) {
+
+        while (jobManager.getJobStatus(job.getId(), false) != JobStatus.UNKNOWN) {
             // busy wait until job cancel is handled
             //noinspection SLEEP_IN_CODE
             Thread.sleep(100);
         }
+        MatcherAssert.assertThat(jobError[0], CoreMatchers.nullValue());
+        verify(job, times(0)).shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());
+        jobManager.stopAndWaitUntilConsumersAreFinished();
         verify(callback).onJobAdded(job);
         verify(callback, times(1)).onJobRun(job, JobManagerCallback.RESULT_CANCEL_CANCELLED_WHILE_RUNNING);
         verify(callback).onJobCancelled(job, true);

@@ -4,6 +4,8 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.timer.Timer;
 
+import android.util.Log;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,144 +23,96 @@ import java.util.concurrent.Executors;
 
 public class MockTimer implements Timer {
     private long now;
-    private volatile Thread incrementThread;
     private CopyOnWriteArrayList<ObjectWait> waitingList = new CopyOnWriteArrayList<>();
-    private ExecutorService callbackRunner = Executors.newSingleThreadExecutor();
     // MockTimer introduces a potential race condition in waits which may prevent it from stopping
     // properly. To avoid this, it keeps a track of all objects it should notify and notify them
     // multiple times when stopped.
     private Map<Object, Boolean> anyObjectToNotify = new WeakHashMap<>();
     private volatile boolean stopped = false;
-    PriorityQueue<RunnableItem> runnableQueue = new PriorityQueue<>(200, new Comparator<RunnableItem>() {
-        @Override
-        public int compare(RunnableItem lhs, RunnableItem rhs) {
-            return Long.compare(lhs.executionTime, rhs.executionTime);
-        }
-    });
 
     @Override
-    public long nanoTime() {
+    public synchronized long nanoTime() {
         return now;
     }
 
-    public void incrementMs(long time) {
+    public synchronized void incrementMs(long time) {
         setNow(now + time * JobManager.NS_PER_MS);
     }
 
-    public void incrementNs(long time) {
+    public synchronized void incrementNs(long time) {
         setNow(now + time);
     }
 
     public synchronized void setNow(long now) {
         this.now = now;
         JqLog.d("set time to %s", now);
-        invokeTasks(now);
         notifyObjectWaits(now);
     }
 
-    private void notifyObjectWaits(long now) {
+    private synchronized void notifyObjectWaits(long now) {
+        JqLog.d("notify object waits by time %s", now);
         for (ObjectWait objectWait : waitingList) {
-            if (objectWait.timeUntil < now) {
-                synchronized (objectWait.target) {
-                    waitingList.remove(objectWait);
-                    objectWait.target.notifyAll();
-                }
-            }
-        }
-    }
-
-    private synchronized void invokeTasks(final long now) {
-        callbackRunner.execute(new Runnable() {
-            @Override
-            public void run() {
-                while (runnableQueue.size() > 0) {
-                    RunnableItem item = runnableQueue.poll();
-                    if (item.executionTime <= now) {
-                        item.runnable.run();
-                    } else {
-                        runnableQueue.offer(item);
-                        break;
+            JqLog.d("checking %s : %s for time %s",objectWait, objectWait.target,
+                    objectWait.timeUntil);
+            if (objectWait.timeUntil <= now) {
+                final ObjectWait toWait = objectWait;
+                waitingList.remove(objectWait);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (toWait.target) {
+                            JqLog.d("notifying %s", toWait);
+                            toWait.target.notifyAll();
+                        }
                     }
-                }
+                }).start();
             }
-        });
-    }
-
-    @Override
-    public synchronized void schedule(Runnable runnable, long waitInNs) {
-        runnableQueue.offer(new RunnableItem(now + waitInNs, runnable));
-        if (waitInNs < 1) {
-            // always call in another thread
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    invokeTasks(now);
-                }
-            }).start();
         }
+        JqLog.d("done notifying by time");
     }
 
     @Override
-    public void waitOnObject(Object object, long timeout) throws InterruptedException {
-        // all waits are w/o a timeout because time is controlled by the mock timer
+    public void waitOnObjectUntilNs(Object object, long untilNs) throws InterruptedException {
         synchronized (this) {
+            // all waits are w/o a timeout because time is controlled by the mock timer
+            JqLog.d("wait on object request for %s timeout %s stopped: %s", object, untilNs,
+                    stopped);
             if (stopped) {
                 return;
             }
-        }
-        synchronized (anyObjectToNotify) {
+            if(untilNs < now) {
+                return;
+            }
             anyObjectToNotify.put(object, true);
+            ObjectWait objectWait = new ObjectWait(object, untilNs);
+            waitingList.add(objectWait);
+            JqLog.d("will wait on object %s: %s for time %s forever:%s", objectWait,
+                    objectWait.target,
+                    objectWait.timeUntil, objectWait.timeUntil == ObjectWait.FOREVER);
         }
-        ObjectWait objectWait = new ObjectWait(object, timeout > 0 ? now + timeout : Long.MAX_VALUE);
-        waitingList.add(objectWait);
         object.wait();
     }
 
     @Override
     public void notifyObject(Object object) {
+        JqLog.d("notify request for %s", object);
         for (ObjectWait objectWait : waitingList) {
             if (objectWait.target == object) {
+                JqLog.d("notifying object %s", objectWait);
                 waitingList.remove(objectWait);
                 object.notifyAll();
             }
         }
-    }
-
-    @Override
-    public void waitUntilDrained() {
-        synchronized (this) {
-            stopped = true;
-        }
-        invokeTasks(Long.MAX_VALUE);
-        synchronized (this) {
-            notifyObjectWaits(Long.MAX_VALUE);
-        }
-        synchronized (anyObjectToNotify) {
-            for (Map.Entry<Object, Boolean> entry : anyObjectToNotify.entrySet()) {
-                Object obj = entry.getKey();
-                synchronized (obj) {
-                    obj.notifyAll();
-                }
-            }
-        }
+        JqLog.d("done notifying objects");
     }
 
     @Override
     public void waitOnObject(Object object) throws InterruptedException {
-        waitOnObject(object, Long.MAX_VALUE - 1);
+        waitOnObjectUntilNs(object, ObjectWait.FOREVER);
     }
 
-    private static class RunnableItem {
-        final long executionTime;
-        final Runnable runnable;
-
-        public RunnableItem(long executionTime, Runnable runnable) {
-            this.executionTime = executionTime;
-            this.runnable = runnable;
-        }
-    }
-
-    private static class ObjectWait {
+    static class ObjectWait {
+        static final long FOREVER = Long.MAX_VALUE;
         final long timeUntil;
         final Object target;
         public ObjectWait(Object target, long time) {

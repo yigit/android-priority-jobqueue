@@ -1,8 +1,8 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.timer.MockTimer;
@@ -29,13 +29,11 @@ public class LoadFactorTest extends JobManagerTestBase {
         int maxConsumerCount = 5;
         int minConsumerCount = 2;
         int loadFactor = 5;
-        com.path.android.jobqueue.JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .maxConsumerCount(maxConsumerCount)
                 .minConsumerCount(minConsumerCount)
                 .loadFactor(loadFactor)
                 .timer(mockTimer));
-        JobConsumerExecutor consumerExecutor = getConsumerExecutor(jobManager);
-        org.fest.reflect.field.Invoker<AtomicInteger> activeConsumerCnt = getActiveConsumerCount(consumerExecutor);
         Object runLock = new Object();
         Semaphore semaphore = new Semaphore(maxConsumerCount);
         int totalJobCount = loadFactor * maxConsumerCount * 5;
@@ -61,12 +59,12 @@ public class LoadFactorTest extends JobManagerTestBase {
             if(i < loadFactor) {
                 //make sure there is only min job running
                 MatcherAssert.assertThat("while below load factor, active consumer count should be = min",
-                        activeConsumerCnt.get().get(), equalTo(Math.min(i + 1, minConsumerCount)));
+                        jobManager.getActiveConsumerCount(), equalTo(Math.min(i + 1, minConsumerCount)));
             }
             if(i > loadFactor) {
                 //make sure there is only 1 job running
                 MatcherAssert.assertThat("while above load factor. there should be more job consumers. i=" + i,
-                        activeConsumerCnt.get().get(), equalTo(expectedConsumerCount));
+                        jobManager.getActiveConsumerCount(), equalTo(expectedConsumerCount));
             }
         }
 

@@ -15,6 +15,7 @@ import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.JobStatus;
 import com.path.android.jobqueue.RetryConstraint;
@@ -32,11 +33,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
+class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
-    public static final long NETWORK_CHECK_INTERVAL = TimeUnit.MILLISECONDS.toNanos(10000);
+
 
     private final Timer timer;
     private final Context appContext;
@@ -55,7 +56,7 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
 
     final PriorityMessageQueue messageQueue;
 
-    JobQueueThread(Configuration config, PriorityMessageQueue messageQueue,
+    JobManagerThread(Configuration config, PriorityMessageQueue messageQueue,
             MessageFactory messageFactory) {
         this.messageQueue = messageQueue;
         if(config.getCustomLogger() != null) {
@@ -78,7 +79,6 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
         }
         consumerController = new ConsumerController(this, timer, messageFactory, config);
         callbackManager = new CallbackManager(messageFactory, timer);
-        consumerController.handleConstraintChange();
     }
 
     void addCallback(JobManagerCallback callback) {
@@ -163,15 +163,13 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
                 if (!running) {
                     return;
                 }
-                Long nextJobTimeNs = getNextWakeUpNs();
+                Long nextJobTimeNs = getNextWakeUpNs(true);
+                // TODO check network should be another message which goes idle if network is the
+                // same as now
                 JqLog.d("Job queue idle. next job at: %s", nextJobTimeNs);
                 if (nextJobTimeNs != null) {
-                    long waitInNs = nextJobTimeNs - timer.nanoTime();
                     ConstraintChangeMessage constraintMessage = messageFactory.obtain(ConstraintChangeMessage.class);
-                    if (waitInNs > 0) {
-                        messageQueue.postAt(constraintMessage, nextJobTimeNs);
-                        JqLog.d("wake up jobque at %s", nextJobTimeNs);
-                    }
+                    messageQueue.postAt(constraintMessage, nextJobTimeNs);
                 }
             }
         });
@@ -180,6 +178,7 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
     private void handleCommand(CommandMessage message) {
         if (message.getWhat() == CommandMessage.QUIT) {
             messageQueue.stop();
+            messageQueue.clear();
         }
     }
 
@@ -196,6 +195,7 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
                 message.getCallback().onResult(countReadyJobs(hasNetwork()));
                 break;
             case PublicQueryMessage.START:
+                JqLog.d("handling start request...");
                 if (running) {
                     return;
                 }
@@ -208,7 +208,7 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
                 consumerController.handleStop();
                 break;
             case PublicQueryMessage.JOB_STATUS:
-                JobStatus status = getJobStatus(message.getLongArg(), message.getBooleanArg());
+                JobStatus status = getJobStatus(message.getStringArg(), message.getBooleanArg());
                 message.getCallback().onResult(status.ordinal());
                 break;
             case PublicQueryMessage.CLEAR:
@@ -217,6 +217,15 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
                     message.getCallback().onResult(0);
                 }
                 break;
+            case PublicQueryMessage.ACTIVE_CONSUMER_COUNT:
+                message.getCallback().onResult(consumerController.totalConsumers);
+                break;
+            case PublicQueryMessage.INTERNAL_RUNNABLE:
+                message.getCallback().onResult(0);
+                break;
+            default:
+                throw new IllegalArgumentException("cannot handle public query with type " +
+                message.getWhat());
         }
     }
 
@@ -225,7 +234,7 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
         persistentJobQueue.clear();
     }
 
-    private JobStatus getJobStatus(long id, boolean isPersistent) {
+    private JobStatus getJobStatus(String id, boolean isPersistent) {
         if (consumerController.isJobRunning(id, isPersistent)) {
             return JobStatus.RUNNING;
         }
@@ -377,7 +386,7 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
         return networkUtil == null || networkUtil.isConnected(appContext);
     }
 
-    Long getNextWakeUpNs() {
+    Long getNextWakeUpNs(boolean includeNetworkWatch) {
         final Long groupDelay = consumerController.runningJobGroups.getNextDelayForGroups();
         final boolean hasNetwork = hasNetwork();
         final Collection<String> groups = consumerController.runningJobGroups.getSafe();
@@ -393,16 +402,30 @@ class JobQueueThread implements Runnable, NetworkEventProvider.Listener {
         if (persistent != null) {
             delay = delay == null ? persistent : Math.min(persistent, delay);
         }
-        if (!(networkUtil instanceof NetworkEventProvider)) {
+        if (includeNetworkWatch && !(networkUtil instanceof NetworkEventProvider)) {
             // if network cannot provide events, we need to wake up :/
-            long checkNetworkAt = timer.nanoTime() + NETWORK_CHECK_INTERVAL;
+            long checkNetworkAt = timer.nanoTime() + JobManager.NETWORK_CHECK_INTERVAL;
             delay = delay == null ? checkNetworkAt : Math.min(checkNetworkAt, delay);
         }
         return delay;
     }
 
+    // Used for testing
+    JobHolder getNextJobForTesting() {
+        return getNextJobForTesting(null);
+    }
+
+    // Used for testing
+    JobHolder getNextJobForTesting(Collection<String> runningJobGroups) {
+        return getNextJob(runningJobGroups, true);
+    }
+
     JobHolder getNextJob(Collection<String> runningJobGroups) {
-        if (!running) {
+        return getNextJob(runningJobGroups, false);
+    }
+
+    JobHolder getNextJob(Collection<String> runningJobGroups, boolean ignoreRunning) {
+        if (!running && !ignoreRunning) {
             return null;
         }
         boolean haveNetwork = hasNetwork();

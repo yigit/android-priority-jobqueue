@@ -1,15 +1,20 @@
 package com.path.android.jobqueue.test;
 
 import android.util.Log;
+
+import com.birbit.android.jobqueue.testing.StackTraceRule;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.log.JqLog;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.robolectric.shadows.ShadowLog;
 
 public class TestBase {
-    protected static boolean ENABLE_DEBUG = true;
+    protected static boolean ENABLE_DEBUG = false;
+    @Rule
+    public StackTraceRule stackTraceRule = new StackTraceRule();
     @Before
     public void setUp() throws Exception {
         if(ENABLE_DEBUG) {
@@ -34,17 +39,21 @@ public class TestBase {
 
             @Override
             public void d(String text, Object... args) {
-                Log.d(TAG, Thread.currentThread().getName() + ":" + String.format(text, args));
+                Log.d(TAG, prefix() + String.format(text, args));
             }
 
             @Override
             public void e(Throwable t, String text, Object... args) {
-                Log.e(TAG, Thread.currentThread().getName() + ":" + String.format(text, args), t);
+                Log.e(TAG, prefix() + String.format(text, args), t);
             }
 
             @Override
             public void e(String text, Object... args) {
-                Log.e(TAG, Thread.currentThread().getName() + ":" + String.format(text, args));
+                Log.e(TAG, prefix() + String.format(text, args));
+            }
+
+            private String prefix() {
+                return Thread.currentThread().getName() + "[" + System.currentTimeMillis() + "]";
             }
         });
     }

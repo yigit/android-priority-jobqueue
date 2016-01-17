@@ -2,8 +2,6 @@ package com.path.android.jobqueue;
 
 import android.content.Context;
 
-import com.path.android.jobqueue.log.JqLog;
-
 import java.util.Collections;
 import java.util.Set;
 
@@ -37,7 +35,8 @@ public class JobHolder {
      */
     public static final int RUN_RESULT_FAIL_SHOULD_RE_RUN = 5;
 
-    protected Long id;
+    protected Long insertionOrder;
+    protected String id;
     protected int priority;
     protected String groupId;
     protected int runCount;
@@ -58,7 +57,6 @@ public class JobHolder {
     private boolean successful;
 
     /**
-     * @param id               Unique ID for the job. Should be unique per queue
      * @param priority         Higher is better
      * @param groupId          which group does this job belong to? default null
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
@@ -67,8 +65,9 @@ public class JobHolder {
      * @param delayUntilNs     System.nanotime value where job can be run the very first time
      * @param runningSessionId
      */
-    private JobHolder(Long id, int priority, String groupId, int runCount, Job job, long createdNs, long delayUntilNs, long runningSessionId) {
-        this.id = id;
+    private JobHolder(int priority, String groupId, int runCount, Job job, long createdNs,
+            long delayUntilNs, long runningSessionId) {
+        this.id = job.getId();
         this.priority = priority;
         this.groupId = groupId;
         this.runCount = runCount;
@@ -90,12 +89,8 @@ public class JobHolder {
         return job.safeRun(this, currentRunCount);
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public boolean requiresNetwork() {
@@ -109,6 +104,14 @@ public class JobHolder {
     public void setPriority(int priority) {
         this.priority = priority;
         this.job.priority = this.priority;
+    }
+
+    public Long getInsertionOrder() {
+        return insertionOrder;
+    }
+
+    public void setInsertionOrder(long insertionOrder) {
+        this.insertionOrder = insertionOrder;
     }
 
     public void setDelayUntilNs(long delayUntilNs) {
@@ -149,6 +152,7 @@ public class JobHolder {
 
     public void setJob(Job job) {
         this.job = job;
+        this.id = job.getId();
     }
 
     public String getGroupId() {
@@ -171,21 +175,15 @@ public class JobHolder {
     @Override
     public int hashCode() {
         //we don't really care about overflow.
-        if(id == null) {
-            return super.hashCode();
-        }
-        return id.intValue();
+        return id.hashCode();
     }
 
     @Override
     public boolean equals(Object o) {
-        if(o instanceof JobHolder == false) {
+        if(!(o instanceof JobHolder)) {
             return false;
         }
         JobHolder other = (JobHolder) o;
-        if(id == null || other.id == null) {
-            return false;
-        }
         return id.equals(other.id);
     }
 
@@ -214,22 +212,19 @@ public class JobHolder {
     }
 
     public static class Builder {
-        private Long id;
         private int priority;
         private String groupId;
         private int runCount;
         private Job job;
         private long createdNs;
         private long delayUntilNs = JobManager.NOT_DELAYED_JOB_DELAY;
+        private Long insertionOrder;
         private long runningSessionId;
         private int providedFlags = 0;
         private static final int FLAG_SESSION_ID = 1;
         private static final int FLAG_PRIORITY = 1 << 1;
         private static final int FLAG_CREATED_AT = 1 << 2;
-        public Builder id(Long id) {
-            this.id = id;
-            return this;
-        }
+
         public Builder priority(int priority) {
             this.priority = priority;
             providedFlags |= FLAG_PRIORITY;
@@ -256,6 +251,10 @@ public class JobHolder {
             this.delayUntilNs = delayUntilNs;
             return this;
         }
+        public Builder insertionOrder(long insertionOrder) {
+            this.insertionOrder = insertionOrder;
+            return this;
+        }
         public Builder runningSessionId(long runningSessionId) {
             this.runningSessionId = runningSessionId;
             providedFlags |= FLAG_SESSION_ID;
@@ -274,8 +273,13 @@ public class JobHolder {
             if ((providedFlags & FLAG_CREATED_AT) == 0) {
                 throw new IllegalArgumentException("must provide a created timestamp");
             }
-            return new JobHolder(id, priority, groupId, runCount, job, createdNs, delayUntilNs,
+            JobHolder jobHolder = new JobHolder(priority, groupId, runCount, job, createdNs,
+                    delayUntilNs,
                     runningSessionId);
+            if (insertionOrder != null) {
+                jobHolder.setInsertionOrder(insertionOrder);
+            }
+            return jobHolder;
         }
     }
 }

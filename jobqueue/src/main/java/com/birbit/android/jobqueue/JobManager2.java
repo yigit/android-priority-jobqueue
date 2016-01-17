@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import com.birbit.android.jobqueue.messaging.MessageFactory;
+import com.birbit.android.jobqueue.messaging.MessageQueue;
 import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
 import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelMessage;
@@ -17,17 +18,21 @@ import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class JobManager2 {
-    private final JobQueueThread mJobQueueThread;
+    final JobManagerThread jobManagerThread;
     private final PriorityMessageQueue messageQueue;
     private final MessageFactory messageFactory;
     private Thread chefThread;
     public JobManager2(Configuration configuration) {
         messageQueue = new PriorityMessageQueue(configuration.timer());
         messageFactory = new MessageFactory();
-        mJobQueueThread = new JobQueueThread(configuration, messageQueue, messageFactory);
-        chefThread = new Thread(mJobQueueThread, "job-manager");
+        jobManagerThread = new JobManagerThread(configuration, messageQueue, messageFactory);
+        chefThread = new Thread(jobManagerThread, "job-manager");
         chefThread.start();
     }
 
@@ -43,32 +48,51 @@ public class JobManager2 {
         messageQueue.post(message);
     }
 
+    public int getActiveConsumerCount() {
+        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
+        message.set(PublicQueryMessage.ACTIVE_CONSUMER_COUNT, null);
+        return new PublicQueryFuture(messageQueue, message).getSafe();
+    }
+
     public void destroy() {
         JqLog.d("destroying job queue");
         stopAndWaitUntilConsumersAreFinished();
         CommandMessage message = messageFactory.obtain(CommandMessage.class);
         message.set(CommandMessage.QUIT);
         messageQueue.post(message);
-        mJobQueueThread.callbackManager.destroy();
+        jobManagerThread.callbackManager.destroy();
     }
 
     public void stopAndWaitUntilConsumersAreFinished() {
+        waitUntilConsumersAreFinished(true);
+    }
+
+    public void waitUntilConsumersAreFinished() {
+        waitUntilConsumersAreFinished(false);
+    }
+
+    private void waitUntilConsumersAreFinished(boolean stop) {
         final CountDownLatch latch = new CountDownLatch(1);
-        mJobQueueThread.consumerController.addNoConsumersListener(new Runnable() {
+        jobManagerThread.consumerController.addNoConsumersListener(new Runnable() {
             @Override
             public void run() {
                 latch.countDown();
-                mJobQueueThread.consumerController.removeNoConsumersListener(this);
+                jobManagerThread.consumerController.removeNoConsumersListener(this);
             }
         });
-        stop();
-        if(mJobQueueThread.consumerController.totalConsumers == 0) {
+        if (stop) {
+            stop();
+        }
+        if(jobManagerThread.consumerController.totalConsumers == 0) {
             return;
         }
         try {
             latch.await();
         } catch (InterruptedException ignored) {
         }
+        PublicQueryMessage pm = messageFactory.obtain(PublicQueryMessage.class);
+        pm.set(PublicQueryMessage.CLEAR, null);
+        new PublicQueryFuture(jobManagerThread.callbackManager.messageQueue, pm).getSafe();
     }
 
     public void addJobInBackground(Job job) {
@@ -96,20 +120,20 @@ public class JobManager2 {
     }
 
     public void addCallback(JobManagerCallback callback) {
-        mJobQueueThread.addCallback(callback);
+        jobManagerThread.addCallback(callback);
     }
 
     public boolean removeCallback(JobManagerCallback callback) {
-        return mJobQueueThread.removeCallback(callback);
+        return jobManagerThread.removeCallback(callback);
     }
 
-    public long addJob(Job job) {
+    public String addJob(Job job) {
         final CountDownLatch latch = new CountDownLatch(1);
-        final String uuid = job.getUuid();
+        final String uuid = job.getId();
         addCallback(new JobManagerCallbackAdapter() {
             @Override
             public void onJobAdded(Job job) {
-                if (uuid.equals(job.getUuid())) {
+                if (uuid.equals(job.getId())) {
                     latch.countDown();
                     removeCallback(this);
                 }
@@ -121,16 +145,16 @@ public class JobManager2 {
         } catch (InterruptedException ignored) {
 
         }
-        return 1;
+        return job.getId();
     }
 
     public void addJobInBackground(Job job, AsyncAddCallback callback) {
         final CountDownLatch latch = new CountDownLatch(1);
-        final String uuid = job.getUuid();
+        final String uuid = job.getId();
         addCallback(new JobManagerCallbackAdapter() {
             @Override
             public void onJobAdded(Job job) {
-                if (uuid.equals(job.getUuid())) {
+                if (uuid.equals(job.getId())) {
                     latch.countDown();
                     removeCallback(this);
                 }
@@ -169,77 +193,104 @@ public class JobManager2 {
 
     public int count() {
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
-        final CountDownLatch latch = new CountDownLatch(1);
-        final int[] result = new int[1];
-        message.set(PublicQueryMessage.COUNT, new IntCallback() {
-            @Override
-            public void onResult(int count) {
-                result[0] = count;
-                latch.countDown();
-            }
-        });
-        messageQueue.post(message);
-        try {
-            latch.await();
-        } catch (InterruptedException ignored) {
-        }
-        return result[0];
+        message.set(PublicQueryMessage.COUNT, null);
+        return new PublicQueryFuture(messageQueue, message).getSafe();
     }
 
     public int countReadyJobs() {
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
-        final CountDownLatch latch = new CountDownLatch(1);
-        final int[] result = new int[1];
-        message.set(PublicQueryMessage.COUNT_READY, new IntCallback() {
-            @Override
-            public void onResult(int count) {
-                result[0] = count;
-                latch.countDown();
-            }
-        });
-        messageQueue.post(message);
-        try {
-            latch.await();
-        } catch (InterruptedException ignored) {
-        }
-        return result[0];
+        message.set(PublicQueryMessage.COUNT_READY, null);
+        return new PublicQueryFuture(messageQueue, message).getSafe();
     }
 
-    public JobStatus getJobStatus(long id, boolean isPersistent) {
-        if (true) {
-            throw new UnsupportedOperationException("use uuid version");
-        }
+    public JobStatus getJobStatus(String id, boolean isPersistent) {
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
-        final CountDownLatch latch = new CountDownLatch(1);
-        final JobStatus[] result = new JobStatus[1];
-        message.set(PublicQueryMessage.JOB_STATUS, id, isPersistent, new IntCallback() {
-            @Override
-            public void onResult(int index) {
-                result[0] = JobStatus.values()[index];
-                latch.countDown();
-            }
-        });
-        messageQueue.post(message);
-        try {
-            latch.await();
-        } catch (InterruptedException ignored) {
-        }
-        return result[0];
+        message.set(PublicQueryMessage.JOB_STATUS, id, isPersistent, null);
+        Integer status = new PublicQueryFuture(messageQueue, message).getSafe();
+        return JobStatus.values()[status];
     }
 
     public void clear() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
-        message.set(PublicQueryMessage.CLEAR, new IntCallback() {
+        final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
+        message.set(PublicQueryMessage.CLEAR, null);
+        new PublicQueryFuture(messageQueue, message).getSafe();
+    }
+
+    void internalRunInJobManagerThread(final Runnable runnable) throws Throwable {
+        final Throwable[] error = new Throwable[1];
+        final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
+        message.set(PublicQueryMessage.INTERNAL_RUNNABLE, null);
+        new PublicQueryFuture(messageQueue, message) {
             @Override
-            public void onResult(int result) {
-                latch.countDown();
+            public void onResult(int result) { // this is hacky but allright
+                try {
+                    runnable.run();
+                } catch (Throwable t) {
+                    error[0] = t;
+                }
+                super.onResult(result);
             }
-        });
-        messageQueue.post(message);
-        try {
+        }.getSafe();
+        if (error[0] != null) {
+            throw error[0];
+        }
+    }
+
+    static class PublicQueryFuture implements Future<Integer>,IntCallback {
+        final MessageQueue messageQueue;
+        volatile Integer result = null;
+        final CountDownLatch latch = new CountDownLatch(1);
+        final PublicQueryMessage message;
+
+        public PublicQueryFuture(MessageQueue messageQueue, PublicQueryMessage message) {
+            this.messageQueue = messageQueue;
+            this.message = message;
+            message.setCallback(this);
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return latch.getCount() == 0;
+        }
+
+        public Integer getSafe() {
+            try {
+                return get();
+            } catch (Throwable t) {
+                JqLog.e(t, "message is not complete");
+            }
+            throw new RuntimeException("cannot get the result of the JobManager query");
+        }
+
+        @Override
+        public Integer get() throws InterruptedException, ExecutionException {
+            messageQueue.post(message);
             latch.await();
-        } catch (InterruptedException ignored) {
+            return result;
+        }
+
+        @Override
+        public Integer get(long timeout, TimeUnit unit)
+                throws InterruptedException, ExecutionException, TimeoutException {
+            messageQueue.post(message);
+            latch.await(timeout, unit);
+            return result;
+        }
+
+        @Override
+        public void onResult(int result) {
+            this.result = result;
+            latch.countDown();
         }
     }
 }

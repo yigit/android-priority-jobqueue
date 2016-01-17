@@ -1,9 +1,12 @@
 package com.birbit.android.jobqueue.messaging;
 
+import com.path.android.jobqueue.log.JqLog;
+
 class DelayedMessageBag {
     Message queue = null;
 
-    long flushReadyMessages(long now, MessageQueue addInto) {
+    Long flushReadyMessages(long now, MessageQueue addInto) {
+        JqLog.d("flushing messages at time %s", now);
         while (queue != null && queue.readyNs <= now) {
             Message msg = queue;
             queue = msg.next;
@@ -13,9 +16,10 @@ class DelayedMessageBag {
         if (queue != null) {
             return queue.readyNs;
         }
-        return now;
+        return null;
     }
     void add(Message message, long readyNs) {
+        JqLog.d("add delayed message %s at time %s", message, readyNs);
         message.readyNs = readyNs;
         if (queue == null) {
             queue = message;

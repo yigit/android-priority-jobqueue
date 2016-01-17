@@ -1,52 +1,57 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 
+import com.birbit.android.jobqueue.JobManagerThreadRunnable;
+import com.birbit.android.jobqueue.testing.CleanupRule;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.executor.JobConsumerExecutor;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.timer.MockTimer;
 
-import org.fest.reflect.core.*;
-
 import static org.hamcrest.CoreMatchers.*;
 
-import org.fest.reflect.method.Invoker;
 import org.hamcrest.*;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 import org.robolectric.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class JobManagerTestBase extends TestBase {
     List<JobManager> createdJobManagers = new ArrayList<JobManager>();
     final MockTimer mockTimer = new MockTimer();
-    @Rule public TestName name = new TestName();
+    @Rule public CleanupRule cleanup = new CleanupRule(this);
+    @Rule public Timeout timeout = Timeout.seconds(getTimeout());
 
-    @Before
-    public void logInfo() {
-        System.out.println("started test " + name.getMethodName() + "/" + getClass().getSimpleName());
+    protected int getActiveConsumerCount(JobManager jobManager) {
+        return jobManager.getActiveConsumerCount();
+    }
+
+    protected long getTimeout() {
+        return 60;
     }
 
     protected JobManager createJobManager() {
+        if(createdJobManagers.size() > 0) {
+            throw new AssertionError("only 1 job manager per test");
+        }
         final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
             .timer(mockTimer)
             .inTestMode());
@@ -55,6 +60,9 @@ public class JobManagerTestBase extends TestBase {
     }
 
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
+        if(createdJobManagers.size() > 0) {
+            throw new AssertionError("only 1 job manager per test");
+        }
         Configuration config = configurationBuilder.inTestMode().id(UUID.randomUUID().toString())
                 .build();
         if (config.timer() != mockTimer && !canUseRealTimer()) {
@@ -67,14 +75,12 @@ public class JobManagerTestBase extends TestBase {
         return jobManager;
     }
 
-    @After
-    public void tearDown() throws InterruptedException {
-        System.out.println("tear down " + name.getMethodName() + "/" + getClass().getSimpleName());
-        for (JobManager jobManager : createdJobManagers) {
-            NeverEndingDummyJob.unlockAll();
-            jobManager.destroy();
-        }
-        System.out.println("finished tear down of " + name.getMethodName() + "/" + getClass().getSimpleName());
+    public List<JobManager> getCreatedJobManagers() {
+        return createdJobManagers;
+    }
+
+    public MockTimer getMockTimer() {
+        return mockTimer;
     }
 
     protected static class DummyTwoLatchJob extends DummyJob {
@@ -100,6 +106,34 @@ public class JobManagerTestBase extends TestBase {
             super.onRun();
             trigger.countDown();
         }
+    }
+
+    protected JobHolder nextJob(JobManager jobManager) throws Throwable {
+        return new JobManagerThreadRunnable<JobHolder>(jobManager) {
+            @Override
+            public JobHolder onRun() {
+                return getNextJob();
+            }
+        }.run();
+    }
+
+    protected JobHolder nextJob(JobManager jobManager, final Collection<String> exclude) throws Throwable {
+        return new JobManagerThreadRunnable<JobHolder>(jobManager) {
+            @Override
+            public JobHolder onRun() {
+                return getNextJob(exclude);
+            }
+        }.run();
+    }
+
+    protected void removeJob(final JobManager jobManager, final JobHolder holder) throws Throwable {
+        new JobManagerThreadRunnable<Void>(jobManager) {
+            @Override
+            public Void onRun() {
+                removeJob(holder);
+                return null;
+            }
+        }.run();
     }
 
     protected static class DummyLatchJob extends DummyJob {
@@ -155,7 +189,8 @@ public class JobManagerTestBase extends TestBase {
         }
     }
 
-    protected static class DummyNetworkUtilWithConnectivityEventSupport implements NetworkUtil, NetworkEventProvider {
+    protected static class DummyNetworkUtilWithConnectivityEventSupport extends DummyNetworkUtil
+            implements NetworkUtil, NetworkEventProvider {
         private boolean hasNetwork;
         private Listener listener;
 
@@ -164,6 +199,11 @@ public class JobManagerTestBase extends TestBase {
             if(notifyListener && listener != null) {
                 listener.onNetworkChange(hasNetwork);
             }
+        }
+
+        @Override
+        protected void setHasNetwork(boolean hasNetwork) {
+            setHasNetwork(hasNetwork, true);
         }
 
         @Override
@@ -193,25 +233,9 @@ public class JobManagerTestBase extends TestBase {
         }
     }
 
-    protected Invoker<JobHolder> getNextJobMethod(JobManager jobManager) {
-        return Reflection.method("getNextJob").withReturnType(JobHolder.class).in(jobManager);
-    }
-
-    protected Invoker<Void> getRemoveJobMethod(JobManager jobManager) {
-        return Reflection.method("removeJob").withParameterTypes(JobHolder.class).in(jobManager);
-    }
-
-    protected JobConsumerExecutor getConsumerExecutor(JobManager jobManager) {
-        return Reflection.field("jobConsumerExecutor").ofType(JobConsumerExecutor.class).in(jobManager).get();
-    }
-
-    protected org.fest.reflect.field.Invoker<AtomicInteger> getActiveConsumerCount(JobConsumerExecutor jobConsumerExecutor) {
-        return Reflection.field("activeConsumerCount").ofType(AtomicInteger.class).in(jobConsumerExecutor);
-    }
-
     public static class NeverEndingDummyJob extends DummyJob {
         // used for cleanup
-        static List<NeverEndingDummyJob> createdJobs = new ArrayList<NeverEndingDummyJob>();
+        static List<NeverEndingDummyJob> createdJobs = new ArrayList<>();
         final Object lock;
         final Semaphore semaphore;
         public NeverEndingDummyJob(Params params, Object lock, Semaphore semaphore) {
@@ -232,7 +256,7 @@ public class JobManagerTestBase extends TestBase {
             semaphore.release();
         }
 
-        static void unlockAll() {
+        public static void unlockAll() {
             for (NeverEndingDummyJob job : createdJobs) {
                 synchronized (job.lock) {
                     job.lock.notifyAll();
@@ -245,15 +269,21 @@ public class JobManagerTestBase extends TestBase {
         return false;
     }
 
+    @SuppressLint("NewApi")
     protected void waitUntilAJobIsDone(final JobManager jobManager, final WaitUntilCallback callback) throws InterruptedException {
         final CountDownLatch runJob = new CountDownLatch(1);
+        final Throwable[] throwable = new Throwable[1];
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
             public void onDone(Job job) {
                 synchronized (this) {
                     super.onDone(job);
                     if (callback != null) {
-                        callback.assertJob(job);
+                        try {
+                            callback.assertJob(job);
+                        } catch (Throwable t) {
+                            throwable[0] = t;
+                        }
                     }
                     runJob.countDown();
                     jobManager.removeCallback(this);
@@ -264,6 +294,7 @@ public class JobManagerTestBase extends TestBase {
             callback.run();
         }
         MatcherAssert.assertThat("The job should be done", runJob.await(1, TimeUnit.MINUTES), is(true));
+        MatcherAssert.assertThat("Job assertion failed", throwable[0], CoreMatchers.nullValue());
     }
     protected interface WaitUntilCallback {
         void run();

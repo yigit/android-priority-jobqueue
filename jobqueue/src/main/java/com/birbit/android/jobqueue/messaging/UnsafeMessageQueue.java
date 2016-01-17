@@ -58,6 +58,7 @@ class UnsafeMessageQueue {
     }
 
     private void remove(Message prev, Message curr) {
+        JqLog.d("removing message by query " + curr);
         if (tail == curr) {
             tail = prev;
         }

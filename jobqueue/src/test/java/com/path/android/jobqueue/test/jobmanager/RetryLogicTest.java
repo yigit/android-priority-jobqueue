@@ -132,7 +132,6 @@ public class RetryLogicTest extends JobManagerTestBase {
     public void testChangeDelayOfTheGroup(Boolean persistent) throws InterruptedException {
         final JobManager jobManager = createJobManager();
         canRun = true;
-        enableDebug();
         final RetryJob job1 = new RetryJob(new Params(2).setPersistent(Boolean.TRUE.equals(persistent)).groupBy("g1"));
         job1.identifier = "job 1 id";
         RetryJob job2 = new RetryJob(new Params(2).setPersistent(!Boolean.FALSE.equals(persistent)).groupBy("g1"));
@@ -221,10 +220,6 @@ public class RetryLogicTest extends JobManagerTestBase {
                                 assertThat("no jobs should be ready", jobManager.countReadyJobs(), is(0));
                                 jobsCanRun.release();
                                 mockTimer.incrementMs(2);
-                                // constraint change will be handled first and a job should start
-                                // running immediately
-                                assertThat("no jobs should be ready " + jobRunLatch.getCount()
-                                        , jobManager.countReadyJobs(), is(0));
                             }
                         }
                     } catch (Throwable t) {
@@ -319,7 +314,7 @@ public class RetryLogicTest extends JobManagerTestBase {
             }
         });
         jobManager.addJob(job);
-        assertThat("on run callbacks should arrive", runLatch.await(1, TimeUnit.MINUTES), is(true));
+        assertThat("on run callbacks should arrive", runLatch.await(100, TimeUnit.MINUTES), is(true));
         assertThat("run callback should not have any errors", callbackError[0], nullValue());
         assertThat("job should be canceled", cancelLatch.await(1, TimeUnit.SECONDS), is(true));
         assertThat("should run 2 times", runCount, is(2));

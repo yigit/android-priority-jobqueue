@@ -38,21 +38,9 @@ abstract public class MergedQueue implements JobSet {
     }
 
     /**
-     * used to poll from one of the queues
-     * @param queueId
-     * @return
-     */
-    protected JobHolder pollFromQueue(SetId queueId, Collection<String> excludeGroupIds) {
-        if(queueId == SetId.S0) {
-            return queue0.poll(excludeGroupIds);
-        }
-        return queue1.poll(excludeGroupIds);
-    }
-
-    /**
      * used to peek from one of the queues
-     * @param queueId
-     * @return
+     * @param queueId The queue id to peek from
+     * @return The JobHolder that is at the peek of the queue
      */
     protected JobHolder peekFromQueue(SetId queueId, Collection<String> excludeGroupIds) {
         if(queueId == SetId.S0) {
@@ -179,17 +167,13 @@ abstract public class MergedQueue implements JobSet {
      * if first queue, should return 0
      * if second queue, should return 1
      * is only called when an item is inserted. methods like remove always call both queues.
-     * @param jobHolder
-     * @return
+     * @param jobHolder The JobHolder for which this method has to choose a queue
+     * @return The chose queue id for the job
      */
     abstract protected SetId decideQueue(JobHolder jobHolder);
 
     /**
      * called when we want to create the subsequent queues
-     * @param initialCapacity
-     * @param comparator
-     * @param timer
-     * @return
      */
     abstract protected JobSet createQueue(SetId setId, int initialCapacity, Comparator<JobHolder> comparator, Timer timer);
 
@@ -212,16 +196,16 @@ abstract public class MergedQueue implements JobSet {
     /**
      * Returns the JobHolder that has the given id
      * @param id id job the job
-     * @return
+     * @return The JobHolder that matches the given id
      */
     @Override
-    public JobHolder findById(long id) {
+    public JobHolder findById(String id) {
         JobHolder q0 = queue0.findById(id);
         return q0 == null ? queue1.findById(id) : q0;
     }
 
     @Override
-    public Set<JobHolder> findByTags(TagConstraint constraint, Collection<Long> exclude,
+    public Set<JobHolder> findByTags(TagConstraint constraint, Collection<String> exclude,
             String... tags) {
         Set<JobHolder> jobs = new HashSet<>();
         jobs.addAll(queue0.findByTags(constraint, exclude, tags));
@@ -232,7 +216,7 @@ abstract public class MergedQueue implements JobSet {
     /**
      * simple enum to identify queues
      */
-    protected static enum SetId {
+    protected enum SetId {
         S0,
         S1
     }

@@ -15,6 +15,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,25 +25,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class GroupingTest extends JobManagerTestBase {
     @Test
-    public void testGrouping() throws Exception {
+    public void testGrouping() throws Throwable {
         JobManager jobManager = createJobManager();
         jobManager.stop();
-        Invoker<JobHolder> nextJobMethod = getNextJobMethod(jobManager);
-        Invoker<Void> removeJobMethod = getRemoveJobMethod(jobManager);
-        long jobId1 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
-        long jobId2 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
-        long jobId3 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group2")));
-        long jobId4 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group1")));
-        JobHolder nextJob = nextJobMethod.invoke();
+        String jobId1 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
+        String jobId2 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
+        String jobId3 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group2")));
+        String jobId4 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group1")));
+        JobHolder nextJob = nextJob(jobManager);
         MatcherAssert.assertThat("next job should be the first job from group1", nextJob.getId(), equalTo(jobId1));
-        JobHolder group2Job = nextJobMethod.invoke();
+        JobHolder group2Job = nextJob(jobManager, Collections.singletonList("group1"));
         MatcherAssert.assertThat("since group 1 is running now, next job should be from group 2", group2Job.getId(), equalTo(jobId3));
-        removeJobMethod.invoke(nextJob);
-        JobHolder group1NextJob =nextJobMethod.invoke();
+        removeJob(jobManager, nextJob);
+        JobHolder group1NextJob = nextJob(jobManager, Arrays.asList("group2"));
         MatcherAssert.assertThat("after removing job from group 1, another job from group1 should be returned", group1NextJob.getId(), equalTo(jobId2));
-        MatcherAssert.assertThat("when jobs from both groups are running, no job should be returned from next job", nextJobMethod.invoke(), is(nullValue()));
-        removeJobMethod.invoke(group2Job);
-        MatcherAssert.assertThat("even after group2 job is complete, no jobs should be returned since we only have group1 jobs left", nextJobMethod.invoke(), is(nullValue()));
+        MatcherAssert.assertThat("when jobs from both groups are running, no job should be returned from next job",
+                nextJob(jobManager, Arrays.asList("group1", "group2")), is(nullValue()));
+        removeJob(jobManager, group2Job);
+        MatcherAssert.assertThat("even after group2 job is complete, no jobs should be returned"
+                + "since we only have group1 jobs left",
+                nextJob(jobManager, Arrays.asList("group1")), is(nullValue()));
     }
 
     @Test

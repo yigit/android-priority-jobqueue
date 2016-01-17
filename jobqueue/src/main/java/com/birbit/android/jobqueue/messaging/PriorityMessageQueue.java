@@ -5,6 +5,7 @@ import com.path.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Uses multiple message queues to simulate priority.
@@ -15,6 +16,8 @@ public class PriorityMessageQueue implements MessageQueue {
     private final DelayedMessageBag delayedBag;
     private final Timer timer;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    // used when jobs are posted inside sync blocks
+    private boolean postJobTick = false;
 
     @SuppressWarnings("unused")
     public PriorityMessageQueue(Timer timer) {
@@ -23,16 +26,33 @@ public class PriorityMessageQueue implements MessageQueue {
         this.timer = timer;
     }
 
+    @Override
     public void consume(MessageQueueConsumer consumer) {
         if(running.getAndSet(true)) {
             throw new IllegalStateException("only 1 consumer per MQ");
         }
         while (running.get()) {
             Message message = next(consumer);
-            consumer.handleMessage(message);
+            if (message != null) {
+                consumer.handleMessage(message);
+            }
         }
     }
 
+    @Override
+    public void clear() {
+        synchronized (LOCK) {
+            for (int i = Type.MAX_PRIORITY; i >= 0; i--) {
+                UnsafeMessageQueue mq = queues[i];
+                if (mq == null) {
+                    continue;
+                }
+                mq.clear();
+            }
+        }
+    }
+
+    @Override
     public void stop() {
         running.set(false);
         synchronized (LOCK) {
@@ -41,10 +61,13 @@ public class PriorityMessageQueue implements MessageQueue {
     }
 
     public Message next(MessageQueueConsumer consumer) {
+        boolean calledOnIdle = false;
         synchronized (LOCK) {
-            while (true) {
+            while (running.get()) {
                 long now = timer.nanoTime();
-                long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
+                JqLog.d("looking for next message at time %s", now);
+                Long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
+                JqLog.d("next delayed job %s", nextDelayedReadyAt);
                 for (int i = Type.MAX_PRIORITY; i >= 0; i--) {
                     UnsafeMessageQueue mq = queues[i];
                     if (mq == null) {
@@ -55,24 +78,35 @@ public class PriorityMessageQueue implements MessageQueue {
                         return message;
                     }
                 }
-                // this may create too many wake up messages but we can avoid them by simply
-                // clearing delayed messages by a constraint query
-                consumer.onIdle();
-                long waitMs = TimeUnit.NANOSECONDS.toMillis(nextDelayedReadyAt - now);
+                if (!calledOnIdle) {
+                    postJobTick = false;
+                    consumer.onIdle();
+                    calledOnIdle = true;
+                    JqLog.d("did on idle post a message? %s", postJobTick);
+                    // callback may add new messages
+                    if (postJobTick) {
+                        continue; // idle posted jobs, requery
+                    }
+                }
+                if (nextDelayedReadyAt != null && nextDelayedReadyAt <= now) {
+                    continue;
+                }
                 try {
-                    if (waitMs > 0) {
-                        timer.waitOnObject(LOCK, waitMs);
-                    } else {
+                    if (nextDelayedReadyAt == null) {
                         timer.waitOnObject(LOCK);
+                    } else {
+                        timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
                     }
                 }  catch (InterruptedException ignored) {}
             }
         }
+        return null;
     }
 
     @Override
     public void post(Message message) {
         synchronized (LOCK) {
+            postJobTick = true;
             int index = message.type.priority;
             if (queues[index] == null) {
                 queues[index] = new UnsafeMessageQueue();
@@ -85,6 +119,7 @@ public class PriorityMessageQueue implements MessageQueue {
     @Override
     public void postAt(Message message, long readyNs) {
         synchronized (LOCK) {
+            postJobTick = true;
             delayedBag.add(message, readyNs);
             timer.notifyObject(LOCK);
         }

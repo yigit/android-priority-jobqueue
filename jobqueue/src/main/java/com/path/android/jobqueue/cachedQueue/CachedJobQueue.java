@@ -5,7 +5,6 @@ import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.TagConstraint;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -25,13 +24,13 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public long insert(JobHolder jobHolder) {
+    public boolean insert(JobHolder jobHolder) {
         cache.invalidateAll();
         return delegate.insert(jobHolder);
     }
 
     @Override
-    public long insertOrReplace(JobHolder jobHolder) {
+    public boolean insertOrReplace(JobHolder jobHolder) {
         cache.invalidateAll();
         return delegate.insertOrReplace(jobHolder);
     }
@@ -101,8 +100,8 @@ public class CachedJobQueue implements JobQueue {
 
     @Override
     public Set<JobHolder> findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
-            Collection<Long> exclude, String... tags) {
-        return delegate.findJobsByTags(constraint, excludeCancelled, exclude, tags);
+            Collection<String> excludeUUIDs, String... tags) {
+        return delegate.findJobsByTags(constraint, excludeCancelled, excludeUUIDs, tags);
     }
 
     @Override
@@ -111,7 +110,7 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public JobHolder findJobById(long id) {
+    public JobHolder findJobById(String id) {
         return delegate.findJobById(id);
     }
 

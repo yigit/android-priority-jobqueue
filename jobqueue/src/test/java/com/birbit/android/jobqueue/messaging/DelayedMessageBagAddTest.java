@@ -72,8 +72,8 @@ public class DelayedMessageBagAddTest {
         long t2 = bag.flushReadyMessages(1000, mq);
         assertThat(t2, CoreMatchers.is(2000L));
         verify(mq).post(m1);
-        long t3 = bag.flushReadyMessages(3001, mq);
-        assertThat(t3, CoreMatchers.is(3001L));
+        Long t3 = bag.flushReadyMessages(3001, mq);
+        assertThat(t3, CoreMatchers.nullValue());
         verify(mq).post(m2);
         verify(mq).post(m3);
     }

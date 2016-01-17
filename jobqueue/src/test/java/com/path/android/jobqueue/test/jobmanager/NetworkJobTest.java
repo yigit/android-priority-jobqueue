@@ -14,12 +14,16 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class NetworkJobTest extends JobManagerTestBase {
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
     public void testNetworkJob() throws Exception {
         JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
@@ -76,7 +80,7 @@ public class NetworkJobTest extends JobManagerTestBase {
         });
         dummyNetworkUtil.setHasNetwork(true);
         mockTimer.incrementMs(10000); // network check delay, make public?
-        networkLatch.await(1, TimeUnit.MINUTES);
+        MatcherAssert.assertThat(networkLatch.await(1, TimeUnit.MINUTES), is(true));
         MatcherAssert.assertThat("when network is recovered, all network jobs should be automatically consumed", jobManager.count(), equalTo(0));
     }
 }

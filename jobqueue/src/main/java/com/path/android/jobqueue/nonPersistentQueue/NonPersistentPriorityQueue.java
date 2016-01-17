@@ -9,17 +9,19 @@ import com.path.android.jobqueue.timer.Timer;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class NonPersistentPriorityQueue implements JobQueue {
-    private long nonPersistentJobIdGenerator = Integer.MIN_VALUE;
     //TODO implement a more efficient priority queue where we can mark jobs as removed but don't remove for real
     private NetworkAwarePriorityQueue jobs;
-    private final String id;
     private final long sessionId;
     private final Timer timer;
+    private final AtomicLong insertionOrderCounter = new AtomicLong(0);
 
-    public NonPersistentPriorityQueue(long sessionId, String id, boolean inTestMode, Timer timer) {
-        this.id = id;
+    public NonPersistentPriorityQueue(long sessionId,
+            @SuppressWarnings("UnusedParameters") String id,
+            @SuppressWarnings("UnusedParameters") boolean inTestMode,
+            Timer timer) {
         this.sessionId = sessionId;
         this.timer = timer;
         jobs = new NetworkAwarePriorityQueue(5, jobComparator, timer);
@@ -29,22 +31,22 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public synchronized long insert(JobHolder jobHolder) {
-        nonPersistentJobIdGenerator++;
-        jobHolder.setId(nonPersistentJobIdGenerator);
-        jobs.offer(jobHolder);
-        return jobHolder.getId();
+    public synchronized boolean insert(JobHolder jobHolder) {
+        jobHolder.setInsertionOrder(insertionOrderCounter.incrementAndGet());
+        return jobs.offer(jobHolder);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public long insertOrReplace(JobHolder jobHolder) {
+    public boolean insertOrReplace(JobHolder jobHolder) {
+        if (jobHolder.getInsertionOrder() == null) {
+            return insert(jobHolder);
+        }
         remove(jobHolder);
         jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);
-        jobs.offer(jobHolder);
-        return jobHolder.getId();
+        return jobs.offer(jobHolder);
     }
 
     /**
@@ -109,7 +111,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder findJobById(long id) {
+    public JobHolder findJobById(String id) {
         return jobs.findById(id);
     }
 
@@ -118,9 +120,9 @@ public class NonPersistentPriorityQueue implements JobQueue {
      */
     @Override
     public Set<JobHolder> findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
-            Collection<Long> exclude, String... tags) {
+            Collection<String> excludeUUIDs, String... tags) {
         //we ignore excludeCancelled because we remove them as soon as they are cancelled
-        return jobs.findByTags(constraint, exclude, tags);
+        return jobs.findByTags(constraint, excludeUUIDs, tags);
     }
 
     @Override
@@ -146,7 +148,7 @@ public class NonPersistentPriorityQueue implements JobQueue {
             }
 
             //if jobs were created at the same time, smaller id first
-            return -compareLong(holder1.getId(), holder2.getId());
+            return -compareLong(holder1.getInsertionOrder(), holder2.getInsertionOrder());
         }
     };
 

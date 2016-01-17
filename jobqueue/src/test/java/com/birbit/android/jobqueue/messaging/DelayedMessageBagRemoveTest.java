@@ -42,8 +42,8 @@ public class DelayedMessageBagRemoveTest {
             }
         });
         MessageQueue mq = mock(MessageQueue.class);
-        long t1 = bag.flushReadyMessages(500, mq);
-        assertThat(t1, CoreMatchers.is(500L));
+        Long t1 = bag.flushReadyMessages(500, mq);
+        assertThat(t1, CoreMatchers.nullValue());
         bag.flushReadyMessages(4000, mq);
         verify(mq, times(0)).post(any(Message.class));
     }

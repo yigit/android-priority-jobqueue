@@ -3,6 +3,7 @@ package com.birbit.android.jobqueue;
 import com.birbit.android.jobqueue.ConsumerController.Worker;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
+import com.birbit.android.jobqueue.messaging.MessageQueue;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
 import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
 import com.birbit.android.jobqueue.messaging.SafeMessageQueue;
@@ -13,10 +14,13 @@ import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.test.timer.MockTimer;
 
+import org.fest.reflect.core.Reflection;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.any;
@@ -53,10 +57,16 @@ public class WorkerTest {
         verify(mq).consume(any(MessageQueueConsumer.class));
     }
 
+    private void setRunning(MessageQueue mq) {
+        Reflection.field("running").ofType(AtomicBoolean.class).in(mq).get().set(true);
+    }
+
     @Test
     public void idleMessage() {
         PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
         SafeMessageQueue mq = new SafeMessageQueue(timer);
+        setRunning(pmq);
+        setRunning(mq);
         timer.setNow(2001);
         Worker worker = new ConsumerController.Worker(pmq, mq, factory, timer);
         worker.queueConsumer.onIdle();
@@ -68,7 +78,9 @@ public class WorkerTest {
     @Test
     public void runJobMessage() {
         PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
+        setRunning(pmq);
         SafeMessageQueue mq = new SafeMessageQueue(timer);
+        setRunning(mq);
         timer.setNow(2001);
         Worker worker = new ConsumerController.Worker(pmq, mq, factory, timer);
         RunJobMessage rjm = factory.obtain(RunJobMessage.class);
@@ -89,7 +101,9 @@ public class WorkerTest {
     @Test
     public void removePokesAfterJobTest() {
         PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
+        setRunning(pmq);
         SafeMessageQueue mq = spy(new SafeMessageQueue(timer));
+        setRunning(mq);
         timer.setNow(2001);
         Worker worker = new ConsumerController.Worker(pmq, mq, factory, timer);
         RunJobMessage rjm = factory.obtain(RunJobMessage.class);

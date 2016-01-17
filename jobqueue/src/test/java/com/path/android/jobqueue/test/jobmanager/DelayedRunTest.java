@@ -103,19 +103,17 @@ public class DelayedRunTest extends JobManagerTestBase {
 
             @Override
             public void assertJob(Job job) {
-                assertThat("correct job should run first", (String) job.getTags().toArray()[0], is("notDelayed"));
+                assertThat("correct job should run first", (String) job.getTags().toArray()[0],
+                        is("notDelayed"));
             }
         });
         MatcherAssert.assertThat("there should be 1 delayed job waiting to be run", jobManager.count(), equalTo(1));
         if(tryToStop) {//see issue #11
             jobManager.stopAndWaitUntilConsumersAreFinished();
             mockTimer.incrementMs(3000);
-            if (jobManager.count() != 1) {
-                System.out.println("wtf");
-            }
-            jobManager.start();
             MatcherAssert.assertThat("there should still be 1 delayed job waiting to be run when job manager is stopped",
                     jobManager.count(), equalTo(1));
+
             waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
                 @Override
                 public void run() {

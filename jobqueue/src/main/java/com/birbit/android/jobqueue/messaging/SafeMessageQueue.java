@@ -13,7 +13,8 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final Timer timer;
     private final DelayedMessageBag delayedBag;
-
+    // used to check if any new message is posted inside sync block
+    private boolean postMessageTick = false;
     public SafeMessageQueue(Timer timer) {
         super();
         this.timer = timer;
@@ -24,6 +25,7 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
         return running.get();
     }
 
+    @Override
     public void consume(MessageQueueConsumer consumer) {
         if(running.getAndSet(true)) {
             throw new IllegalStateException("only 1 consumer per MQ");
@@ -31,11 +33,14 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
         consumer.onStart();
         while (running.get()) {
             Message message = next(consumer);
-            consumer.handleMessage(message);
+            if (message != null) {
+                consumer.handleMessage(message);
+            }
         }
         JqLog.d("finished queue %s", id);
     }
 
+    @Override
     public void stop() {
         running.set(false);
         synchronized (LOCK) {
@@ -50,32 +55,44 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     }
 
     Message next(MessageQueueConsumer consumer) {
+        boolean calledIdle = false;
         synchronized (LOCK) {
-            while (true) {
+            while (running.get()) {
                 long now = timer.nanoTime();
-                long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
+                Long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
                 Message message = super.next();
                 if (message != null) {
                     return message;
                 }
-                // this may create too many wake up messages but we can avoid them by simply
-                // clearing delayed messages by a constraint query
-                consumer.onIdle();
-                long waitMs = TimeUnit.NANOSECONDS.toMillis(nextDelayedReadyAt - now);
+                if (!calledIdle) {
+                    postMessageTick = false;
+                    JqLog.d("calling on idle");
+                    consumer.onIdle();
+                    JqLog.d("did idle post message? %s", postMessageTick);
+                    calledIdle = true;
+                    if (postMessageTick) {
+                        continue; // callback added a message, requery
+                    }
+                }
+                if (nextDelayedReadyAt != null && nextDelayedReadyAt <= now) {
+                    continue;
+                }
                 try {
-                    if (waitMs > 0) {
-                        timer.waitOnObject(LOCK, waitMs);
-                    } else {
+                    if (nextDelayedReadyAt == null) {
                         timer.waitOnObject(LOCK);
+                    } else {
+                        timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
                     }
                 }  catch (InterruptedException ignored) {}
             }
         }
+        return null;
     }
 
     @Override
     public void post(Message message) {
         synchronized (LOCK) {
+            postMessageTick = true;
             super.post(message);
             timer.notifyObject(LOCK);
         }
@@ -84,6 +101,7 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     @Override
     public void postAt(Message message, long readyNs) {
         synchronized (LOCK) {
+            postMessageTick = true;
             delayedBag.add(message, readyNs);
             timer.notifyObject(LOCK);
         }
@@ -100,6 +118,7 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     @Override
     public void postAtFront(Message message) {
         synchronized (LOCK) {
+            postMessageTick = true;
             super.postAtFront(message);
             timer.notifyObject(LOCK);
         }

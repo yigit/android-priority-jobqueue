@@ -29,7 +29,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         final DummyJob dummyJob = new DummyJob(new Params(0).requireNetwork());
         jobManager.addJob(dummyJob);
         // no job to run so consumers should finish
-        getConsumerExecutor(jobManager).waitUntilAllConsumersAreFinished();
+        jobManager.waitUntilConsumersAreFinished();
         MatcherAssert.assertThat("count should be 1 as no jobs should be consumed w/o network", jobManager.count(), equalTo(1));
         dummyNetworkUtil.setHasNetwork(true, false);
         //noinspection SLEEP_IN_CODE

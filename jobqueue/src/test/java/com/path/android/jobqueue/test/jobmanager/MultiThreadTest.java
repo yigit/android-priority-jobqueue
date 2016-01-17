@@ -29,13 +29,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class MultiThreadTest extends JobManagerTestBase {
     private static AtomicInteger multiThreadedJobCounter;
+
+    @Override
+    protected long getTimeout() {
+        return 60 * 5;
+    }
+
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
-//        final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-//            .loadFactor(3).maxConsumerCount(10));
-        final JobManager2 jobManager = new JobManager2(new Configuration.Builder(RuntimeEnvironment.application)
-            .loadFactor(3).maxConsumerCount(10).inTestMode().timer(mockTimer).build());
+        final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+            .loadFactor(3).maxConsumerCount(10));
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));
         final String cancelTag = "iWillBeCancelled";
@@ -72,7 +76,7 @@ public class MultiThreadTest extends JobManagerTestBase {
         //wait until all jobs are added
         //noinspection DIRECT_TIME_ACCESS
         long start = System.nanoTime();
-        long timeLimit = JobManager.NS_PER_MS * 20000;//20 seconds
+        long timeLimit = JobManager.NS_PER_MS * 30000;//20 seconds
         //noinspection DIRECT_TIME_ACCESS
         while(System.nanoTime() - start < timeLimit && multiThreadedJobCounter.get() != 0) {
             //noinspection SLEEP_IN_CODE
@@ -80,9 +84,9 @@ public class MultiThreadTest extends JobManagerTestBase {
         }
 
         MatcherAssert.assertThat("jobmanager count should be 0", jobManager.count(), equalTo(0));
-
+        jobManager.stopAndWaitUntilConsumersAreFinished();
         MatcherAssert.assertThat("multiThreadedJobCounter should be 0",
-                multiThreadedJobCounter.get(), equalTo(0));
+                multiThreadedJobCounter.get(), CoreMatchers.is(0));
 
     }
     public static class DummyJobForMultiThread extends DummyJob {
@@ -95,16 +99,16 @@ public class MultiThreadTest extends JobManagerTestBase {
         @Override
         public void onRun() throws Throwable {
             super.onRun();
-            int remaining = multiThreadedJobCounter.decrementAndGet();
             //take some time
             //noinspection SLEEP_IN_CODE
             Thread.sleep((long) (Math.random() * 1000));
             //throw exception w/ small chance
             if(Math.random() < .1) {
-                multiThreadedJobCounter.incrementAndGet();
                 throw new Exception("decided to die, will retry");
             }
-            Log.d("DummyJobForMultiThread", "persistent:" + isPersistent() + ", requires network:" + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
+            int remaining = multiThreadedJobCounter.decrementAndGet();
+            Log.d("DummyJobForMultiThread", "persistent:" + isPersistent() + ", requires network:"
+                    + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
         }
 
         @Override

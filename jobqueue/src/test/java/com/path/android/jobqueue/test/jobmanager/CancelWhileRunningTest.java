@@ -27,7 +27,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class CancelWhileRunningTest extends JobManagerTestBase {
     @Test
     public void testCancelBeforeRunning() throws InterruptedException {
-        enableDebug();
         JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .minConsumerCount(5)

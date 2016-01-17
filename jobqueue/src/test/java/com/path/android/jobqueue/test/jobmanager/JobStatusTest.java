@@ -18,6 +18,8 @@ import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -39,7 +41,7 @@ public class JobStatusTest extends JobManagerTestBase {
                 new DummyJob(new Params(0).persist()),
                 new DummyJob(new Params(0).persist().requireNetwork().addTags(REQ_NETWORK_TAG))
         };
-        long[] ids = new long[jobs.length];
+        String[] ids = new String[jobs.length];
         for(int i = 0; i < jobs.length; i ++) {
             ids[i] = jobManager.addJob(jobs[i]);
             if(jobs[i].requiresNetwork()) {
@@ -54,12 +56,12 @@ public class JobStatusTest extends JobManagerTestBase {
         //create an unknown id, ensure status for that
 
         boolean exists;
-        long unknownId;
+        String unknownId;
         do {
-            unknownId = (long) (Math.random() * 10000 - 5000);
+            unknownId = UUID.randomUUID().toString();
             exists = false;
-            for(long id : ids) {
-                if(id == unknownId) {
+            for(String id : ids) {
+                if(unknownId.equals(id)) {
                     exists = true;
                 }
             }
@@ -72,7 +74,7 @@ public class JobStatusTest extends JobManagerTestBase {
         final CountDownLatch startLatch = new CountDownLatch(1), endLatch = new CountDownLatch(1);
         final DummyTwoLatchJob twoLatchJob = new DummyTwoLatchJob(new Params(0), startLatch, endLatch);
         jobManager.start();
-        final long jobId = jobManager.addJob(twoLatchJob);
+        final String jobId = jobManager.addJob(twoLatchJob);
         twoLatchJob.waitTillOnRun();
         final CountDownLatch twoLatchJobDone = new CountDownLatch(1);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
@@ -127,7 +129,7 @@ public class JobStatusTest extends JobManagerTestBase {
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP).persist()),
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP * 10)),
                 new DummyJob(new Params(0).delayInMs(SHORT_SLEEP * 10).persist())};
-        long[] delayedIds = new long[delayedJobs.length];
+        String[] delayedIds = new String[delayedJobs.length];
         long start = mockTimer.nanoTime();
         for(int i = 0; i < delayedJobs.length; i ++) {
             delayedIds[i] = jobManager.addJob(delayedJobs[i]);

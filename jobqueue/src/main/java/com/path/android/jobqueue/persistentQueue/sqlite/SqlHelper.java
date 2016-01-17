@@ -7,6 +7,7 @@ import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * Helper class for {@link SqliteJobQueue} to generate sql queries and statements.
@@ -54,9 +55,12 @@ public class SqlHelper {
         builder.append(tableName).append(" (");
         builder.append(primaryKey.columnName).append(" ");
         builder.append(primaryKey.type);
-        builder.append("  primary key autoincrement ");
+        builder.append("  primary key ");
         for (Property property : properties) {
             builder.append(", `").append(property.columnName).append("` ").append(property.type);
+            if (property.unique) {
+                builder.append(" UNIQUE");
+            }
         }
         for (Property property : properties) {
             if (property.foreignKey != null) {
@@ -123,7 +127,8 @@ public class SqlHelper {
 
     public SQLiteStatement getInsertTagsStatement() {
         if (insertTagsStatement == null) {
-            StringBuilder builder = new StringBuilder("INSERT INTO ").append(DbOpenHelper.JOB_TAGS_TABLE_NAME);
+            StringBuilder builder = new StringBuilder("INSERT INTO ")
+                    .append(DbOpenHelper.JOB_TAGS_TABLE_NAME);
             builder.append(" VALUES (");
             for (int i = 0; i < tagsColumnCount; i++) {
                 if (i != 0) {
@@ -163,7 +168,8 @@ public class SqlHelper {
 
     public SQLiteStatement getDeleteStatement() {
         if (deleteStatement == null) {
-            deleteStatement = db.compileStatement("DELETE FROM " + tableName + " WHERE " + primaryKeyColumnName + " = ?");
+            deleteStatement = db.compileStatement("DELETE FROM " + tableName + " WHERE "
+                    + primaryKeyColumnName + " = ?");
         }
         return deleteStatement;
     }
@@ -292,16 +298,23 @@ public class SqlHelper {
         /*package*/ final String type;
         public final int columnIndex;
         public final ForeignKey foreignKey;
+        public final boolean unique;
 
         public Property(String columnName, String type, int columnIndex) {
-            this(columnName, type, columnIndex, null);
+            this(columnName, type, columnIndex, null, false);
         }
 
         public Property(String columnName, String type, int columnIndex, ForeignKey foreignKey) {
+            this(columnName, type, columnIndex, foreignKey, false);
+        }
+
+        public Property(String columnName, String type, int columnIndex, ForeignKey foreignKey,
+                boolean unique) {
             this.columnName = columnName;
             this.type = type;
             this.columnIndex = columnIndex;
             this.foreignKey = foreignKey;
+            this.unique = unique;
         }
     }
 

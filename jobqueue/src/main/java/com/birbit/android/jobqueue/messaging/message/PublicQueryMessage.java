@@ -11,10 +11,13 @@ public class PublicQueryMessage extends Message {
     public static final int STOP = 3;
     public static final int JOB_STATUS = 4;
     public static final int CLEAR = 5;
+    public static final int ACTIVE_CONSUMER_COUNT = 6;
+    // used for testing
+    public static final int INTERNAL_RUNNABLE = 7;
 
     private IntCallback callback;
-    private int what;
-    private long longArg;
+    private int what = -1;
+    private String stringArg;
     private boolean booleanArg;
 
     public PublicQueryMessage() {
@@ -26,9 +29,9 @@ public class PublicQueryMessage extends Message {
         this.what = what;
     }
 
-    public void set(int what, long longArg, boolean booleanArg, IntCallback callback) {
+    public void set(int what, String stringArg, boolean booleanArg, IntCallback callback) {
         this.what = what;
-        this.longArg = longArg;
+        this.stringArg = stringArg;
         this.booleanArg = booleanArg;
         this.callback = callback;
     }
@@ -41,12 +44,16 @@ public class PublicQueryMessage extends Message {
         return what;
     }
 
-    public long getLongArg() {
-        return longArg;
+    public String getStringArg() {
+        return stringArg;
     }
 
     public boolean getBooleanArg() {
         return booleanArg;
+    }
+
+    public void setCallback(IntCallback callback) {
+        this.callback = callback;
     }
 
     @Override
