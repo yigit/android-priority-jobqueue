@@ -31,9 +31,15 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         // no job to run so consumers should finish
         jobManager.waitUntilConsumersAreFinished();
         MatcherAssert.assertThat("count should be 1 as no jobs should be consumed w/o network", jobManager.count(), equalTo(1));
+        // JobManager may wake up as idle right here and see the new network value. sleep to avoid it
+        // count will trigger the queue and will result in another IDLE call. We need to wait until
+        // it is handled.
+        //noinspection SLEEP_IN_CODE
+        Thread.sleep(2000);
+
         dummyNetworkUtil.setHasNetwork(true, false);
         //noinspection SLEEP_IN_CODE
-        Thread.sleep(1000); //wait a little bit more to consumer will run
+        Thread.sleep(5000); //wait a little bit more to let consumer run
         MatcherAssert.assertThat("even though network is recovered, job manager should not consume any job because it " +
                 "does not know (we did not inform)", jobManager.count(), equalTo(1));
 
