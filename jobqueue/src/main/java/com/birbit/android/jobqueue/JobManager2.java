@@ -29,8 +29,8 @@ public class JobManager2 {
     private final MessageFactory messageFactory;
     private Thread chefThread;
     public JobManager2(Configuration configuration) {
-        messageQueue = new PriorityMessageQueue(configuration.timer());
         messageFactory = new MessageFactory();
+        messageQueue = new PriorityMessageQueue(configuration.timer(), messageFactory);
         jobManagerThread = new JobManagerThread(configuration, messageQueue, messageFactory);
         chefThread = new Thread(jobManagerThread, "job-manager");
         chefThread.start();

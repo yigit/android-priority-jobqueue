@@ -1,11 +1,8 @@
 package com.birbit.android.jobqueue.messaging;
 
-import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.timer.Timer;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue {
@@ -15,10 +12,12 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     private final DelayedMessageBag delayedBag;
     // used to check if any new message is posted inside sync block
     private boolean postMessageTick = false;
-    public SafeMessageQueue(Timer timer) {
-        super();
+    private final MessageFactory factory;
+    public SafeMessageQueue(Timer timer, MessageFactory factory) {
+        super(factory);
+        this.factory = factory;
         this.timer = timer;
-        this.delayedBag = new DelayedMessageBag();
+        this.delayedBag = new DelayedMessageBag(factory);
     }
 
     public boolean isRunning() {
@@ -35,6 +34,7 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
             Message message = next(consumer);
             if (message != null) {
                 consumer.handleMessage(message);
+                factory.release(message);
             }
         }
         JqLog.d("finished queue %s", id);

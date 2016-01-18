@@ -17,7 +17,7 @@ import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(JUnit4.class)
 public class PriorityMessageQueueTest extends MessageQueueTestBase<PriorityMessageQueue> {
-    PriorityMessageQueue mq = new PriorityMessageQueue(new MockTimer());
+    PriorityMessageQueue mq = new PriorityMessageQueue(new MockTimer(), new MessageFactory());
 
     @Test
     public void test1() {
@@ -48,7 +48,7 @@ public class PriorityMessageQueueTest extends MessageQueueTestBase<PriorityMessa
     }
 
     @Override
-    PriorityMessageQueue createMessageQueue(Timer timer) {
-        return new PriorityMessageQueue(timer);
+    PriorityMessageQueue createMessageQueue(Timer timer, MessageFactory factory) {
+        return new PriorityMessageQueue(timer, factory);
     }
 }

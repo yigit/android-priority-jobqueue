@@ -63,8 +63,9 @@ public class WorkerTest {
 
     @Test
     public void idleMessage() {
-        PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
-        SafeMessageQueue mq = new SafeMessageQueue(timer);
+        MessageFactory factory = new MessageFactory();
+        PriorityMessageQueue pmq = new PriorityMessageQueue(timer, factory);
+        SafeMessageQueue mq = new SafeMessageQueue(timer, factory);
         setRunning(pmq);
         setRunning(mq);
         timer.setNow(2001);
@@ -77,9 +78,10 @@ public class WorkerTest {
 
     @Test
     public void runJobMessage() {
-        PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
+        MessageFactory factory = new MessageFactory();
+        PriorityMessageQueue pmq = new PriorityMessageQueue(timer, factory);
         setRunning(pmq);
-        SafeMessageQueue mq = new SafeMessageQueue(timer);
+        SafeMessageQueue mq = new SafeMessageQueue(timer, factory);
         setRunning(mq);
         timer.setNow(2001);
         Worker worker = new ConsumerController.Worker(pmq, mq, factory, timer);
@@ -100,9 +102,10 @@ public class WorkerTest {
 
     @Test
     public void removePokesAfterJobTest() {
-        PriorityMessageQueue pmq = new PriorityMessageQueue(timer);
+        MessageFactory factory = new MessageFactory();
+        PriorityMessageQueue pmq = new PriorityMessageQueue(timer, factory);
         setRunning(pmq);
-        SafeMessageQueue mq = spy(new SafeMessageQueue(timer));
+        SafeMessageQueue mq = spy(new SafeMessageQueue(timer, factory));
         setRunning(mq);
         timer.setNow(2001);
         Worker worker = new ConsumerController.Worker(pmq, mq, factory, timer);

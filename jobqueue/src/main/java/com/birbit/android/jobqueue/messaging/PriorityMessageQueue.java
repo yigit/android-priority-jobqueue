@@ -3,9 +3,7 @@ package com.birbit.android.jobqueue.messaging;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.timer.Timer;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Uses multiple message queues to simulate priority.
@@ -18,10 +16,12 @@ public class PriorityMessageQueue implements MessageQueue {
     private final AtomicBoolean running = new AtomicBoolean(false);
     // used when jobs are posted inside sync blocks
     private boolean postJobTick = false;
+    private final MessageFactory factory;
 
     @SuppressWarnings("unused")
-    public PriorityMessageQueue(Timer timer) {
-        delayedBag = new DelayedMessageBag();
+    public PriorityMessageQueue(Timer timer, MessageFactory factory) {
+        delayedBag = new DelayedMessageBag(factory);
+        this.factory = factory;
         queues = new UnsafeMessageQueue[Type.MAX_PRIORITY + 1];
         this.timer = timer;
     }
@@ -35,6 +35,7 @@ public class PriorityMessageQueue implements MessageQueue {
             Message message = next(consumer);
             if (message != null) {
                 consumer.handleMessage(message);
+                factory.release(message);
             }
         }
     }
@@ -109,7 +110,7 @@ public class PriorityMessageQueue implements MessageQueue {
             postJobTick = true;
             int index = message.type.priority;
             if (queues[index] == null) {
-                queues[index] = new UnsafeMessageQueue();
+                queues[index] = new UnsafeMessageQueue(factory);
             }
             queues[index].post(message);
             timer.notifyObject(LOCK);

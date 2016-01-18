@@ -122,7 +122,7 @@ class ConsumerController {
 
     private void addConsumer() {
         JqLog.d("adding another consumer");
-        Worker worker = new Worker(mJobManagerThread.messageQueue, new SafeMessageQueue(timer), factory, timer);
+        Worker worker = new Worker(mJobManagerThread.messageQueue, new SafeMessageQueue(timer, factory), factory, timer);
         Thread thread = new Thread(threadGroup, worker, "job-queue-worker-" + UUID.randomUUID());
         totalConsumers++;
         workers.add(worker);

@@ -9,6 +9,11 @@ class UnsafeMessageQueue {
     private Message tail = null;
     private static final AtomicInteger idCounter = new AtomicInteger(0);
     public final int id = idCounter.incrementAndGet();
+    private final MessageFactory factory;
+
+    public UnsafeMessageQueue(MessageFactory factory) {
+        this.factory = factory;
+    }
 
     Message next() {
         final Message result = queue;
@@ -58,7 +63,6 @@ class UnsafeMessageQueue {
     }
 
     private void remove(Message prev, Message curr) {
-        JqLog.d("removing message by query " + curr);
         if (tail == curr) {
             tail = prev;
         }
@@ -67,9 +71,15 @@ class UnsafeMessageQueue {
         } else {
             prev.next = curr.next;
         }
+        factory.release(curr);
     }
 
     public void clear() {
-        queue = tail = null;
+        while (queue != null) {
+            Message curr = queue;
+            queue = curr.next;
+            factory.release(curr);
+        }
+        tail = null;
     }
 }

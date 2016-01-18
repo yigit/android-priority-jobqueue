@@ -2,15 +2,11 @@ package com.birbit.android.jobqueue.messaging;
 
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 
-import junit.framework.Assert;
-
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.junit.runners.Parameterized;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -25,8 +21,8 @@ import static org.mockito.Mockito.verify;
 
 @RunWith(JUnit4.class)
 public class DelayedMessageBagRemoveTest {
-    DelayedMessageBag bag = new DelayedMessageBag();
     MessageFactory factory = new MessageFactory();
+    DelayedMessageBag bag = new DelayedMessageBag(factory);
     List<Long> items = Arrays.asList(1000L, 2000L, 3000L);
     Map<Long, Message> added = new HashMap<>();
 

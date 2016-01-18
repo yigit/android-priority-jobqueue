@@ -21,8 +21,9 @@ import static org.mockito.Mockito.verify;
 
 @RunWith(Parameterized.class)
 public class DelayedMessageBagAddTest {
-    DelayedMessageBag bag = new DelayedMessageBag();
     MessageFactory factory = new MessageFactory();
+    DelayedMessageBag bag = new DelayedMessageBag(factory);
+
     List<Long> ordered;
     Map<Long, Message> added = new HashMap<>();
 

@@ -8,6 +8,7 @@ import com.path.android.jobqueue.timer.Timer;
 import junit.framework.Assert;
 
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Factory;
 import org.junit.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -19,12 +20,12 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 abstract public class MessageQueueTestBase<T extends MessageQueue> {
-    abstract T createMessageQueue(Timer timer);
+    abstract T createMessageQueue(Timer timer, MessageFactory factory);
     @Test
     public void postDelayed() throws InterruptedException {
 
         MockTimer timer = new MockTimer();
-        final T mq = createMessageQueue(timer);
+        final T mq = createMessageQueue(timer, new MessageFactory());
         final CountDownLatch idleLatch = new CountDownLatch(1);
         final Throwable[] exception = new Throwable[1];
         final MessageQueueConsumer mqConsumer = new MessageQueueConsumer() {
@@ -63,6 +64,62 @@ abstract public class MessageQueueTestBase<T extends MessageQueue> {
     }
 
     @Test
+    public void recycleOnClear() {
+        MessageFactory factory = spy(new MessageFactory());
+        MockTimer mockTimer = new MockTimer();
+        T mq = createMessageQueue(mockTimer, factory);
+        CommandMessage cm = factory.obtain(CommandMessage.class);
+        cm.set(CommandMessage.POKE);
+        mq.post(cm);
+        mq.clear();
+        verify(factory).release(cm);
+    }
+
+    @Test
+    public void recycleOnConsume() {
+        MessageFactory factory = spy(new MessageFactory());
+        MockTimer mockTimer = new MockTimer();
+        final T mq = createMessageQueue(mockTimer, factory);
+        CommandMessage cm = factory.obtain(CommandMessage.class);
+        cm.set(CommandMessage.POKE);
+        mq.post(cm);
+        mq.consume(new MessageQueueConsumer() {
+            @Override
+            public void handleMessage(Message message) {
+                mq.stop();
+            }
+
+            @Override
+            public void onIdle() {
+
+            }
+        });
+        verify(factory).release(cm);
+    }
+
+    @Test
+    public void recycleOnCancel() {
+        MessageFactory factory = spy(new MessageFactory());
+        MockTimer mockTimer = new MockTimer();
+        final T mq = createMessageQueue(mockTimer, factory);
+        final CommandMessage cm = factory.obtain(CommandMessage.class);
+        cm.set(CommandMessage.POKE);
+        mq.post(cm);
+
+        final CommandMessage cm2 = factory.obtain(CommandMessage.class);
+        cm2.set(CommandMessage.POKE);
+        mq.post(cm2);
+        mq.cancelMessages(new MessagePredicate() {
+            @Override
+            public boolean onMessage(Message message) {
+                return message == cm;
+            }
+        });
+        verify(factory).release(cm);
+        verify(factory, times(0)).release(cm2);
+    }
+
+    @Test
     public void addMessageOnIdle() throws InterruptedException {
         addMessageOnIdle(false);
     }
@@ -74,7 +131,7 @@ abstract public class MessageQueueTestBase<T extends MessageQueue> {
 
     private void addMessageOnIdle(final boolean delayed) throws InterruptedException {
         final MockTimer timer = new MockTimer();
-        final MessageQueue mq = createMessageQueue(timer);
+        final MessageQueue mq = createMessageQueue(timer, new MessageFactory());
         final CountDownLatch idleLatch = new CountDownLatch(1);
         final CountDownLatch runLatch = new CountDownLatch(1);
         final MessageQueueConsumer mqConsumer = new MessageQueueConsumer() {
@@ -119,7 +176,7 @@ abstract public class MessageQueueTestBase<T extends MessageQueue> {
     @Test
     public void postAtNoIdleCall() throws InterruptedException {
         final MockTimer timer = new MockTimer();
-        final MessageQueue mq = createMessageQueue(timer);
+        final MessageQueue mq = createMessageQueue(timer, new MessageFactory());
         final CountDownLatch idleLatch = new CountDownLatch(1);
         final CountDownLatch firstIdleLatch = new CountDownLatch(1);
         final CountDownLatch runLatch = new CountDownLatch(1);

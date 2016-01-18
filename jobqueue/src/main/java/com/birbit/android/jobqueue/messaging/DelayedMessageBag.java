@@ -4,6 +4,11 @@ import com.path.android.jobqueue.log.JqLog;
 
 class DelayedMessageBag {
     Message queue = null;
+    final MessageFactory factory;
+
+    DelayedMessageBag(MessageFactory factory) {
+        this.factory = factory;
+    }
 
     Long flushReadyMessages(long now, MessageQueue addInto) {
         JqLog.d("flushing messages at time %s", now);
@@ -41,6 +46,11 @@ class DelayedMessageBag {
     }
 
     public void clear() {
+        while (queue != null) {
+            Message curr = queue;
+            queue = curr.next;
+            factory.release(curr);
+        }
         queue = null;
     }
 
@@ -56,6 +66,7 @@ class DelayedMessageBag {
                 } else {
                     prev.next = curr.next;
                 }
+                factory.release(curr);
             } else {
                 prev = curr;
             }
