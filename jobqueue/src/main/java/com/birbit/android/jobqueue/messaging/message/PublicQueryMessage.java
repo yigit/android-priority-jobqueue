@@ -18,7 +18,6 @@ public class PublicQueryMessage extends Message {
     private IntCallback callback;
     private int what = -1;
     private String stringArg;
-    private boolean booleanArg;
 
     public PublicQueryMessage() {
         super(Type.PUBLIC_QUERY);
@@ -29,10 +28,9 @@ public class PublicQueryMessage extends Message {
         this.what = what;
     }
 
-    public void set(int what, String stringArg, boolean booleanArg, IntCallback callback) {
+    public void set(int what, String stringArg, IntCallback callback) {
         this.what = what;
         this.stringArg = stringArg;
-        this.booleanArg = booleanArg;
         this.callback = callback;
     }
 
@@ -46,10 +44,6 @@ public class PublicQueryMessage extends Message {
 
     public String getStringArg() {
         return stringArg;
-    }
-
-    public boolean getBooleanArg() {
-        return booleanArg;
     }
 
     public void setCallback(IntCallback callback) {

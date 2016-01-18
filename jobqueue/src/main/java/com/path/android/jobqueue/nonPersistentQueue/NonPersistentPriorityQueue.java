@@ -134,6 +134,9 @@ public class NonPersistentPriorityQueue implements JobQueue {
     public final Comparator<JobHolder> jobComparator = new Comparator<JobHolder>() {
         @Override
         public int compare(JobHolder holder1, JobHolder holder2) {
+            if (holder1.getJob().getId().equals(holder2.getJob().getId())) {
+                return 0;
+            }
             //we should not check delay here. TimeAwarePriorityQueue does it for us.
             //high priority first
             int cmp = compareInt(holder1.getPriority(), holder2.getPriority());
@@ -146,7 +149,6 @@ public class NonPersistentPriorityQueue implements JobQueue {
             if(cmp != 0) {
                 return cmp;
             }
-
             //if jobs were created at the same time, smaller id first
             return -compareLong(holder1.getInsertionOrder(), holder2.getInsertionOrder());
         }

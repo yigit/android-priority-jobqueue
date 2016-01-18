@@ -24,14 +24,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class GroupingTest extends JobManagerTestBase {
+    private String addJob(JobManager jobManager, Job job) {
+        jobManager.addJob(job);
+        return job.getId();
+    }
     @Test
     public void testGrouping() throws Throwable {
         JobManager jobManager = createJobManager();
         jobManager.stop();
-        String jobId1 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
-        String jobId2 = jobManager.addJob(new DummyJob(new Params(0).groupBy("group1")));
-        String jobId3 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group2")));
-        String jobId4 = jobManager.addJob(new DummyJob(new Params(0).persist().groupBy("group1")));
+        String jobId1 = addJob(jobManager, new DummyJob(new Params(0).groupBy("group1")));
+        String jobId2 = addJob(jobManager, new DummyJob(new Params(0).groupBy("group1")));
+        String jobId3 = addJob(jobManager, new DummyJob(new Params(0).persist().groupBy("group2")));
+        String jobId4 = addJob(jobManager, new DummyJob(new Params(0).persist().groupBy("group1")));
         JobHolder nextJob = nextJob(jobManager);
         MatcherAssert.assertThat("next job should be the first job from group1", nextJob.getId(), equalTo(jobId1));
         JobHolder group2Job = nextJob(jobManager, Collections.singletonList("group1"));

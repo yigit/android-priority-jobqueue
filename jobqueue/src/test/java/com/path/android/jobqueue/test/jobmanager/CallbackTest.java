@@ -147,7 +147,7 @@ public class CallbackTest extends JobManagerTestBase {
         }
         endLatch.countDown();
 
-        while (jobManager.getJobStatus(job.getId(), false) != JobStatus.UNKNOWN) {
+        while (jobManager.getJobStatus(job.getId()) != JobStatus.UNKNOWN) {
             // busy wait until job cancel is handled
             //noinspection SLEEP_IN_CODE
             Thread.sleep(100);

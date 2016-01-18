@@ -31,7 +31,6 @@ import com.path.android.jobqueue.timer.Timer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
@@ -47,7 +46,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private final NetworkUtil networkUtil;
     private final DependencyInjector dependencyInjector;
     private final MessageFactory messageFactory;
-    final ConsumerController consumerController;
+    final ConsumerManager mConsumerManager;
     private List<CancelHandler> pendingCancelHandlers;
 
     final CallbackManager callbackManager;
@@ -77,7 +76,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if(networkUtil instanceof NetworkEventProvider) {
             ((NetworkEventProvider) networkUtil).setListener(this);
         }
-        consumerController = new ConsumerController(this, timer, messageFactory, config);
+        mConsumerManager = new ConsumerManager(this, timer, messageFactory, config);
         callbackManager = new CallbackManager(messageFactory, timer);
     }
 
@@ -124,7 +123,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
         }
         callbackManager.notifyOnAdded(jobHolder.getJob());
-        consumerController.onJobAdded();
+        mConsumerManager.onJobAdded();
     }
 
     @Override
@@ -137,13 +136,13 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         handleAddJob((AddJobMessage) message);
                         break;
                     case JOB_CONSUMER_IDLE:
-                        consumerController.handleIdle((JobConsumerIdleMessage) message);
+                        mConsumerManager.handleIdle((JobConsumerIdleMessage) message);
                         break;
                     case RUN_JOB_RESULT:
                         handleRunJobResult((RunJobResultMessage) message);
                         break;
                     case CONSTRAINT_CHANGE:
-                        consumerController.handleConstraintChange();
+                        mConsumerManager.handleConstraintChange();
                         break;
                     case CANCEL:
                         handleCancel((CancelMessage) message);
@@ -200,15 +199,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     return;
                 }
                 running = true;
-                consumerController.handleConstraintChange();
+                mConsumerManager.handleConstraintChange();
                 break;
             case PublicQueryMessage.STOP:
                 JqLog.d("handling stop request...");
                 running = false;
-                consumerController.handleStop();
+                mConsumerManager.handleStop();
                 break;
             case PublicQueryMessage.JOB_STATUS:
-                JobStatus status = getJobStatus(message.getStringArg(), message.getBooleanArg());
+                JobStatus status = getJobStatus(message.getStringArg());
                 message.getCallback().onResult(status.ordinal());
                 break;
             case PublicQueryMessage.CLEAR:
@@ -218,7 +217,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 }
                 break;
             case PublicQueryMessage.ACTIVE_CONSUMER_COUNT:
-                message.getCallback().onResult(consumerController.totalConsumers);
+                message.getCallback().onResult(mConsumerManager.getWorkerCount());
                 break;
             case PublicQueryMessage.INTERNAL_RUNNABLE:
                 message.getCallback().onResult(0);
@@ -234,15 +233,14 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         persistentJobQueue.clear();
     }
 
-    private JobStatus getJobStatus(String id, boolean isPersistent) {
-        if (consumerController.isJobRunning(id, isPersistent)) {
+    private JobStatus getJobStatus(String id) {
+        if (mConsumerManager.isJobRunning(id)) {
             return JobStatus.RUNNING;
         }
         JobHolder holder;
-        if(isPersistent) {
+        holder = nonPersistentJobQueue.findJobById(id);
+        if (holder == null) {
             holder = persistentJobQueue.findJobById(id);
-        } else {
-            holder = nonPersistentJobQueue.findJobById(id);
         }
         if(holder == null) {
             return JobStatus.UNKNOWN;
@@ -260,7 +258,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private void handleCancel(CancelMessage message) {
         CancelHandler handler = new CancelHandler(message.getConstraint(), message.getTags(),
                 message.getCallback());
-        handler.query(this, consumerController);
+        handler.query(this, mConsumerManager);
         if (handler.isDone()) {
             handler.commit(this);
         } else {
@@ -301,7 +299,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         + "JobManager");
                 break;
         }
-        consumerController.handleRunJobResult(message, jobHolder, retryConstraint);
+        mConsumerManager.handleRunJobResult(message, jobHolder, retryConstraint);
         callbackManager.notifyAfterRun(jobHolder.getJob(), result);
         if (pendingCancelHandlers != null) {
             int limit = pendingCancelHandlers.size();
@@ -374,7 +372,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     private int countReadyJobs(boolean hasNetwork) {
-        final Collection<String> runningJobs = consumerController.runningJobGroups.getSafe();
+        final Collection<String> runningJobs = mConsumerManager.runningJobGroups.getSafe();
         //TODO we can cache this
         int total = 0;
         total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobs);
@@ -387,9 +385,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     Long getNextWakeUpNs(boolean includeNetworkWatch) {
-        final Long groupDelay = consumerController.runningJobGroups.getNextDelayForGroups();
+        final Long groupDelay = mConsumerManager.runningJobGroups.getNextDelayForGroups();
         final boolean hasNetwork = hasNetwork();
-        final Collection<String> groups = consumerController.runningJobGroups.getSafe();
+        final Collection<String> groups = mConsumerManager.runningJobGroups.getSafe();
         final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork, groups);
         final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork, groups);
         Long delay = null;

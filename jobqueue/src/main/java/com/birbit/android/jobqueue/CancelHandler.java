@@ -30,9 +30,9 @@ class CancelHandler {
         this.callback = callback;
     }
     
-    void query(JobManagerThread jobManagerThread, ConsumerController consumerController) {
-        runningNonPersistent = consumerController.markJobsCancelled(constraint, tags, false);
-        runningPersistent = consumerController.markJobsCancelled(constraint, tags, true);
+    void query(JobManagerThread jobManagerThread, ConsumerManager consumerManager) {
+        runningNonPersistent = consumerManager.markJobsCancelled(constraint, tags, false);
+        runningPersistent = consumerManager.markJobsCancelled(constraint, tags, true);
         Set<JobHolder> nonPersistentInQueue = jobManagerThread.nonPersistentJobQueue
                 .findJobsByTags(constraint, true, runningNonPersistent, tags);
         Set<JobHolder> persistentInQueue = jobManagerThread.persistentJobQueue
