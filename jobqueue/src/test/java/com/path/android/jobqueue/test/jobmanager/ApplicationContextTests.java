@@ -10,6 +10,7 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.MultipleFailureException;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -36,16 +37,17 @@ public class ApplicationContextTests extends JobManagerTestBase {
     }
 
     @Test
-    public void getContextNonPersistent() throws InterruptedException {
+    public void getContextNonPersistent() throws InterruptedException, MultipleFailureException {
         getContextTest(false);
     }
 
     @Test
-    public void getContextPersistent() throws InterruptedException {
+    public void getContextPersistent() throws InterruptedException, MultipleFailureException {
         getContextTest(true);
     }
 
-    public void getContextTest(boolean persistent) throws InterruptedException {
+    public void getContextTest(boolean persistent)
+            throws InterruptedException, MultipleFailureException {
         final ContextCheckJob addedJob = new ContextCheckJob(new Params(1).setPersistent(persistent));
         final JobManager jobManager = createJobManager();
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
@@ -56,9 +58,12 @@ public class ApplicationContextTests extends JobManagerTestBase {
 
             @Override
             public void assertJob(Job job) {
-                job.getId().equals(addedJob.getId());
+
             }
         });
+        if (!errors.isEmpty()) {
+            throw new MultipleFailureException(errors);
+        }
     }
 
     public static class ContextCheckJob extends Job {
