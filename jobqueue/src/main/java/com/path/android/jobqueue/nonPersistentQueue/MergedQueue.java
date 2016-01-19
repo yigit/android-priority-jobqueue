@@ -206,7 +206,7 @@ abstract public class MergedQueue implements JobSet {
 
     @Override
     public Set<JobHolder> findByTags(TagConstraint constraint, Collection<String> exclude,
-            String... tags) {
+            Collection<String> tags) {
         Set<JobHolder> jobs = new HashSet<>();
         jobs.addAll(queue0.findByTags(constraint, exclude, tags));
         jobs.addAll(queue1.findByTags(constraint, exclude, tags));

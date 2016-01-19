@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.test.jobqueue;
 
+import com.birbit.android.jobqueue.TestConstraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
@@ -42,13 +43,15 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
         for(int i = 0; i < limit; i++) {
             jobQueue.insert(createNewJobHolder(new Params(0).requireNetwork().delayInMs(delayMs)));
         }
-
+        TestConstraint constraint = new TestConstraint();
+        constraint.setShouldNotRequireNetwork(true);
         MatcherAssert.assertThat("all jobs require network, should return null",
-                jobQueue.nextJobAndIncRunCount(false, null), nullValue());
+                jobQueue.nextJobAndIncRunCount(constraint), nullValue());
         mockTimer.incrementMs(delayMs + 1);
         //should be able to get it w/o an overflow
+        constraint.setShouldNotRequireNetwork(false);
         for(int i = 0; i < limit; i++) {
-            JobHolder holder = jobQueue.nextJobAndIncRunCount(true, null);
+            JobHolder holder = jobQueue.nextJobAndIncRunCount(constraint);
             MatcherAssert.assertThat("should get a next job", holder, notNullValue());
             jobQueue.remove(holder);
         }
@@ -57,8 +60,8 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
     @Test
     public void testFindByTags() {
         JobQueue jobQueue = createNewJobQueue();
-        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY,
-                false, Collections.<String>emptyList(), "abc").size(), is(0));
+        assertThat("empty queue should return 0",jobQueue.findJobs(TestConstraint.forTags(ANY,
+                Collections.<String>emptyList(), "abc")).size(), is(0));
 
     }
 }

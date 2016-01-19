@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.test.jobqueue;
 
+import com.birbit.android.jobqueue.TestConstraint;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
@@ -55,7 +56,7 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         calledForSerialize.await(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat("custom serializer should be called for serialize", (int) calledForSerialize.getCount(), CoreMatchers.equalTo(0));
         MatcherAssert.assertThat("custom serializer should NOT be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(1));
-        jobQueue.nextJobAndIncRunCount(true, null);
+        jobQueue.nextJobAndIncRunCount(new TestConstraint());
         MatcherAssert.assertThat("custom serializer should be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(0));
 
     }

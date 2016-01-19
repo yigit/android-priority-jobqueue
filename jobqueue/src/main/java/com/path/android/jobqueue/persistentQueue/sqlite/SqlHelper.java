@@ -250,12 +250,36 @@ public class SqlHelper {
         return builder.toString();
     }
 
+    public String createSelectOneField(Property property, String where, Integer limit,
+            Order... orders) {
+        StringBuilder builder = new StringBuilder("SELECT ")
+                .append(property.columnName).append(" FROM ")
+                .append(tableName);
+        if (where != null) {
+            builder.append(" WHERE ").append(where);
+        }
+        boolean first = true;
+        for (Order order : orders) {
+            if (first) {
+                builder.append(" ORDER BY ");
+            } else {
+                builder.append(",");
+            }
+            first = false;
+            builder.append(order.property.columnName).append(" ").append(order.type);
+        }
+        if (limit != null) {
+            builder.append(" LIMIT ").append(limit);
+        }
+        return builder.toString();
+    }
+
     /**
      * returns a placeholder string that contains <code>count</code> placeholders. e.g. ?,?,? for
      * 3.
      * @param count Number of placeholders to add.
      */
-    private static String createPlaceholders(int count) {
+    static String createPlaceholders(int count) {
         if (count == 0) {
             throw new IllegalArgumentException("cannot create placeholders for 0 items");
         }
@@ -264,6 +288,16 @@ public class SqlHelper {
             builder.append(",?");
         }
         return builder.toString();
+    }
+
+    static void addPlaceholdersInto(StringBuilder stringBuilder, int count) {
+        if (count == 0) {
+            throw new IllegalArgumentException("cannot create placeholders for 0 items");
+        }
+        stringBuilder.append("?");
+        for (int i = 1; i < count; i ++) {
+            stringBuilder.append(",?");
+        }
     }
 
     public void truncate() {

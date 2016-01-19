@@ -1,11 +1,12 @@
 package com.path.android.jobqueue.test.jobqueue;
 
+import com.birbit.android.jobqueue.Constraint;
+import com.birbit.android.jobqueue.TestConstraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.timer.MockTimer;
@@ -17,7 +18,6 @@ import static org.hamcrest.MatcherAssert.*;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -32,6 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import static com.path.android.jobqueue.TagConstraint.ALL;
 import static com.path.android.jobqueue.TagConstraint.ANY;
+import static com.birbit.android.jobqueue.TestConstraint.forTags;
 
 @Ignore
 public abstract class JobQueueTestBase extends TestBase {
@@ -46,7 +47,9 @@ public abstract class JobQueueTestBase extends TestBase {
         final int ADD_COUNT = 6;
         JobQueue jobQueue = createNewJobQueue();
         assertThat((int) jobQueue.count(), equalTo(0));
-        assertThat(jobQueue.nextJobAndIncRunCount(true, null), nullValue());
+        TestConstraint constraint = new TestConstraint();
+        constraint.setExcludeRunning(true);
+        assertThat(jobQueue.nextJobAndIncRunCount(constraint), nullValue());
         for (int i = 0; i < ADD_COUNT; i++) {
             JobHolder holder = createNewJobHolder();
             jobQueue.insert(holder);
@@ -55,12 +58,12 @@ public abstract class JobQueueTestBase extends TestBase {
             jobQueue.insertOrReplace(holder);
             assertThat((int) jobQueue.count(), equalTo(i + 1));
         }
-        JobHolder firstHolder = jobQueue.nextJobAndIncRunCount(true, null);
+        JobHolder firstHolder = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat(firstHolder.getRunCount(), equalTo(1));
         //size should be down 1
         assertThat((int) jobQueue.count(), equalTo(ADD_COUNT - 1));
         //should return another job
-        JobHolder secondHolder = jobQueue.nextJobAndIncRunCount(true, null);
+        JobHolder secondHolder = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat(secondHolder.getRunCount(), equalTo(1));
         //size should be down 2
         assertThat((int) jobQueue.count(), equalTo(ADD_COUNT - 2));
@@ -85,11 +88,13 @@ public abstract class JobQueueTestBase extends TestBase {
         }
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
+        TestConstraint constraint = new TestConstraint();
+        constraint.setExcludeRunning(true);
         for (int i = 0; i < JOB_LIMIT; i++) {
-            JobHolder holder = jobQueue.nextJobAndIncRunCount(true, null);
+            JobHolder holder = jobQueue.nextJobAndIncRunCount(constraint);
             assertThat(holder.getPriority() <= minPriority, is(true));
         }
-        assertThat(jobQueue.nextJobAndIncRunCount(true, null), nullValue());
+        assertThat(jobQueue.nextJobAndIncRunCount(constraint), nullValue());
     }
 
 
@@ -101,7 +106,7 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(lowPriorityHolder);
         jobQueue.insert(highPriorityHolder);
         assertThat("when asked, if lower priority job has less delay until, we should return it",
-                jobQueue.getNextJobDelayUntilNs(true, null), equalTo(
+                jobQueue.getNextJobDelayUntilNs(new TestConstraint()), equalTo(
                 lowPriorityHolder.getDelayUntilNs()));
 
     }
@@ -119,36 +124,39 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(jobHolder3);
         jobQueue.insert(jobHolder4);
         jobQueue.insert(jobHolder5);
-
-        JobHolder received = jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group2"}));
+        TestConstraint constraint = new TestConstraint();
+        constraint.setExcludeRunning(true);
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group2"}));
+        JobHolder received = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("first jobs should be from group group1 if group2 is excluded",
                 received.getJob().getRunGroupId(), equalTo("group1"));
         assertThat("correct job should be returned if groupId is provided",
                 received.getId(), equalTo(jobHolder1.getId()));
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1", "group2"}));
         assertThat("no jobs should be returned if all groups are excluded",
-                jobQueue.nextJobAndIncRunCount(true,
-                        Arrays.asList(new String[]{"group1", "group2"})),
-                is(nullValue()));
+                jobQueue.nextJobAndIncRunCount(constraint), is(nullValue()));
         JobHolder jobHolder6 = createNewJobHolder(new Params(0));
         jobQueue.insert(jobHolder6);
+        JobHolder tmpReceived = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("both groups are disabled, null group job should be returned",
-                jobQueue.nextJobAndIncRunCount(true,
-                        Arrays.asList(new String[]{"group1", "group2"})).getId(),
+                tmpReceived.getId(),
                 is(jobHolder6.getId()));
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1"}));
         assertThat("if group1 is excluded, next job should be from group2",
-                jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group1"})).getJob().getRunGroupId()
+                jobQueue.nextJobAndIncRunCount(constraint).getJob().getRunGroupId()
                 , equalTo("group2"));
 
         //to test re-run case, add the job back in
         assertThat(jobQueue.insertOrReplace(received), is(true));
         //ask for it again, should return the same holder because it is grouped
-        JobHolder received2 = jobQueue.nextJobAndIncRunCount(true, null);
+        constraint.clear();
+        constraint.setExcludeRunning(true);
+        JobHolder received2 = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("for grouped jobs, re-fetching job should work fine",
                 received2.getId(), equalTo(received.getId()));
-
-        JobHolder received3 = jobQueue.nextJobAndIncRunCount(true,
-                        Arrays.asList(new String[]{"group1"}));
-        assertThat("if a group it excluded, next available from another group should be returned",
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1"}));
+        JobHolder received3 = jobQueue.nextJobAndIncRunCount(constraint);
+        assertThat("if a group is excluded, next available from another group should be returned",
                 received3.getId(), equalTo(jobHolder4.getId()));
 
         //add two more non-grouped jobs
@@ -156,16 +164,15 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(jobHolder7);
         JobHolder jobHolder8 = createNewJobHolder(new Params(0));
         jobQueue.insert(jobHolder8);
-        JobHolder holder4 = jobQueue.nextJobAndIncRunCount(true,
-                Arrays.asList(new String[]{"group1", "group2"}));
-        assertThat("if all grouped jobs are excluded, non-grouped jobs should be returned",
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1", "group2"}));
+        JobHolder holder4 = jobQueue.nextJobAndIncRunCount(constraint);
+        assertThat("if all grouped jobs are excluded, next non-grouped job should be returned",
                 holder4.getId(),
                 equalTo(jobHolder7.getId()));
         jobQueue.insertOrReplace(holder4);
         //for non-grouped jobs, run counts should be respected
         assertThat("if all grouped jobs are excluded, re-inserted highest priority job should still be returned",
-                jobQueue.nextJobAndIncRunCount(true,
-                        Arrays.asList(new String[]{"group1", "group2"})).getId(),
+                jobQueue.nextJobAndIncRunCount(constraint).getId(),
                 equalTo(jobHolder7.getId()));
     }
 
@@ -183,36 +190,37 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(highestPriorityDelayedJob);
         assertThat("when asked, if job's due has passed, highest priority jobs's delay until should be " +
                 "returned",
-                jobQueue.getNextJobDelayUntilNs(true, null), equalTo(highPriorityHolder.getDelayUntilNs()));
+                jobQueue.getNextJobDelayUntilNs(new Constraint()), equalTo(highPriorityHolder.getDelayUntilNs()));
         //make sure soon job is valid now
         mockTimer.incrementMs(soonJobDelay + 1);
 
         assertThat("when a job's time come, it should be returned",
-                jobQueue.nextJobAndIncRunCount(true, null).getId(), equalTo(highestPriorityDelayedJob.getId()));
+                jobQueue.nextJobAndIncRunCount(new Constraint()).getId(), equalTo(highestPriorityDelayedJob.getId()));
     }
 
     @Test
     public void testDelayUntil() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         long now = mockTimer.nanoTime();
-        JobHolder networkJobHolder = createNewJobHolderWithDelayUntil(new Params(0).requireNetwork(), now + 200000 * JobManager.NS_PER_MS);
+        JobHolder networkJobHolder = createNewJobHolderWithDelayUntil(new Params(0).requireNetwork(), now + 2);
 
-        JobHolder noNetworkJobHolder = createNewJobHolderWithDelayUntil(new Params(0), now + 500000 * JobManager.NS_PER_MS);
+        JobHolder noNetworkJobHolder = createNewJobHolderWithDelayUntil(new Params(0), now + 5);
 
         jobQueue.insert(networkJobHolder);
         jobQueue.insert(noNetworkJobHolder);
-
+        TestConstraint constraint = new TestConstraint();
+        constraint.setShouldNotRequireNetwork(true);
         assertThat("if there is no network, delay until should be provided for no network job",
-            jobQueue.getNextJobDelayUntilNs(false, null), equalTo(noNetworkJobHolder.getDelayUntilNs()));
-
+            jobQueue.getNextJobDelayUntilNs(constraint), equalTo(noNetworkJobHolder.getDelayUntilNs()));
+        constraint.clear();
         assertThat("if there is network, delay until should be provided for network job because it is " +
-                "sooner", jobQueue.getNextJobDelayUntilNs(true, null), equalTo(networkJobHolder.getDelayUntilNs()));
+                "sooner", jobQueue.getNextJobDelayUntilNs(constraint), equalTo(networkJobHolder.getDelayUntilNs()));
 
-        JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(new Params(0), now + 100000 * JobManager.NS_PER_MS);
+        JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(new Params(0), now + 1);
 
         jobQueue.insert(noNetworkJobHolder2);
         assertThat("if there is network, any job's delay until should be returned",
-                jobQueue.getNextJobDelayUntilNs(true, null), equalTo(noNetworkJobHolder2.getDelayUntilNs()));
+                jobQueue.getNextJobDelayUntilNs(constraint), equalTo(noNetworkJobHolder2.getDelayUntilNs()));
     }
 
     @Test
@@ -227,34 +235,42 @@ public abstract class JobQueueTestBase extends TestBase {
 
         jobQueue.insert(networkJobHolder);
         jobQueue.insert(noNetworkJobHolder);
-
+        TestConstraint constraint = new TestConstraint();
+        constraint.setShouldNotRequireNetwork(true);
+        constraint.setExcludeRunning(true);
         assertThat("if there is no network, delay until should be provided for no network job",
-                jobQueue.getNextJobDelayUntilNs(false, null),
+                jobQueue.getNextJobDelayUntilNs(constraint),
                 equalTo(noNetworkJobHolder.getDelayUntilNs()));
         assertThat("if there is no network, delay until should be provided for no network job",
-                jobQueue.getNextJobDelayUntilNs(false, new ArrayList<String>()),
+                jobQueue.getNextJobDelayUntilNs(constraint),
                 equalTo(noNetworkJobHolder.getDelayUntilNs()));
-
+        constraint.setExcludeGroups(Arrays.asList("group2"));
+        constraint.setShouldNotRequireNetwork(true);
         assertThat("if there is no network, but the group is disabled, delay until should be null",
-                jobQueue.getNextJobDelayUntilNs(false, Arrays.asList("group2")), nullValue());
-
+                jobQueue.getNextJobDelayUntilNs(constraint), nullValue());
+        constraint.setShouldNotRequireNetwork(false);
+        constraint.setExcludeGroups(Arrays.asList("group1", "group2"));
         assertThat("if there is network, but both groups are disabled, delay until should be null"
-                , jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group1", "group2")),
+                , jobQueue.getNextJobDelayUntilNs(constraint),
                 nullValue());
+        constraint.setShouldNotRequireNetwork(false);
+        constraint.setExcludeGroups(Arrays.asList("group1"));
         assertThat("if there is network, but group1 is disabled, delay should come from group2"
-                , jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group1")),
+                , jobQueue.getNextJobDelayUntilNs(constraint),
                 equalTo(noNetworkJobHolder.getDelayUntilNs()));
+        constraint.setExcludeGroups(Arrays.asList("group2"));
         assertThat("if there is network, but group2 is disabled, delay should come from group1"
-                , jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group2")),
+                , jobQueue.getNextJobDelayUntilNs(constraint),
                 equalTo(networkJobHolder.getDelayUntilNs()));
 
         JobHolder noNetworkJobHolder2 = createNewJobHolderWithDelayUntil(new Params(0),
                 now + 100000 * JobManager.NS_PER_MS);
-
+        constraint.setExcludeGroups(Arrays.asList("group1", "group2"));
+        constraint.setShouldNotRequireNetwork(false);
         jobQueue.insert(noNetworkJobHolder2);
         assertThat("if there is a 3rd job and other gorups are disabled. 3rd job's delay should be "
                         + "returned",
-                jobQueue.getNextJobDelayUntilNs(true, Arrays.asList("group1", "group2")),
+                jobQueue.getNextJobDelayUntilNs(constraint),
                 equalTo(noNetworkJobHolder2.getDelayUntilNs()));
     }
 
@@ -297,10 +313,10 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(nonDelayedPriority_6);
         jobQueue.insert(nonDelayedPriority_2);
         jobQueue.insert(nonDelayedPriority_3);
-
+        TestConstraint constraint = new TestConstraint();
         int lastPriority = Integer.MAX_VALUE;
         for(int i = 0; i < 5; i++) {
-            JobHolder next = jobQueue.nextJobAndIncRunCount(true, null);
+            JobHolder next = jobQueue.nextJobAndIncRunCount(constraint);
             assertThat("next job should not be null", next, notNullValue());
             assertThat("next job's priority should be lower then previous for job " + i, next.getPriority() <= lastPriority, is(true));
             lastPriority = next.getPriority();
@@ -330,7 +346,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueueWithSessionId(sessionId);
         JobHolder jobHolder = createNewJobHolder();
         jobQueue.insert(jobHolder);
-        jobHolder = jobQueue.nextJobAndIncRunCount(true, null);
+        jobHolder = jobQueue.nextJobAndIncRunCount(new TestConstraint());
         assertThat("session id should be attached to next job",
                 jobHolder.getRunningSessionId(), equalTo(sessionId));
     }
@@ -346,11 +362,11 @@ public abstract class JobQueueTestBase extends TestBase {
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
         for (int i = 0; i < JOB_LIMIT; i++) {
-            JobHolder holder = jobQueue.nextJobAndIncRunCount(true, null);
+            JobHolder holder = jobQueue.nextJobAndIncRunCount(new TestConstraint());
             assertThat(holder.getPriority() <= minPriority, is(true));
             jobQueue.insertOrReplace(holder);
         }
-        assertThat(jobQueue.nextJobAndIncRunCount(true, null), notNullValue());
+        assertThat(jobQueue.nextJobAndIncRunCount(new TestConstraint()), notNullValue());
     }
 
     @Test
@@ -358,10 +374,12 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder holder = createNewJobHolder();
         jobQueue.insert(holder);
-        assertThat(jobQueue.nextJobAndIncRunCount(true, null).getId(), equalTo(holder.getId()));
-        assertThat(jobQueue.nextJobAndIncRunCount(true, null), is(nullValue()));
+        TestConstraint constraint = new TestConstraint();
+        constraint.setExcludeRunning(true);
+        assertThat(jobQueue.nextJobAndIncRunCount(constraint).getId(), equalTo(holder.getId()));
+        assertThat(jobQueue.nextJobAndIncRunCount(constraint), is(nullValue()));
         jobQueue.remove(holder);
-        assertThat(jobQueue.nextJobAndIncRunCount(true, null), is(nullValue()));
+        assertThat(jobQueue.nextJobAndIncRunCount(constraint), is(nullValue()));
     }
 
     @Test
@@ -369,16 +387,18 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder jobHolder = createNewJobHolder(new Params(0));
         jobQueue.insert(jobHolder);
+        TestConstraint constraint = new TestConstraint();
+        constraint.setShouldNotRequireNetwork(true);
         assertThat("no network job should be returned even if there is no netowrk",
-                jobQueue.nextJobAndIncRunCount(false, null), notNullValue());
+                jobQueue.nextJobAndIncRunCount(constraint), notNullValue());
         jobQueue.remove(jobHolder);
 
         jobHolder = createNewJobHolder(new Params(0).requireNetwork());
         assertThat("if there isn't any network, job with network requirement should not return",
-                jobQueue.nextJobAndIncRunCount(false, null), nullValue());
-
+                jobQueue.nextJobAndIncRunCount(constraint), nullValue());
+        constraint.setShouldNotRequireNetwork(false);
         assertThat("if there is network, job with network requirement should be returned",
-                jobQueue.nextJobAndIncRunCount(true, null), nullValue());
+                jobQueue.nextJobAndIncRunCount(constraint), nullValue());
 
         jobQueue.remove(jobHolder);
 
@@ -386,15 +406,17 @@ public abstract class JobQueueTestBase extends TestBase {
         JobHolder jobHolder2 = createNewJobHolder(new Params(5).requireNetwork());
         jobQueue.insert(jobHolder);
         jobQueue.insert(jobHolder2);
-        JobHolder retrieved = jobQueue.nextJobAndIncRunCount(false, null);
+        constraint.setShouldNotRequireNetwork(true);
+        constraint.setExcludeRunning(true);
+        JobHolder retrieved = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("one job should be returned w/o network", retrieved, notNullValue());
         if(retrieved != null) {
             assertThat("no network job should be returned although it has lower priority", retrieved.getId(), equalTo(jobHolder.getId()));
         }
 
-        assertThat("no other job should be returned w/o network", jobQueue.nextJobAndIncRunCount(false, null), nullValue());
-
-        retrieved = jobQueue.nextJobAndIncRunCount(true, null);
+        assertThat("no other job should be returned w/o network", jobQueue.nextJobAndIncRunCount(constraint), nullValue());
+        constraint.setShouldNotRequireNetwork(false);
+        retrieved = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("if network is back, network requiring job should be returned", retrieved, notNullValue());
         if(retrieved != null) {
             assertThat("when there is network, network job should be returned", retrieved.getId(), equalTo(jobHolder2.getId()));
@@ -404,7 +426,7 @@ public abstract class JobQueueTestBase extends TestBase {
         //add second job back
         jobQueue.insertOrReplace(jobHolder2);
 
-        retrieved = jobQueue.nextJobAndIncRunCount(true, null);
+        retrieved = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("if network is back, job w/ higher priority should be returned", retrieved, notNullValue());
         if(retrieved != null) {
             assertThat("if network is back, job w/ higher priority should be returned", retrieved.getId(), equalTo(jobHolder2.getId()));
@@ -413,7 +435,7 @@ public abstract class JobQueueTestBase extends TestBase {
 
         JobHolder highestPriorityJob = createNewJobHolder(new Params(10));
         jobQueue.insert(highestPriorityJob);
-        retrieved = jobQueue.nextJobAndIncRunCount(true, null);
+        retrieved = jobQueue.nextJobAndIncRunCount(constraint);
         assertThat("w/ or w/o network, highest priority should be returned", retrieved, notNullValue());
         if(retrieved != null) {
             assertThat("w/ or w/o network, highest priority should be returned", retrieved.getId(), equalTo(highestPriorityJob.getId()));
@@ -425,54 +447,75 @@ public abstract class JobQueueTestBase extends TestBase {
     @Test
     public void testCountReadyJobs() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
-        assertThat("initial count should be 0 for ready jobs", jobQueue.countReadyJobs(true, null), equalTo(0));
+        TestConstraint constraint = new TestConstraint();
+        assertThat("initial count should be 0 for ready jobs", jobQueue.countReadyJobs(constraint), equalTo(0));
         //add some jobs
         jobQueue.insert(createNewJobHolder());
         jobQueue.insert(createNewJobHolder(new Params(0).requireNetwork()));
         long now = mockTimer.nanoTime();
         long delay = 1000;
+        constraint.setTimeLimit(now);
+        constraint.setShouldNotRequireNetwork(true);
+        constraint.setExcludeRunning(true);
         jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0), now + TimeUnit.MILLISECONDS.toNanos(delay)));
-        assertThat("ready count should be 1 if there is no network", jobQueue.countReadyJobs(false, null), equalTo(1));
-        assertThat("ready count should be 2 if there is network", jobQueue.countReadyJobs(true, null), equalTo(2));
+        assertThat("ready count should be 1 if there is no network", jobQueue.countReadyJobs(constraint), equalTo(1));
+        constraint.setShouldNotRequireNetwork(false);
+        assertThat("ready count should be 2 if there is network", jobQueue.countReadyJobs(constraint), equalTo(2));
         mockTimer.incrementMs(delay + 1);
-        assertThat("when needed delay time passes, ready count should be 3", jobQueue.countReadyJobs(true, null), equalTo(3));
-        assertThat("when needed delay time passes but no network, ready count should be 2", jobQueue.countReadyJobs(false, null), equalTo(2));
+        constraint.setTimeLimit(mockTimer.nanoTime());
+        assertThat("when needed delay time passes, ready count should be 3", jobQueue.countReadyJobs(constraint), equalTo(3));
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat("when needed delay time passes but no network, ready count should be 2", jobQueue.countReadyJobs(constraint), equalTo(2));
         jobQueue.insert(createNewJobHolder(new Params(5).groupBy("group1")));
         jobQueue.insert(createNewJobHolder(new Params(5).groupBy("group1")));
+        constraint.setShouldNotRequireNetwork(false);
         assertThat("when more than 1 job from same group is created, ready jobs should increment only by 1",
-                jobQueue.countReadyJobs(true, null), equalTo(4));
+                jobQueue.countReadyJobs(constraint), equalTo(4));
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1"}));
         assertThat("excluding groups should work",
-                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1"})), equalTo(3));
+                jobQueue.countReadyJobs(constraint), equalTo(3));
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group3423"}));
         assertThat("giving a non-existing group should not fool the count",
-                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group3423"})), equalTo(4));
+                jobQueue.countReadyJobs(constraint), equalTo(4));
         jobQueue.insert(createNewJobHolder(new Params(3).groupBy("group2")));
+        constraint.clear();
+        constraint.setTimeLimit(mockTimer.nanoTime());
+        constraint.setExcludeRunning(true);
         assertThat("when a job from another group is added, ready job count should inc",
-                jobQueue.countReadyJobs(true, null), equalTo(5));
+                jobQueue.countReadyJobs(constraint), equalTo(5));
         now = mockTimer.nanoTime();
         jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(3).groupBy("group3"), now + TimeUnit.MILLISECONDS.toNanos(delay)));
         assertThat("when a delayed job from another group is added, ready count should not change",
-                jobQueue.countReadyJobs(true, null), equalTo(5));
+                jobQueue.countReadyJobs(constraint), equalTo(5));
         jobQueue.insert(createNewJobHolder(new Params(3).groupBy("group3")));
         assertThat("when another job from delayed group is added, ready job count should inc",
-                jobQueue.countReadyJobs(true, null), equalTo(6));
+                jobQueue.countReadyJobs(constraint), equalTo(6));
         mockTimer.incrementMs(delay);
+        constraint.setTimeLimit(mockTimer.nanoTime());
         assertThat("when delay passes and a job from existing group becomes available, ready job count should not change",
-                jobQueue.countReadyJobs(true, null), equalTo(6));
+                jobQueue.countReadyJobs(constraint), equalTo(6));
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1", "group3"}));
         assertThat("when some groups are excluded, count should be correct",
-                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1", "group3"})), equalTo(4));
+                jobQueue.countReadyJobs(constraint), equalTo(4));
 
         //jobs w/ same group id but with different persistence constraints should not fool the count
         now = mockTimer.nanoTime();
+        constraint.setTimeLimit(mockTimer.nanoTime());
         jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).persist().groupBy("group10"), now + 1000));
         jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).groupBy("group10"), now + 1000));
         jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).persist().groupBy("group10"), now - 1000));
         jobQueue.insert(createNewJobHolderWithDelayUntil(new Params(0).groupBy("group10"), now - 1000));
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1", "group3"}));
         assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
-                jobQueue.countReadyJobs(true, Arrays.asList(new String[]{"group1", "group3"})), equalTo(5));
+                jobQueue.countReadyJobs(constraint), equalTo(5));
+        constraint.clear();
+        constraint.setExcludeRunning(true);
         assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
-                jobQueue.countReadyJobs(true, null), equalTo(7));
+                jobQueue.countReadyJobs(constraint), equalTo(7));
+        constraint.setShouldNotRequireNetwork(true);
+        constraint.setExcludeGroups(Arrays.asList(new String[]{"group1", "group3"}));
         assertThat("when many jobs are added w/ different constraints but same group id, ready count should not be fooled",
-                jobQueue.countReadyJobs(false, Arrays.asList(new String[]{"group1", "group3"})), equalTo(4));
+                jobQueue.countReadyJobs(constraint), equalTo(4));
     }
 
     @Test
@@ -493,7 +536,7 @@ public abstract class JobQueueTestBase extends TestBase {
 
 
         for (int i = 0; i < 2; i++) {
-            JobHolder received = jobQueue.nextJobAndIncRunCount(true, null);
+            JobHolder received = jobQueue.nextJobAndIncRunCount(new TestConstraint());
             assertThat("job id should be preserved", received.getId(), equalTo(jobHolder.getId()));
             assertThat("job priority should be preserved", received.getPriority(), equalTo(priority));
             assertThat("job session id should be assigned", received.getRunningSessionId(), equalTo(sessionId));
@@ -569,13 +612,13 @@ public abstract class JobQueueTestBase extends TestBase {
         JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1, tag3));
         jobQueue.insert(holder1);
         jobQueue.insert(holder2);
-        Set<JobHolder> twoJobs = jobQueue.findJobsByTags(ANY, true, Collections.<String>emptyList(), tag1);
+        Set<JobHolder> twoJobs = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1));
         Set<String> resultIds = ids(twoJobs);
 
         assertThat("two jobs should be returned", twoJobs.size(), is(2));
         assertThat("should have job id 1", resultIds, hasItems(holder1.getId(), holder2.getId()));
         for (String tag : new String[]{tag2, tag3}) {
-            Set<JobHolder> oneJob = jobQueue.findJobsByTags(ANY, true, Collections.<String>emptyList(), tag);
+            Set<JobHolder> oneJob = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag));
             resultIds = ids(oneJob);
             assertThat("one job should be returned", oneJob.size(), is(1));
             if (tag.equals(tag2)) {
@@ -612,17 +655,17 @@ public abstract class JobQueueTestBase extends TestBase {
         assertTags("job with two tags, reinserted", jobQueue, holder);
         jobQueue.remove(holder);
         assertThat("when job is removed, it should return none",
-                jobQueue.findJobsByTags(ANY, true, Collections.<String>emptyList(), tag1).size(), is(0));
+                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
         assertThat("when job is removed, it should return none",
-                jobQueue.findJobsByTags(ANY, true, Collections.<String>emptyList(), tag2).size(), is(0));
+                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag2)).size(), is(0));
     }
 
     @Test
     public void testFindByTags() {
         JobQueue jobQueue = createNewJobQueue();
-        assertThat("empty queue should return 0",jobQueue.findJobsByTags(ANY, false, Collections.<String>emptyList(), "abc").size(), is(0));
+        assertThat("empty queue should return 0",jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), "abc")).size(), is(0));
         jobQueue.insert(createNewJobHolder());
-        Set<JobHolder> result = jobQueue.findJobsByTags(ANY, false, Collections.<String>emptyList(), "blah");
+        Set<JobHolder> result = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), "blah"));
         assertThat("if job does not have a tag, it should return 0", result.size(), is(0));
 
         final String tag1 = UUID.randomUUID().toString();
@@ -633,15 +676,15 @@ public abstract class JobQueueTestBase extends TestBase {
         assertTags("holder with 1 tag reinserted", jobQueue, holder);
         jobQueue.remove(holder);
         assertThat("when job is removed, it should return none",
-                jobQueue.findJobsByTags(ANY, false, Collections.<String>emptyList(), tag1).size(), is(0));
+                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
 
         JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1));
         jobQueue.insert(holder2);
         assertThat("it should return the job",
-                jobQueue.findJobsByTags(ANY, false, Collections.<String>emptyList(), tag1).size(), is(1));
+                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(1));
         jobQueue.onJobCancelled(holder2);
         assertThat("when queried w/ exclude cancelled, it should not return the job",
-                jobQueue.findJobsByTags(ANY, true, Collections.<String>emptyList(), tag1).size(), is(0));
+                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
 
     }
 
@@ -663,7 +706,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 }
             }
         } while (found);
-        result = jobQueue.findJobsByTags(ANY, true, Collections.<String>emptyList(), wrongTag);
+        result = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), wrongTag));
         found = false;
         for(JobHolder received : result) {
             if(received.getId().equals(holder.getId())) {
@@ -677,7 +720,7 @@ public abstract class JobQueueTestBase extends TestBase {
         }
         Collection<String> exclude = Arrays.asList(holder.getId());
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobsByTags(TagConstraint.ANY, true, Collections.<String>emptyList(), tags);
+            result = jobQueue.findJobs(forTags(TagConstraint.ANY, Collections.<String>emptyList(), tags));
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -685,14 +728,14 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " any combinations: returned job should be the correct one", result.iterator().next().getId(), is(id));
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
-            result = jobQueue.findJobsByTags(TagConstraint.ANY,true,  exclude, tags);
+            result = jobQueue.findJobs(forTags(TagConstraint.ANY, exclude, tags));
             assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(
                     0));
 
         }
 
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobsByTags(ALL, true, Collections.<String>emptyList(), tags);
+            result = jobQueue.findJobs(forTags(ALL, Collections.<String>emptyList(), tags));
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -702,7 +745,7 @@ public abstract class JobQueueTestBase extends TestBase {
                         result.iterator().next().getId(), is(id));
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
-            result = jobQueue.findJobsByTags(ALL, true, exclude, tags);
+            result = jobQueue.findJobs(forTags(ALL, exclude, tags));
             assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(0));
         }
 
@@ -710,7 +753,7 @@ public abstract class JobQueueTestBase extends TestBase {
             String[] tagsWithAdditional = new String[tags.length + 1];
             System.arraycopy(tags, 0, tagsWithAdditional, 0, tags.length);
             tagsWithAdditional[tags.length] = wrongTag;
-            result = jobQueue.findJobsByTags(TagConstraint.ANY, true, Collections.<String>emptyList(), tagsWithAdditional);
+            result = jobQueue.findJobs(forTags(TagConstraint.ANY, Collections.<String>emptyList(), tagsWithAdditional));
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -721,10 +764,10 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
 
-            result = jobQueue.findJobsByTags(ALL, true, Collections.<String>emptyList(), tagsWithAdditional);
+            result = jobQueue.findJobs(forTags(ALL, Collections.<String>emptyList(), tagsWithAdditional));
             assertThat(msg + " all combinations with wrong tag: when an additional wrong tag is given, it should return 0", result.size(), is(0));
 
-            result = jobQueue.findJobsByTags(ALL, true, exclude, tagsWithAdditional);
+            result = jobQueue.findJobs(forTags(ALL, exclude, tagsWithAdditional));
             assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(0));
         }
     }
@@ -783,7 +826,7 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     protected JobQueue createNewJobQueue() {
-        return createNewJobQueueWithSessionId(mockTimer.nanoTime());
+        return createNewJobQueueWithSessionId(123L);
     }
 
     private JobQueue createNewJobQueueWithSessionId(Long sessionId) {

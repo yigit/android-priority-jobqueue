@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.nonPersistentQueue;
 
+import com.birbit.android.jobqueue.Constraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
@@ -11,6 +12,9 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Re-implement to support full constraints
+ */
 public class NonPersistentPriorityQueue implements JobQueue {
     //TODO implement a more efficient priority queue where we can mark jobs as removed but don't remove for real
     private NetworkAwarePriorityQueue jobs;
@@ -66,16 +70,18 @@ public class NonPersistentPriorityQueue implements JobQueue {
     }
 
     @Override
-    public int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
-        return jobs.countReadyJobs(hasNetwork, excludeGroups).getCount();
+    public int countReadyJobs(Constraint constraint) {
+        return jobs.countReadyJobs(!constraint.shouldNotRequireNetwork(),
+                constraint.getExcludeGroups()).getCount();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
-        JobHolder jobHolder = jobs.peek(hasNetwork, excludeGroups);
+    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+        JobHolder jobHolder = jobs.peek(!constraint.shouldNotRequireNetwork(),
+                constraint.getExcludeGroups());
 
         if (jobHolder != null) {
             //check if job can run
@@ -94,8 +100,9 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups) {
-        JobHolder next = jobs.peek(hasNetwork, excludeGroups);
+    public Long getNextJobDelayUntilNs(Constraint constraint) {
+        JobHolder next = jobs.peek(!constraint.shouldNotRequireNetwork(),
+                constraint.getExcludeGroups());
         return next == null ? null : next.getDelayUntilNs();
     }
 
@@ -119,10 +126,10 @@ public class NonPersistentPriorityQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Set<JobHolder> findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
-            Collection<String> excludeUUIDs, String... tags) {
+    public Set<JobHolder> findJobs(Constraint constraint) {
         //we ignore excludeCancelled because we remove them as soon as they are cancelled
-        return jobs.findByTags(constraint, excludeUUIDs, tags);
+        return jobs.findByTags(constraint.getTagConstraint(),
+                constraint.getExcludeJobIds(), constraint.getTags());
     }
 
     @Override

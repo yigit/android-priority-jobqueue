@@ -44,7 +44,7 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
         onStartLatch.await();
         nonPersistent1.onStartLatch.await();
         nonPersistent2.onStartLatch.await();
-        final CancelResult[] resultHolder = new CancelResult[1];
+        final CancelResult[] resultHolder = new CancelResult[2];
         final CountDownLatch cancelLatch = new CountDownLatch(1);
         jobManager.cancelJobsInBackground(new CancelResult.AsyncCancelCallback() {
             @Override
@@ -54,14 +54,20 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
             }
         }, TagConstraint.ANY, "dummyTag");
 
+        jobManager.cancelJobsInBackground(new CancelResult.AsyncCancelCallback() {
+            @Override
+            public void onCancelled(CancelResult cancelResult) {
+                resultHolder[1] = cancelResult;
+            }
+        }, TagConstraint.ANY, "dummyTag");
+
         assertThat("result should not arrive until existing jobs finish",
                 cancelLatch.await(4, TimeUnit.SECONDS), is(false));
-
         onEndLatch.countDown();
         nonPersistent1.onEndLatch.countDown();
         nonPersistent2.onEndLatch.countDown();
         assertThat("when jobs in question are finished, cancel callback should be triggered",
-                cancelLatch.await(1, TimeUnit.SECONDS), is(true));
+                cancelLatch.await(10, TimeUnit.SECONDS), is(true));
         final CancelResult result = resultHolder[0];
         JqLog.d("cancelled jobs %s", result.getCancelledJobs());
         JqLog.d("failed to cancel %s", result.getFailedToCancel());
@@ -91,6 +97,11 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
                 assertThat("job could not be cancelled", job.getOnCancelCnt(), is(0));
             }
         }
+
+        assertThat("second cancel should not cancel anything",
+                resultHolder[1].getCancelledJobs().size(), is(0));
+        assertThat("second cancel should not cancel anything",
+                resultHolder[1].getFailedToCancel().size(), is(0));
     }
 
     public static CountDownLatch onStartLatch = new CountDownLatch(2);

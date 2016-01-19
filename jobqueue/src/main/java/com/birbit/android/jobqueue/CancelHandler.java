@@ -14,16 +14,15 @@ import java.util.Set;
  * Temporary object to keep track of cancel handling
  */
 class CancelHandler {
-    private Set<String> runningNonPersistent;
-    private Set<String> runningPersistent;
-    private final TagConstraint constraint;
+    private Set<String> running;
+    private final TagConstraint tagConstraint;
     private final String[] tags;
     private final Collection<JobHolder> cancelled;
     private final Collection<JobHolder> failedToCancel;
     private final CancelResult.AsyncCancelCallback callback;
 
     CancelHandler(TagConstraint constraint, String[] tags, CancelResult.AsyncCancelCallback callback) {
-        this.constraint = constraint;
+        this.tagConstraint = constraint;
         this.tags = tags;
         cancelled = new ArrayList<>();
         failedToCancel = new ArrayList<>();
@@ -31,12 +30,17 @@ class CancelHandler {
     }
     
     void query(JobManagerThread jobManagerThread, ConsumerManager consumerManager) {
-        runningNonPersistent = consumerManager.markJobsCancelled(constraint, tags, false);
-        runningPersistent = consumerManager.markJobsCancelled(constraint, tags, true);
+        running = consumerManager.markJobsCancelled(tagConstraint, tags);
+        Constraint queryConstraint = jobManagerThread.queryConstraint;
+        queryConstraint.clear();
+        queryConstraint.setTagConstraint(tagConstraint);
+        queryConstraint.setExcludeJobIds(running);
+        queryConstraint.setTags(tags);
+        queryConstraint.setExcludeRunning(true);
         Set<JobHolder> nonPersistentInQueue = jobManagerThread.nonPersistentJobQueue
-                .findJobsByTags(constraint, true, runningNonPersistent, tags);
+                .findJobs(queryConstraint);
         Set<JobHolder> persistentInQueue = jobManagerThread.persistentJobQueue
-                .findJobsByTags(constraint, true, runningPersistent, tags);
+                .findJobs(queryConstraint);
         for (JobHolder nonPersistent : nonPersistentInQueue) {
             nonPersistent.markAsCancelled();
             cancelled.add(nonPersistent);
@@ -79,11 +83,7 @@ class CancelHandler {
 
     void onJobRun(JobHolder holder, int resultCode) {
         final boolean exists;
-        if (holder.getJob().isPersistent()) {
-            exists = runningPersistent.remove(holder.getId());
-        } else {
-            exists = runningNonPersistent.remove(holder.getId());
-        }
+        exists = running.remove(holder.getId());
         if (exists) {
             if (resultCode == JobHolder.RUN_RESULT_FAIL_FOR_CANCEL) {
                 cancelled.add(holder);
@@ -94,6 +94,6 @@ class CancelHandler {
     }
 
     boolean isDone() {
-        return runningNonPersistent.isEmpty() && runningPersistent.isEmpty();
+        return running.isEmpty();
     }
 }

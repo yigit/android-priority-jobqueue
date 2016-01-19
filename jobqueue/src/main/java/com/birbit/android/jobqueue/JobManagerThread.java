@@ -46,8 +46,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private final NetworkUtil networkUtil;
     private final DependencyInjector dependencyInjector;
     private final MessageFactory messageFactory;
-    final ConsumerManager mConsumerManager;
+    final ConsumerManager consumerManager;
     private List<CancelHandler> pendingCancelHandlers;
+    final Constraint queryConstraint = new Constraint();
 
     final CallbackManager callbackManager;
 
@@ -76,7 +77,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if(networkUtil instanceof NetworkEventProvider) {
             ((NetworkEventProvider) networkUtil).setListener(this);
         }
-        mConsumerManager = new ConsumerManager(this, timer, messageFactory, config);
+        consumerManager = new ConsumerManager(this, timer, messageFactory, config);
         callbackManager = new CallbackManager(messageFactory, timer);
     }
 
@@ -123,7 +124,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
         }
         callbackManager.notifyOnAdded(jobHolder.getJob());
-        mConsumerManager.onJobAdded();
+        consumerManager.onJobAdded();
     }
 
     @Override
@@ -136,13 +137,13 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         handleAddJob((AddJobMessage) message);
                         break;
                     case JOB_CONSUMER_IDLE:
-                        mConsumerManager.handleIdle((JobConsumerIdleMessage) message);
+                        consumerManager.handleIdle((JobConsumerIdleMessage) message);
                         break;
                     case RUN_JOB_RESULT:
                         handleRunJobResult((RunJobResultMessage) message);
                         break;
                     case CONSTRAINT_CHANGE:
-                        mConsumerManager.handleConstraintChange();
+                        consumerManager.handleConstraintChange();
                         break;
                     case CANCEL:
                         handleCancel((CancelMessage) message);
@@ -199,12 +200,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     return;
                 }
                 running = true;
-                mConsumerManager.handleConstraintChange();
+                consumerManager.handleConstraintChange();
                 break;
             case PublicQueryMessage.STOP:
                 JqLog.d("handling stop request...");
                 running = false;
-                mConsumerManager.handleStop();
+                consumerManager.handleStop();
                 break;
             case PublicQueryMessage.JOB_STATUS:
                 JobStatus status = getJobStatus(message.getStringArg());
@@ -217,7 +218,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 }
                 break;
             case PublicQueryMessage.ACTIVE_CONSUMER_COUNT:
-                message.getCallback().onResult(mConsumerManager.getWorkerCount());
+                message.getCallback().onResult(consumerManager.getWorkerCount());
                 break;
             case PublicQueryMessage.INTERNAL_RUNNABLE:
                 message.getCallback().onResult(0);
@@ -234,7 +235,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     private JobStatus getJobStatus(String id) {
-        if (mConsumerManager.isJobRunning(id)) {
+        if (consumerManager.isJobRunning(id)) {
             return JobStatus.RUNNING;
         }
         JobHolder holder;
@@ -258,7 +259,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private void handleCancel(CancelMessage message) {
         CancelHandler handler = new CancelHandler(message.getConstraint(), message.getTags(),
                 message.getCallback());
-        handler.query(this, mConsumerManager);
+        handler.query(this, consumerManager);
         if (handler.isDone()) {
             handler.commit(this);
         } else {
@@ -299,7 +300,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         + "JobManager");
                 break;
         }
-        mConsumerManager.handleRunJobResult(message, jobHolder, retryConstraint);
+        consumerManager.handleRunJobResult(message, jobHolder, retryConstraint);
         callbackManager.notifyAfterRun(jobHolder.getJob(), result);
         if (pendingCancelHandlers != null) {
             int limit = pendingCancelHandlers.size();
@@ -372,11 +373,16 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     private int countReadyJobs(boolean hasNetwork) {
-        final Collection<String> runningJobs = mConsumerManager.runningJobGroups.getSafe();
+        final Collection<String> runningJobs = consumerManager.runningJobGroups.getSafe();
+        queryConstraint.clear();
+        queryConstraint.setShouldNotRequireNetwork(!hasNetwork);
+        queryConstraint.setExcludeGroups(runningJobs);
+        queryConstraint.setExcludeRunning(true);
+        queryConstraint.setTimeLimit(timer.nanoTime());
         //TODO we can cache this
         int total = 0;
-        total += nonPersistentJobQueue.countReadyJobs(hasNetwork, runningJobs);
-        total += persistentJobQueue.countReadyJobs(hasNetwork, runningJobs);
+        total += nonPersistentJobQueue.countReadyJobs(queryConstraint);
+        total += persistentJobQueue.countReadyJobs(queryConstraint);
         return total;
     }
 
@@ -385,11 +391,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     Long getNextWakeUpNs(boolean includeNetworkWatch) {
-        final Long groupDelay = mConsumerManager.runningJobGroups.getNextDelayForGroups();
+        final Long groupDelay = consumerManager.runningJobGroups.getNextDelayForGroups();
         final boolean hasNetwork = hasNetwork();
-        final Collection<String> groups = mConsumerManager.runningJobGroups.getSafe();
-        final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(hasNetwork, groups);
-        final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(hasNetwork, groups);
+        final Collection<String> groups = consumerManager.runningJobGroups.getSafe();
+        queryConstraint.clear();
+        queryConstraint.setShouldNotRequireNetwork(!hasNetwork);
+        queryConstraint.setExcludeGroups(groups);
+        queryConstraint.setExcludeRunning(true);
+        final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(queryConstraint);
+        final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(queryConstraint);
         Long delay = null;
         if (groupDelay != null) {
             delay = groupDelay;
@@ -433,11 +443,16 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (JqLog.isDebugEnabled()) {
             JqLog.d("running groups %s", SqlHelper.joinStrings(",", runningJobGroups));
         }
-        jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
+        queryConstraint.clear();
+        queryConstraint.setShouldNotRequireNetwork(!haveNetwork);
+        queryConstraint.setExcludeGroups(runningJobGroups);
+        queryConstraint.setExcludeRunning(true);
+        queryConstraint.setTimeLimit(timer.nanoTime());
+        jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);
         JqLog.d("non persistent result %s", jobHolder);
         if (jobHolder == null) {
             //go to disk, there aren't any non-persistent jobs
-            jobHolder = persistentJobQueue.nextJobAndIncRunCount(haveNetwork, runningJobGroups);
+            jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);
             persistent = true;
             JqLog.d("persistent result %s", jobHolder);
         }

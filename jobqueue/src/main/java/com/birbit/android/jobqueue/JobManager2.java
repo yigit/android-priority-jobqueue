@@ -126,17 +126,17 @@ public class JobManager2 {
     private void waitUntilConsumersAreFinished(boolean stop) {
         assertNotInMainThread();
         final CountDownLatch latch = new CountDownLatch(1);
-        jobManagerThread.mConsumerManager.addNoConsumersListener(new Runnable() {
+        jobManagerThread.consumerManager.addNoConsumersListener(new Runnable() {
             @Override
             public void run() {
                 latch.countDown();
-                jobManagerThread.mConsumerManager.removeNoConsumersListener(this);
+                jobManagerThread.consumerManager.removeNoConsumersListener(this);
             }
         });
         if (stop) {
             stop();
         }
-        if(jobManagerThread.mConsumerManager.getWorkerCount() == 0) {
+        if(jobManagerThread.consumerManager.getWorkerCount() == 0) {
             return;
         }
         try {
@@ -174,6 +174,9 @@ public class JobManager2 {
      */
     public void cancelJobsInBackground(final CancelResult.AsyncCancelCallback cancelCallback,
             final TagConstraint constraint, final String... tags) {
+        if (constraint == null) {
+            throw new IllegalArgumentException("must provide a TagConstraint");
+        }
         CancelMessage message = messageFactory.obtain(CancelMessage.class);
         message.setCallback(cancelCallback);
         message.setConstraint(constraint);
@@ -286,6 +289,9 @@ public class JobManager2 {
     public CancelResult cancelJobs(TagConstraint constraint, String... tags) {
         assertNotInMainThread("Cannot call this method on main thread. Use cancelJobsInBackground"
                 + " instead");
+        if (constraint == null) {
+            throw new IllegalArgumentException("must provide a TagConstraint");
+        }
         final CountDownLatch latch = new CountDownLatch(1);
         final CancelResult[] result = new CancelResult[1];
         CancelResult.AsyncCancelCallback myCallback = new CancelResult.AsyncCancelCallback() {

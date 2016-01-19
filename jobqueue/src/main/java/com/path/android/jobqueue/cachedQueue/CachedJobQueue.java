@@ -1,11 +1,9 @@
 package com.path.android.jobqueue.cachedQueue;
 
+import com.birbit.android.jobqueue.Constraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobQueue;
-import com.path.android.jobqueue.TagConstraint;
 
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -16,154 +14,90 @@ import java.util.Set;
  */
 public class CachedJobQueue implements JobQueue {
     JobQueue delegate;
-    private Cache cache;
+    private Integer cachedCount;
 
     public CachedJobQueue(JobQueue delegate) {
         this.delegate = delegate;
-        this.cache = new Cache();
     }
 
     @Override
     public boolean insert(JobHolder jobHolder) {
-        cache.invalidateAll();
+        invalidateCache();
         return delegate.insert(jobHolder);
+    }
+
+    private void invalidateCache() {
+        cachedCount = null;
     }
 
     @Override
     public boolean insertOrReplace(JobHolder jobHolder) {
-        cache.invalidateAll();
+        invalidateCache();
         return delegate.insertOrReplace(jobHolder);
     }
 
     @Override
     public void remove(JobHolder jobHolder) {
-        cache.invalidateAll();
+        invalidateCache();
         delegate.remove(jobHolder);
     }
 
     @Override
     public int count() {
-        if(cache.count == null) {
-            cache.count = delegate.count();
+        if(cachedCount == null) {
+            cachedCount = delegate.count();
         }
-        return cache.count;
+        return cachedCount;
+    }
+
+    private boolean isEmpty() {
+        return cachedCount != null && cachedCount == 0;
     }
 
     @Override
-    public int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
-        if(cache.count != null && cache.count < 1) {
-            //we know count is zero, why query?
+    public int countReadyJobs(Constraint constraint) {
+        if (isEmpty()) {
             return 0;
         }
-        int count = delegate.countReadyJobs(hasNetwork, excludeGroups);
-        if(count == 0) {
-            //warm up cache if this is an empty queue case. if not, we are creating an unncessary query.
-            count();
-        }
-        return count;
+        return delegate.countReadyJobs(constraint);
     }
 
     @Override
-    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
-        if(cache.count != null && cache.count < 1) {
+    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+        if(isEmpty()) {
             return null;//we know we are empty, no need for querying
         }
-        JobHolder holder = delegate.nextJobAndIncRunCount(hasNetwork, excludeGroups);
-        //if holder is null, there is a good chance that there aren't any jobs in queue try to cache it by calling count
-        if(holder == null) {
-            //warm up empty state cache
-            count();
-        } else if(cache.count != null) {
-            //no need to invalidate cache for count
-            cache.count--;
+        JobHolder holder = delegate.nextJobAndIncRunCount(constraint);
+        if (holder != null && cachedCount != null) {
+            cachedCount -= 1;
         }
         return holder;
     }
 
     @Override
-    public Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups) {
-        if(cache.delayUntil == null) {
-            cache.delayUntil = new Cache.DelayUntil(hasNetwork,
-                    delegate.getNextJobDelayUntilNs(hasNetwork, excludeGroups), excludeGroups);
-        } else if(!cache.delayUntil.isValid(hasNetwork, excludeGroups)) {
-            cache.delayUntil.set(hasNetwork,
-                    delegate.getNextJobDelayUntilNs(hasNetwork, excludeGroups), excludeGroups);
-        }
-        return cache.delayUntil.value;
+    public Long getNextJobDelayUntilNs(Constraint constraint) {
+        return delegate.getNextJobDelayUntilNs(constraint);
     }
 
     @Override
     public void clear() {
-        cache.invalidateAll();
+        invalidateCache();
         delegate.clear();
     }
 
     @Override
-    public Set<JobHolder> findJobsByTags(TagConstraint constraint, boolean excludeCancelled,
-            Collection<String> excludeUUIDs, String... tags) {
-        return delegate.findJobsByTags(constraint, excludeCancelled, excludeUUIDs, tags);
+    public Set<JobHolder> findJobs(Constraint constraint) {
+        return delegate.findJobs(constraint);
     }
 
     @Override
     public void onJobCancelled(JobHolder holder) {
+        invalidateCache();
         delegate.onJobCancelled(holder);
     }
 
     @Override
     public JobHolder findJobById(String id) {
         return delegate.findJobById(id);
-    }
-
-    private static class Cache {
-        Integer count;
-        DelayUntil delayUntil;
-
-        public void invalidateAll() {
-            count = null;
-            delayUntil = null;
-        }
-
-        private static class DelayUntil {
-            //can be null, is OK
-            Long value;
-            boolean hasNetwork;
-            Collection<String> excludeGroups;
-
-            private DelayUntil(boolean hasNetwork, Long value, Collection<String> excludeGroups) {
-                this.value = value;
-                this.hasNetwork = hasNetwork;
-                this.excludeGroups = excludeGroups;
-            }
-
-            private boolean isValid(boolean hasNetwork, Collection<String> excludeGroups) {
-                return this.hasNetwork == hasNetwork && validateExcludes(excludeGroups);
-            }
-
-            private boolean validateExcludes(Collection<String> excludeGroups) {
-                if (this.excludeGroups == excludeGroups) {
-                    return true;
-                }
-                if (this.excludeGroups == null || excludeGroups == null) {
-                    return false;
-                }
-                if (this.excludeGroups.size() != excludeGroups.size()) {
-                    return false;
-                }
-                Iterator<String> itr1 = this.excludeGroups.iterator();
-                Iterator<String> itr2 = excludeGroups.iterator();
-                while (itr1.hasNext()) {
-                    if (!itr1.next().equals(itr2.next())) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            public void set(boolean hasNetwork, Long value, Collection<String> excludeGroups) {
-                this.value = value;
-                this.hasNetwork = hasNetwork;
-                this.excludeGroups = excludeGroups;
-            }
-        }
     }
 }

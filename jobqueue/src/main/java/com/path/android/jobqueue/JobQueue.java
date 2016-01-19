@@ -1,5 +1,7 @@
 package com.path.android.jobqueue;
 
+import com.birbit.android.jobqueue.Constraint;
+
 import java.util.Collection;
 import java.util.Set;
 
@@ -42,30 +44,31 @@ public interface JobQueue {
     int count();
 
     /**
-     * counts the # of jobs that can run now. if there are more jobs from the same group, they are count as 1 since
-     * they cannot be run in parallel
-     * exclude groups are guaranteed to be ordered in natural order
-     * @return
+     * counts the # of jobs that can run now. if there are more jobs from the same group,
+     * they are count as 1 since they cannot be run in parallel.
+     * <p>
+     * Exclude groups are guaranteed to be ordered in natural order.
+     *
+     * @param constraint The constraint to match the jobs
+     *
+     * @return The number of jobs that are ready to run
      */
-    int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups);
+    int countReadyJobs(Constraint constraint);
 
     /**
      * Returns the next available job in the data set
      * It should also assign the sessionId as the RunningSessionId and persist that data if necessary.
      * It should filter out all running jobs and exclude groups are guaranteed to be ordered in natural order
      *
-     * @param hasNetwork if true, should return any job, if false, should return jobs that do NOT require network
-     * @param excludeGroups if provided, jobs from these groups will NOT be returned
+     * @param constraint The constraint to match the job.
      */
-    JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups);
+    JobHolder nextJobAndIncRunCount(Constraint constraint);
 
     /**
      * returns when the next job should run (in nanoseconds), should return null if there are no jobs to run.
-     * @param hasNetwork if true, should return nanoseconds for any job, if false, should return nanoseconds for next
-     *                   job's delay until.
-     *  @param excludeGroups if provided, jobs from these groups will NOT be considered
+     * @param constraint The constraint to match the job.
      */
-    Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups);
+    Long getNextJobDelayUntilNs(Constraint constraint);
 
     /**
      * clear all jobs in the queue. should probably be called when user logs out.
@@ -82,17 +85,9 @@ public interface JobQueue {
     /**
      * Returns jobs that has the given tags.
      *
-     * @param tagConstraint If set to {@link TagConstraint#ALL}, returned jobs should have all of
-     *                      the tags provided. If set to {@link TagConstraint#ANY}, returned jobs
-     *                      should have at least one of the provided tags
-     * @param excludeCancelled If true, cancelled jobs will not be returned. A job may be in cancelled
-     *                        state if a cancel request has arrived but it has not been removed from
-     *                        queue yet (e.g. still running).
-     * @param excludeIds IDs of jobs to ignore in the result
-     * @param tags The list of tags
+     * @param constraint The constraint to match the job.
      */
-    Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, boolean excludeCancelled,
-            Collection<String> excludeIds, String... tags);
+    Set<JobHolder> findJobs(Constraint constraint);
 
     /**
      * Called when a job is cancelled by the user.

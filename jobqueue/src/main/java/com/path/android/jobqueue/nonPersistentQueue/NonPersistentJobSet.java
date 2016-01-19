@@ -77,7 +77,7 @@ public class NonPersistentJobSet implements JobSet {
 
     @Override
     public Set<JobHolder> findByTags(TagConstraint constraint, Collection<String> exclude,
-            String... tags) {
+            Collection<String> tags) {
         if(tags == null) {
             return Collections.emptySet();
         }

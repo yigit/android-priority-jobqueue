@@ -1,13 +1,18 @@
 package com.path.android.jobqueue.persistentQueue.sqlite;
 
+import com.birbit.android.jobqueue.Constraint;
+import com.path.android.jobqueue.Job;
+import com.path.android.jobqueue.JobHolder;
+import com.path.android.jobqueue.JobManager;
+import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.TagConstraint;
+import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.timer.Timer;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
-import com.path.android.jobqueue.*;
-import com.path.android.jobqueue.log.JqLog;
-import com.path.android.jobqueue.timer.Timer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,9 +20,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -29,13 +34,12 @@ public class SqliteJobQueue implements JobQueue {
     SQLiteDatabase db;
     SqlHelper sqlHelper;
     JobSerializer jobSerializer;
-    QueryCache readyJobsQueryCache;
-    QueryCache nextJobsQueryCache;
-    QueryCache nextJobDelayUntilQueryCache;
     // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
     // queries. Set is cleaned when item is removed
     Set<String> pendingCancelations = new HashSet<>();
     final Timer timer;
+    private final StringBuilder reusedStringBuilder = new StringBuilder();
+    private final List<String> reusedArgList = new ArrayList<>();
 
     /**
      * @param context application context
@@ -54,9 +58,6 @@ public class SqliteJobQueue implements JobQueue {
                 DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,
                 DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
         this.jobSerializer = jobSerializer;
-        readyJobsQueryCache = new QueryCache();
-        nextJobsQueryCache = new QueryCache();
-        nextJobDelayUntilQueryCache = new QueryCache();
         sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
     }
 
@@ -148,33 +149,6 @@ public class SqliteJobQueue implements JobQueue {
         return stmt.executeInsert() != -1;
     }
 
-    public String logJobs() {
-        StringBuilder sb =  new StringBuilder();
-        String where = createReadyJobWhereSql(true, null, false);
-        String select = sqlHelper.createSelect(
-                where,
-                100,
-                new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
-                        SqlHelper.Order.Type.DESC),
-                new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,
-                        SqlHelper.Order.Type.ASC),
-                new SqlHelper.Order(DbOpenHelper.INSERTION_ORDER_COLUMN, SqlHelper.Order.Type.ASC)
-        );
-        Cursor cursor = db.rawQuery(select, new String[]{"", String.valueOf(Long.MAX_VALUE)});
-        try {
-            while (cursor.moveToNext()) {
-                sb.append(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
-                        .append(" ")
-                        .append(cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex)).append(" ")
-                        .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
-                        .append("\n");
-            }
-        } finally {
-            cursor.close();
-        }
-        return sb.toString();
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -207,19 +181,15 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public int countReadyJobs(boolean hasNetwork, Collection<String> excludeGroups) {
-        String sql = readyJobsQueryCache.get(hasNetwork, excludeGroups);
-        if(sql == null) {
-            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, true);
-            String subSelect = "SELECT count(*) group_cnt, " + DbOpenHelper.GROUP_ID_COLUMN.columnName
-                    + " FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME
-                    + " WHERE " + where;
-            sql = "SELECT SUM(case WHEN " + DbOpenHelper.GROUP_ID_COLUMN.columnName
-                    + " is null then group_cnt else 1 end) from (" + subSelect + ")";
-            readyJobsQueryCache.set(sql, hasNetwork, excludeGroups);
-        }
-        Cursor cursor = db.rawQuery(sql, new String[]{Long.toString(sessionId),
-                Long.toString(timer.nanoTime())});
+    public int countReadyJobs(Constraint constraint) {
+        Where where = createWhere(constraint);
+        String groupedWhere = where.query + " GROUP BY " + DbOpenHelper.GROUP_ID_COLUMN.columnName;
+        String subSelect = "SELECT count(*) group_cnt, " + DbOpenHelper.GROUP_ID_COLUMN.columnName
+                + " FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME
+                + " WHERE " + groupedWhere;
+        String sql = "SELECT SUM(case WHEN " + DbOpenHelper.GROUP_ID_COLUMN.columnName
+                + " is null then group_cnt else 1 end) from (" + subSelect + ")";
+        Cursor cursor = db.rawQuery(sql, where.args);
         try {
             if(!cursor.moveToNext()) {
                 return 0;
@@ -250,38 +220,12 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public Set<JobHolder> findJobsByTags(TagConstraint tagConstraint, boolean excludeCancelled,
-            Collection<String> excludeUUIDs, String... tags) {
-        if (tags == null || tags.length == 0) {
-            return Collections.emptySet();
-        }
+    public Set<JobHolder> findJobs(Constraint constraint) {
+        Where where = createWhere(constraint);
+        String selectQuery = sqlHelper.createSelect(where.query, null);
+        Cursor cursor = db.rawQuery(selectQuery, where.args);
+        reusedArgList.clear();
         Set<JobHolder> jobs = new HashSet<>();
-        int excludeCount = excludeUUIDs == null ? 0 : excludeUUIDs.size();
-        if (excludeCancelled) {
-            excludeCount += pendingCancelations.size();
-        }
-        final String query = sqlHelper.createFindByTagsQuery(tagConstraint,
-                excludeCount, tags.length);
-        JqLog.d(query);
-        final String[] args;
-        if (excludeCount == 0) {
-            args = tags;
-        } else {
-            args = new String[excludeCount + tags.length];
-            System.arraycopy(tags, 0, args, 0, tags.length);
-            int i = tags.length;
-            if (excludeUUIDs != null) {
-                for (String ex : excludeUUIDs) {
-                    args[i ++] = ex;
-                }
-            }
-            if (excludeCancelled) {
-                for (String ex : pendingCancelations) {
-                    args[i ++] = ex;
-                }
-            }
-        }
-        Cursor cursor = db.rawQuery(query, args);
         try {
             while (cursor.moveToNext()) {
                 jobs.add(createJobHolderFromCursor(cursor));
@@ -291,6 +235,7 @@ public class SqliteJobQueue implements JobQueue {
         } finally {
             cursor.close();
         }
+
         return jobs;
     }
 
@@ -304,25 +249,21 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount(boolean hasNetwork, Collection<String> excludeGroups) {
+    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+        Where where = createWhere(constraint);
         //we can even keep these prepared but not sure the cost of them in db layer
-        String selectQuery = nextJobsQueryCache.get(hasNetwork, excludeGroups);
-        if (selectQuery == null) {
-            String where = createReadyJobWhereSql(hasNetwork, excludeGroups, false);
-            selectQuery = sqlHelper.createSelect(
-                    where,
+        String selectQuery = sqlHelper.createSelect(
+                    where.query,
                     1,
                     new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
                             SqlHelper.Order.Type.DESC),
                     new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,
                             SqlHelper.Order.Type.ASC),
-                    new SqlHelper.Order(DbOpenHelper.INSERTION_ORDER_COLUMN, SqlHelper.Order.Type.ASC)
+                    new SqlHelper.Order(DbOpenHelper.INSERTION_ORDER_COLUMN,
+                            SqlHelper.Order.Type.ASC)
             );
-            nextJobsQueryCache.set(selectQuery, hasNetwork, excludeGroups);
-        }
         while (true) {
-            Cursor cursor = db.rawQuery(selectQuery,
-                    new String[]{Long.toString(sessionId), Long.toString(timer.nanoTime())});
+            Cursor cursor = db.rawQuery(selectQuery, where.args);
             try {
                 if (!cursor.moveToNext()) {
                     return null;
@@ -332,68 +273,131 @@ public class SqliteJobQueue implements JobQueue {
                 return holder;
             } catch (InvalidJobException e) {
                 //delete
-                String jobId = cursor.getString(0);
-                delete(jobId);
+                String jobId = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
+                if (jobId == null) {
+                    JqLog.e("cannot find job id on a retriewed job");
+                } else {
+                    delete(jobId);
+                }
             } finally {
                 cursor.close();
             }
         }
     }
 
-    private String createReadyJobWhereSql(boolean hasNetwork, Collection<String> excludeGroups, boolean groupByRunningGroup) {
-        String where = DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != ? "
-                + " AND " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " <= ? ";
-        if(!hasNetwork) {
-            where += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1 ";
+    private Where createWhere(Constraint constraint) {
+        reusedStringBuilder.setLength(0);
+        reusedArgList.clear();
+        reusedStringBuilder.append("1");
+        if (constraint.shouldNotRequireNetwork()) {
+            reusedStringBuilder
+                    .append(" AND ")
+                    .append(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName)
+                    .append(" != 1");
         }
-        String groupConstraint = null;
-        if(excludeGroups != null && excludeGroups.size() > 0) {
-            groupConstraint = DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
-                    DbOpenHelper.GROUP_ID_COLUMN.columnName + " NOT IN('" +
-                    SqlHelper.joinStrings("','", excludeGroups) + "')";
+        if (constraint.getTimeLimit() != null) {
+            reusedStringBuilder
+                    .append(" AND ")
+                    .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName)
+                    .append(" <= ?");
+            reusedArgList.add(Long.toString(constraint.getTimeLimit()));
         }
-        if(groupByRunningGroup) {
-            where += " GROUP BY " + DbOpenHelper.GROUP_ID_COLUMN.columnName;
-            if(groupConstraint != null) {
-                where += " HAVING " + groupConstraint;
+        if (constraint.getTagConstraint() != null) {
+            if (constraint.getTags().isEmpty()) {
+                reusedStringBuilder.append(" AND 0 ");
+            } else {
+                reusedStringBuilder
+                        .append(" AND ")
+                        .append(DbOpenHelper.ID_COLUMN.columnName).append(" IN ( SELECT ")
+                        .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(" FROM ")
+                        .append(DbOpenHelper.JOB_TAGS_TABLE_NAME).append(" WHERE ")
+                        .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(" IN (");
+                SqlHelper.addPlaceholdersInto(reusedStringBuilder,
+                        constraint.getTags().size());
+                reusedStringBuilder.append(")");
+                if (constraint.getTagConstraint() == TagConstraint.ANY) {
+                    reusedStringBuilder.append(")");
+                } else if (constraint.getTagConstraint() == TagConstraint.ALL) {
+                    reusedStringBuilder.append(" GROUP BY (`")
+                            .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append("`)")
+                            .append(" HAVING count(*) = ")
+                            .append(constraint.getTags().size()).append(")");
+                } else {
+                    // have this in place in case we change number of constraints
+                    throw new IllegalArgumentException("unknown constraint " + constraint);
+                }
+                reusedArgList.addAll(constraint.getTags());
             }
-        } else if(groupConstraint != null) {
-            where += " AND ( " + groupConstraint + " )";
         }
-        return where;
+        if (!constraint.getExcludeGroups().isEmpty()) {
+            reusedStringBuilder
+                    .append(" AND (")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append(" IS NULL OR ")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append(" NOT IN(");
+            SqlHelper.addPlaceholdersInto(reusedStringBuilder,
+                    constraint.getExcludeGroups().size());
+            reusedStringBuilder.append("))");
+            reusedArgList.addAll(constraint.getExcludeGroups());
+        }
+        if (!constraint.getExcludeJobIds().isEmpty()) {
+            reusedStringBuilder
+                    .append(" AND ")
+                    .append(DbOpenHelper.ID_COLUMN.columnName)
+                    .append(" NOT IN(");
+            SqlHelper.addPlaceholdersInto(reusedStringBuilder,
+                    constraint.getExcludeJobIds().size());
+            reusedStringBuilder.append(")");
+            reusedArgList.addAll(constraint.getExcludeJobIds());
+        }
+        if (!pendingCancelations.isEmpty()) {
+            reusedStringBuilder
+                    .append(" AND ")
+                    .append(DbOpenHelper.ID_COLUMN.columnName)
+                    .append(" NOT IN(");
+            SqlHelper.addPlaceholdersInto(reusedStringBuilder,
+                    pendingCancelations.size());
+            reusedStringBuilder.append(")");
+            reusedArgList.addAll(pendingCancelations);
+        }
+        if (constraint.excludeRunning()) {
+            reusedStringBuilder
+                    .append(" AND ")
+                    .append(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName)
+                    .append(" != ")
+                    .append(sessionId);
+        }
+        String[] args = new String[reusedArgList.size()];
+        int index = 0;
+        for (String arg : reusedArgList) {
+            args[index++] = arg;
+        }
+        reusedArgList.clear();
+        return new Where(reusedStringBuilder.toString(), args);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs(boolean hasNetwork, Collection<String> excludeGroups) {
-        boolean hasExcludes = excludeGroups != null && !excludeGroups.isEmpty();
-        if (!hasExcludes) {
-            SQLiteStatement stmt =
-                    hasNetwork ? sqlHelper.getNextJobDelayedUntilWithNetworkStatement()
-                            : sqlHelper.getNextJobDelayedUntilWithoutNetworkStatement();
-            try {
-                stmt.clearBindings();
-                return stmt.simpleQueryForLong();
-            } catch (SQLiteDoneException e) {
+    public Long getNextJobDelayUntilNs(Constraint constraint) {
+        Where where = createWhere(constraint);
+        String selectQuery = sqlHelper.createSelectOneField(
+                DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
+                where.query,
+                1,
+                new SqlHelper.Order(DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
+                        SqlHelper.Order.Type.ASC)
+        );
+        Cursor cursor = db.rawQuery(selectQuery, where.args);
+        try {
+            if(!cursor.moveToNext()) {
                 return null;
             }
-        } else {
-            String sql = nextJobDelayUntilQueryCache.get(hasNetwork, excludeGroups);
-            if (sql == null) {
-                sql = sqlHelper.createNextJobDelayUntilQuery(hasNetwork, excludeGroups);
-                nextJobDelayUntilQueryCache.set(sql, hasNetwork, excludeGroups);
-            }
-            Cursor cursor = db.rawQuery(sql, new String[0]);
-            try {
-                if(!cursor.moveToNext()) {
-                    return null;
-                }
-                return cursor.getLong(0);
-            } finally {
-                cursor.close();
-            }
+            return cursor.getLong(0);
+        } finally {
+            cursor.close();
         }
     }
 
@@ -403,8 +407,6 @@ public class SqliteJobQueue implements JobQueue {
     @Override
     public void clear() {
         sqlHelper.truncate();
-        readyJobsQueryCache.clear();
-        nextJobsQueryCache.clear();
     }
 
     /**
@@ -424,6 +426,48 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(2, sessionId);
         stmt.bindString(3, jobHolder.getId());
         stmt.execute();
+    }
+
+    public String logJobs() {
+        StringBuilder sb =  new StringBuilder();
+        String select = sqlHelper.createSelect(
+                null,
+                100,
+                new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
+                        SqlHelper.Order.Type.DESC),
+                new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,
+                        SqlHelper.Order.Type.ASC),
+                new SqlHelper.Order(DbOpenHelper.INSERTION_ORDER_COLUMN, SqlHelper.Order.Type.ASC)
+        );
+        Cursor cursor = db.rawQuery(select, new String[0]);
+        try {
+            while (cursor.moveToNext()) {
+                String id = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
+                sb.append(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
+                        .append(" ")
+                        .append(id).append(" ")
+                        .append(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
+                        .append(" ")
+                        .append(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
+                        .append(" ")
+                        .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex));
+                Cursor tags = db.rawQuery("SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName
+                        + " FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
+                        + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?", new String[]{id});
+                try {
+                    while (tags.moveToNext()) {
+                        sb.append(", ").append(tags.getString(0));
+                    }
+                } finally {
+                    tags.close();
+                }
+                sb.append("\n");
+
+            }
+        } finally {
+            cursor.close();
+        }
+        return sb.toString();
     }
 
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidJobException {
