@@ -11,10 +11,7 @@ import java.util.Set;
  */
 public interface JobQueue {
     /**
-     * Inserts the given JobHolder,
-     *   assigns it a unique id
-     *   and returns the id back
-     *   Is called when a job is added
+     * Inserts the given JobHolder.
      * @param jobHolder
      * @return
      */
@@ -22,7 +19,7 @@ public interface JobQueue {
 
     /**
      * Does the same thing with insert but the only difference is that
-     * if job has an ID, it should replace the existing one
+     * if job has an insertion ID, it should replace the existing one
      *  should also reset running session id to {@link JobManager#NOT_RUNNING_SESSION_ID}
      *  Is called when a job is re-added (due to exception during run)
      * @param jobHolder
