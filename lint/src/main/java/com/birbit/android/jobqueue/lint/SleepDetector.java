@@ -17,7 +17,7 @@ public class SleepDetector extends Detector implements Detector.JavaScanner {
             Category.CORRECTNESS,
             6,
             Severity.ERROR,
-            new Implementation(SleepDetector.class, EnumSet.of(Scope.JAVA_FILE))
+            new Implementation(SleepDetector.class, EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES))
     );
 
     @Override
@@ -27,7 +27,7 @@ public class SleepDetector extends Detector implements Detector.JavaScanner {
             public boolean visitMethodInvocation(MethodInvocation node) {
                 Expression operand = node.astOperand();
                 if (node.astName().toString().equals("sleep") && operand.toString().equals("Thread") && !context.isSuppressedWithComment(node, ISSUE)) {
-                    context.report(ISSUE, context.getLocation(node), "Don't call sleep. Use MockTimer instead.");
+                    context.report(ISSUE, node, context.getLocation(node), "Don't call sleep. Use MockTimer instead.");
                 }
                 return super.visitMethodInvocation(node);
             }
