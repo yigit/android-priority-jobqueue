@@ -138,6 +138,11 @@ public class Constraint {
         timeLimit = null;
     }
 
+    /**
+     * Creates a unique id from parameter counts from each type. This ID is suitable to cache
+     * queries by placeholders.
+     * @return
+     */
     public String getUniqueId() {
         if (uniqueId != null) {
             return uniqueId;

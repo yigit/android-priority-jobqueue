@@ -48,6 +48,9 @@ dependencies {
     testCompile 'org.easytesting:fest-util:1.2.5'
     testCompile 'org.easytesting:fest-reflect:1.4.1'
     testCompile 'org.mockito:mockito-core:2.0.2-beta'
+    // use an old version since we only need a few util classes that were already there for a long
+    // time. If app depends on a newer one, gradle will pick it for us.
+    compile 'com.android.support:support-v4:21.0.3'
 }
 
 android {

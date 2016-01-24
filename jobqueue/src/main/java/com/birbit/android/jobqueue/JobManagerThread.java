@@ -440,9 +440,6 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         JobHolder jobHolder;
         boolean persistent = false;
         JqLog.d("looking for next job");
-        if (JqLog.isDebugEnabled()) {
-            JqLog.d("running groups %s", SqlHelper.joinStrings(",", runningJobGroups));
-        }
         queryConstraint.clear();
         queryConstraint.setShouldNotRequireNetwork(!haveNetwork);
         queryConstraint.setExcludeGroups(runningJobGroups);

@@ -1,13 +1,9 @@
 package com.path.android.jobqueue.persistentQueue.sqlite;
 
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteStatement;
-
-import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.log.JqLog;
 
-import java.util.Collection;
-import java.util.Set;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
 
 /**
  * Helper class for {@link SqliteJobQueue} to generate sql queries and statements.
@@ -23,8 +19,7 @@ public class SqlHelper {
     private SQLiteStatement deleteStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
-    private SQLiteStatement nextJobDelayedUntilWithNetworkStatement;
-    private SQLiteStatement nextJobDelayedUntilWithoutNetworkStatement;
+    private final StringBuilder reusedStringBuilder = new StringBuilder();
 
 
     final SQLiteDatabase db;
@@ -75,69 +70,41 @@ public class SqlHelper {
         return builder.toString();
     }
 
-    public String createFindByTagsQuery(TagConstraint constraint, int numberOfExcludeIds,
-            int numberOfTags) {
-        StringBuilder query = new StringBuilder();
-        String placeHolders = createPlaceholders(numberOfTags);
-        query.append("SELECT * FROM ").append(tableName).append(" WHERE ");
-        query.append(DbOpenHelper.ID_COLUMN.columnName).append(" IN ( SELECT ")
-                .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(" FROM ")
-                .append(tagsTableName).append(" WHERE ")
-                .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(" IN (")
-                .append(placeHolders).append(")");
-        if (constraint == TagConstraint.ANY) {
-            query.append(")");
-        } else if (constraint == TagConstraint.ALL) {
-            query.append(" GROUP BY (`")
-                    .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append("`)")
-                    .append(" HAVING count(*) = ")
-                    .append(numberOfTags).append(")");
-        } else {
-            // have this in place in case we change number of constraints
-            throw new IllegalArgumentException("unknown constraint " + constraint);
-        }
-        if (numberOfExcludeIds > 0) {
-            String idPlaceHolders = createPlaceholders(numberOfExcludeIds);
-            query.append(" AND ").append(DbOpenHelper.ID_COLUMN.columnName)
-                    .append(" NOT IN(").append(idPlaceHolders).append(")");
-        }
-
-        return query.toString();
-    }
-
     public static String drop(String tableName) {
         return "DROP TABLE IF EXISTS " + tableName;
     }
 
     public SQLiteStatement getInsertStatement() {
         if (insertStatement == null) {
-            StringBuilder builder = new StringBuilder("INSERT INTO ").append(tableName);
-            builder.append(" VALUES (");
+            reusedStringBuilder.setLength(0);
+            reusedStringBuilder.append("INSERT INTO ").append(tableName);
+            reusedStringBuilder.append(" VALUES (");
             for (int i = 0; i < columnCount; i++) {
                 if (i != 0) {
-                    builder.append(",");
+                    reusedStringBuilder.append(",");
                 }
-                builder.append("?");
+                reusedStringBuilder.append("?");
             }
-            builder.append(")");
-            insertStatement = db.compileStatement(builder.toString());
+            reusedStringBuilder.append(")");
+            insertStatement = db.compileStatement(reusedStringBuilder.toString());
         }
         return insertStatement;
     }
 
     public SQLiteStatement getInsertTagsStatement() {
         if (insertTagsStatement == null) {
-            StringBuilder builder = new StringBuilder("INSERT INTO ")
+            reusedStringBuilder.setLength(0);
+            reusedStringBuilder.append("INSERT INTO ")
                     .append(DbOpenHelper.JOB_TAGS_TABLE_NAME);
-            builder.append(" VALUES (");
+            reusedStringBuilder.append(" VALUES (");
             for (int i = 0; i < tagsColumnCount; i++) {
                 if (i != 0) {
-                    builder.append(",");
+                    reusedStringBuilder.append(",");
                 }
-                builder.append("?");
+                reusedStringBuilder.append("?");
             }
-            builder.append(")");
-            insertTagsStatement = db.compileStatement(builder.toString());
+            reusedStringBuilder.append(")");
+            insertTagsStatement = db.compileStatement(reusedStringBuilder.toString());
         }
         return insertTagsStatement;
     }
@@ -152,16 +119,17 @@ public class SqlHelper {
 
     public SQLiteStatement getInsertOrReplaceStatement() {
         if (insertOrReplaceStatement == null) {
-            StringBuilder builder = new StringBuilder("INSERT OR REPLACE INTO ").append(tableName);
-            builder.append(" VALUES (");
+            reusedStringBuilder.setLength(0);
+            reusedStringBuilder.append("INSERT OR REPLACE INTO ").append(tableName);
+            reusedStringBuilder.append(" VALUES (");
             for (int i = 0; i < columnCount; i++) {
                 if (i != 0) {
-                    builder.append(",");
+                    reusedStringBuilder.append(",");
                 }
-                builder.append("?");
+                reusedStringBuilder.append("?");
             }
-            builder.append(")");
-            insertOrReplaceStatement = db.compileStatement(builder.toString());
+            reusedStringBuilder.append(")");
+            insertOrReplaceStatement = db.compileStatement(reusedStringBuilder.toString());
         }
         return insertOrReplaceStatement;
     }
@@ -185,109 +153,53 @@ public class SqlHelper {
         return onJobFetchedForRunningStatement;
     }
 
-    public SQLiteStatement getNextJobDelayedUntilWithNetworkStatement() {
-        if(nextJobDelayedUntilWithNetworkStatement == null) {
-            String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
-                    + " FROM " + tableName + " WHERE "
-                    + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
-                    + " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " ASC"
-                    + " LIMIT 1";
-            nextJobDelayedUntilWithNetworkStatement = db.compileStatement(sql);
-        }
-        return nextJobDelayedUntilWithNetworkStatement;
-    }
-
-    public SQLiteStatement getNextJobDelayedUntilWithoutNetworkStatement() {
-        if(nextJobDelayedUntilWithoutNetworkStatement == null) {
-            String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
-                    + " FROM " + tableName + " WHERE "
-                    + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId
-                    + " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1"
-                    + " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " ASC"
-                    + " LIMIT 1";
-            nextJobDelayedUntilWithoutNetworkStatement = db.compileStatement(sql);
-        }
-        return nextJobDelayedUntilWithoutNetworkStatement;
-    }
-
-    public String createNextJobDelayUntilQuery(boolean hasNetwork, Collection<String> excludeGroups) {
-        String sql = "SELECT " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName
-                + " FROM " + tableName + " WHERE "
-                + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + " != " + sessionId;
-        if (!hasNetwork) {
-            sql += " AND " + DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnName + " != 1";
-        }
-        if(excludeGroups != null && excludeGroups.size() > 0) {
-            sql +=  " AND (" + DbOpenHelper.GROUP_ID_COLUMN.columnName + " IS NULL OR " +
-                    DbOpenHelper.GROUP_ID_COLUMN.columnName +
-                    " NOT IN('" + joinStrings("','", excludeGroups) + "'))";
-        }
-        sql += " ORDER BY " + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + " ASC"
-                + " LIMIT 1";
-        return sql;
-    }
-
-
     public String createSelect(String where, Integer limit, Order... orders) {
-        StringBuilder builder = new StringBuilder("SELECT * FROM ");
-        builder.append(tableName);
+        reusedStringBuilder.setLength(0);
+        reusedStringBuilder.append("SELECT * FROM ");
+        reusedStringBuilder.append(tableName);
         if (where != null) {
-            builder.append(" WHERE ").append(where);
+            reusedStringBuilder.append(" WHERE ").append(where);
         }
         boolean first = true;
         for (Order order : orders) {
             if (first) {
-                builder.append(" ORDER BY ");
+                reusedStringBuilder.append(" ORDER BY ");
             } else {
-                builder.append(",");
+                reusedStringBuilder.append(",");
             }
             first = false;
-            builder.append(order.property.columnName).append(" ").append(order.type);
+            reusedStringBuilder.append(order.property.columnName).append(" ").append(order.type);
         }
         if (limit != null) {
-            builder.append(" LIMIT ").append(limit);
+            reusedStringBuilder.append(" LIMIT ").append(limit);
         }
-        return builder.toString();
+        return reusedStringBuilder.toString();
     }
 
     public String createSelectOneField(Property property, String where, Integer limit,
             Order... orders) {
-        StringBuilder builder = new StringBuilder("SELECT ")
+        reusedStringBuilder.setLength(0);
+
+        reusedStringBuilder.append("SELECT ")
                 .append(property.columnName).append(" FROM ")
                 .append(tableName);
         if (where != null) {
-            builder.append(" WHERE ").append(where);
+            reusedStringBuilder.append(" WHERE ").append(where);
         }
         boolean first = true;
         for (Order order : orders) {
             if (first) {
-                builder.append(" ORDER BY ");
+                reusedStringBuilder.append(" ORDER BY ");
             } else {
-                builder.append(",");
+                reusedStringBuilder.append(",");
             }
             first = false;
-            builder.append(order.property.columnName).append(" ").append(order.type);
+            reusedStringBuilder.append(order.property.columnName).append(" ").append(order.type);
         }
         if (limit != null) {
-            builder.append(" LIMIT ").append(limit);
+            reusedStringBuilder.append(" LIMIT ").append(limit);
         }
-        return builder.toString();
-    }
-
-    /**
-     * returns a placeholder string that contains <code>count</code> placeholders. e.g. ?,?,? for
-     * 3.
-     * @param count Number of placeholders to add.
-     */
-    static String createPlaceholders(int count) {
-        if (count == 0) {
-            throw new IllegalArgumentException("cannot create placeholders for 0 items");
-        }
-        final StringBuilder builder = new StringBuilder("?");
-        for (int i = 1; i < count; i ++) {
-            builder.append(",?");
-        }
-        return builder.toString();
+        return reusedStringBuilder.toString();
     }
 
     static void addPlaceholdersInto(StringBuilder stringBuilder, int count) {
@@ -313,18 +225,6 @@ public class SqlHelper {
         db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET "
                 + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
             , new Object[]{newDelayTime});
-    }
-
-    // TODO we are using this to merge groups but not escaping :/
-    public static String joinStrings(String glue, Collection<String> strings) {
-        StringBuilder builder = new StringBuilder();
-        for(String str : strings) {
-            if(builder.length() != 0) {
-                builder.append(glue);
-            }
-            builder.append(str);
-        }
-        return builder.toString();
     }
 
     public static class Property {
@@ -371,7 +271,7 @@ public class SqlHelper {
             this.type = type;
         }
 
-        public static enum Type {
+        public enum Type {
             ASC,
             DESC
         }
