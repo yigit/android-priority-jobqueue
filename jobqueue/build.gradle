@@ -203,7 +203,7 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
 
     additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
     sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = files("$buildDir/jacoco/testDebug.exec")
+    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
 
     reports {
         xml.enabled = true

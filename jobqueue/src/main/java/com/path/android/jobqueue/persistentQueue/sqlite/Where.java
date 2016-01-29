@@ -81,41 +81,11 @@ public class Where {
         return nextJobQuery;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Where where = (Where) o;
-
-        if (cacheKey != where.cacheKey) {
-            return false;
-        }
-        if (!query.equals(where.query)) {
-            return false;
-        }
-        // Probably incorrect - comparing Object[] arrays with Arrays.equals
-        return Arrays.equals(args, where.args);
-
-    }
-
     public String findJobs(SqlHelper sqlHelper) {
         if (findJobsQuery == null) {
             findJobsQuery = sqlHelper.createSelect(query, null);
         }
         return findJobsQuery;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = (int) (cacheKey ^ (cacheKey >>> 32));
-        result = 31 * result + query.hashCode();
-        result = 31 * result + Arrays.hashCode(args);
-        return result;
     }
 
     public void destroy() {
