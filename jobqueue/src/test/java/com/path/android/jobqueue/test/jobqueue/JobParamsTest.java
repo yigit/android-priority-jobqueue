@@ -88,5 +88,6 @@ public class JobParamsTest extends TestBase {
 
         DummyJob j10 = new DummyJob(new Params(1).singleInstanceBy("bloop"));
         assertThat("single param should be understood properly", j10.getSingleInstanceId(), endsWith("bloop"));
+        assertThat("group param should be automatically set if single instance", j10.getRunGroupId(), notNullValue());
     }
 }
