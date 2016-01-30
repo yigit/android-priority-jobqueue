@@ -51,7 +51,11 @@ abstract public class Job implements Serializable {
         if (params.getTags() != null || singleId != null) {
             final Set<String> tags = params.getTags() != null ? params.getTags() : new HashSet<String>();
             if (singleId != null) {
-                tags.add(createTagForSingleId(singleId));
+                final String tagForSingleId = createTagForSingleId(singleId);
+                tags.add(tagForSingleId);
+                if (this.groupId == null) {
+                    this.groupId = tagForSingleId;
+                }
             }
             this.readonlyTags = Collections.unmodifiableSet(tags);
         }

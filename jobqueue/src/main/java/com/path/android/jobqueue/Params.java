@@ -47,6 +47,7 @@ public class Params {
      * not yet running, this Job will get {@link Job#onCancel()} called immediately after
      * {@link Job#onAdded()} and only the previous Job will run. That is, {@link Job#onRun()}
      * will only be called once.
+     * <p>If no group id was set, one will be set automatically.
      * @param singleId which single instance group this job belongs to (can be null of course)
      * @return this
      */
