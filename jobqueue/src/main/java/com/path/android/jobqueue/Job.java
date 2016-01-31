@@ -21,7 +21,6 @@ abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
-    private static final int SINGLE_ID_TAG_PREFIX_LENGTH = 14;
     private String id = UUID.randomUUID().toString();
     private boolean requiresNetwork;
     private String groupId;
@@ -269,11 +268,17 @@ abstract public class Job implements Serializable {
         return groupId;
     }
 
+    /**
+     * Some jobs only need a single instance to be queued to run. For instance, if a user has made several changes
+     * to a resource while offline, you can save every change locally during {@link #onAdded()}, but
+     * only update the resource remotely once with the latest changes.
+     * @return
+     */
     public final String getSingleInstanceId() {
         if (readonlyTags != null) {
             for (String tag : readonlyTags) {
                 if (tag.startsWith(SINGLE_ID_TAG_PREFIX)) {
-                    return tag.substring(SINGLE_ID_TAG_PREFIX_LENGTH, tag.length());
+                    return tag;
                 }
             }
         }
