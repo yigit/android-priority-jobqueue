@@ -243,6 +243,9 @@ abstract public class Job implements Serializable {
         if (!failed) {
             return JobHolder.RUN_RESULT_SUCCESS;
         }
+        if (holder.isCancelledSingleId()) {
+            return JobHolder.RUN_RESULT_FAIL_SINGLE_ID;
+        }
         if (holder.isCancelled()) {
             return JobHolder.RUN_RESULT_FAIL_FOR_CANCEL;
         }

@@ -32,6 +32,14 @@ public interface JobManagerCallback {
     int RESULT_CANCEL_CANCELLED_WHILE_RUNNING = JobHolder.RUN_RESULT_FAIL_FOR_CANCEL;
     /**
      * Used in {@link #onJobRun(Job, int)} when job throws an exception in {@link Job#onRun()}
+     * and will be cancelled because another job with the same single instance id was
+     * queued while it was running.
+     *
+     * @see Job#getSingleInstanceId()
+     */
+    int RESULT_CANCEL_SINGLE_INSTANCE_WHILE_RUNNING = JobHolder.RUN_RESULT_FAIL_SINGLE_ID;
+    /**
+     * Used in {@link #onJobRun(Job, int)} when job throws an exception in {@link Job#onRun()}
      * and will be cancelled because it decided not to run again via
      * {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
      */
@@ -62,6 +70,7 @@ public interface JobManagerCallback {
      *                   <li>{@link #RESULT_SUCCEED}</li>
      *                   <li>{@link #RESULT_CANCEL_REACHED_RETRY_LIMIT}</li>
      *                   <li>{@link #RESULT_CANCEL_CANCELLED_WHILE_RUNNING}</li>
+     *                   <li>{@link #RESULT_CANCEL_SINGLE_INSTANCE_WHILE_RUNNING}</li>
      *                   <li>{@link #RESULT_CANCEL_CANCELLED_VIA_SHOULD_RE_RUN}</li>
      *                   <li>{@link #RESULT_FAIL_WILL_RETRY}</li>
      *                   </ul>
