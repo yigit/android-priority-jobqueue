@@ -34,6 +34,11 @@ public class JobHolder {
      * The job decided not to run in shouldReRun method.
      */
     public static final int RUN_RESULT_FAIL_SHOULD_RE_RUN = 5;
+    /**
+     * Internal constant. Job's onRun method has thrown an exception and another job with the
+     * same single instance id had been queued.
+     */
+    public static final int RUN_RESULT_FAIL_SINGLE_ID = 6;
 
     protected Long insertionOrder;
     protected String id;
@@ -54,6 +59,7 @@ public class JobHolder {
     transient Job job;
     protected final Set<String> tags;
     private boolean cancelled;
+    private boolean cancelledSingleId;
     private boolean successful;
 
     /**
@@ -170,6 +176,15 @@ public class JobHolder {
 
     public boolean isCancelled() {
         return cancelled;
+    }
+
+    public void markAsCancelledSingleId() {
+        cancelledSingleId = true;
+        markAsCancelled();
+    }
+
+    public boolean isCancelledSingleId() {
+        return cancelledSingleId;
     }
 
     @Override

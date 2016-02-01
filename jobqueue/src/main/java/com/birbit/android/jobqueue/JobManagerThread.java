@@ -135,6 +135,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         callbackManager.notifyOnAdded(jobHolder.getJob());
         if (insert) {
             consumerManager.onJobAdded();
+            if (oldJob != null) { //the job was running, will be cancelled if it fails
+                oldJob.markAsCancelledSingleId();
+            }
         } else {
             cancelSafely(jobHolder);
             callbackManager.notifyOnDone(jobHolder.getJob());
@@ -319,6 +322,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 break;
             case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
             case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
+            case JobHolder.RUN_RESULT_FAIL_SINGLE_ID:
                 cancelSafely(jobHolder);
                 removeJob(jobHolder);
                 break;
