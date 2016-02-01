@@ -218,8 +218,8 @@ public class JobHolder {
         this.job.setApplicationContext(applicationContext);
     }
 
-    public void onCancel() {
-        job.onCancel();
+    public void onCancel(int cancelReason) {
+        job.onCancel(cancelReason);
     }
 
     public RetryConstraint getRetryConstraint() {

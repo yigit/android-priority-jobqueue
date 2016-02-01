@@ -44,7 +44,7 @@ public class Params {
 
     /**
      * Sets the single instance id. If there is another Job with the same single id queued and
-     * not yet running, this Job will get {@link Job#onCancel()} called immediately after
+     * not yet running, this Job will get {@link Job#onCancel(CancelReason)} called immediately after
      * {@link Job#onAdded()} and only the previous Job will run. That is, {@link Job#onRun()}
      * will only be called once.
      * <p>If no group id was set, one will be set automatically.

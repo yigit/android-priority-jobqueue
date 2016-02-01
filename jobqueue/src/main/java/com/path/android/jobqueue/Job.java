@@ -148,9 +148,24 @@ abstract public class Job implements Serializable {
     abstract public void onRun() throws Throwable;
 
     /**
-     * Called when a job is cancelled.
+     * @deprecated  use {@link #onCancel(int)}.
      */
     abstract protected void onCancel();
+
+    /**
+     * Called when a job is cancelled.
+     * * @param cancelReason It is one of:
+     *                   <ul>
+     *                   <li>{@link CancelReason#REACHED_RETRY_LIMIT}</li>
+     *                   <li>{@link CancelReason#CANCELLED_VIA_SHOULD_RE_RUN}</li>
+     *                   <li>{@link CancelReason#CANCELLED_WHILE_RUNNING}</li>
+     *                   <li>{@link CancelReason#SINGLE_INSTANCE_WHILE_RUNNING}</li>
+     *                   <li>{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}</li>
+     *                   </ul>
+     */
+    protected void onCancel(int cancelReason) {
+        onCancel();
+    }
 
     /**
      * @deprecated use {@link #shouldReRunOnThrowable(Throwable, int, int)}
