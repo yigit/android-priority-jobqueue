@@ -13,6 +13,7 @@ import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
+import com.path.android.jobqueue.CancelReason;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
@@ -140,7 +141,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 oldJob.markAsCancelledSingleId();
             }
         } else {
-            cancelSafely(jobHolder);
+            cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);
             callbackManager.notifyOnDone(jobHolder.getJob());
         }
     }
@@ -328,7 +329,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
             case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
             case JobHolder.RUN_RESULT_FAIL_SINGLE_ID:
-                cancelSafely(jobHolder);
+                cancelSafely(jobHolder, result);
                 removeJob(jobHolder);
                 break;
             case JobHolder.RUN_RESULT_TRY_AGAIN:
@@ -338,7 +339,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             case JobHolder.RUN_RESULT_FAIL_FOR_CANCEL:
                 JqLog.d("running job failed and cancelled, doing nothing. "
                         + "Will be removed after it's onCancel is called by the "
-                        + "JobManager");
+                        + "CancelHandler");
                 break;
         }
         consumerManager.handleRunJobResult(message, jobHolder, retryConstraint);
@@ -358,9 +359,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         }
     }
 
-    private void cancelSafely(JobHolder jobHolder) {
+    private void cancelSafely(JobHolder jobHolder, int cancelReason) {
         try {
-            jobHolder.onCancel();
+            jobHolder.onCancel(cancelReason);
         } catch (Throwable t) {
             JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
         }
