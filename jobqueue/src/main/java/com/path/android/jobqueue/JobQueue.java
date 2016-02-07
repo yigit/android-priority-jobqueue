@@ -28,6 +28,13 @@ public interface JobQueue {
     boolean insertOrReplace(JobHolder jobHolder);
 
     /**
+     * Remove the old job from the queue while inserting the new one.
+     * @param newJob To be inserted
+     * @param oldJob To be removed
+     */
+    void substitute(JobHolder newJob, JobHolder oldJob);
+
+    /**
      * Removes the job from the data store.
      * Is called after a job is completed (or cancelled)
      * @param jobHolder

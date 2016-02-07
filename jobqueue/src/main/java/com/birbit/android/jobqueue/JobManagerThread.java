@@ -109,10 +109,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());
         final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());
         if (insert) {
-            if (job.isPersistent()) {
-                persistentJobQueue.insert(jobHolder);
+            JobQueue queue = job.isPersistent() ? persistentJobQueue : nonPersistentJobQueue;
+            if (oldJob != null) { //the other job was running, will be cancelled if it fails
+                consumerManager.markJobsCancelledSingleId(TagConstraint.ANY, new String[]{job.getSingleInstanceId()});
+                queue.substitute(jobHolder, oldJob);
             } else {
-                nonPersistentJobQueue.insert(jobHolder);
+                queue.insert(jobHolder);
             }
             if (JqLog.isDebugEnabled()) {
                 JqLog.d("added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
@@ -120,8 +122,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         , job.isPersistent(), job.requiresNetwork());
             }
         } else {
-            JqLog.d("another job id: %d with same singleId: %s was already queued",
-                    oldJob.getId(), job.getSingleInstanceId());
+            JqLog.d("another job with same singleId: %s was already queued", job.getSingleInstanceId());
         }
         if(dependencyInjector != null) {
             //inject members b4 calling onAdded
@@ -136,9 +137,6 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         callbackManager.notifyOnAdded(jobHolder.getJob());
         if (insert) {
             consumerManager.onJobAdded();
-            if (oldJob != null) { //the job was running, will be cancelled if it fails
-                oldJob.markAsCancelledSingleId();
-            }
         } else {
             cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);
             callbackManager.notifyOnDone(jobHolder.getJob());
