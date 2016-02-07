@@ -8,13 +8,13 @@ android:
     - build-tools-23.0.2
     - android-23
 script: cd jobqueue && ./gradlew --stacktrace clean check jacocoTestReport
-addons:
-  artifacts: true
-  s3_region: "us-west-1"
-  debug: true
-  paths:
-      - $(ls jobqueue/build/outputs/* | tr "\n" ":")
-      - $(ls jobqueue/build/reports/* | tr "\n" ":")
+# addons:
+#   artifacts: true
+#   s3_region: "us-west-1"
+#   debug: true
+#   paths:
+#       - $(ls jobqueue/build/outputs/* | tr "\n" ":")
+#       - $(ls jobqueue/build/reports/* | tr "\n" ":")
 #branches:
 #  except:
 #    - message-queue

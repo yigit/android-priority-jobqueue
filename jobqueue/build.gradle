@@ -1,7 +1,59 @@
 import java.util.regex.Pattern
-
+import com.amazonaws.services.s3.AmazonS3
+import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
+import com.amazonaws.auth.AWSCredentials
+import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.services.s3.model.Bucket
 apply plugin: 'com.android.library'
 
+class UploadToS3Task extends DefaultTask {
+    FileTree fileList;
+    String outputPath;
+
+    def getBuildNumber() {
+        return System.getenv().get("TRAVIS_BUILD_NUMBER");
+    }
+
+    def getArtifactsKey() {
+        return System.getenv().get("ARTIFACTS_KEY");
+    }
+
+    def getArtifactsSecret() {
+        return System.getenv().get("ARTIFACTS_SECRET");
+    }
+
+    def isTravis() {
+        System.getenv().get("TRAVIS") == "true";
+    }
+
+    @TaskAction
+    def doUpload() {
+        println "uploading files to s3"
+
+        def loginKey = getArtifactsKey()
+        def loginSecret = getArtifactsSecret()
+        def buildNumber = getBuildNumber()
+        if (loginKey == null || loginSecret == null || buildNumber == null || !isTravis()) {
+            println "skipping upload"
+            return
+        }
+        BasicAWSCredentials creds = new BasicAWSCredentials(loginKey, loginSecret)
+        AmazonS3 s3 = new AmazonS3Client(creds);
+
+        def path = "build-${ buildNumber}/$outputPath"
+        def buildPath = project.getBuildDir().canonicalPath
+        fileList.each {
+            def key = "/${it.name}"
+            if (it.absolutePath.startsWith(buildPath)) {
+                key = it.absolutePath.substring(buildPath.length())
+            }
+            def fullKey = "$path$key"
+            s3.putObject("jobqueue", fullKey, it)
+        }
+    }
+}
 Properties releaseConfig = new Properties()
 File releaseFile = new File("${projectDir}/releaseConfig.properties")
 if (releaseFile.exists()) {
@@ -11,12 +63,14 @@ if (releaseFile.exists()) {
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
+    gradleVersion = '2.10'
 }
 
 apply plugin: 'maven'
 apply plugin: 'signing'
 apply plugin: 'jacoco'
+
+
 
 buildscript {
     repositories {
@@ -25,7 +79,7 @@ buildscript {
 
     dependencies {
         classpath 'com.android.tools.build:gradle:1.5.0'
-
+        classpath 'com.amazonaws:aws-java-sdk-s3:1.10.50'
     }
 }
 
@@ -209,5 +263,15 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
         xml.enabled = true
         html.enabled = true
     }
+}
+tasks.whenTaskAdded { task ->
+    if (task instanceof Test) {
+        println "adding upload task to ${task.name}"
+        task.finalizedBy(tasks.
+                create("uploadTestResultsOf${task.name}", UploadToS3Task.class) {
+                    fileList = task.outputs.files.asFileTree
+                    outputPath = "test-results"
+                })
 
+    }
 }
