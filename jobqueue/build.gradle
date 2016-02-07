@@ -11,6 +11,7 @@ apply plugin: 'com.android.library'
 class UploadToS3Task extends DefaultTask {
     FileTree fileList;
     String outputPath;
+    def filter;
 
     def getBuildNumber() {
         return System.getenv().get("TRAVIS_BUILD_NUMBER");
@@ -44,13 +45,19 @@ class UploadToS3Task extends DefaultTask {
 
         def path = "build-${ buildNumber}/$outputPath"
         def buildPath = project.getBuildDir().canonicalPath
-        fileList.each {
+        def selected = filter == null ? fileList : fileList.filter(filter)
+        selected.each {
             def key = "/${it.name}"
             if (it.absolutePath.startsWith(buildPath)) {
                 key = it.absolutePath.substring(buildPath.length())
             }
             def fullKey = "$path$key"
-            s3.putObject("jobqueue", fullKey, it)
+            println "uploading ${it.canonicalPath} to $fullKey"
+            try {
+                s3.putObject("jobqueue", fullKey, it)
+            } catch (Throwable t) {
+                println "errorwhile uploading to s3, skipping ${it.canonicalPath}"
+            }
         }
     }
 }
@@ -63,7 +70,7 @@ if (releaseFile.exists()) {
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
+    gradleVersion = '2.10'
 }
 
 apply plugin: 'maven'
@@ -271,6 +278,10 @@ tasks.whenTaskAdded { task ->
                 create("uploadTestResultsOf${task.name}", UploadToS3Task.class) {
                     fileList = task.outputs.files.asFileTree
                     outputPath = "test-results"
+                    filter = { File f ->
+                        f.name.endsWith(".html") || f.name.endsWith(".css") ||
+                                f.name.endsWith(".js")
+                    }
                 })
 
     }
