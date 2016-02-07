@@ -165,7 +165,9 @@ abstract public class Job implements Serializable {
     /**
      * @deprecated  use {@link #onCancel(int)}.
      */
-    abstract protected void onCancel();
+    protected void onCancel() {
+
+    }
 
     /**
      * Called when a job is cancelled.
