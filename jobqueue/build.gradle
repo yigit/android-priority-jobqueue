@@ -271,10 +271,11 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
         html.enabled = true
     }
 }
+def s3UploadsTask = tasks.create("s3Uploads")
 tasks.whenTaskAdded { task ->
     if (task instanceof Test) {
         println "adding upload task to ${task.name}"
-        task.finalizedBy(tasks.
+        s3UploadsTask.dependsOn(tasks.
                 create("uploadTestResultsOf${task.name}", UploadToS3Task.class) {
                     fileList = task.outputs.files.asFileTree
                     outputPath = "test-results"

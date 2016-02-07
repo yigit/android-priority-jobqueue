@@ -8,6 +8,10 @@ android:
     - build-tools-23.0.2
     - android-23
 script: cd jobqueue && ./gradlew --stacktrace clean check jacocoTestReport
+after_failure:
+    ./gradlew s3Uploads --info --stacktrace --no-daemon
+after_success:
+    ./gradlew s3Uploads --info --stacktrace --no-daemon
 # addons:
 #   artifacts: true
 #   s3_region: "us-west-1"
