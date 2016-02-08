@@ -6,7 +6,19 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.auth.AWSCredentials
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.s3.model.Bucket
+import com.amazonaws.services.s3.model.PutObjectRequest
+import com.amazonaws.services.s3.model.CannedAccessControlList
 apply plugin: 'com.android.library'
+
+//READ VERSION NAME
+def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
+def pattern = Pattern.compile("versionName=\"([\\d\\.\\w\\-]+)\"")
+def manifestText = manifestFile.getText()
+def matcher = pattern.matcher(manifestText)
+matcher.find()
+def manifestVersionName = matcher.group(1)
+println "version name:${manifestVersionName}"
+
 
 class UploadToS3Task extends DefaultTask {
     FileTree fileList;
@@ -25,10 +37,6 @@ class UploadToS3Task extends DefaultTask {
         return System.getenv().get("ARTIFACTS_SECRET");
     }
 
-    def isTravis() {
-        System.getenv().get("TRAVIS") == "true";
-    }
-
     @TaskAction
     def doUpload() {
         println "uploading files to s3"
@@ -36,14 +44,14 @@ class UploadToS3Task extends DefaultTask {
         def loginKey = getArtifactsKey()
         def loginSecret = getArtifactsSecret()
         def buildNumber = getBuildNumber()
-        if (loginKey == null || loginSecret == null || buildNumber == null || !isTravis()) {
+        if (loginKey == null || loginSecret == null) {
             println "skipping upload"
             return
         }
         BasicAWSCredentials creds = new BasicAWSCredentials(loginKey, loginSecret)
         AmazonS3 s3 = new AmazonS3Client(creds);
 
-        def path = "build-${ buildNumber}/$outputPath"
+        def path = buildNumber == null ? outputPath : "build-${buildNumber}/$outputPath"
         def buildPath = project.getBuildDir().canonicalPath
         def selected = filter == null ? fileList : fileList.filter(filter)
         selected.each {
@@ -53,11 +61,11 @@ class UploadToS3Task extends DefaultTask {
             }
             def fullKey = "$path$key"
             println "uploading ${it.canonicalPath} to $fullKey"
-            try {
-                s3.putObject("jobqueue", fullKey, it)
-            } catch (Throwable t) {
-                println "errorwhile uploading to s3, skipping ${it.canonicalPath}"
-            }
+            PutObjectRequest putObj=new PutObjectRequest("jobqueue", fullKey, it);
+
+            //making the object Public
+            putObj.setCannedAcl(CannedAccessControlList.PublicRead);
+            s3.putObject(putObj)
         }
     }
 }
@@ -129,14 +137,6 @@ android {
     }
 }
 
-//READ VERSION NAME
-def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-def pattern = Pattern.compile("versionName=\"([\\d\\.\\w\\-]+)\"")
-def manifestText = manifestFile.getText()
-def matcher = pattern.matcher(manifestText)
-matcher.find()
-def manifestVersionName = matcher.group(1)
-println "version name:${manifestVersionName}"
 
 //create jar tasks
 
@@ -271,8 +271,18 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
         html.enabled = true
     }
 }
+def uploadDocsTask = tasks.create("uploadJavadocs", UploadToS3Task.class) {
+    fileList = fileTree(new File(project.buildDir, "docs/javadoc"))
+    outputPath = "$manifestVersionName/javadocs"
+    filter = { File f ->
+        f.name.endsWith(".html") || f.name.endsWith(".css") ||
+                f.name.endsWith(".js")
+    }
+    dependsOn "javadocRelease"
+}
 def s3UploadsTask = tasks.create("s3Uploads")
 tasks.whenTaskAdded { task ->
+    println "checking task ${task.name} ${task.getClass().getSimpleName()}"
     if (task instanceof Test) {
         println "adding upload task to ${task.name}"
         s3UploadsTask.dependsOn(tasks.
@@ -284,6 +294,6 @@ tasks.whenTaskAdded { task ->
                                 f.name.endsWith(".js")
                     }
                 })
-
     }
+
 }
