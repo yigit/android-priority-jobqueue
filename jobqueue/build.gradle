@@ -127,7 +127,7 @@ android {
     buildToolsVersion "23.0.2"
     buildTypes {
         debug {
-            testCoverageEnabled = true
+            testCoverageEnabled = false
         }
     }
 
