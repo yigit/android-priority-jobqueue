@@ -76,7 +76,7 @@ public class MultiThreadTest extends JobManagerTestBase {
         //wait until all jobs are added
         //noinspection DIRECT_TIME_ACCESS
         long start = System.nanoTime();
-        long timeLimit = JobManager.NS_PER_MS * 30000;//20 seconds
+        long timeLimit = JobManager.NS_PER_MS * 60000 * 20;//20 minutes
         //noinspection DIRECT_TIME_ACCESS
         while(System.nanoTime() - start < timeLimit && multiThreadedJobCounter.get() != 0) {
             //noinspection SLEEP_IN_CODE
@@ -109,6 +109,11 @@ public class MultiThreadTest extends JobManagerTestBase {
             int remaining = multiThreadedJobCounter.decrementAndGet();
             Log.d("DummyJobForMultiThread", "persistent:" + isPersistent() + ", requires network:"
                     + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
+        }
+
+        @Override
+        protected int getRetryLimit() {
+            return 1000;
         }
 
         @Override

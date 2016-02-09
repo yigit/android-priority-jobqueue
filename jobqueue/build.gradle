@@ -16,7 +16,7 @@ task wrapper(type: Wrapper) {
 
 apply plugin: 'maven'
 apply plugin: 'signing'
-apply plugin: 'jacoco'
+//apply plugin: 'jacoco'
 
 buildscript {
     repositories {
@@ -58,7 +58,10 @@ android {
     buildToolsVersion "23.0.2"
     buildTypes {
         debug {
-            testCoverageEnabled = true
+            testCoverageEnabled = false
+        }
+        release {
+            testCoverageEnabled = false
         }
     }
 
@@ -188,26 +191,26 @@ task testLint(type : Exec) {
     commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
 
 }
-task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
-    group = "Reporting"
-
-    description = "Generate Jacoco coverage reports"
-
-    classDirectories = fileTree(
-            dir: "$buildDir/intermediates/classes/debug",
-            excludes: ['**/R.class',
-                       '**/R$*.class',
-                       '**/BuildConfig.*',
-                       '**/Manifest*.*']
-    )
-
-    additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
-    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
-
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-
-}
+//task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
+//    group = "Reporting"
+//
+//    description = "Generate Jacoco coverage reports"
+//
+//    classDirectories = fileTree(
+//            dir: "$buildDir/intermediates/classes/debug",
+//            excludes: ['**/R.class',
+//                       '**/R$*.class',
+//                       '**/BuildConfig.*',
+//                       '**/Manifest*.*']
+//    )
+//
+//    additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
+//    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
+//    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
+//
+//    reports {
+//        xml.enabled = true
+//        html.enabled = true
+//    }
+//
+//}
