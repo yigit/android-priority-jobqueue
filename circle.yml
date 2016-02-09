@@ -6,7 +6,7 @@ dependencies:
     - echo y | android update sdk --no-ui --all --filter "build-tools-23.0.2"
 test:
   override:
-    - ./gradlew check
+    - ./gradlew testDebugUnitTest
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit-debug/
     - find . -type f -regex ".*/test-results/debug/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-debug/ \;
