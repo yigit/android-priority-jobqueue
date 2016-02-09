@@ -53,6 +53,12 @@ public class NonPersistentPriorityQueue implements JobQueue {
         return jobs.offer(jobHolder);
     }
 
+    @Override
+    public void substitute(JobHolder newJob, JobHolder oldJob) {
+        remove(oldJob);
+        insert(newJob);
+    }
+
     /**
      * {@inheritDoc}
      */

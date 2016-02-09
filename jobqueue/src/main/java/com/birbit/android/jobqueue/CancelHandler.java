@@ -1,5 +1,6 @@
 package com.birbit.android.jobqueue;
 
+import com.path.android.jobqueue.CancelReason;
 import com.path.android.jobqueue.CancelResult;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
@@ -56,7 +57,7 @@ class CancelHandler {
     void commit(JobManagerThread jobManagerThread) {
         for (JobHolder jobHolder : cancelled) {
             try {
-                jobHolder.onCancel();
+                jobHolder.onCancel(CancelReason.CANCELLED_WHILE_RUNNING);
             } catch (Throwable t) {
                 JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
             }
