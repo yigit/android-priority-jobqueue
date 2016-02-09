@@ -11,12 +11,12 @@ if (releaseFile.exists()) {
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
+    gradleVersion = '2.10'
 }
 
 apply plugin: 'maven'
 apply plugin: 'signing'
-apply plugin: 'jacoco'
+//apply plugin: 'jacoco'
 
 buildscript {
     repositories {
@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.5.0'
+        classpath 'com.android.tools.build:gradle:2.0.0-beta2'
 
     }
 }
@@ -55,16 +55,26 @@ dependencies {
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "23.0.1"
     buildTypes {
         debug {
-            testCoverageEnabled = true
+            testCoverageEnabled = false
+        }
+        release {
+            testCoverageEnabled = false
         }
     }
 
     defaultConfig {
         minSdkVersion 7
         targetSdkVersion 23
+    }
+
+    testOptions {
+        unitTests.all {
+            // All the usual Gradle options.
+            jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
+        }
     }
 }
 
@@ -188,26 +198,26 @@ task testLint(type : Exec) {
     commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
 
 }
-task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
-    group = "Reporting"
-
-    description = "Generate Jacoco coverage reports"
-
-    classDirectories = fileTree(
-            dir: "$buildDir/intermediates/classes/debug",
-            excludes: ['**/R.class',
-                       '**/R$*.class',
-                       '**/BuildConfig.*',
-                       '**/Manifest*.*']
-    )
-
-    additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
-    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
-
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-
-}
+//task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
+//    group = "Reporting"
+//
+//    description = "Generate Jacoco coverage reports"
+//
+//    classDirectories = fileTree(
+//            dir: "$buildDir/intermediates/classes/debug",
+//            excludes: ['**/R.class',
+//                       '**/R$*.class',
+//                       '**/BuildConfig.*',
+//                       '**/Manifest*.*']
+//    )
+//
+//    additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
+//    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
+//    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
+//
+//    reports {
+//        xml.enabled = true
+//        html.enabled = true
+//    }
+//
+//}
