@@ -38,7 +38,7 @@ public class PriorityTest extends JobManagerTestBase {
         jobManager.addJob(job1);
         jobManager.addJob(job2);
         jobManager.start();
-        priorityRunLatch.await(4, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(priorityRunLatch.await(1, TimeUnit.MINUTES), is(true));
         //ensure both jobs did run
         MatcherAssert.assertThat((int) priorityRunLatch.getCount(), equalTo(0));
     }
