@@ -32,7 +32,7 @@ public class MultiThreadTest extends JobManagerTestBase {
 
     @Override
     protected long getTimeout() {
-        return 60 * 5;
+        return 60 * 10;
     }
 
     @Test

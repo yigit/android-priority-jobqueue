@@ -8,7 +8,11 @@ test:
   override:
     - ./gradlew check
   post:
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit-debug/
-    - find . -type f -regex ".*/test-results/debug/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-debug/ \;
-    - mkdir -p $CIRCLE_TEST_REPORTS/junit-release/
-    - find . -type f -regex ".*/test-results/release/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-release/ \;
+    # copy the build outputs to artifacts
+    - cp -r jobqueue/build/outputs $CIRCLE_ARTIFACTS
+    # copy the test results to the test results directory.
+    - cp -r jobqueue/build/outputs/androidTest-results/* $CIRCLE_TEST_REPORTS
+    # - mkdir -p $CIRCLE_TEST_REPORTS/junit-debug/
+    # - find . -type f -regex ".*/test-results/debug/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-debug/ \;
+    # - mkdir -p $CIRCLE_TEST_REPORTS/junit-release/
+    # - find . -type f -regex ".*/test-results/release/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-release/ \;
