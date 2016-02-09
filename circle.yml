@@ -1,12 +1,15 @@
 general:
   build_dir: jobqueue
+  artifacts:
+    - "build/reports"
+    - "build/outputs"
 # dependencies:
 #   pre:
 #     - echo y | android update sdk --no-ui --all --filter "tools,platform-tools,android-23"
 #     - echo y | android update sdk --no-ui --all --filter "build-tools-23.0.2"
 test:
   override:
-    - ./gradlew check --no-daemon
+    - ./gradlew check jacocoTestReport --no-daemon
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit-debug/
     - find . -type f -regex ".*/test-results/debug/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-debug/ \;
