@@ -17,4 +17,4 @@ test:
     - find . -type f -regex ".*/test-results/release/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit-release/ \;
 machine:
   environment:
-      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx4000m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$CIRCLE_ARTIFACTS/oom.hprof"'
+      GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx3000m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$CIRCLE_ARTIFACTS/oom.hprof"'
