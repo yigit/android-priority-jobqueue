@@ -69,6 +69,13 @@ android {
         minSdkVersion 7
         targetSdkVersion 23
     }
+
+    testOptions {
+        unitTests.all {
+            // All the usual Gradle options.
+            jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
+        }
+    }
 }
 
 //READ VERSION NAME
