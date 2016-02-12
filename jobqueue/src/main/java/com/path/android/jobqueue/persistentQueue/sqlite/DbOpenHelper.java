@@ -70,4 +70,9 @@ public class DbOpenHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP INDEX IF EXISTS " + TAG_INDEX_NAME);
         onCreate(sqLiteDatabase);
     }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
+        onUpgrade(sqLiteDatabase, oldVersion, newVersion);
+    }
 }
