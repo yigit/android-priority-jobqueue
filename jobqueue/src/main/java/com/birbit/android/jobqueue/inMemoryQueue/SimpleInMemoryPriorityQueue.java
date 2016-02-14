@@ -1,7 +1,6 @@
 package com.birbit.android.jobqueue.inMemoryQueue;
 
 import com.birbit.android.jobqueue.Constraint;
-import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobQueue;
 

@@ -25,7 +25,6 @@ import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.persistentQueue.sqlite.SqlHelper;
 import com.path.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;

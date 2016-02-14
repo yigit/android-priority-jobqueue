@@ -1,5 +1,6 @@
 package com.path.android.jobqueue;
 
+import java.util.Collections;
 import java.util.HashSet;
 
 /**
@@ -108,11 +109,9 @@ public class Params {
      */
     public Params addTags(String... newTags) {
         if(tags == null) {
-            tags = new HashSet<String>();
+            tags = new HashSet<>();
         }
-        for(String tag : newTags) {
-            tags.add(tag);
-        }
+        Collections.addAll(tags, newTags);
         return this;
     }
 

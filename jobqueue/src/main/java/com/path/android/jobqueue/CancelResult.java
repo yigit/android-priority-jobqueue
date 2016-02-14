@@ -20,8 +20,8 @@ public class CancelResult {
     Collection<Job> failedToCancel;
 
     public CancelResult() {
-        this.cancelledJobs = new HashSet<Job>();
-        this.failedToCancel = new HashSet<Job>();
+        this.cancelledJobs = new HashSet<>();
+        this.failedToCancel = new HashSet<>();
     }
 
     public CancelResult(Collection<Job> cancelledJobs, Collection<Job> failedToCancel) {
@@ -44,11 +44,11 @@ public class CancelResult {
         return failedToCancel;
     }
 
-    public static interface AsyncCancelCallback {
+    public interface AsyncCancelCallback {
 
         /**
          * When job cancellation is complete, this method is called by the JobManager.
          */
-        public void onCancelled(CancelResult cancelResult);
+        void onCancelled(CancelResult cancelResult);
     }
 }

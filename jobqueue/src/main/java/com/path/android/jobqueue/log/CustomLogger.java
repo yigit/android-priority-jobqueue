@@ -6,11 +6,11 @@ package com.path.android.jobqueue.log;
  */
 public interface CustomLogger {
     /**
-     * JobManager may call this before logging sth that is (relatively) expensive to calculate
+     * JobManager may call this before logging something that is (relatively) expensive to calculate
      * @return
      */
-    public boolean isDebugEnabled();
-    public void d(String text, Object... args);
-    public void e(Throwable t, String text, Object... args);
-    public void e(String text, Object... args);
+    boolean isDebugEnabled();
+    void d(String text, Object... args);
+    void e(Throwable t, String text, Object... args);
+    void e(String text, Object... args);
 }

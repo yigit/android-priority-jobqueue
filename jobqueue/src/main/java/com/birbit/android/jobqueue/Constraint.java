@@ -23,9 +23,6 @@ public class Constraint {
     private final List<String> excludeJobIds = new ArrayList<>();
     private boolean excludeRunning;
     private Long timeLimit;
-    // the identifier we create from the given values
-    private String uniqueId;
-    private final StringBuilder uniqueIdBuilder = new StringBuilder();
     /**
      * Returns true if the network is currently available.
      *
@@ -132,43 +129,8 @@ public class Constraint {
         tagConstraint = null;
         tags.clear();
         excludeGroups.clear();
-        uniqueId = null;
         excludeJobIds.clear();
         excludeRunning = false;
         timeLimit = null;
-    }
-
-    /**
-     * Creates a unique id from parameter counts from each type. This ID is suitable to cache
-     * queries by placeholders.
-     * @return
-     */
-    public String getUniqueId() {
-        if (uniqueId != null) {
-            return uniqueId;
-        }
-        uniqueIdBuilder.setLength(0);
-        uniqueIdBuilder.append(shouldNotRequireNetwork ? "1" : "0");
-        uniqueIdBuilder.append(tagConstraint == null ? "_" : tagConstraint.ordinal());
-        uniqueIdBuilder.append(excludeRunning ? "1" : "0");
-        if (timeLimit == null) {
-            uniqueIdBuilder.append("_");
-        } else {
-            uniqueIdBuilder.append(timeLimit);
-        }
-        uniqueIdBuilder.append("T");
-        for (String tag : tags) {
-            uniqueIdBuilder.append(tag).append(",");
-        }
-        uniqueIdBuilder.append("E");
-        for (String groupId : excludeGroups) {
-            uniqueIdBuilder.append(groupId).append(",");
-        }
-        uniqueIdBuilder.append("J");
-        for (String jobId : excludeJobIds) {
-            uniqueIdBuilder.append(jobId).append(",");
-        }
-        uniqueId = uniqueIdBuilder.toString();
-        return uniqueId;
     }
 }

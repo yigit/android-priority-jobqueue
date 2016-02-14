@@ -16,6 +16,9 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class JobStatusTest extends JobManagerTestBase {
     private static final String REQ_NETWORK_TAG = "reqNetwork";
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
     public void testJobStatus() throws InterruptedException {
         DummyNetworkUtilWithConnectivityEventSupport networkUtil = new DummyNetworkUtilWithConnectivityEventSupport();

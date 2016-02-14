@@ -1,9 +1,5 @@
 package com.path.android.jobqueue;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * Created by {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
  * <p>

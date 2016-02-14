@@ -31,7 +31,7 @@ public class CountWithGroupIdsResult {
         //there are some groups, we need to find if any group is in both lists
         int sharedGroups = 0;
         for(String groupId : other.groupIds) {
-            if(groupIds.add(groupId) == false) {
+            if(!groupIds.add(groupId)) {
                 sharedGroups ++;
             }
         }

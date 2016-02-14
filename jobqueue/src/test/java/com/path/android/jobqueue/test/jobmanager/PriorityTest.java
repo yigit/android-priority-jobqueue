@@ -11,6 +11,9 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +32,7 @@ public class PriorityTest extends JobManagerTestBase {
         testPriority(jobManager, false);
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public void testPriority(JobManager jobManager, boolean persist) throws Exception {
         priorityRunLatch = new CountDownLatch(2);
         DummyJobWithRunOrderAssert.globalRunCount = new AtomicInteger(0);

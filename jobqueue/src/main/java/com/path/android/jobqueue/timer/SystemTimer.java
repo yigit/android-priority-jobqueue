@@ -1,12 +1,7 @@
 package com.path.android.jobqueue.timer;
 
-import android.annotation.SuppressLint;
-
-import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.log.JqLog;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class SystemTimer implements Timer {

@@ -3,8 +3,6 @@ package com.path.android.jobqueue.persistentQueue.sqlite;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 
-import java.util.Arrays;
-
 public class Where {
     public final long cacheKey;
     public final String query;

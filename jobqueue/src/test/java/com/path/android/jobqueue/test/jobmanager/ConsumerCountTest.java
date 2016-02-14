@@ -14,6 +14,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.annotation.SuppressLint;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;

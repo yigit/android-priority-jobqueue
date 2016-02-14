@@ -15,6 +15,9 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
@@ -51,6 +54,7 @@ public class GroupingTest extends JobManagerTestBase {
                 nextJob(jobManager, Arrays.asList("group1")), is(nullValue()));
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
     public void testGroupingRaceCondition() throws Exception {
         DummyNetworkUtilWithConnectivityEventSupport dummyNetworkUtil = new DummyNetworkUtilWithConnectivityEventSupport();

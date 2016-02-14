@@ -99,7 +99,7 @@ abstract public class Job implements Serializable {
         persistent = ois.readBoolean();
         final int tagCount = ois.readInt();
         if (tagCount > 0) {
-            readonlyTags = new HashSet<String>(tagCount);
+            readonlyTags = new HashSet<>(tagCount);
             for (int i = 0; i < tagCount; i ++) {
                 readonlyTags.add(ois.readUTF());
             }

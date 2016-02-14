@@ -7,5 +7,5 @@ import android.content.Context;
  * Make sure you also implement {@link NetworkEventProvider} for best performance.
  */
 public interface NetworkUtil {
-    public boolean isConnected(Context context);
+    boolean isConnected(Context context);
 }

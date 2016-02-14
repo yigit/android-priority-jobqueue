@@ -4,10 +4,8 @@ import com.birbit.android.jobqueue.Constraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
-import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.timer.Timer;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;

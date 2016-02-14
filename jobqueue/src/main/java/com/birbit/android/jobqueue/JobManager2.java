@@ -18,6 +18,7 @@ import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
 import android.os.Looper;
+import android.support.annotation.NonNull;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -445,7 +446,7 @@ public class JobManager2 {
         }
 
         @Override
-        public Integer get(long timeout, TimeUnit unit)
+        public Integer get(long timeout, @NonNull TimeUnit unit)
                 throws InterruptedException, ExecutionException, TimeoutException {
             messageQueue.post(message);
             latch.await(timeout, unit);

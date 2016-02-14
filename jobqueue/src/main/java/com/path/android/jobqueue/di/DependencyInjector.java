@@ -8,5 +8,5 @@ import com.path.android.jobqueue.Job;
  * back from disk.
  */
 public interface DependencyInjector {
-    public void inject(Job job);
+    void inject(Job job);
 }

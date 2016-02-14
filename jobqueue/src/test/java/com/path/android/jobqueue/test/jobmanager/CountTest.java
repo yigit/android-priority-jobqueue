@@ -13,12 +13,16 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class CountTest extends JobManagerTestBase {
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
     public void testCount() throws Exception {
         JobManager jobManager = createJobManager();

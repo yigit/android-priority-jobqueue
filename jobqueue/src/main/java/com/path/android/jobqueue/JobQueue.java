@@ -2,7 +2,6 @@ package com.path.android.jobqueue;
 
 import com.birbit.android.jobqueue.Constraint;
 
-import java.util.Collection;
 import java.util.Set;
 
 /**

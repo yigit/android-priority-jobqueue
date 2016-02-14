@@ -15,6 +15,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.util.Pair;
 
 import static org.hamcrest.MatcherAssert.*;
@@ -129,6 +131,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         testChangeDelayOfTheGroup(false);
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public void testChangeDelayOfTheGroup(Boolean persistent) throws InterruptedException {
         final JobManager jobManager = createJobManager();
         canRun = true;
@@ -276,6 +279,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         testChangeDelay(false);
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public void testChangeDelay(boolean persistent) throws InterruptedException {
         canRun = true;
         RetryJob job = new RetryJob(new Params(1).setPersistent(persistent));
@@ -334,6 +338,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         testChangePriorityAndObserveExecutionOrder(false);
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public void testChangePriorityAndObserveExecutionOrder(boolean persistent)
             throws InterruptedException {
         cancelLatch = new CountDownLatch(2);

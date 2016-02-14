@@ -6,11 +6,11 @@ package com.path.android.jobqueue.network;
  * busy loops when there is a job waiting for network and there is no network available
  */
 public interface NetworkEventProvider {
-    public void setListener(Listener listener);
-    public static interface Listener {
+    void setListener(Listener listener);
+    interface Listener {
         /**
          * @param isConnected can be as simple as having an internet connect or can also be customized. (e.g. if your servers are down)
          */
-        public void onNetworkChange(boolean isConnected);
+        void onNetworkChange(boolean isConnected);
     }
 }

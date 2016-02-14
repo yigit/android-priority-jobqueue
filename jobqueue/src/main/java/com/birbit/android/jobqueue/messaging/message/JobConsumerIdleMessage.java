@@ -1,8 +1,6 @@
 package com.birbit.android.jobqueue.messaging.message;
 
 import com.birbit.android.jobqueue.messaging.Message;
-import com.birbit.android.jobqueue.messaging.MessageQueue;
-import com.birbit.android.jobqueue.messaging.SafeMessageQueue;
 import com.birbit.android.jobqueue.messaging.Type;
 
 public class JobConsumerIdleMessage extends Message {
