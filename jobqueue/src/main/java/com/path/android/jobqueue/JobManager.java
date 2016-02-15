@@ -1,11 +1,7 @@
 package com.path.android.jobqueue;
 
 import com.birbit.android.jobqueue.JobManager2;
-import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
-import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
-import com.path.android.jobqueue.timer.Timer;
 
 import android.content.Context;
 

@@ -1,10 +1,15 @@
 package com.birbit.android.jobqueue;
 
 import com.path.android.jobqueue.TagConstraint;
+import com.path.android.jobqueue.timer.Timer;
 
 import java.util.Collection;
 
 public class TestConstraint extends Constraint {
+    Timer timer;
+    public TestConstraint(Timer timer) {
+        this.timer = timer;
+    }
 
     @Override
     public void setShouldNotRequireNetwork(boolean shouldNotRequireNetwork) {
@@ -42,13 +47,18 @@ public class TestConstraint extends Constraint {
     }
 
     @Override
+    public long getNowInNs() {
+        return timer.nanoTime();
+    }
+
+    @Override
     public void setTimeLimit(Long timeLimit) {
         super.setTimeLimit(timeLimit);
     }
 
-    public static TestConstraint forTags(TagConstraint tagConstraint, Collection<String> excludeIds,
-            String... tags) {
-        TestConstraint constraint = new TestConstraint();
+    public static TestConstraint forTags(Timer timer, TagConstraint tagConstraint,
+            Collection<String> excludeIds, String... tags) {
+        TestConstraint constraint = new TestConstraint(timer);
         constraint.setTagConstraint(tagConstraint);
         constraint.setExcludeJobIds(excludeIds);
         constraint.setTags(tags);

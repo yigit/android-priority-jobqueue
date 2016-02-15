@@ -1,6 +1,8 @@
 package com.path.android.jobqueue;
 
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.timer.Timer;
 
 import android.content.Context;
 
@@ -12,6 +14,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for all of your jobs.
@@ -21,7 +24,8 @@ abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private String id = UUID.randomUUID().toString();
-    private boolean requiresNetwork;
+    private long requiresNetworkUntilNs = Params.NEVER;
+    transient private long requiresNetworkTimeoutMs = 0;
     private String groupId;
     private boolean persistent;
     private Set<String> readonlyTags;
@@ -37,10 +41,11 @@ abstract public class Job implements Serializable {
      * Only set if a job fails. Will be cleared by JobManager after it is handled
      */
     transient RetryConstraint retryConstraint;
+    private transient boolean sealed;
 
 
     protected Job(Params params) {
-        this.requiresNetwork = params.doesRequireNetwork();
+        this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
         this.persistent = params.isPersistent();
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
@@ -79,7 +84,11 @@ abstract public class Job implements Serializable {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        oos.writeBoolean(requiresNetwork);
+        if (!sealed) {
+            throw new IllegalStateException("A job cannot be serialized w/o first being added into"
+                    + " a job manager.");
+        }
+        oos.writeLong(requiresNetworkUntilNs);
         oos.writeObject(groupId);
         oos.writeBoolean(persistent);
         final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();
@@ -94,7 +103,7 @@ abstract public class Job implements Serializable {
 
 
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
-        requiresNetwork = ois.readBoolean();
+        requiresNetworkUntilNs = ois.readLong();
         groupId = (String) ois.readObject();
         persistent = ois.readBoolean();
         final int tagCount = ois.readInt();
@@ -105,6 +114,7 @@ abstract public class Job implements Serializable {
             }
         }
         id = ois.readUTF();
+        sealed = true; //  deserialized jobs are sealed
     }
 
     /**
@@ -239,11 +249,47 @@ abstract public class Job implements Serializable {
     }
 
     /**
-     * if job is set to require network, it will not be called unless {@link com.path.android.jobqueue.network.NetworkUtil}
-     * reports that there is a network connection
+     * if job is set to require network, it will not be called unless
+     * {@link com.path.android.jobqueue.network.NetworkUtil} reports that there is a network
+     * connection or the wait times out if a timeout was provided in
+     * {@link Params#requireNetworkWithTimeout(long)}.
+     *
+     * @param timer The timer used by the JobManager. Should be the timer that was used while
+     *                configuring the JobManager ({@link Configuration#getTimer()},
+     *                {@link com.path.android.jobqueue.config.Configuration.Builder#timer}).
      */
-    public final boolean requiresNetwork() {
-        return requiresNetwork;
+    public final boolean requiresNetwork(Timer timer) {
+        return sealed ? requiresNetworkUntilNs > timer.nanoTime()
+                : requiresNetworkTimeoutMs != Params.NEVER;
+    }
+
+    /**
+     * Returns whether job requires a network connection to be run or not, without checking the
+     * timeout. This is convenient since it does not require a reference to the Timer if you are
+     * not using Jobs with requireNetwork with a timeout.
+     *
+     * @return True if job requires a network to be run, false otherwise.
+     */
+    public final boolean requiresNetworkIgnoreTimeout() {
+        return sealed ? requiresNetworkUntilNs > 0
+                : requiresNetworkTimeoutMs > 0;
+    }
+
+    /**
+     * Returns until which timestamp this Job will require a network connection to be run.
+     * <p>
+     * This value can be queried only after {@link Job#onAdded()} method is called.
+     * <ul>
+     * <li>If the job does not require network, it will return {@link Params#NEVER}.</li>
+     * <li>If the job should never be run without network, it will return {@link Params#FOREVER}.</li>
+     * <li>Otherwise, it will return the time in ns until which the job should require network
+     * to be run and after that timeout it will be run regardless of the network requirements.</li>
+     * </ul>
+     * @return The timestamp (in ns) until which the job will require a network connection to be
+     * run.
+     */
+    public long getRequiresNetworkUntilNs() {
+        return requiresNetworkUntilNs;
     }
 
     /**
@@ -307,5 +353,25 @@ abstract public class Job implements Serializable {
      */
     public Context getApplicationContext() {
         return applicationContext;
+    }
+
+    /**
+     * Internal method used by the JobManager when it is added. After this point, you cannot make
+     * any changes to this job.
+     */
+    public void seal(Timer timer) {
+        if (sealed) {
+            throw new IllegalStateException("Cannot add the same job twice");
+        }
+        if (requiresNetworkTimeoutMs == Params.NEVER) {
+            // convert it from nano
+            requiresNetworkUntilNs = Params.NEVER;
+        } else if (requiresNetworkTimeoutMs == Params.FOREVER) {
+            requiresNetworkUntilNs = Params.FOREVER;
+        } else {
+            requiresNetworkUntilNs = timer.nanoTime()
+                    + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);
+        }
+        sealed = true;
     }
 }

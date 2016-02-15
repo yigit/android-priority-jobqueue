@@ -1,14 +1,14 @@
 package com.birbit.android.jobqueue;
 
+import com.birbit.android.jobqueue.inMemoryQueue.SimpleInMemoryPriorityQueue;
 import com.path.android.jobqueue.*;
 import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
 /**
  * Default implementation of QueueFactory that creates one {@link SqliteJobQueue} and
- * one {@link NonPersistentPriorityQueue} both are wrapped inside a {@link CachedJobQueue} to
+ * one {@link SimpleInMemoryPriorityQueue} both are wrapped inside a {@link CachedJobQueue} to
  * improve performance
  */
 public class DefaultQueueFactory implements QueueFactory {
@@ -29,6 +29,6 @@ public class DefaultQueueFactory implements QueueFactory {
 
     @Override
     public JobQueue createNonPersistent(Configuration configuration, long sessionId) {
-        return new CachedJobQueue(new NonPersistentPriorityQueue(configuration, sessionId));
+        return new CachedJobQueue(new SimpleInMemoryPriorityQueue(configuration, sessionId));
     }
 }

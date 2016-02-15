@@ -37,7 +37,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
 
 
-    private final Timer timer;
+    final Timer timer;
     private final Context appContext;
     private final long sessionId;
     final JobQueue persistentJobQueue;
@@ -92,6 +92,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         long delayUntilNs = job.getDelayInMs() > 0
                 ? timer.nanoTime() + job.getDelayInMs() * NS_PER_MS
                 : NOT_DELAYED_JOB_DELAY;
+        job.seal(timer);
         JobHolder jobHolder = new JobHolder.Builder()
                 .priority(job.getPriority())
                 .job(job)
@@ -108,7 +109,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if(JqLog.isDebugEnabled()) {
             JqLog.d("added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
                     , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
-                    , job.isPersistent(), job.requiresNetwork());
+                    , job.isPersistent(), job.requiresNetwork(timer));
         }
         if(dependencyInjector != null) {
             //inject members b4 calling onAdded
@@ -244,7 +245,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             return JobStatus.UNKNOWN;
         }
         boolean network = hasNetwork();
-        if(holder.requiresNetwork() && !network) {
+        if(holder.requiresNetwork(timer.nanoTime()) && !network) {
             return JobStatus.WAITING_NOT_READY;
         }
         if(holder.getDelayUntilNs() > timer.nanoTime()) {
@@ -372,6 +373,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private int countReadyJobs(boolean hasNetwork) {
         final Collection<String> runningJobs = consumerManager.runningJobGroups.getSafe();
         queryConstraint.clear();
+        queryConstraint.setNowInNs(timer.nanoTime());
         queryConstraint.setShouldNotRequireNetwork(!hasNetwork);
         queryConstraint.setExcludeGroups(runningJobs);
         queryConstraint.setExcludeRunning(true);
@@ -392,6 +394,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         final boolean hasNetwork = hasNetwork();
         final Collection<String> groups = consumerManager.runningJobGroups.getSafe();
         queryConstraint.clear();
+        queryConstraint.setNowInNs(timer.nanoTime());
         queryConstraint.setShouldNotRequireNetwork(!hasNetwork);
         queryConstraint.setExcludeGroups(groups);
         queryConstraint.setExcludeRunning(true);
@@ -438,6 +441,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         boolean persistent = false;
         JqLog.d("looking for next job");
         queryConstraint.clear();
+        queryConstraint.setNowInNs(timer.nanoTime());
         queryConstraint.setShouldNotRequireNetwork(!haveNetwork);
         queryConstraint.setExcludeGroups(runningJobGroups);
         queryConstraint.setExcludeRunning(true);

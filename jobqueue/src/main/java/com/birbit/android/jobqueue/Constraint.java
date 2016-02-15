@@ -23,6 +23,7 @@ public class Constraint {
     private final List<String> excludeJobIds = new ArrayList<>();
     private boolean excludeRunning;
     private Long timeLimit;
+    private long nowInNs;
     /**
      * Returns true if the network is currently available.
      *
@@ -106,6 +107,10 @@ public class Constraint {
         }
     }
 
+    public void setNowInNs(long nowInNs) {
+        this.nowInNs = nowInNs;
+    }
+
     void setExcludeGroups(Collection<String> excludeGroups) {
         this.excludeGroups.clear();
         if (excludeGroups != null) {
@@ -120,6 +125,10 @@ public class Constraint {
         }
     }
 
+    public long getNowInNs() {
+        return nowInNs;
+    }
+
     void setTimeLimit(Long timeLimit) {
         this.timeLimit = timeLimit;
     }
@@ -132,5 +141,6 @@ public class Constraint {
         excludeJobIds.clear();
         excludeRunning = false;
         timeLimit = null;
+        nowInNs = Long.MIN_VALUE;
     }
 }

@@ -107,8 +107,6 @@ public class MultiThreadTest extends JobManagerTestBase {
                 throw new Exception("decided to die, will retry");
             }
             int remaining = multiThreadedJobCounter.decrementAndGet();
-            Log.d("DummyJobForMultiThread", "persistent:" + isPersistent() + ", requires network:"
-                    + requiresNetwork() + ", running " + id + ", remaining: " + remaining);
         }
 
         @Override

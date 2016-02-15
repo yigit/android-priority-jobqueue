@@ -33,6 +33,7 @@ class CancelHandler {
         running = consumerManager.markJobsCancelled(tagConstraint, tags);
         Constraint queryConstraint = jobManagerThread.queryConstraint;
         queryConstraint.clear();
+        queryConstraint.setNowInNs(jobManagerThread.timer.nanoTime());
         queryConstraint.setTagConstraint(tagConstraint);
         queryConstraint.setExcludeJobIds(running);
         queryConstraint.setTags(tags);

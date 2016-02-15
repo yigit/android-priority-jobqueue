@@ -47,7 +47,7 @@ public abstract class JobQueueTestBase extends TestBase {
         final int ADD_COUNT = 6;
         JobQueue jobQueue = createNewJobQueue();
         assertThat((int) jobQueue.count(), equalTo(0));
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setExcludeRunning(true);
         assertThat(jobQueue.nextJobAndIncRunCount(constraint), nullValue());
         for (int i = 0; i < ADD_COUNT; i++) {
@@ -88,7 +88,7 @@ public abstract class JobQueueTestBase extends TestBase {
         }
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setExcludeRunning(true);
         for (int i = 0; i < JOB_LIMIT; i++) {
             JobHolder holder = jobQueue.nextJobAndIncRunCount(constraint);
@@ -106,7 +106,7 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(lowPriorityHolder);
         jobQueue.insert(highPriorityHolder);
         assertThat("when asked, if lower priority job has less delay until, we should return it",
-                jobQueue.getNextJobDelayUntilNs(new TestConstraint()), equalTo(
+                jobQueue.getNextJobDelayUntilNs(new TestConstraint(mockTimer)), equalTo(
                 lowPriorityHolder.getDelayUntilNs()));
 
     }
@@ -124,7 +124,7 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(jobHolder3);
         jobQueue.insert(jobHolder4);
         jobQueue.insert(jobHolder5);
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setExcludeRunning(true);
         constraint.setExcludeGroups(Arrays.asList(new String[]{"group2"}));
         JobHolder received = jobQueue.nextJobAndIncRunCount(constraint);
@@ -188,14 +188,16 @@ public abstract class JobQueueTestBase extends TestBase {
         long soonJobDelay = 2000;
         JobHolder highestPriorityDelayedJob = createNewJobHolderWithDelayUntil(new Params(12), now + soonJobDelay * JobManager.NS_PER_MS);
         jobQueue.insert(highestPriorityDelayedJob);
+        Constraint constraint = new Constraint();
+        constraint.setNowInNs(mockTimer.nanoTime());
         assertThat("when asked, if job's due has passed, highest priority jobs's delay until should be " +
                 "returned",
-                jobQueue.getNextJobDelayUntilNs(new Constraint()), equalTo(highPriorityHolder.getDelayUntilNs()));
+                jobQueue.getNextJobDelayUntilNs(constraint), equalTo(highPriorityHolder.getDelayUntilNs()));
         //make sure soon job is valid now
         mockTimer.incrementMs(soonJobDelay + 1);
 
         assertThat("when a job's time come, it should be returned",
-                jobQueue.nextJobAndIncRunCount(new Constraint()).getId(), equalTo(highestPriorityDelayedJob.getId()));
+                jobQueue.nextJobAndIncRunCount(constraint).getId(), equalTo(highestPriorityDelayedJob.getId()));
     }
 
     @Test
@@ -208,7 +210,7 @@ public abstract class JobQueueTestBase extends TestBase {
 
         jobQueue.insert(networkJobHolder);
         jobQueue.insert(noNetworkJobHolder);
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setShouldNotRequireNetwork(true);
         assertThat("if there is no network, delay until should be provided for no network job",
             jobQueue.getNextJobDelayUntilNs(constraint), equalTo(noNetworkJobHolder.getDelayUntilNs()));
@@ -235,7 +237,7 @@ public abstract class JobQueueTestBase extends TestBase {
 
         jobQueue.insert(networkJobHolder);
         jobQueue.insert(noNetworkJobHolder);
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setShouldNotRequireNetwork(true);
         constraint.setExcludeRunning(true);
         assertThat("if there is no network, delay until should be provided for no network job",
@@ -313,7 +315,7 @@ public abstract class JobQueueTestBase extends TestBase {
         jobQueue.insert(nonDelayedPriority_6);
         jobQueue.insert(nonDelayedPriority_2);
         jobQueue.insert(nonDelayedPriority_3);
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         int lastPriority = Integer.MAX_VALUE;
         for(int i = 0; i < 5; i++) {
             JobHolder next = jobQueue.nextJobAndIncRunCount(constraint);
@@ -346,7 +348,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueueWithSessionId(sessionId);
         JobHolder jobHolder = createNewJobHolder();
         jobQueue.insert(jobHolder);
-        jobHolder = jobQueue.nextJobAndIncRunCount(new TestConstraint());
+        jobHolder = jobQueue.nextJobAndIncRunCount(new TestConstraint(mockTimer));
         assertThat("session id should be attached to next job",
                 jobHolder.getRunningSessionId(), equalTo(sessionId));
     }
@@ -362,11 +364,11 @@ public abstract class JobQueueTestBase extends TestBase {
         //ensure we get jobs in correct priority order
         int minPriority = Integer.MAX_VALUE;
         for (int i = 0; i < JOB_LIMIT; i++) {
-            JobHolder holder = jobQueue.nextJobAndIncRunCount(new TestConstraint());
+            JobHolder holder = jobQueue.nextJobAndIncRunCount(new TestConstraint(mockTimer));
             assertThat(holder.getPriority() <= minPriority, is(true));
             jobQueue.insertOrReplace(holder);
         }
-        assertThat(jobQueue.nextJobAndIncRunCount(new TestConstraint()), notNullValue());
+        assertThat(jobQueue.nextJobAndIncRunCount(new TestConstraint(mockTimer)), notNullValue());
     }
 
     @Test
@@ -374,7 +376,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder holder = createNewJobHolder();
         jobQueue.insert(holder);
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setExcludeRunning(true);
         assertThat(jobQueue.nextJobAndIncRunCount(constraint).getId(), equalTo(holder.getId()));
         assertThat(jobQueue.nextJobAndIncRunCount(constraint), is(nullValue()));
@@ -387,7 +389,7 @@ public abstract class JobQueueTestBase extends TestBase {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder jobHolder = createNewJobHolder(new Params(0));
         jobQueue.insert(jobHolder);
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setShouldNotRequireNetwork(true);
         assertThat("no network job should be returned even if there is no netowrk",
                 jobQueue.nextJobAndIncRunCount(constraint), notNullValue());
@@ -447,7 +449,7 @@ public abstract class JobQueueTestBase extends TestBase {
     @Test
     public void testCountReadyJobs() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
-        TestConstraint constraint = new TestConstraint();
+        TestConstraint constraint = new TestConstraint(mockTimer);
         assertThat("initial count should be 0 for ready jobs", jobQueue.countReadyJobs(constraint), equalTo(0));
         //add some jobs
         jobQueue.insert(createNewJobHolder());
@@ -528,6 +530,7 @@ public abstract class JobQueueTestBase extends TestBase {
         int priority = (int) (Math.random() * 1000);
         jobHolder.setPriority(priority);
         DummyJob dummyJob = new DummyJob(new Params(0));
+        dummyJob.seal(mockTimer);
         jobHolder.setJob(dummyJob);
         int runCount = (int) (Math.random() * 10);
         jobHolder.setRunCount(runCount);
@@ -536,7 +539,7 @@ public abstract class JobQueueTestBase extends TestBase {
 
 
         for (int i = 0; i < 2; i++) {
-            JobHolder received = jobQueue.nextJobAndIncRunCount(new TestConstraint());
+            JobHolder received = jobQueue.nextJobAndIncRunCount(new TestConstraint(mockTimer));
             assertThat("job id should be preserved", received.getId(), equalTo(jobHolder.getId()));
             assertThat("job priority should be preserved", received.getPriority(), equalTo(priority));
             assertThat("job session id should be assigned", received.getRunningSessionId(), equalTo(sessionId));
@@ -612,13 +615,13 @@ public abstract class JobQueueTestBase extends TestBase {
         JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1, tag3));
         jobQueue.insert(holder1);
         jobQueue.insert(holder2);
-        Set<JobHolder> twoJobs = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1));
+        Set<JobHolder> twoJobs = jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag1));
         Set<String> resultIds = ids(twoJobs);
 
         assertThat("two jobs should be returned", twoJobs.size(), is(2));
         assertThat("should have job id 1", resultIds, hasItems(holder1.getId(), holder2.getId()));
         for (String tag : new String[]{tag2, tag3}) {
-            Set<JobHolder> oneJob = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag));
+            Set<JobHolder> oneJob = jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag));
             resultIds = ids(oneJob);
             assertThat("one job should be returned", oneJob.size(), is(1));
             if (tag.equals(tag2)) {
@@ -655,17 +658,17 @@ public abstract class JobQueueTestBase extends TestBase {
         assertTags("job with two tags, reinserted", jobQueue, holder);
         jobQueue.remove(holder);
         assertThat("when job is removed, it should return none",
-                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
+                jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
         assertThat("when job is removed, it should return none",
-                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag2)).size(), is(0));
+                jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag2)).size(), is(0));
     }
 
     @Test
     public void testFindByTags() {
         JobQueue jobQueue = createNewJobQueue();
-        assertThat("empty queue should return 0",jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), "abc")).size(), is(0));
+        assertThat("empty queue should return 0",jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), "abc")).size(), is(0));
         jobQueue.insert(createNewJobHolder());
-        Set<JobHolder> result = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), "blah"));
+        Set<JobHolder> result = jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), "blah"));
         assertThat("if job does not have a tag, it should return 0", result.size(), is(0));
 
         final String tag1 = UUID.randomUUID().toString();
@@ -676,16 +679,118 @@ public abstract class JobQueueTestBase extends TestBase {
         assertTags("holder with 1 tag reinserted", jobQueue, holder);
         jobQueue.remove(holder);
         assertThat("when job is removed, it should return none",
-                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
+                jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
 
         JobHolder holder2 = createNewJobHolder(new Params(0).addTags(tag1));
         jobQueue.insert(holder2);
         assertThat("it should return the job",
-                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(1));
+                jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag1)).size(), is(1));
         jobQueue.onJobCancelled(holder2);
         assertThat("when queried w/ exclude cancelled, it should not return the job",
-                jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
+                jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), tag1)).size(), is(0));
+    }
 
+    @Test
+    public void testDelayUntilWithNetworkRequirement() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(1000));
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(1000000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirement2() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(1000)
+        .delayInMs(2000));
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(2000000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirement3() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(2000)
+                .delayInMs(1000));
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(2000000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirement4() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(1000)
+                .delayInMs(2000));
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(false);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(2000000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirement5() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(2000)
+                .delayInMs(1000));
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(false);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(1000000000L));
+    }
+
+
+    @Test
+    public void testDelayUntilWithNetworkRequirementAndRegularDelayedJob() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(1000));
+        JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(500));
+        jobQueue.insert(holder1);
+        jobQueue.insert(holder2);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirementAndRegularDelayedJob2() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(1000));
+        JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(500));
+        jobQueue.insert(holder2);
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirementAndRegularDelayedJob3() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(500));
+        JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(1000));
+        jobQueue.insert(holder1);
+        jobQueue.insert(holder2);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithNetworkRequirementAndRegularDelayedJob4() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireNetworkWithTimeout(500));
+        JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(1000));
+        jobQueue.insert(holder2);
+        jobQueue.insert(holder1);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
     private void assertTags(String msg, JobQueue jobQueue, JobHolder holder) {
@@ -706,7 +811,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 }
             }
         } while (found);
-        result = jobQueue.findJobs(forTags(ANY, Collections.<String>emptyList(), wrongTag));
+        result = jobQueue.findJobs(forTags(mockTimer, ANY, Collections.<String>emptyList(), wrongTag));
         found = false;
         for(JobHolder received : result) {
             if(received.getId().equals(holder.getId())) {
@@ -720,7 +825,7 @@ public abstract class JobQueueTestBase extends TestBase {
         }
         Collection<String> exclude = Arrays.asList(holder.getId());
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobs(forTags(TagConstraint.ANY, Collections.<String>emptyList(), tags));
+            result = jobQueue.findJobs(forTags(mockTimer, TagConstraint.ANY, Collections.<String>emptyList(), tags));
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -728,14 +833,14 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " any combinations: returned job should be the correct one", result.iterator().next().getId(), is(id));
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
-            result = jobQueue.findJobs(forTags(TagConstraint.ANY, exclude, tags));
+            result = jobQueue.findJobs(forTags(mockTimer, TagConstraint.ANY, exclude, tags));
             assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(
                     0));
 
         }
 
         for(String[] tags : combinations(holder.getTags())) {
-            result = jobQueue.findJobs(forTags(ALL, Collections.<String>emptyList(), tags));
+            result = jobQueue.findJobs(forTags(mockTimer, ALL, Collections.<String>emptyList(), tags));
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -745,7 +850,7 @@ public abstract class JobQueueTestBase extends TestBase {
                         result.iterator().next().getId(), is(id));
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
-            result = jobQueue.findJobs(forTags(ALL, exclude, tags));
+            result = jobQueue.findJobs(forTags(mockTimer, ALL, exclude, tags));
             assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(0));
         }
 
@@ -753,7 +858,7 @@ public abstract class JobQueueTestBase extends TestBase {
             String[] tagsWithAdditional = new String[tags.length + 1];
             System.arraycopy(tags, 0, tagsWithAdditional, 0, tags.length);
             tagsWithAdditional[tags.length] = wrongTag;
-            result = jobQueue.findJobs(forTags(TagConstraint.ANY, Collections.<String>emptyList(), tagsWithAdditional));
+            result = jobQueue.findJobs(forTags(mockTimer, TagConstraint.ANY, Collections.<String>emptyList(), tagsWithAdditional));
             if (tags.length == 0) {
                 assertThat(msg + " empty tag list, should return 0 jobs", result.size(), is(0));
             } else {
@@ -764,10 +869,10 @@ public abstract class JobQueueTestBase extends TestBase {
                 assertThat(msg + " returned holder should have all tags:", result.iterator().next().getTags(), allTagsMatcher);
             }
 
-            result = jobQueue.findJobs(forTags(ALL, Collections.<String>emptyList(), tagsWithAdditional));
+            result = jobQueue.findJobs(forTags(mockTimer, ALL, Collections.<String>emptyList(), tagsWithAdditional));
             assertThat(msg + " all combinations with wrong tag: when an additional wrong tag is given, it should return 0", result.size(), is(0));
 
-            result = jobQueue.findJobs(forTags(ALL, exclude, tagsWithAdditional));
+            result = jobQueue.findJobs(forTags(mockTimer, ALL, exclude, tagsWithAdditional));
             assertThat(msg + " when excluded, holder should not show up in results", result.size(), is(0));
         }
     }
@@ -809,11 +914,13 @@ public abstract class JobQueueTestBase extends TestBase {
 
     protected JobHolder createNewJobHolder(Params params) {
         long delay = getDelayMsField(params).get();
+        DummyJob job = new DummyJob(params);
+        job.seal(mockTimer);
         return new JobHolder.Builder()
                 .priority(getPriorityField(params).get())
                 .groupId(getGroupIdField(params).get())
                 .runCount(0)
-                .job(new DummyJob(params))
+                .job(job)
                 .createdNs(mockTimer.nanoTime())
                 .delayUntilNs(delay > 0 ? mockTimer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)
                 .runningSessionId(JobManager.NOT_RUNNING_SESSION_ID).build();

@@ -25,6 +25,7 @@ public class CountTest extends JobManagerTestBase {
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
     public void testCount() throws Exception {
+        enableDebug();
         JobManager jobManager = createJobManager();
         jobManager.stop();
         for (int i = 0; i < 10; i++) {

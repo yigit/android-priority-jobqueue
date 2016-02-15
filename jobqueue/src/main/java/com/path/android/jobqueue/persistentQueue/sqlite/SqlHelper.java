@@ -19,7 +19,7 @@ public class SqlHelper {
     private SQLiteStatement deleteStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
-    private final StringBuilder reusedStringBuilder = new StringBuilder();
+    final StringBuilder reusedStringBuilder = new StringBuilder();
 
 
     final SQLiteDatabase db;
@@ -223,8 +223,9 @@ public class SqlHelper {
 
     public void resetDelayTimesTo(long newDelayTime) {
         db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET "
-                + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
-            , new Object[]{newDelayTime});
+                + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?,"
+                + DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName + "=?"
+            , new Object[]{newDelayTime, newDelayTime});
     }
 
     public static class Property {

@@ -5,11 +5,10 @@ import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
-import com.path.android.jobqueue.timer.Timer;
 
-import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
@@ -36,7 +35,6 @@ public class SqliteJobQueue implements JobQueue {
     // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
     // queries. Set is cleaned when item is removed
     Set<String> pendingCancelations = new HashSet<>();
-    final Timer timer;
     private final StringBuilder reusedStringBuilder = new StringBuilder();
     private final WhereQueryCache whereQueryCache;
 
@@ -50,7 +48,6 @@ public class SqliteJobQueue implements JobQueue {
                 DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,
                 DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
         this.jobSerializer = serializer;
-        this.timer = configuration.getTimer();
         if (configuration.resetDelaysOnRestart()) {
             sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
         }
@@ -123,8 +120,8 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
-        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_COLUMN.columnIndex + 1,
-                jobHolder.requiresNetwork() ? 1L : 0L);
+        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex + 1,
+                jobHolder.getRequiresNetworkUntilNs());
     }
 
     /**
@@ -266,7 +263,12 @@ public class SqliteJobQueue implements JobQueue {
     public Long getNextJobDelayUntilNs(Constraint constraint) {
         final Where where = createWhere(constraint);
         try {
-            return where.nextJobDelayUntil(db, sqlHelper).simpleQueryForLong();
+            if (constraint.shouldNotRequireNetwork()) {
+                return where.nextJobDelayUntilWithNetworkRequirement(db, sqlHelper)
+                        .simpleQueryForLong();
+            } else {
+                return where.nextJobDelayUntil(db, sqlHelper).simpleQueryForLong();
+            }
         } catch (SQLiteDoneException empty) {
             return null;
         }
@@ -317,12 +319,14 @@ public class SqliteJobQueue implements JobQueue {
                 String id = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
                 sb.append(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
                         .append(" ")
-                        .append(id).append(" ")
+                        .append(id).append(" id:")
                         .append(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
-                        .append(" ")
+                        .append(" delay until:")
                         .append(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
-                        .append(" ")
-                        .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex));
+                        .append(" sessionId:")
+                        .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
+                        .append(" reqNetworkUntil:")
+                        .append(cursor.getLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex));
                 Cursor tags = db.rawQuery("SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName
                         + " FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                         + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?", new String[]{id});

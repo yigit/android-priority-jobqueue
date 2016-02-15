@@ -61,7 +61,10 @@ public interface JobQueue {
     JobHolder nextJobAndIncRunCount(Constraint constraint);
 
     /**
-     * returns when the next job should run (in nanoseconds), should return null if there are no jobs to run.
+     * returns when the next job should run (in nanoseconds), should return null if there are no
+     * jobs to run.
+     * <p>
+     * This method should check both delayed jobs and jobs that require network with a timeout.
      * @param constraint The constraint to match the job.
      */
     Long getNextJobDelayUntilNs(Constraint constraint);

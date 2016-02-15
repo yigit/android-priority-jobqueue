@@ -1,20 +1,18 @@
 package com.path.android.jobqueue.config;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
-
 import com.birbit.android.jobqueue.DefaultQueueFactory;
 import com.birbit.android.jobqueue.QueueFactory;
-import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.network.NetworkUtilImpl;
-import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.timer.SystemTimer;
 import com.path.android.jobqueue.timer.Timer;
+
+import android.content.Context;
+import android.net.ConnectivityManager;
 
 /**
  * {@link com.path.android.jobqueue.JobManager} configuration object
@@ -136,7 +134,9 @@ public class Configuration {
          * jobs on restart. This may create a problem if jobs were added when the device's clock is
          * set to some unreasonable time but for common cases, it is more desirable.
          * <p>
-         * You can get the v1 behavior by calling this method.
+         * You can get the v1 behavior by calling this method. Note that it will also effect jobs
+         * which require network with a timeout. Their timeouts will be triggered on restart if you
+         * call this method.
          *
          * @return The builder
          */
@@ -147,7 +147,8 @@ public class Configuration {
 
         /**
          * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
-         * By default, it will use {@link SqliteJobQueue} and {@link NonPersistentPriorityQueue}
+         * By default, it will use {@link SqliteJobQueue} and
+         * {@link com.birbit.android.jobqueue.inMemoryQueue.SimpleInMemoryPriorityQueue}
          * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
          * {@code JobQueueTestBase} to ensure it will work fine.
          * @param queueFactory your custom queue factory.

@@ -1,5 +1,7 @@
 package com.path.android.jobqueue.persistentQueue.sqlite;
 
+import com.path.android.jobqueue.Params;
+
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 
@@ -11,12 +13,18 @@ public class Where {
     private SQLiteStatement countReadyStmt;
     private String findJobsQuery;
     private SQLiteStatement nextJobDelayUntilStmt;
+    private SQLiteStatement nextJobDelayUntilViaNetworkStmt;
     private String nextJobQuery;
+    private int networkTimeoutArgIndex = -1;
 
     public Where(long cacheKey, String query, String[] args) {
         this.cacheKey = cacheKey;
         this.query = query;
         this.args = args;
+    }
+
+    public void setNetworkTimeoutArgIndex(int index) {
+        this.networkTimeoutArgIndex = index;
     }
 
     public SQLiteStatement countReady(SQLiteDatabase database, StringBuilder stringBuilder) {
@@ -42,6 +50,38 @@ public class Where {
             countReadyStmt.bindString(i, args[i - 1]);
         }
         return countReadyStmt;
+    }
+    public SQLiteStatement nextJobDelayUntilWithNetworkRequirement(SQLiteDatabase database,
+            SqlHelper sqlHelper) {
+        if (networkTimeoutArgIndex == -1) {
+            throw new IllegalStateException("The WHERE query does not have a timeout argument.");
+        }
+        if (nextJobDelayUntilViaNetworkStmt == null) {
+            StringBuilder sb = sqlHelper.reusedStringBuilder;
+            sb.setLength(0);
+            sb.append("SELECT max(")
+                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName)
+                .append(",")
+                .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
+                .append(") FROM ")
+                .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
+                .append(" WHERE ")
+                .append(query)
+                .append(" AND ")
+                .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
+                .append(" != ").append(Params.FOREVER)
+                .append(" ORDER BY 1 ASC").append(" limit 1");
+            String selectQuery = sb.toString();
+            nextJobDelayUntilViaNetworkStmt = database.compileStatement(selectQuery);
+        } else {
+            nextJobDelayUntilViaNetworkStmt.clearBindings();
+        }
+        for (int i = 1; i <= args.length; i ++) {
+            nextJobDelayUntilViaNetworkStmt.bindString(i, args[i - 1]);
+        }
+        nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,
+                Long.toString(Params.FOREVER));
+        return nextJobDelayUntilViaNetworkStmt;
     }
 
     public SQLiteStatement nextJobDelayUntil(SQLiteDatabase database, SqlHelper sqlHelper) {
@@ -94,6 +134,10 @@ public class Where {
         if (nextJobDelayUntilStmt != null) {
             nextJobDelayUntilStmt.close();
             nextJobDelayUntilStmt = null;
+        }
+        if (nextJobDelayUntilViaNetworkStmt != null) {
+            nextJobDelayUntilViaNetworkStmt.close();
+            nextJobDelayUntilViaNetworkStmt = null;
         }
     }
 }

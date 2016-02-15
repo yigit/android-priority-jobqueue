@@ -1,5 +1,8 @@
 package com.path.android.jobqueue;
 
+import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.timer.Timer;
+
 import android.content.Context;
 
 import java.util.Collections;
@@ -45,12 +48,12 @@ public class JobHolder {
      */
     protected long delayUntilNs;
     /**
-     * When job is created, System.nanoTime() is assigned to {@code createdNs} value so that we know when job is created
-     * in relation to others
+     * When job is created, Timer.nanoTime() is assigned to {@code createdNs} value so that we know
+     * when job is created in relation to others
      */
     protected long createdNs;
     protected long runningSessionId;
-    protected boolean requiresNetwork;
+    protected long requiresNetworkUntilNs;
     transient Job job;
     protected final Set<String> tags;
     private boolean cancelled;
@@ -76,7 +79,7 @@ public class JobHolder {
         this.job = job;
         job.priority = priority;
         this.runningSessionId = runningSessionId;
-        this.requiresNetwork = job.requiresNetwork();
+        this.requiresNetworkUntilNs = job.getRequiresNetworkUntilNs();
         this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
     }
 
@@ -93,8 +96,19 @@ public class JobHolder {
         return id;
     }
 
-    public boolean requiresNetwork() {
-        return requiresNetwork;
+    /**
+     * The time should be acquired from {@link Configuration#getTimer()}
+     *
+     * @param timeInNs The current time in ns. This should be the time used by the JobManager.
+     *
+     * @return True if the job requires network to be run right now, false otherwise.
+     */
+    public boolean requiresNetwork(long timeInNs) {
+        return requiresNetworkUntilNs > timeInNs;
+    }
+
+    public long getRequiresNetworkUntilNs() {
+        return requiresNetworkUntilNs;
     }
 
     public int getPriority() {
@@ -274,8 +288,7 @@ public class JobHolder {
                 throw new IllegalArgumentException("must provide a created timestamp");
             }
             JobHolder jobHolder = new JobHolder(priority, groupId, runCount, job, createdNs,
-                    delayUntilNs,
-                    runningSessionId);
+                    delayUntilNs, runningSessionId);
             if (insertionOrder != null) {
                 jobHolder.setInsertionOrder(insertionOrder);
             }

@@ -49,10 +49,10 @@ public class JobStatusTest extends JobManagerTestBase {
         for(int i = 0; i < jobs.length; i ++) {
             jobManager.addJob(jobs[i]);
             ids[i] = jobs[i].getId();
-            if(jobs[i].requiresNetwork()) {
+            if(jobs[i].requiresNetwork(mockTimer)) {
                 networkRequiringJobIndices.add(i);
             }
-            JobStatus expectedStatus = (networkUtil.isConnected() || !jobs[i].requiresNetwork()) ? JobStatus.WAITING_READY :
+            JobStatus expectedStatus = (networkUtil.isConnected() || !jobs[i].requiresNetwork(mockTimer)) ? JobStatus.WAITING_READY :
                     JobStatus.WAITING_NOT_READY;
             assertThat("job should have correct status after being added",
                     jobManager.getJobStatus(ids[i]), is(expectedStatus));

@@ -8,7 +8,18 @@ import java.util.HashSet;
  * Methods can be chained to have more readable code.
  */
 public class Params {
-    private boolean requiresNetwork = false;
+
+    /**
+     * Used in requireNetwork / requireWifi configuration if the requirement should be kept forever.
+     */
+    public static final long FOREVER = Long.MAX_VALUE;
+
+    /**
+     * Used in requireNetwork / requireWifi configuration if the constraint is disabled.
+     */
+    public static final long NEVER = Long.MIN_VALUE;
+
+    private long requiresNetworkWithTimeout = NEVER;
     private String groupId = null;
     private boolean persistent = false;
     private int priority;
@@ -28,7 +39,21 @@ public class Params {
      * @return this
      */
     public Params requireNetwork() {
-        requiresNetwork = true;
+        return requireNetworkWithTimeout(FOREVER);
+    }
+
+    /**
+     * Sets the Job as requiring a network connection with the given timeoutMs. The Job will not be
+     * run until a network connection is detected. If {@code timeoutMs} is not {@link #FOREVER}, the
+     * Job will available to run without a network connection if it cannot be run in the given time
+     * period.
+     * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
+     *                no network connection.
+     *
+     * @return The Params
+     */
+    public Params requireNetworkWithTimeout(long timeoutMs) {
+        requiresNetworkWithTimeout = timeoutMs;
         return this;
     }
 
@@ -62,12 +87,48 @@ public class Params {
     }
 
     /**
-     * convenience method to set network requirement
+     * Convenience method to set network requirement.
      * @param requiresNetwork true|false
      * @return this
+     * @see #setRequiresNetwork(boolean, long)
+     * @see #requireNetwork()
      */
     public Params setRequiresNetwork(boolean requiresNetwork) {
-        this.requiresNetwork = requiresNetwork;
+        return setRequiresNetwork(requiresNetwork, FOREVER);
+    }
+
+    /**
+     * Returns when the Job's network requirement will timeout.
+     * <ul>
+     * <li>If the job does not require network, it will return {@link #NEVER}.</li>
+     * <li>If the job should never be run without network, it will return {@link #FOREVER}.</li>
+     * <li>Otherwise, it will return the timeout in ms until which the job should require network
+     * to be run and after that timeout it will be run regardless of the network requirements.</li>
+     * </ul>
+     *
+     * @return The network requirement constraint
+     */
+    public long getRequiresNetworkTimeoutMs() {
+        return requiresNetworkWithTimeout;
+    }
+
+    /**
+     * Convenience method to set network requirement.
+     *
+     * @param requiresNetwork True if Job should not be run without a network, false otherwise.
+     * @param timeout The timeout after which Job should be run without checking network status.
+     *                If {@param requiresNetwork} is {@code false}, this value is ignored.
+     *
+     * @return The params
+     * @see #setRequiresNetwork(boolean)
+     * @see #requireNetwork()
+     */
+    public Params setRequiresNetwork(boolean requiresNetwork, long timeout) {
+        if (requiresNetwork) {
+            requiresNetworkWithTimeout = timeout;
+        } else {
+            requiresNetworkWithTimeout = NEVER;
+        }
         return this;
     }
 
@@ -134,10 +195,6 @@ public class Params {
     public Params clearTags() {
         tags = null;
         return this;
-    }
-
-    public boolean doesRequireNetwork() {
-        return requiresNetwork;
     }
 
     public String getGroupId() {

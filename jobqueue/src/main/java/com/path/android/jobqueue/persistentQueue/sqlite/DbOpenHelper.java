@@ -20,7 +20,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property("created_ns", "long", 6);
     /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property("delay_until_ns", "long", 7);
     /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long", 8);
-    /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_COLUMN = new SqlHelper.Property("requires_network", "integer", 9);
+    /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_UNTIL_COLUMN = new SqlHelper.Property("requires_network_until", "integer", 9);
 
     /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
     /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
@@ -49,7 +49,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 CREATED_NS_COLUMN,
                 DELAY_UNTIL_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN,
-                REQUIRES_NETWORK_COLUMN
+                REQUIRES_NETWORK_UNTIL_COLUMN
         );
         sqLiteDatabase.execSQL(createQuery);
 
