@@ -1,7 +1,9 @@
 package com.path.android.jobqueue.test.jobmanager;
 
+import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.test.jobs.DummyJob;
@@ -16,6 +18,7 @@ import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,61 +32,51 @@ public class LoadFactorTest extends JobManagerTestBase {
         int maxConsumerCount = 5;
         int minConsumerCount = 2;
         int loadFactor = 5;
+        enableDebug();
         JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .maxConsumerCount(maxConsumerCount)
                 .minConsumerCount(minConsumerCount)
                 .loadFactor(loadFactor)
                 .timer(mockTimer));
-        Object runLock = new Object();
+        final CountDownLatch runLock = new CountDownLatch(1);
         Semaphore semaphore = new Semaphore(maxConsumerCount);
         int totalJobCount = loadFactor * maxConsumerCount * 5;
         List<DummyJob> runningJobs = new ArrayList<DummyJob>(totalJobCount);
+        int prevConsumerCount = 0;
+        final Semaphore onRunCount = new Semaphore(totalJobCount);
+        onRunCount.acquire(totalJobCount);
         for(int i = 0; i < totalJobCount; i ++) {
-            DummyJob job = new NeverEndingDummyJob(new Params((int)(Math.random() * 3)), runLock, semaphore);
+
+            DummyJob job =
+                    new NeverEndingDummyJob(new Params((int)(Math.random() * 3)),runLock, semaphore) {
+                        @Override
+                        public void onRun() throws Throwable {
+                            onRunCount.release();
+                            super.onRun();
+                        }
+                    };
             runningJobs.add(job);
             jobManager.addJob(job);
+            final int wantedConsumers = (int) Math.ceil((i + 1f) / loadFactor);
+            final int expectedConsumerCount = Math.max(Math.min(i+1, minConsumerCount),
+                    Math.min(maxConsumerCount, wantedConsumers));
 
-            int expectedConsumerCount = Math.min(maxConsumerCount, (int)Math.ceil((float)(i+1) / loadFactor));
-            if(i >= minConsumerCount) {
-                expectedConsumerCount = Math.max(minConsumerCount, expectedConsumerCount);
+            if (prevConsumerCount != expectedConsumerCount) {
+                MatcherAssert.assertThat("waiting for another job to start",
+                        onRunCount.tryAcquire(1, 10, TimeUnit.SECONDS), is(true));
             }
-            //wait till enough jobs start
-            long now = mockTimer.nanoTime();
-            long waitTill = now + TimeUnit.SECONDS.toNanos(10);
-            while(mockTimer.nanoTime() < waitTill) {
-                if(semaphore.availablePermits() == maxConsumerCount - expectedConsumerCount) {
-                    //enough # of jobs started
-                    break;
-                }
-            }
-            if(i < loadFactor) {
-                //make sure there is only min job running
-                MatcherAssert.assertThat("while below load factor, active consumer count should be = min",
-                        jobManager.getActiveConsumerCount(), equalTo(Math.min(i + 1, minConsumerCount)));
-            }
-            if(i > loadFactor) {
-                //make sure there is only 1 job running
-                MatcherAssert.assertThat("while above load factor. there should be more job consumers. i=" + i,
-                        jobManager.getActiveConsumerCount(), equalTo(expectedConsumerCount));
-            }
+            MatcherAssert.assertThat("Consumer count should match expected value at " + (i+1) + " jobs",
+                    jobManager.getActiveConsumerCount(), equalTo(expectedConsumerCount));
+            prevConsumerCount = expectedConsumerCount;
         }
 
         //finish all jobs
-        long now = mockTimer.nanoTime();
-        long waitTill = now + TimeUnit.SECONDS.toNanos(10);
-        while(mockTimer.nanoTime() < waitTill) {
-            synchronized (runLock) {
-                runLock.notifyAll();
+        waitUntilJobsAreDone(jobManager, runningJobs, new Runnable() {
+            @Override
+            public void run() {
+                runLock.countDown();
             }
-            long totalRunningCount = 0;
-            for(DummyJob job : runningJobs) {
-                totalRunningCount += job.getOnRunCnt();
-            }
-            if(totalJobCount == totalRunningCount) {
-                //cool!
-                break;
-            }
-        }
+        });
         MatcherAssert.assertThat("no jobs should remain", jobManager.count(), equalTo(0));
 
     }

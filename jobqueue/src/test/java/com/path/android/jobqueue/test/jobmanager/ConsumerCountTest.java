@@ -18,13 +18,14 @@ import android.annotation.SuppressLint;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class ConsumerCountTest extends JobManagerTestBase {
-    final Object runLock = new Object();
+    final CountDownLatch runLock = new CountDownLatch(1);
     @Test
     public void testMaxConsumerCount() throws Exception {
         int maxConsumerCount = 2;
@@ -60,24 +61,14 @@ public class ConsumerCountTest extends JobManagerTestBase {
         for(DummyJob job : runningJobs) {
             totalRunningCount += job.getOnRunCnt();
         }
-        MatcherAssert.assertThat("only maxConsumerCount jobs should start", totalRunningCount, equalTo(maxConsumerCount));
-        //try to finish all jobs
-        //wait till enough jobs start
-        long now = timer.nanoTime();
-        long waitTill = now + tenSeconds;
-        while(timer.nanoTime() < waitTill) {
-            synchronized (runLock) {
-                runLock.notifyAll();
+        MatcherAssert.assertThat("only maxConsumerCount jobs should start", totalRunningCount,
+                equalTo(maxConsumerCount));
+        waitUntilJobsAreDone(jobManager, runningJobs, new Runnable() {
+            @Override
+            public void run() {
+                runLock.countDown();
             }
-            totalRunningCount = 0;
-            for(DummyJob job : runningJobs) {
-                totalRunningCount += job.getOnRunCnt();
-            }
-            if(totalJobCount == totalRunningCount) {
-                //cool!
-                break;
-            }
-        }
+        });
         MatcherAssert.assertThat("no jobs should remain", jobManager.count(), equalTo(0));
     }
 }

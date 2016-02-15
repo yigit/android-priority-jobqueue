@@ -1,7 +1,9 @@
 package com.path.android.jobqueue.test.jobmanager;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.os.Build;
 
 import com.birbit.android.jobqueue.JobManagerThreadRunnable;
 import com.birbit.android.jobqueue.testing.CleanupRule;
@@ -27,6 +29,7 @@ import org.robolectric.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -237,9 +240,9 @@ public class JobManagerTestBase extends TestBase {
     public static class NeverEndingDummyJob extends DummyJob {
         // used for cleanup
         static List<NeverEndingDummyJob> createdJobs = new ArrayList<>();
-        final Object lock;
+        final CountDownLatch lock;
         final Semaphore semaphore;
-        public NeverEndingDummyJob(Params params, Object lock, Semaphore semaphore) {
+        public NeverEndingDummyJob(Params params, CountDownLatch lock, Semaphore semaphore) {
             super(params);
             this.lock = lock;
             this.semaphore = semaphore;
@@ -251,23 +254,41 @@ public class JobManagerTestBase extends TestBase {
             super.onRun();
             MatcherAssert.assertThat("job should be able to acquire a semaphore",
                     semaphore.tryAcquire(), equalTo(true));
-            synchronized (lock) {
-                lock.wait();
-            }
+            lock.await(1, TimeUnit.MINUTES);
             semaphore.release();
         }
 
         public static void unlockAll() {
             for (NeverEndingDummyJob job : createdJobs) {
-                synchronized (job.lock) {
-                    job.lock.notifyAll();
-                }
+                job.lock.countDown();
             }
         }
     }
 
     protected boolean canUseRealTimer() {
         return false;
+    }
+
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
+    protected void waitUntilJobsAreDone(final JobManager jobManager, List<? extends Job> jobs, Runnable action)
+            throws InterruptedException {
+        final Set<String> uuids = new HashSet<>();
+        for (Job job : jobs) {
+            uuids.add(job.getId());
+        }
+        final CountDownLatch latch = new CountDownLatch(uuids.size());
+        jobManager.addCallback(new JobManagerCallbackAdapter() {
+            @Override
+            public void onDone(Job job) {
+                if (uuids.remove(job.getId())) {
+                    latch.countDown();
+                }
+            }
+        });
+        if (action != null) {
+            action.run();
+        }
+        MatcherAssert.assertThat("Jobs should be done", latch.await(1, TimeUnit.MINUTES), is(true));
     }
 
     @SuppressLint("NewApi")
