@@ -4,6 +4,7 @@ import com.birbit.android.jobqueue.TestConstraint;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import com.path.android.jobqueue.timer.Timer;
@@ -28,7 +29,11 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id, Timer timer) {
-                return new SqliteJobQueue(RuntimeEnvironment.application, sessionId, id, new SqliteJobQueue.JavaSerializer(), true, timer);
+                SqliteJobQueue.JavaSerializer serializer = new SqliteJobQueue.JavaSerializer();
+                return new SqliteJobQueue(
+                        new Configuration.Builder(RuntimeEnvironment.application)
+                                .id(id).jobSerializer(serializer).inTestMode()
+                                .timer(timer).build(), sessionId, serializer);
             }
         });
     }
@@ -50,8 +55,10 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
                 return super.deserialize(bytes);
             }
         };
-        SqliteJobQueue jobQueue = new SqliteJobQueue(RuntimeEnvironment.application, mockTimer.nanoTime(), "__" + mockTimer.nanoTime(),
-                jobSerializer, true, mockTimer);
+
+        SqliteJobQueue jobQueue = new SqliteJobQueue(new Configuration.Builder(RuntimeEnvironment.application)
+                .id("__" + mockTimer.nanoTime()).jobSerializer(jobSerializer).inTestMode()
+                .timer(mockTimer).build(), mockTimer.nanoTime(), jobSerializer);
         jobQueue.insert(createNewJobHolder(new Params(0)));
         calledForSerialize.await(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat("custom serializer should be called for serialize", (int) calledForSerialize.getCount(), CoreMatchers.equalTo(0));

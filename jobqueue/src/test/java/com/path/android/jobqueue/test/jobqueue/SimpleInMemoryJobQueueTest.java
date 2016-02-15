@@ -16,7 +16,7 @@ public class SimpleInMemoryJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id, Timer timer) {
-                return new SimpleInMemoryPriorityQueue(sessionId);
+                return new SimpleInMemoryPriorityQueue(null, sessionId);
             }
         });
     }

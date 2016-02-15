@@ -4,6 +4,7 @@ import com.birbit.android.jobqueue.Constraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.timer.Timer;
 
 import java.util.Comparator;
@@ -20,12 +21,9 @@ public class NonPersistentPriorityQueue implements JobQueue {
     private final Timer timer;
     private final AtomicLong insertionOrderCounter = new AtomicLong(0);
 
-    public NonPersistentPriorityQueue(long sessionId,
-            @SuppressWarnings("UnusedParameters") String id,
-            @SuppressWarnings("UnusedParameters") boolean inTestMode,
-            Timer timer) {
+    public NonPersistentPriorityQueue(Configuration configuration, long sessionId) {
         this.sessionId = sessionId;
-        this.timer = timer;
+        this.timer = configuration.getTimer();
         jobs = new NetworkAwarePriorityQueue(5, jobComparator, timer);
     }
 

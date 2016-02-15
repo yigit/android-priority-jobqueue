@@ -1,6 +1,7 @@
 package com.path.android.jobqueue.test.jobqueue;
 
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import com.path.android.jobqueue.timer.Timer;
@@ -16,7 +17,11 @@ public class CachedPersistentJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id, Timer timer) {
-                return new SqliteJobQueue(RuntimeEnvironment.application, sessionId, id, new SqliteJobQueue.JavaSerializer(), true, timer);
+                SqliteJobQueue.JavaSerializer jobSerializer = new SqliteJobQueue.JavaSerializer();
+                return new SqliteJobQueue(
+                        new Configuration.Builder(RuntimeEnvironment.application)
+                        .id(id).jobSerializer(jobSerializer).inTestMode()
+                        .timer(timer).build(), sessionId, jobSerializer);
             }
         });
     }

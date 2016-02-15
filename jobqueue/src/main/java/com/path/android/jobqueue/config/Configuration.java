@@ -3,9 +3,10 @@ package com.path.android.jobqueue.config;
 import android.content.Context;
 import android.net.ConnectivityManager;
 
+import com.birbit.android.jobqueue.DefaultQueueFactory;
+import com.birbit.android.jobqueue.QueueFactory;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
-import com.path.android.jobqueue.QueueFactory;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.CustomLogger;
 import com.path.android.jobqueue.network.NetworkUtil;
@@ -37,6 +38,7 @@ public class Configuration {
     private CustomLogger customLogger;
     private Timer timer;
     private boolean inTestMode = false;
+    private boolean resetDelaysOnRestart = false;
 
     private Configuration(){
         //use builder instead
@@ -86,8 +88,12 @@ public class Configuration {
         return inTestMode;
     }
 
-    public Timer timer() {
+    public Timer getTimer() {
         return timer;
+    }
+
+    public boolean resetDelaysOnRestart() {
+        return resetDelaysOnRestart;
     }
 
     public static final class Builder {
@@ -119,16 +125,37 @@ public class Configuration {
         }
 
         /**
+         * JobManager 1.x versions used to clear delay for existing jobs when the application is
+         * restarted because there is no reliable way to measure time difference between device
+         * reboots (and from the app's perspective, device reboot is no different than app restart).
+         * <p>
+         * This may cause unexpected behaviors as delayed persistent jobs instantly become available
+         * when application restarts.
+         * <p>
+         * JobManager 2.x versions change this behavior and does not reset the delay of persistent
+         * jobs on restart. This may create a problem if jobs were added when the device's clock is
+         * set to some unreasonable time but for common cases, it is more desirable.
+         * <p>
+         * You can get the v1 behavior by calling this method.
+         *
+         * @return The builder
+         */
+        public Builder resetDelaysOnRestart() {
+            configuration.resetDelaysOnRestart = true;
+            return this;
+        }
+
+        /**
          * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
          * By default, it will use {@link SqliteJobQueue} and {@link NonPersistentPriorityQueue}
          * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
-         * {@link JobQueueTestBase} to ensure it will work fine.
+         * {@code JobQueueTestBase} to ensure it will work fine.
          * @param queueFactory your custom queue factory.
          */
-        public Builder queueFactory(QueueFactory queueFactory) {
-            if(configuration.queueFactory != null) {
-                throw new RuntimeException("already set a queue factory. This might happen if you've provided a custom " +
-                        "job serializer");
+        public Builder queueFactory(com.birbit.android.jobqueue.QueueFactory queueFactory) {
+            if(configuration.queueFactory != null && queueFactory != null) {
+                throw new RuntimeException("already set a queue factory. This might happen if"
+                        + "you've provided a custom job serializer");
             }
             configuration.queueFactory = queueFactory;
             return this;
@@ -137,11 +164,12 @@ public class Configuration {
         /**
          * convenient configuration to replace job serializer while using {@link SqliteJobQueue} queue for persistence.
          * by default, it uses a {@link SqliteJobQueue.JavaSerializer} which will use default Java serialization.
-         * @param JobSerializer
-         * @return
+         * @param jobSerializer The serializer to be used to persist jobs.
+         *
+         * @return The builder
          */
         public Builder jobSerializer(SqliteJobQueue.JobSerializer jobSerializer) {
-            configuration.queueFactory = new JobManager.DefaultQueueFactory(jobSerializer);
+            configuration.queueFactory = new DefaultQueueFactory(jobSerializer);
             return this;
         }
 
@@ -229,7 +257,7 @@ public class Configuration {
 
         public Configuration build() {
             if(configuration.queueFactory == null) {
-                configuration.queueFactory = new JobManager.DefaultQueueFactory();
+                configuration.queueFactory = new DefaultQueueFactory();
             }
             if(configuration.networkUtil == null) {
                 configuration.networkUtil = new NetworkUtilImpl(configuration.appContext);

@@ -62,15 +62,13 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             JqLog.setCustomLogger(config.getCustomLogger());
         }
         this.messageFactory = messageFactory;
-        timer = config.timer();
+        timer = config.getTimer();
         appContext = config.getAppContext();
         sessionId = timer.nanoTime();
         this.persistentJobQueue = config.getQueueFactory()
-                .createPersistentQueue(appContext, sessionId, config.getId(), config.isInTestMode(),
-                        timer);
+                .createPersistentQueue(config, sessionId);
         this.nonPersistentJobQueue = config.getQueueFactory()
-                .createNonPersistent(appContext, sessionId, config.getId(), config.isInTestMode(),
-                        timer);
+                .createNonPersistent(config, sessionId);
         networkUtil = config.getNetworkUtil();
         dependencyInjector = config.getDependencyInjector();
         if(networkUtil instanceof NetworkEventProvider) {

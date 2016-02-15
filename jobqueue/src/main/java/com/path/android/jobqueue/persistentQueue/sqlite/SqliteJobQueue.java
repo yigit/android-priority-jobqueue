@@ -5,6 +5,7 @@ import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.timer.Timer;
 
@@ -39,28 +40,21 @@ public class SqliteJobQueue implements JobQueue {
     private final StringBuilder reusedStringBuilder = new StringBuilder();
     private final WhereQueryCache whereQueryCache;
 
-    /**
-     * @param context application context
-     * @param sessionId session id should match {@link JobManager}
-     * @param id uses this value to construct database name {@code "db_" + id}
-     * @param jobSerializer The serializer to use while persisting jobs to database
-     * @param inTestMode If true, creates a memory only database
-     */
-    public SqliteJobQueue(Context context, long sessionId, String id, JobSerializer jobSerializer,
-            boolean inTestMode, Timer timer) {
-        this.timer = timer;
+    public SqliteJobQueue(Configuration configuration, long sessionId, JobSerializer serializer) {
         this.sessionId = sessionId;
         whereQueryCache = new WhereQueryCache(sessionId);
-        dbOpenHelper = new DbOpenHelper(context, inTestMode ? null : ("db_" + id));
+        dbOpenHelper = new DbOpenHelper(configuration.getAppContext(),
+                configuration.isInTestMode() ? null : ("db_" + configuration.getId()));
         db = dbOpenHelper.getWritableDatabase();
         sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME,
                 DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,
                 DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
-        this.jobSerializer = jobSerializer;
-        sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
+        this.jobSerializer = serializer;
+        this.timer = configuration.getTimer();
+        if (configuration.resetDelaysOnRestart()) {
+            sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
+        }
     }
-
-
 
     /**
      * {@inheritDoc}

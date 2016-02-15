@@ -13,7 +13,6 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.log.JqLog;
 import com.path.android.jobqueue.network.NetworkEventProvider;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.TestBase;
@@ -69,7 +68,7 @@ public class JobManagerTestBase extends TestBase {
         }
         Configuration config = configurationBuilder.inTestMode().id(UUID.randomUUID().toString())
                 .build();
-        if (config.timer() != mockTimer && !canUseRealTimer()) {
+        if (config.getTimer() != mockTimer && !canUseRealTimer()) {
             throw new IllegalArgumentException("must use mock timer");
         }
         final JobManager jobManager = new JobManager(RuntimeEnvironment.application,

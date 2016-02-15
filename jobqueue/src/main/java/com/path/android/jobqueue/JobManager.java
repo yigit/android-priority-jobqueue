@@ -33,33 +33,4 @@ public class JobManager extends JobManager2 {
     public JobManager(Context context, String id) {
         this(new Configuration.Builder(context).id(id).build());
     }
-
-    /**
-     * Default implementation of QueueFactory that creates one {@link SqliteJobQueue} and one {@link NonPersistentPriorityQueue}
-     * both are wrapped inside a {@link CachedJobQueue} to improve performance
-     */
-    public static class DefaultQueueFactory implements QueueFactory {
-        SqliteJobQueue.JobSerializer jobSerializer;
-
-        public DefaultQueueFactory() {
-            jobSerializer = new SqliteJobQueue.JavaSerializer();
-        }
-
-        public DefaultQueueFactory(SqliteJobQueue.JobSerializer jobSerializer) {
-            this.jobSerializer = jobSerializer;
-        }
-
-        @Override
-        public JobQueue createPersistentQueue(Context context, Long sessionId, String id,
-                boolean inTestMode, Timer timer) {
-            return new CachedJobQueue(new SqliteJobQueue(context, sessionId, id, jobSerializer,
-                    inTestMode, timer));
-        }
-
-        @Override
-        public JobQueue createNonPersistent(Context context, Long sessionId, String id,
-                boolean inTestMode, Timer timer) {
-            return new CachedJobQueue(new NonPersistentPriorityQueue(sessionId, id, inTestMode, timer));
-        }
-    }
 }

@@ -4,6 +4,7 @@ import com.birbit.android.jobqueue.TestConstraint;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.nonPersistentQueue.NonPersistentPriorityQueue;
 import com.path.android.jobqueue.test.util.JobQueueFactory;
 import com.path.android.jobqueue.timer.Timer;
@@ -16,6 +17,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
+import android.test.mock.MockApplication;
+
 import java.util.Collections;
 
 import static com.path.android.jobqueue.TagConstraint.ANY;
@@ -27,7 +30,9 @@ public class NonPersistentJobQueueTest extends JobQueueTestBase {
         super(new JobQueueFactory() {
             @Override
             public JobQueue createNew(long sessionId, String id, Timer timer) {
-                return new NonPersistentPriorityQueue(sessionId, id, true, timer);
+                return new NonPersistentPriorityQueue(
+                        new Configuration.Builder(new MockApplication()).timer(timer)
+                                .id(id).build(), sessionId);
             }
         });
     }
