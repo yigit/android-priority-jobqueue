@@ -26,6 +26,8 @@ abstract public class Job implements Serializable {
     private String id = UUID.randomUUID().toString();
     private long requiresNetworkUntilNs = Params.NEVER;
     transient private long requiresNetworkTimeoutMs = 0;
+    private long requiresWifiNetworkUntilNs = Params.NEVER;
+    transient private long requiresWifiNetworkTimeoutMs = 0;
     private String groupId;
     private boolean persistent;
     private Set<String> readonlyTags;
@@ -46,6 +48,7 @@ abstract public class Job implements Serializable {
 
     protected Job(Params params) {
         this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
+        this.requiresWifiNetworkTimeoutMs = params.getRequiresWifiNetworkTimeoutMs();
         this.persistent = params.isPersistent();
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
@@ -264,6 +267,21 @@ abstract public class Job implements Serializable {
     }
 
     /**
+     * if job is set to require a WIFI network, it will not be run unless
+     * {@link com.path.android.jobqueue.network.NetworkUtil} reports that there is a WIFI network
+     * connection or the wait times out if a timeout was provided in
+     * {@link Params#requireWifiNetworkWithTimeout(long)}.
+     *
+     * @param timer The timer used by the JobManager. Should be the timer that was used while
+     *                configuring the JobManager ({@link Configuration#getTimer()},
+     *                {@link com.path.android.jobqueue.config.Configuration.Builder#timer}).
+     */
+    public final boolean requiresWifiNetwork(Timer timer) {
+        return sealed ? requiresWifiNetworkUntilNs > timer.nanoTime()
+                : requiresWifiNetworkTimeoutMs != Params.NEVER;
+    }
+
+    /**
      * Returns whether job requires a network connection to be run or not, without checking the
      * timeout. This is convenient since it does not require a reference to the Timer if you are
      * not using Jobs with requireNetwork with a timeout.
@@ -273,6 +291,35 @@ abstract public class Job implements Serializable {
     public final boolean requiresNetworkIgnoreTimeout() {
         return sealed ? requiresNetworkUntilNs > 0
                 : requiresNetworkTimeoutMs > 0;
+    }
+
+    /**
+     * Returns whether job requires a WIFI network connection to be run or not, without checking the
+     * timeout. This is convenient since it does not require a reference to the Timer if you are
+     * not using Jobs with requireWifiNetwork with a timeout.
+     *
+     * @return True if job requires a WIFI network to be run, false otherwise.
+     */
+    public final boolean requiresWifiNetworkIgnoreTimeout() {
+        return sealed ? requiresWifiNetworkUntilNs > 0
+                : requiresWifiNetworkTimeoutMs > 0;
+    }
+
+    /**
+     * Returns until which timestamp this Job will require a WIFI network connection to be run.
+     * <p>
+     * This value can be queried only after {@link Job#onAdded()} method is called.
+     * <ul>
+     * <li>If the job does not require a WIFI network, it will return {@link Params#NEVER}.</li>
+     * <li>If the job should never be run without a WIFI network, it will return {@link Params#FOREVER}.</li>
+     * <li>Otherwise, it will return the time in ns until which the job should require a WIFI network
+     * to be run and after that timeout it will be run regardless of the network requirements.</li>
+     * </ul>
+     * @return The timestamp (in ns) until which the job will require a network connection to be
+     * run.
+     */
+    public long getRequiresWifiNetworkUntilNs() {
+        return requiresWifiNetworkUntilNs;
     }
 
     /**
@@ -371,6 +418,19 @@ abstract public class Job implements Serializable {
         } else {
             requiresNetworkUntilNs = timer.nanoTime()
                     + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);
+        }
+
+        if (requiresWifiNetworkTimeoutMs == Params.NEVER) {
+            // convert it from nano
+            requiresWifiNetworkUntilNs = Params.NEVER;
+        } else if (requiresWifiNetworkTimeoutMs == Params.FOREVER) {
+            requiresWifiNetworkUntilNs = Params.FOREVER;
+        } else {
+            requiresWifiNetworkUntilNs = timer.nanoTime()
+                    + TimeUnit.MILLISECONDS.toNanos(requiresWifiNetworkTimeoutMs);
+        }
+        if (requiresNetworkUntilNs < requiresWifiNetworkUntilNs) {
+            requiresNetworkUntilNs = requiresWifiNetworkUntilNs;
         }
         sealed = true;
     }

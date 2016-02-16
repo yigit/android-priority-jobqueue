@@ -16,6 +16,7 @@ public class Where {
     private SQLiteStatement nextJobDelayUntilViaNetworkStmt;
     private String nextJobQuery;
     private int networkTimeoutArgIndex = -1;
+    private int wifiNetworkTimeoutArgIndex = -1;
 
     public Where(long cacheKey, String query, String[] args) {
         this.cacheKey = cacheKey;
@@ -25,6 +26,10 @@ public class Where {
 
     public void setNetworkTimeoutArgIndex(int index) {
         this.networkTimeoutArgIndex = index;
+    }
+
+    public void setWifiNetworkTimeoutArgIndex(int wifiNetworkTimeoutArgIndex) {
+        this.wifiNetworkTimeoutArgIndex = wifiNetworkTimeoutArgIndex;
     }
 
     public SQLiteStatement countReady(SQLiteDatabase database, StringBuilder stringBuilder) {
@@ -53,9 +58,6 @@ public class Where {
     }
     public SQLiteStatement nextJobDelayUntilWithNetworkRequirement(SQLiteDatabase database,
             SqlHelper sqlHelper) {
-        if (networkTimeoutArgIndex == -1) {
-            throw new IllegalStateException("The WHERE query does not have a timeout argument.");
-        }
         if (nextJobDelayUntilViaNetworkStmt == null) {
             StringBuilder sb = sqlHelper.reusedStringBuilder;
             sb.setLength(0);
@@ -63,14 +65,25 @@ public class Where {
                 .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName)
                 .append(",")
                 .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
+                .append(",")
+                .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName)
                 .append(") FROM ")
                 .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
                 .append(" WHERE ")
-                .append(query)
-                .append(" AND ")
-                .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
-                .append(" != ").append(Params.FOREVER)
-                .append(" ORDER BY 1 ASC").append(" limit 1");
+                .append(query);
+            // below NOT constraints are safe to add because this query will only be accessed if
+            // they are set to be excluded.
+            if (networkTimeoutArgIndex != -1) {
+                sb.append(" AND ")
+                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
+                        .append(" != ").append(Params.FOREVER);
+            }
+            if (wifiNetworkTimeoutArgIndex != -1) {
+                sb.append(" AND ")
+                        .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName)
+                        .append(" != ").append(Params.FOREVER);
+            }
+            sb.append(" ORDER BY 1 ASC").append(" limit 1");
             String selectQuery = sb.toString();
             nextJobDelayUntilViaNetworkStmt = database.compileStatement(selectQuery);
         } else {
@@ -79,8 +92,15 @@ public class Where {
         for (int i = 1; i <= args.length; i ++) {
             nextJobDelayUntilViaNetworkStmt.bindString(i, args[i - 1]);
         }
-        nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,
-                Long.toString(Params.FOREVER));
+        if (networkTimeoutArgIndex != -1) {
+            nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,
+                    Long.toString(Params.FOREVER));
+        }
+        if (wifiNetworkTimeoutArgIndex != -1) {
+            nextJobDelayUntilViaNetworkStmt.bindString(wifiNetworkTimeoutArgIndex + 1,
+                    Long.toString(Params.FOREVER));
+        }
+
         return nextJobDelayUntilViaNetworkStmt;
     }
 

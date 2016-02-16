@@ -27,6 +27,11 @@ public class TestConstraint extends Constraint {
     }
 
     @Override
+    public void setShouldNotRequireWifiNetwork(boolean shouldNotRequireWifiNetwork) {
+        super.setShouldNotRequireWifiNetwork(shouldNotRequireWifiNetwork);
+    }
+
+    @Override
     public void setTags(String[] tags) {
         super.setTags(tags);
     }

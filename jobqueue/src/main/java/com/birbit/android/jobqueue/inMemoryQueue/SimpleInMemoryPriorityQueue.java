@@ -138,30 +138,37 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         return null;
     }
 
+    private static Long getDelayUntil(JobHolder holder, boolean hasNetwork, boolean hasWifi) {
+        final long networkTimeout = holder.getRequiresNetworkUntilNs();
+        final long wifiTimeout = holder.getRequiresWifiNetworkUntilNs();
+        long delay = holder.getDelayUntilNs();
+
+        if (!hasNetwork) {
+            if (networkTimeout == Params.FOREVER) {
+                return null; // ineligible
+            }
+            delay = Math.max(delay, networkTimeout);
+        }
+        if (!hasWifi) {
+            if (wifiTimeout == Params.FOREVER) {
+                return null; // ineligible
+            }
+            delay = Math.max(delay, wifiTimeout);
+        }
+        return delay;
+    }
+
     @Override
     public Long getNextJobDelayUntilNs(Constraint constraint) {
         Long minDelay = null;
-        if (constraint.shouldNotRequireNetwork()) {
+        boolean hasNetwork = !constraint.shouldNotRequireNetwork();
+        boolean hasWifi = !constraint.shouldNotRequireWifiNetwork();
+        if (!hasNetwork || !hasWifi) {
             for (JobHolder holder : jobs) {
                 if (matches(holder, constraint, true)) {
-                    // we know every other constraint matches. Check for network
-                    long delayUntilNs = holder.getDelayUntilNs();
-                    final long delay;
-                    if (holder.requiresNetwork(constraint.getNowInNs())) {
-                        // check network timeout as well
-                        long requiresNetworkUntilNs = holder.getRequiresNetworkUntilNs();
-                        if (requiresNetworkUntilNs == Params.FOREVER) {
-                           // does not match the constraint
-                            continue;
-                        } else if (delayUntilNs != JobManager.NOT_DELAYED_JOB_DELAY){
-                            // the job has both delay and network requirement delay.
-                            // in this case we take the max because constraint required network
-                            delay = Math.max(requiresNetworkUntilNs, delayUntilNs);
-                        } else {
-                            delay = requiresNetworkUntilNs;
-                        }
-                    } else {
-                        delay = delayUntilNs;
+                    final Long delay = getDelayUntil(holder, hasNetwork, hasWifi);
+                    if (delay == null) {
+                        continue;// ineligible
                     }
                     if (minDelay == null || delay < minDelay) {
                         minDelay = delay;
@@ -213,9 +220,15 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
     @SuppressWarnings("RedundantIfStatement")
     private boolean matches(JobHolder holder, Constraint constraint, boolean ignoreNetwork) {
-        if (!ignoreNetwork && constraint.shouldNotRequireNetwork()
-                && holder.requiresNetwork(constraint.getNowInNs())) {
-            return false;
+        if (!ignoreNetwork) {
+            if (constraint.shouldNotRequireNetwork()
+                    && holder.requiresNetwork(constraint.getNowInNs())) {
+                return false;
+            }
+            if (constraint.shouldNotRequireWifiNetwork()
+                    && holder.requiresWifiNetwork(constraint.getNowInNs())) {
+                return false;
+            }
         }
         if (constraint.getTimeLimit() != null && holder.getDelayUntilNs() > constraint.getTimeLimit()) {
             return false;

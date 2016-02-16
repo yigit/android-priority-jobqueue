@@ -17,6 +17,7 @@ import java.util.Set;
  */
 public class Constraint {
     private boolean shouldNotRequireNetwork;
+    private boolean shouldNotRequireWifiNetwork;
     private TagConstraint tagConstraint;
     private final Set<String> tags = new HashSet<>();
     private final List<String> excludeGroups = new ArrayList<>();
@@ -25,12 +26,21 @@ public class Constraint {
     private Long timeLimit;
     private long nowInNs;
     /**
-     * Returns true if the network is currently available.
+     * Returns true if the network is currently not available.
      *
-     * @return True if network connection is currently available, false otherwise.
+     * @return True if network connection is currently unavailable, false otherwise.
      */
     public boolean shouldNotRequireNetwork() {
         return shouldNotRequireNetwork;
+    }
+
+    /**
+     * Returns true if the WIFI network is currently not available.
+     *
+     * @return True if the WIFI network connection is currently unavailable, false otherwise.
+     */
+    public boolean shouldNotRequireWifiNetwork() {
+        return shouldNotRequireWifiNetwork;
     }
 
     /**
@@ -92,6 +102,10 @@ public class Constraint {
         this.shouldNotRequireNetwork = shouldNotRequireNetwork;
     }
 
+    void setShouldNotRequireWifiNetwork(boolean shouldNotRequireWifiNetwork) {
+        this.shouldNotRequireWifiNetwork = shouldNotRequireWifiNetwork;
+    }
+
     void setTagConstraint(TagConstraint tagConstraint) {
         this.tagConstraint = tagConstraint;
     }
@@ -135,6 +149,7 @@ public class Constraint {
 
     void clear() {
         shouldNotRequireNetwork = false;
+        shouldNotRequireWifiNetwork = false;
         tagConstraint = null;
         tags.clear();
         excludeGroups.clear();

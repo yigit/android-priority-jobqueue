@@ -54,6 +54,7 @@ public class JobHolder {
     protected long createdNs;
     protected long runningSessionId;
     protected long requiresNetworkUntilNs;
+    protected long requiresWifiNetworkUntilNs;
     transient Job job;
     protected final Set<String> tags;
     private boolean cancelled;
@@ -80,6 +81,7 @@ public class JobHolder {
         job.priority = priority;
         this.runningSessionId = runningSessionId;
         this.requiresNetworkUntilNs = job.getRequiresNetworkUntilNs();
+        this.requiresWifiNetworkUntilNs = job.getRequiresWifiNetworkUntilNs();
         this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
     }
 
@@ -109,6 +111,21 @@ public class JobHolder {
 
     public long getRequiresNetworkUntilNs() {
         return requiresNetworkUntilNs;
+    }
+
+    /**
+     * The time should be acquired from {@link Configuration#getTimer()}
+     *
+     * @param timeInNs The current time in ns. This should be the time used by the JobManager.
+     *
+     * @return True if the job requires a WIFI network to be run right now, false otherwise.
+     */
+    public boolean requiresWifiNetwork(long timeInNs) {
+        return requiresWifiNetworkUntilNs > timeInNs;
+    }
+
+    public long getRequiresWifiNetworkUntilNs() {
+        return requiresWifiNetworkUntilNs;
     }
 
     public int getPriority() {

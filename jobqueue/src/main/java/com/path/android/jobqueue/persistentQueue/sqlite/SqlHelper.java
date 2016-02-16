@@ -224,8 +224,9 @@ public class SqlHelper {
     public void resetDelayTimesTo(long newDelayTime) {
         db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET "
                 + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?,"
-                + DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName + "=?"
-            , new Object[]{newDelayTime, newDelayTime});
+                + DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName + "=?, "
+                + DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName + "=?"
+            , new Object[]{newDelayTime, newDelayTime, newDelayTime});
     }
 
     public static class Property {

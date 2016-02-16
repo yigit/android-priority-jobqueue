@@ -20,6 +20,7 @@ public class Params {
     public static final long NEVER = Long.MIN_VALUE;
 
     private long requiresNetworkWithTimeout = NEVER;
+    private long requiresWifiNetworkWithTimeout = NEVER;
     private String groupId = null;
     private boolean persistent = false;
     private int priority;
@@ -35,7 +36,7 @@ public class Params {
     }
 
     /**
-     * Sets the Job as requiring network
+     * Sets the Job as requiring network.
      * @return this
      */
     public Params requireNetwork() {
@@ -43,10 +44,42 @@ public class Params {
     }
 
     /**
+     * Sets the Job as requiring WIFI network.
+     * @return this
+     */
+    public Params requireWifiNetwork() {
+        return requireNetworkWithTimeout(FOREVER);
+    }
+
+    /**
+     * Sets the Job as requiring a wifi network connection with the given timeoutMs. The Job will
+     * not be run until a network connection is detected. If {@code timeoutMs} is not
+     * {@link #FOREVER}, the Job will be available to run without a WIFI connection if it cannot be
+     * run with WIFI connection in the given time period.
+     * <p>
+     * If you want the job to require WIFI network for a limited time then fall back to mobile
+     * network, you can do so by {@code requireWifi(timeout).requireNetwork()}. You can even specify
+     * a timeout for the non-wifi connection as well if you wish the job to be run if enough time
+     * passes and no desired network is available.
+     *
+     * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
+     *                no WIFI connection.
+     *
+     * @return The Params
+     */
+    public Params requireWifiNetworkWithTimeout(long timeoutMs) {
+        requiresWifiNetworkWithTimeout = timeoutMs;
+        return this;
+    }
+
+    /**
      * Sets the Job as requiring a network connection with the given timeoutMs. The Job will not be
      * run until a network connection is detected. If {@code timeoutMs} is not {@link #FOREVER}, the
      * Job will available to run without a network connection if it cannot be run in the given time
      * period.
+     * <p>In case this timeout is set to a value smaller than {@code wifi network requirement}
+     * ({@link #requireWifiNetworkWithTimeout(long)}, the WIFI timeout will override this one.
+     *
      * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
      *                no network connection.
      *
@@ -113,7 +146,26 @@ public class Params {
     }
 
     /**
+     * Returns when the Job's WIFI network requirement will timeout.
+     * <ul>
+     * <li>If the job does not require WIFI network, it will return {@link #NEVER}.</li>
+     * <li>If the job should never be run without WIFI network, it will return {@link #FOREVER}.</li>
+     * <li>Otherwise, it will return the timeout in ms until which the job should require network
+     * to be run and after that timeout it will be run regardless of the WIFI network requirements.
+     * It may still be requiring a network connection via {@link #requireNetwork()} or
+     * {@link #requireNetworkWithTimeout(long)}</li>
+     * </ul>
+     *
+     * @return The network requirement constraint
+     */
+    public long getRequiresWifiNetworkTimeoutMs() {
+        return requiresWifiNetworkWithTimeout;
+    }
+
+    /**
      * Convenience method to set network requirement.
+     * <p>In case this timeout is set to a value smaller than {@code wifi network requirement}
+     * ({@link #requireWifiNetworkWithTimeout(long)}, the WIFI timeout will override this one.
      *
      * @param requiresNetwork True if Job should not be run without a network, false otherwise.
      * @param timeout The timeout after which Job should be run without checking network status.
