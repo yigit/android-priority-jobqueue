@@ -4,6 +4,7 @@ import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 
 import org.hamcrest.CoreMatchers;
@@ -25,7 +26,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .networkUtil(dummyNetworkUtil)
                         .timer(mockTimer));
-        dummyNetworkUtil.setHasNetwork(false, true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED, true);
         final DummyJob dummyJob = new DummyJob(new Params(0).requireNetwork());
         jobManager.addJob(dummyJob);
         // no job to run so consumers should finish
@@ -37,7 +38,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         //noinspection SLEEP_IN_CODE
         Thread.sleep(2000);
 
-        dummyNetworkUtil.setHasNetwork(true, false);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE, false);
         //noinspection SLEEP_IN_CODE
         Thread.sleep(5000); //wait a little bit more to let consumer run
         MatcherAssert.assertThat("even though network is recovered, job manager should not consume any job because it " +
@@ -46,7 +47,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
             @Override
             public void run() {
-                dummyNetworkUtil.setHasNetwork(true, true);
+                dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
             }
 
             @Override

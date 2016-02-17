@@ -6,6 +6,7 @@ import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -18,28 +19,57 @@ import org.robolectric.annotation.Config;
 import android.annotation.TargetApi;
 import android.os.Build;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(ParameterizedRobolectricTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class NetworkJobTest extends JobManagerTestBase {
+    final boolean useWifi;
     static CountDownLatch persistentDummyJobRunLatch;
+
+    public NetworkJobTest(boolean useWifi) {
+        this.useWifi = useWifi;
+    }
+
     @Before
     public void cleanup() {
         persistentDummyJobRunLatch = new CountDownLatch(1);
     }
 
+    @ParameterizedRobolectricTestRunner.Parameters(name = "useWifi:{0}")
+    public static List<Object[]> getParams() {
+        return Arrays.asList(new Object[]{true}, new Object[]{false});
+    }
+
+    private Params addRequirement(Params params) {
+        if (useWifi) {
+            return params.requireWifiNetwork();
+        } else {
+            return params.requireNetwork();
+        }
+    }
+
+    private Params addRequirement(Params params, long timeoutMs) {
+        if (useWifi) {
+            return params.requireWifiNetworkWithTimeout(timeoutMs);
+        } else {
+            return params.requireNetworkWithTimeout(timeoutMs);
+        }
+    }
+
     @Test
     public void testNetworkJobWithTimeout() throws InterruptedException {
         JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
-        dummyNetworkUtil.setHasNetwork(false);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         final JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .networkUtil(dummyNetworkUtil)
                         .timer(mockTimer));
         final CountDownLatch runLatch = new CountDownLatch(1);
-        DummyJob networkDummyJob = new DummyJob(new Params(1).requireNetworkWithTimeout(4)){
+        DummyJob networkDummyJob = new DummyJob(addRequirement(new Params(1), 4)){
             @Override
             public void onRun() throws Throwable {
                 runLatch.countDown();
@@ -57,13 +87,13 @@ public class NetworkJobTest extends JobManagerTestBase {
     @Test
     public void testPersistentNetworkJobWithTimeout() throws InterruptedException {
         JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
-        dummyNetworkUtil.setHasNetwork(false);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         final JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .networkUtil(dummyNetworkUtil)
                         .timer(mockTimer));
-        PersistentDummyJob networkDummyJob = new PersistentDummyJob(new Params(1)
-                .requireNetworkWithTimeout(4));
+        PersistentDummyJob networkDummyJob = new PersistentDummyJob(addRequirement(new Params(1),
+                4));
         jobManager.addJob(networkDummyJob);
         MatcherAssert.assertThat("job should not run",
                 persistentDummyJobRunLatch.await(3, TimeUnit.SECONDS), is(false));
@@ -83,22 +113,22 @@ public class NetworkJobTest extends JobManagerTestBase {
                         .timer(mockTimer));
         jobManager.stop();
 
-        DummyJob networkDummyJob = new DummyJob(new Params(5).requireNetwork());
+        DummyJob networkDummyJob = new DummyJob(addRequirement(new Params(5)));
         jobManager.addJob(networkDummyJob);
 
         DummyJob noNetworkDummyJob = new DummyJob(new Params(2));
         jobManager.addJob(noNetworkDummyJob);
 
-        DummyJob networkPersistentJob = new DummyJob(new Params(6).persist().requireNetwork());
+        DummyJob networkPersistentJob = new DummyJob(addRequirement(new Params(6).persist()));
         jobManager.addJob(networkPersistentJob);
 
         DummyJob noNetworkPersistentJob = new DummyJob(new Params(1).persist());
         jobManager.addJob(noNetworkPersistentJob);
 
         MatcherAssert.assertThat("count should be correct if there are network and non-network jobs w/o network", jobManager.count(), equalTo(4));
-        dummyNetworkUtil.setHasNetwork(true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE);
         MatcherAssert.assertThat("count should be correct if there is network and non-network jobs w/o network", jobManager.count(), equalTo(4));
-        dummyNetworkUtil.setHasNetwork(false);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         final CountDownLatch noNetworkLatch = new CountDownLatch(2);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
@@ -128,8 +158,15 @@ public class NetworkJobTest extends JobManagerTestBase {
                 }
             }
         });
-        dummyNetworkUtil.setHasNetwork(true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE);
         mockTimer.incrementMs(10000); // network check delay, make public?
+        if (useWifi) {
+            MatcherAssert.assertThat("if jobs require wifi, they should not be run",
+                    networkLatch.await(10, TimeUnit.SECONDS), is(false));
+            MatcherAssert.assertThat(networkLatch.getCount(), is(2L));
+            dummyNetworkUtil.setNetworkStatus(NetworkUtil.WIFI);
+            mockTimer.incrementMs(10000); // network check delay
+        }
         MatcherAssert.assertThat(networkLatch.await(1, TimeUnit.MINUTES), is(true));
         MatcherAssert.assertThat("when network is recovered, all network jobs should be automatically consumed", jobManager.count(), equalTo(0));
     }

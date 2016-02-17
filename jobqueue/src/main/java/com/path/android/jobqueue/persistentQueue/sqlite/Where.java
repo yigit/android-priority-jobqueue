@@ -62,15 +62,19 @@ public class Where {
             StringBuilder sb = sqlHelper.reusedStringBuilder;
             sb.setLength(0);
             sb.append("SELECT max(")
-                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName)
-                .append(",")
-                .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
-                .append(",")
-                .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName)
-                .append(") FROM ")
-                .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
-                .append(" WHERE ")
-                .append(query);
+                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);
+            if (networkTimeoutArgIndex != -1) {
+                sb.append(",")
+                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);
+            }
+            if (wifiNetworkTimeoutArgIndex != -1) {
+                sb.append(",")
+                        .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName);
+            }
+            sb.append(") FROM ")
+                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(query);
             // below NOT constraints are safe to add because this query will only be accessed if
             // they are set to be excluded.
             if (networkTimeoutArgIndex != -1) {

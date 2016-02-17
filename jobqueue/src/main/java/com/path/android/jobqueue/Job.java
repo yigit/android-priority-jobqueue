@@ -92,6 +92,7 @@ abstract public class Job implements Serializable {
                     + " a job manager.");
         }
         oos.writeLong(requiresNetworkUntilNs);
+        oos.writeLong(requiresWifiNetworkUntilNs);
         oos.writeObject(groupId);
         oos.writeBoolean(persistent);
         final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();
@@ -107,6 +108,7 @@ abstract public class Job implements Serializable {
 
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         requiresNetworkUntilNs = ois.readLong();
+        requiresWifiNetworkUntilNs = ois.readLong();
         groupId = (String) ois.readObject();
         persistent = ois.readBoolean();
         final int tagCount = ois.readInt();

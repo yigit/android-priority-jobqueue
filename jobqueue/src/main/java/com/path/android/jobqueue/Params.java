@@ -48,7 +48,7 @@ public class Params {
      * @return this
      */
     public Params requireWifiNetwork() {
-        return requireNetworkWithTimeout(FOREVER);
+        return requireWifiNetworkWithTimeout(FOREVER);
     }
 
     /**

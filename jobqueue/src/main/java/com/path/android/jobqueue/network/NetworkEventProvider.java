@@ -9,8 +9,8 @@ public interface NetworkEventProvider {
     void setListener(Listener listener);
     interface Listener {
         /**
-         * @param isConnected can be as simple as having an internet connect or can also be customized. (e.g. if your servers are down)
+         * @param networkStatus {@link com.path.android.jobqueue.network.NetworkUtil.NetworkStatus}
          */
-        void onNetworkChange(boolean isConnected);
+        void onNetworkChange(@NetworkUtil.NetworkStatus int networkStatus);
     }
 }

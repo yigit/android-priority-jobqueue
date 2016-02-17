@@ -25,20 +25,26 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
                 //http://developer.android.com/reference/android/net/ConnectivityManager.html#EXTRA_NETWORK_INFO
                 //Since NetworkInfo can vary based on UID, applications should always obtain network information
                 // through getActiveNetworkInfo() or getAllNetworkInfo().
-                listener.onNetworkChange(isConnected(context));
+                listener.onNetworkChange(getNetworkStatus(context));
             }
         }, getNetworkIntentFilter());
     }
 
     @Override
-    public boolean isConnected(Context context) {
+    public int getNetworkStatus(Context context) {
         if (isDozing(context)) {
-            return false;
+            return NetworkUtil.DISCONNECTED;
         }
-
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
+        if (netInfo == null) {
+            return NetworkUtil.DISCONNECTED;
+        }
+        if (netInfo.getType() == ConnectivityManager.TYPE_WIFI ||
+                netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
+            return NetworkUtil.WIFI;
+        }
+        return NetworkUtil.MOBILE;
     }
 
     @TargetApi(23)

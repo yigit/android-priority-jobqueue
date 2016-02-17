@@ -6,6 +6,7 @@ import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -66,7 +67,7 @@ public class KeepAliveTest extends JobManagerTestBase {
                 jobManager.getActiveConsumerCount(), equalTo(0));
 
         //disable network and add a network bound job
-        networkUtil.setHasNetwork(false);
+        networkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         final DummyJob dj1 = new DummyJob(new Params(0).requireNetwork());
         jobManager.addJob(dj1);
 
@@ -76,7 +77,7 @@ public class KeepAliveTest extends JobManagerTestBase {
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
             @Override
             public void run() {
-                networkUtil.setHasNetwork(true);
+                networkUtil.setNetworkStatus(NetworkUtil.MOBILE);
             }
 
             @Override

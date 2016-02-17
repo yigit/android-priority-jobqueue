@@ -6,6 +6,7 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import org.fest.reflect.method.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -62,7 +63,7 @@ public class GroupingTest extends JobManagerTestBase {
                 .minConsumerCount(5).maxConsumerCount(10)
                 .networkUtil(dummyNetworkUtil)
                 .timer(mockTimer));
-        dummyNetworkUtil.setHasNetwork(false, true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED, true);
         //add a bunch of network requring jobs
         final String GROUP_ID = "shared_group_id";
         final int AFTER_ADDED_JOBS_COUNT = 5;
@@ -111,7 +112,7 @@ public class GroupingTest extends JobManagerTestBase {
                 }
             });
         }
-        dummyNetworkUtil.setHasNetwork(true, true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
         //wait until all jobs are completed
         aJobRun.await(1, TimeUnit.MINUTES);
         MatcherAssert.assertThat("highest priority job should run if it is added before others", firstRunJob.get(), is(FIRST_JOB_ID));

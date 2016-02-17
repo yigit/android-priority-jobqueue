@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import com.path.android.jobqueue.TagConstraint;
+import com.path.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,6 +9,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
+import static com.path.android.jobqueue.network.NetworkUtil.WIFI;
 
 /**
  * This class is used when querying JobQueues to fetch particular jobs.
@@ -157,5 +161,10 @@ public class Constraint {
         excludeRunning = false;
         timeLimit = null;
         nowInNs = Long.MIN_VALUE;
+    }
+
+    void setNetworkStatus(@NetworkUtil.NetworkStatus int connectionStatus) {
+        setShouldNotRequireNetwork(connectionStatus == DISCONNECTED);
+        setShouldNotRequireWifiNetwork(connectionStatus != WIFI);
     }
 }

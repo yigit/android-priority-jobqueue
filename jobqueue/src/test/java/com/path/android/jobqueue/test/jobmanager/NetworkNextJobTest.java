@@ -4,6 +4,7 @@ import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 
 import org.hamcrest.MatcherAssert;
@@ -31,13 +32,13 @@ public class NetworkNextJobTest extends JobManagerTestBase {
         jobManager.stop();
         DummyJob dummyJob = new DummyJob(new Params(0).requireNetwork());
         jobManager.addJob(dummyJob);
-        dummyNetworkUtil.setHasNetwork(false);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         MatcherAssert.assertThat("when there isn't any network, next job should return null",
                 nextJob(jobManager), nullValue());
         MatcherAssert
                 .assertThat("even if there is network, job manager should return correct count",
                         jobManager.count(), equalTo(1));
-        dummyNetworkUtil.setHasNetwork(true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE);
         JobHolder retrieved = nextJob(jobManager);
         MatcherAssert
                 .assertThat("when network is recovered, next job should be retrieved", retrieved,

@@ -898,6 +898,30 @@ public abstract class JobQueueTestBase extends TestBase {
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
+    @Test
+    public void testDelayUntilWithWifiAndNetworkRequirements() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder = createNewJobHolder(
+                new Params(2).requireWifiNetworkWithTimeout(500).requireNetworkWithTimeout(700));
+        jobQueue.insert(holder);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireNetwork(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(700000000L));
+    }
+
+    @Test
+    public void testDelayUntilWithWifiAndNetworkRequirements2() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder = createNewJobHolder(
+                new Params(2).requireWifiNetworkWithTimeout(500).requireNetworkWithTimeout(700));
+        jobQueue.insert(holder);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireNetwork(false);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
+    }
+
     private void assertTags(String msg, JobQueue jobQueue, JobHolder holder) {
         Set<JobHolder> result;
         String wrongTag;

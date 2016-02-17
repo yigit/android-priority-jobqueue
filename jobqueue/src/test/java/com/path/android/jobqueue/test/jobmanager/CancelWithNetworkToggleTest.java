@@ -5,6 +5,7 @@ import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -54,7 +55,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
                         .minConsumerCount(5)
                         .networkUtil(networkUtil)
                         .timer(mockTimer));
-        networkUtil.setHasNetwork(false, true);
+        networkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED, true);
         jobManager.addJob(new DummyJob(new Params(1).requireNetwork().groupBy("group").addTags("tag")));
         jobManager.addJob(new DummyJob(new Params(2).requireNetwork().groupBy("group").addTags("tag")));
         jobManager.addJob(new DummyJob(new Params(3).requireNetwork().groupBy("group").addTags("tag")));
@@ -83,7 +84,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
                 runLatch.countDown();
             }
         });
-        networkUtil.setHasNetwork(true, true);
+        networkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
         assertThat("new job should run w/o any issues", runLatch.await(2, TimeUnit.SECONDS), is(true));
     }
 
@@ -118,7 +119,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
         JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
                 .minConsumerCount(5)
                 .networkUtil(networkUtil));
-        networkUtil.setHasNetwork(false, true);
+        networkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED, true);
         jobManager.addJob(new DummyJob(new Params(1).persist().requireNetwork().groupBy("group").addTags("tag")));
         jobManager.addJob(new DummyJob(new Params(2).persist().requireNetwork().groupBy("group").addTags("tag")));
         jobManager.addJob(new DummyJob(new Params(3).persist().requireNetwork().groupBy("group").addTags("tag")));
@@ -141,7 +142,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
         assertThat("no jobs should fail to cancel", result[0].getFailedToCancel().size(), is(0));
         final CountDownLatch runLatch = persistentLatches[latchCounter ++];
         jobManager.addJob(new PersistentDummyJob(new Params(3).persist().requireNetwork().groupBy("group").addTags("tag"), latchCounter - 1));
-        networkUtil.setHasNetwork(true, true);
+        networkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
         assertThat("new job should run w/o any issues", runLatch.await(2, TimeUnit.SECONDS), is(true));
     }
 

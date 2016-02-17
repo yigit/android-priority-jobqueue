@@ -30,7 +30,8 @@ import com.path.android.jobqueue.timer.Timer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
+import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
+import static com.path.android.jobqueue.network.NetworkUtil.WIFI;
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
@@ -190,7 +191,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 message.getCallback().onResult(count());
                 break;
             case PublicQueryMessage.COUNT_READY:
-                message.getCallback().onResult(countReadyJobs(hasNetwork()));
+                message.getCallback().onResult(countReadyJobs(getNetworkStatus()));
                 break;
             case PublicQueryMessage.START:
                 JqLog.d("handling start request...");
@@ -244,11 +245,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if(holder == null) {
             return JobStatus.UNKNOWN;
         }
-        boolean network = hasNetwork();
-        if(holder.requiresNetwork(timer.nanoTime()) && !network) {
+        final int networkStatus = getNetworkStatus();
+        long now = timer.nanoTime();
+        if(networkStatus == DISCONNECTED && holder.requiresNetwork(now)) {
             return JobStatus.WAITING_NOT_READY;
         }
-        if(holder.getDelayUntilNs() > timer.nanoTime()) {
+        if(networkStatus != WIFI && holder.requiresWifiNetwork(now)) {
+            return JobStatus.WAITING_NOT_READY;
+        }
+        if(holder.getDelayUntilNs() > now) {
             return JobStatus.WAITING_NOT_READY;
         }
         return JobStatus.WAITING_READY;
@@ -356,9 +361,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     @Override
-    public void onNetworkChange(boolean isConnected) {
+    public void onNetworkChange(@NetworkUtil.NetworkStatus int networkStatus) {
         ConstraintChangeMessage constraint = messageFactory.obtain(ConstraintChangeMessage.class);
-        constraint.setNetwork(isConnected);
         messageQueue.post(constraint);
     }
 
@@ -367,14 +371,14 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     int countRemainingReadyJobs() {
-        return countReadyJobs(hasNetwork());
+        return countReadyJobs(getNetworkStatus());
     }
 
-    private int countReadyJobs(boolean hasNetwork) {
+    private int countReadyJobs(@NetworkUtil.NetworkStatus int networkStatus) {
         final Collection<String> runningJobs = consumerManager.runningJobGroups.getSafe();
         queryConstraint.clear();
         queryConstraint.setNowInNs(timer.nanoTime());
-        queryConstraint.setShouldNotRequireNetwork(!hasNetwork);
+        queryConstraint.setNetworkStatus(networkStatus);
         queryConstraint.setExcludeGroups(runningJobs);
         queryConstraint.setExcludeRunning(true);
         queryConstraint.setTimeLimit(timer.nanoTime());
@@ -385,17 +389,18 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         return total;
     }
 
-    private boolean hasNetwork() {
-        return networkUtil == null || networkUtil.isConnected(appContext);
+    @NetworkUtil.NetworkStatus
+    private int getNetworkStatus() {
+        return networkUtil == null ? NetworkUtil.WIFI : networkUtil.getNetworkStatus(appContext);
     }
 
     Long getNextWakeUpNs(boolean includeNetworkWatch) {
         final Long groupDelay = consumerManager.runningJobGroups.getNextDelayForGroups();
-        final boolean hasNetwork = hasNetwork();
+        final int networkStatus = getNetworkStatus();
         final Collection<String> groups = consumerManager.runningJobGroups.getSafe();
         queryConstraint.clear();
         queryConstraint.setNowInNs(timer.nanoTime());
-        queryConstraint.setShouldNotRequireNetwork(!hasNetwork);
+        queryConstraint.setNetworkStatus(networkStatus);
         queryConstraint.setExcludeGroups(groups);
         queryConstraint.setExcludeRunning(true);
         final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(queryConstraint);
@@ -436,13 +441,13 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (!running && !ignoreRunning) {
             return null;
         }
-        boolean haveNetwork = hasNetwork();
+        final int networkStatus = getNetworkStatus();
         JobHolder jobHolder;
         boolean persistent = false;
         JqLog.d("looking for next job");
         queryConstraint.clear();
         queryConstraint.setNowInNs(timer.nanoTime());
-        queryConstraint.setShouldNotRequireNetwork(!haveNetwork);
+        queryConstraint.setNetworkStatus(networkStatus);
         queryConstraint.setExcludeGroups(runningJobGroups);
         queryConstraint.setExcludeRunning(true);
         queryConstraint.setTimeLimit(timer.nanoTime());

@@ -6,6 +6,7 @@ import com.path.android.jobqueue.JobStatus;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
 import com.path.android.jobqueue.test.timer.MockTimer;
 
@@ -34,7 +35,7 @@ public class JobStatusTest extends JobManagerTestBase {
     @Test
     public void testJobStatus() throws InterruptedException {
         DummyNetworkUtilWithConnectivityEventSupport networkUtil = new DummyNetworkUtilWithConnectivityEventSupport();
-        networkUtil.setHasNetwork(false, true);
+        networkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED, true);
         final JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application).networkUtil(networkUtil)
                         .timer(mockTimer));
@@ -52,7 +53,7 @@ public class JobStatusTest extends JobManagerTestBase {
             if(jobs[i].requiresNetwork(mockTimer)) {
                 networkRequiringJobIndices.add(i);
             }
-            JobStatus expectedStatus = (networkUtil.isConnected() || !jobs[i].requiresNetwork(mockTimer)) ? JobStatus.WAITING_READY :
+            JobStatus expectedStatus = (!networkUtil.isDisconnected() || !jobs[i].requiresNetwork(mockTimer)) ? JobStatus.WAITING_READY :
                     JobStatus.WAITING_NOT_READY;
             assertThat("job should have correct status after being added",
                     jobManager.getJobStatus(ids[i]), is(expectedStatus));
@@ -108,7 +109,7 @@ public class JobStatusTest extends JobManagerTestBase {
                     jobManager.getJobStatus(ids[i]), is(JobStatus.WAITING_NOT_READY));
         }
         jobManager.stop();
-        networkUtil.setHasNetwork(true, true);
+        networkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
         for(Integer i : networkRequiringJobIndices) {
             assertThat("network requiring job should still be ready after network is there",
                     jobManager.getJobStatus(ids[i]), is(JobStatus.WAITING_READY));

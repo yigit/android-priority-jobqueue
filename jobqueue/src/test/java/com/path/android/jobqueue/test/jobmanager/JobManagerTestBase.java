@@ -180,47 +180,49 @@ public class JobManagerTestBase extends TestBase {
     }
 
     protected static class DummyNetworkUtil implements NetworkUtil {
-        private boolean hasNetwork;
+        @NetworkStatus
+        private int networkStatus;
 
-        protected void setHasNetwork(boolean hasNetwork) {
-            this.hasNetwork = hasNetwork;
+        protected void setNetworkStatus(@NetworkStatus  int networkStatus) {
+            this.networkStatus = networkStatus;
         }
 
         @Override
-        public boolean isConnected(Context context) {
-            return hasNetwork;
+        public int getNetworkStatus(Context context) {
+            return networkStatus;
         }
     }
 
     protected static class DummyNetworkUtilWithConnectivityEventSupport extends DummyNetworkUtil
             implements NetworkUtil, NetworkEventProvider {
-        private boolean hasNetwork;
+        @NetworkStatus
+        private int networkStatus;
         private Listener listener;
 
-        protected void setHasNetwork(boolean hasNetwork, boolean notifyListener) {
-            this.hasNetwork = hasNetwork;
+        protected void setNetworkStatus(@NetworkStatus int networkStatus, boolean notifyListener) {
+            this.networkStatus = networkStatus;
             if(notifyListener && listener != null) {
-                listener.onNetworkChange(hasNetwork);
+                listener.onNetworkChange(networkStatus);
             }
         }
 
         @Override
-        protected void setHasNetwork(boolean hasNetwork) {
-            setHasNetwork(hasNetwork, true);
+        protected void setNetworkStatus(@NetworkStatus int networkStatus) {
+            setNetworkStatus(networkStatus, true);
         }
 
         @Override
-        public boolean isConnected(Context context) {
-            return hasNetwork;
+        public int getNetworkStatus(Context context) {
+            return networkStatus;
+        }
+
+        public boolean isDisconnected() {
+            return networkStatus == DISCONNECTED;
         }
 
         @Override
         public void setListener(Listener listener) {
             this.listener = listener;
-        }
-
-        public boolean isConnected() {
-            return hasNetwork;
         }
     }
 
@@ -248,6 +250,7 @@ public class JobManagerTestBase extends TestBase {
             createdJobs.add(this);
         }
 
+        @TargetApi(Build.VERSION_CODES.GINGERBREAD)
         @Override
         public void onRun() throws Throwable {
             super.onRun();
