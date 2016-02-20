@@ -9,7 +9,7 @@ import org.robolectric.Robolectric;
 
 import java.util.Map;
 
-public class CleanupRule extends TestWatcher {
+public class CleanupRule extends ThreadDumpRule {
     final JobManagerTestBase test;
 
     public CleanupRule(JobManagerTestBase test) {
@@ -20,24 +20,6 @@ public class CleanupRule extends TestWatcher {
     protected void starting(Description description) {
         super.starting(description);
         System.out.println("started test " + getId(description));
-    }
-
-    @Override
-    protected void failed(Throwable e, Description description) {
-        Map<Thread, StackTraceElement[]> stackTraces = Thread.getAllStackTraces();
-        // add stack traces to the errors
-        StringBuilder sb = new StringBuilder("Thread dump:");
-        for (Map.Entry<Thread, StackTraceElement[]> entry : stackTraces.entrySet()) {
-            sb.append(entry.getKey().getName()).append("\n");
-            for (StackTraceElement element : entry.getValue()) {
-                sb.append("  ").append(element.getClassName())
-                .append("#").append(element.getMethodName())
-                .append("#").append(element.getLineNumber())
-                .append("\n");
-            }
-            sb.append("\n----------\n");
-        }
-        throw new AssertionError(sb.toString());
     }
 
     @Override

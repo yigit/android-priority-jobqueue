@@ -56,35 +56,44 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
 
     Message next(MessageQueueConsumer consumer) {
         boolean calledIdle = false;
-        synchronized (LOCK) {
-            while (running.get()) {
-                long now = timer.nanoTime();
-                Long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
+
+        while (running.get()) {
+            final Long nextDelayedReadyAt;
+            final long now;
+            synchronized (LOCK) {
+                now = timer.nanoTime();
+                nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
                 Message message = super.next();
                 if (message != null) {
                     return message;
                 }
-                if (!calledIdle) {
-                    postMessageTick = false;
-                    JqLog.d("calling on idle");
-                    consumer.onIdle();
-                    JqLog.d("did idle post message? %s", postMessageTick);
-                    calledIdle = true;
-                    if (postMessageTick) {
-                        continue; // callback added a message, requery
-                    }
+                postMessageTick = false;
+            }
+            // call onIdle outside the lock. This risks calling onIdle after a message post but
+            // it is better than locking post messages until idle finishes.
+            if (!calledIdle) {
+                consumer.onIdle();
+                calledIdle = true;
+            }
+            synchronized (LOCK) {
+                if (postMessageTick) {
+                    continue; // callback added a message, requery
                 }
                 if (nextDelayedReadyAt != null && nextDelayedReadyAt <= now) {
                     continue;
                 }
-                try {
-                    if (nextDelayedReadyAt == null) {
-                        timer.waitOnObject(LOCK);
-                    } else {
-                        timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
+                if (running.get()) {
+                    try {
+                        if (nextDelayedReadyAt == null) {
+                            timer.waitOnObject(LOCK);
+                        } else {
+                            timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
+                        }
+                    } catch (InterruptedException ignored) {
                     }
-                }  catch (InterruptedException ignored) {}
+                }
             }
+
         }
         return null;
     }

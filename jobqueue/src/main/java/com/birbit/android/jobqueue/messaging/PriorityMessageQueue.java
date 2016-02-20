@@ -63,11 +63,13 @@ public class PriorityMessageQueue implements MessageQueue {
 
     public Message next(MessageQueueConsumer consumer) {
         boolean calledOnIdle = false;
-        synchronized (LOCK) {
-            while (running.get()) {
-                long now = timer.nanoTime();
+        while (running.get()) {
+            final Long nextDelayedReadyAt;
+            final long now;
+            synchronized (LOCK) {
+                now = timer.nanoTime();
                 JqLog.d("looking for next message at time %s", now);
-                Long nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
+                nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
                 JqLog.d("next delayed job %s", nextDelayedReadyAt);
                 for (int i = Type.MAX_PRIORITY; i >= 0; i--) {
                     UnsafeMessageQueue mq = queues[i];
@@ -79,26 +81,31 @@ public class PriorityMessageQueue implements MessageQueue {
                         return message;
                     }
                 }
-                if (!calledOnIdle) {
-                    postJobTick = false;
-                    consumer.onIdle();
-                    calledOnIdle = true;
-                    JqLog.d("did on idle post a message? %s", postJobTick);
-                    // callback may add new messages
-                    if (postJobTick) {
-                        continue; // idle posted jobs, requery
-                    }
+                postJobTick = false;
+            }
+            if (!calledOnIdle) {
+                consumer.onIdle();
+                calledOnIdle = true;
+            }
+            synchronized (LOCK) {
+                JqLog.d("did on idle post a message? %s", postJobTick);
+                // callback may add new messages
+                if (postJobTick) {
+                    continue; // idle posted jobs, requery
                 }
                 if (nextDelayedReadyAt != null && nextDelayedReadyAt <= now) {
                     continue;
                 }
-                try {
-                    if (nextDelayedReadyAt == null) {
-                        timer.waitOnObject(LOCK);
-                    } else {
-                        timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
+                if (running.get()) {
+                    try {
+                        if (nextDelayedReadyAt == null) {
+                            timer.waitOnObject(LOCK);
+                        } else {
+                            timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
+                        }
+                    } catch (InterruptedException ignored) {
                     }
-                }  catch (InterruptedException ignored) {}
+                }
             }
         }
         return null;

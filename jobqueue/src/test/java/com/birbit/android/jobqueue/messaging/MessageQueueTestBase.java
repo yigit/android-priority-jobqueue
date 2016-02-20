@@ -1,15 +1,21 @@
 package com.birbit.android.jobqueue.messaging;
 
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
+import com.birbit.android.jobqueue.testing.CleanupRule;
+import com.birbit.android.jobqueue.testing.ThreadDumpRule;
 import com.path.android.jobqueue.test.TestBase;
 import com.path.android.jobqueue.test.timer.MockTimer;
 import com.path.android.jobqueue.timer.Timer;
 
 import junit.framework.Assert;
+import junit.framework.AssertionFailedError;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Factory;
+import org.hamcrest.MatcherAssert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +26,8 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 abstract public class MessageQueueTestBase<T extends MessageQueue> {
+    @Rule public Timeout timeout = Timeout.seconds(60);
+    @Rule public ThreadDumpRule threadDump = new ThreadDumpRule();
     abstract T createMessageQueue(Timer timer, MessageFactory factory);
     @Test
     public void postDelayed() throws InterruptedException {
@@ -170,6 +178,9 @@ abstract public class MessageQueueTestBase<T extends MessageQueue> {
         assertThat(runLatch.await(10, TimeUnit.SECONDS), CoreMatchers.is(true));
         mq.stop();
         thread.join(5000);
+        if (thread.isAlive()) {
+            threadDump.failed(new AssertionFailedError("thread did not die"), null);
+        }
         assertThat(thread.isAlive(), CoreMatchers.is(false));
     }
 
@@ -215,5 +226,48 @@ abstract public class MessageQueueTestBase<T extends MessageQueue> {
         assertThat(idleLatch.await(3, TimeUnit.SECONDS), CoreMatchers.is(true));
         mq.stop();
         thread.join();
+    }
+
+    @Test
+    public void postWhileIdle() throws InterruptedException {
+        final MockTimer timer = new MockTimer();
+        final MessageQueue mq = createMessageQueue(timer, new MessageFactory());
+        final CountDownLatch idleEnterLatch = new CountDownLatch(1);
+        final CountDownLatch idleExitLatch = new CountDownLatch(1);
+        final CountDownLatch handleMessage = new CountDownLatch(1);
+        final CommandMessage cm = new CommandMessage();
+        cm.set(CommandMessage.POKE);
+        final MessageQueueConsumer consumer = new MessageQueueConsumer() {
+            @Override
+            public void handleMessage(Message message) {
+                if (message == cm) {
+                    handleMessage.countDown();
+                }
+            }
+
+            @Override
+            public void onIdle() {
+                idleEnterLatch.countDown();
+                try {
+                    idleExitLatch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mq.consume(consumer);
+            }
+        });
+        thread.start();
+        MatcherAssert.assertThat(idleEnterLatch.await(30, TimeUnit.SECONDS), CoreMatchers.is(true));
+        mq.post(cm);
+        idleExitLatch.countDown();
+        MatcherAssert.assertThat(handleMessage.await(30, TimeUnit.SECONDS), CoreMatchers.is(true));
+        mq.stop();
+        thread.join(5000);
+        assertThat(thread.isAlive(), CoreMatchers.is(false));
     }
 }
