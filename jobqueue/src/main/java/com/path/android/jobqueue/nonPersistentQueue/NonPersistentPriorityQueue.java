@@ -119,6 +119,12 @@ public class NonPersistentPriorityQueue implements JobQueue {
     }
 
     @Override
+    public Set<JobHolder> findAllJobs(boolean excludeCancelled, Collection<Long> exclude) {
+        //we ignore excludeCancelled because we remove them as soon as they are cancelled
+        return jobs.findAll(exclude);
+    }
+
+    @Override
     public void onJobCancelled(JobHolder holder) {
         // we can remove instantly.
         remove(holder);

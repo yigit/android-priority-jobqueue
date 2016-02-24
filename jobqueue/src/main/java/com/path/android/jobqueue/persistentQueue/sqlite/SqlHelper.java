@@ -101,6 +101,18 @@ public class SqlHelper {
         return query.toString();
     }
 
+    public String createFindAllQuery(int numberOfExcludeIds) {
+        StringBuilder query = new StringBuilder();
+        query.append("SELECT * FROM ").append(tableName);
+        if (numberOfExcludeIds > 0) {
+            String idPlaceHolders = createPlaceholders(numberOfExcludeIds);
+            query.append(" WHERE ").append(DbOpenHelper.ID_COLUMN.columnName)
+                    .append(" NOT IN(").append(idPlaceHolders).append(")");
+        }
+
+        return query.toString();
+    }
+
     public static String drop(String tableName) {
         return "DROP TABLE IF EXISTS " + tableName;
     }

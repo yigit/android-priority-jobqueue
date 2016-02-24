@@ -13,16 +13,14 @@ import twitter4j.TwitterException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class FetchTweetsJob extends Job {
-    private static final AtomicInteger jobCounter = new AtomicInteger(0);
 
-    private final int id;
     public FetchTweetsJob() {
-        super(new Params(Priority.LOW).requireNetwork().groupBy("fetch-tweets"));
-        id = jobCounter.incrementAndGet();
+        //use singleWith so that if the same job has already been added and is not yet running,
+        //it will only run once.
+        super(new Params(Priority.LOW).requireNetwork().groupBy("fetch-tweets").singleWith("fetch-tweets"));
     }
 
     @Override
@@ -32,11 +30,6 @@ public class FetchTweetsJob extends Job {
 
     @Override
     public void onRun() throws Throwable {
-        if(id != jobCounter.get()) {
-            //looks like other fetch jobs has been added after me. no reason to keep fetching
-            //many times, cancel me, let the other one fetch tweets.
-            return;
-        }
         TweetModel tweetModel = TweetModel.getInstance();
         Tweet lastTweet = tweetModel.getLastTweet();
         List<Status> statusList = TwitterController.getInstance().loadTweets(lastTweet == null ? null : lastTweet.getServerId());

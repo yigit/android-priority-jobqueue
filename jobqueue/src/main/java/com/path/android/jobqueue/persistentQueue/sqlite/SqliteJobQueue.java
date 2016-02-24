@@ -112,6 +112,9 @@ public class SqliteJobQueue implements JobQueue {
         if(jobHolder.getGroupId() != null) {
             stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
         }
+        if(jobHolder.getSingleId() != null) {
+            stmt.bindString(DbOpenHelper.SINGLE_ID_COLUMN.columnIndex + 1, jobHolder.getSingleId());
+        }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
         byte[] job = getSerializeJob(jobHolder);
         if (job != null) {
@@ -235,15 +238,38 @@ public class SqliteJobQueue implements JobQueue {
         final String query = sqlHelper.createFindByTagsQuery(tagConstraint,
                 excludeCount, tags.length);
         JqLog.d(query);
-        final String[] args;
+        final String[] args = getFindJobsArgs(excludeCancelled, exclude, excludeCount, tags);
+        addJobsFromQuery(query, args, jobs);
+        return jobs;
+    }
+
+    @Override
+    public Set<JobHolder> findAllJobs(boolean excludeCancelled, Collection<Long> exclude) {
+        Set<JobHolder> jobs = new HashSet<JobHolder>();
+        int excludeCount = exclude == null ? 0 : exclude.size();
+        if (excludeCancelled) {
+            excludeCount += pendingCancelations.size();
+        }
+        final String query = sqlHelper.createFindAllQuery(excludeCount);
+        JqLog.d(query);
+        final String[] args = getFindJobsArgs(excludeCancelled, exclude, excludeCount, new String[]{});
+        addJobsFromQuery(query, args, jobs);
+        return jobs;
+    }
+
+    private String[] getFindJobsArgs(boolean excludeCancelled, Collection<Long> excludeIds,
+                                     int excludeCount, String[] tags) {
+        String[] args;
         if (excludeCount == 0) {
             args = tags;
         } else {
             args = new String[excludeCount + tags.length];
             System.arraycopy(tags, 0, args, 0, tags.length);
             int i = tags.length;
-            for (Long ex : exclude) {
-                args[i ++] = ex.toString();
+            if (excludeIds != null) {
+                for (Long ex : excludeIds) {
+                    args[i ++] = ex.toString();
+                }
             }
             if (excludeCancelled) {
                 for (Long ex : pendingCancelations) {
@@ -251,17 +277,20 @@ public class SqliteJobQueue implements JobQueue {
                 }
             }
         }
+        return args;
+    }
+
+    private void addJobsFromQuery(String query, String[] args, Set<JobHolder> jobs) {
         Cursor cursor = db.rawQuery(query, args);
         try {
             while (cursor.moveToNext()) {
                 jobs.add(createJobHolderFromCursor(cursor));
             }
         } catch (InvalidJobException e) {
-            JqLog.e(e, "invalid job found by tags.");
+            JqLog.e(e, "invalid job found from query.");
         } finally {
             cursor.close();
         }
-        return jobs;
     }
 
     @Override
@@ -410,6 +439,7 @@ public class SqliteJobQueue implements JobQueue {
                 cursor.getLong(DbOpenHelper.ID_COLUMN.columnIndex),
                 cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex),
                 cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex),
+                cursor.getString(DbOpenHelper.SINGLE_ID_COLUMN.columnIndex),
                 cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex),
                 job,
                 cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex),

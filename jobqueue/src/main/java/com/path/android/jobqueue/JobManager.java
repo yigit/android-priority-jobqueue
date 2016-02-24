@@ -163,7 +163,8 @@ public class JobManager implements NetworkEventProvider.Listener {
     /**
      * Adds a new Job to the list and returns an ID for it.
      * @param job to add
-     * @return id for the job.
+     * @return id for the job. If another job with the same singleId was already queued and not running,
+     *  this method will return the same id of the other job.
      */
     public long addJob(Job job) {
         //noinspection deprecation
@@ -173,19 +174,29 @@ public class JobManager implements NetworkEventProvider.Listener {
         long id;
         if (job.isPersistent()) {
             synchronized (persistentJobQueue) {
-                id = persistentJobQueue.insert(jobHolder);
+                JobHolder previousJob = findNonRunningJobIdWithSameSingleId(job.getRunSingleId(), true);
+                if (previousJob != null) {
+                    id = previousJob.getId();
+                } else {
+                    id = persistentJobQueue.insert(jobHolder);
+                }
                 addOnAddedLock(persistentOnAddedLocks, id);
             }
         } else {
             synchronized (nonPersistentJobQueue) {
-                id = nonPersistentJobQueue.insert(jobHolder);
+                JobHolder previousJob = findNonRunningJobIdWithSameSingleId(job.getRunSingleId(), false);
+                if (previousJob != null) {
+                    id = previousJob.getId();
+                } else {
+                    id = nonPersistentJobQueue.insert(jobHolder);
+                }
                 addOnAddedLock(nonPersistentOnAddedLocks, id);
             }
         }
         if(JqLog.isDebugEnabled()) {
-            JqLog.d("added job id: %d class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
+            JqLog.d("added job id: %d class: %s priority: %d delay: %d group : %s singleId : %s persistent: %s requires network: %s"
                     , id, job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
-                    , job.isPersistent(), job.requiresNetwork());
+                    , job.getRunSingleId(), job.isPersistent(), job.requiresNetwork());
         }
         if(dependencyInjector != null) {
             //inject members b4 calling onAdded
@@ -205,6 +216,28 @@ public class JobManager implements NetworkEventProvider.Listener {
         }
         ensureConsumerWhenNeeded(null);
         return id;
+    }
+
+    private JobHolder findNonRunningJobIdWithSameSingleId(String singleId, boolean persistent) {
+        if (singleId != null) {
+            Set<JobHolder> runningJobs = jobConsumerExecutor.findRunning(persistent);
+            synchronized (persistent ? persistentJobQueue : nonPersistentJobQueue) {
+                final Set<Long> runningJobIds = new HashSet<>();
+                for (JobHolder jobHolder : runningJobs) {
+                    runningJobIds.add(jobHolder.getId());
+                }
+                JobQueue queue = persistent ? persistentJobQueue : nonPersistentJobQueue;
+                Set<JobHolder> nonRunningJobs = queue.findAllJobs(true, runningJobIds);
+                for (JobHolder jobHolder : nonRunningJobs) {
+                    if (singleId.equals(jobHolder.getSingleId())) {
+                        JqLog.d("another job id: %d with same singleId: %s was already queued",
+                                jobHolder.getId(), singleId);
+                        return jobHolder;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**

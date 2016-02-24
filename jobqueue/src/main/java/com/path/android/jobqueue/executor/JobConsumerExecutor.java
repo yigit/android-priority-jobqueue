@@ -180,6 +180,23 @@ public class JobConsumerExecutor {
     /**
      * Excludes cancelled jobs
      */
+    public Set<JobHolder> findRunning(boolean persistent) {
+        Set<JobHolder> result = new HashSet<JobHolder>();
+        synchronized (runningJobHolders) {
+            for (JobHolder holder : runningJobHolders.values()) {
+                if (persistent == holder.getJob().isPersistent()) {
+                    if (!holder.isCancelled()) {
+                        result.add(holder);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Excludes cancelled jobs
+     */
     public Set<JobHolder> findRunningByTags(TagConstraint constraint, String[] tags,
             boolean persistent) {
         Set<JobHolder> result = new HashSet<JobHolder>();

@@ -119,7 +119,7 @@ public abstract class JobQueueTestBase extends TestBase {
         long jobId4 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group2")));
         long jobId5 = jobQueue.insert(createNewJobHolder(new Params(0).groupBy("group1")));
         JobHolder holder1 = jobQueue.nextJobAndIncRunCount(true, Arrays.asList(new String[]{"group2"}));
-        assertThat("first jobs should be from group group2 if group1 is excluded",
+        assertThat("first jobs should be from group group1 if group2 is excluded",
                 holder1.getJob().getRunGroupId(), equalTo("group1"));
         assertThat("correct job should be returned if groupId is provided",
                 holder1.getId(), equalTo(jobId1));
@@ -316,6 +316,10 @@ public abstract class JobQueueTestBase extends TestBase {
 
     private org.fest.reflect.field.Invoker<String> getGroupIdField(Params params) {
         return Reflection.field("groupId").ofType(String.class).in(params);
+    }
+
+    private org.fest.reflect.field.Invoker<String> getSingleIdField(Params params) {
+        return Reflection.field("singleId").ofType(String.class).in(params);
     }
 
     @Test
@@ -722,6 +726,32 @@ public abstract class JobQueueTestBase extends TestBase {
         }
     }
 
+    @Test
+    public void testFindAll() {
+        JobQueue jobQueue = createNewJobQueue();
+        assertThat("empty queue should return 0",jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(0));
+        jobQueue.insert(createNewJobHolder());
+        Set<JobHolder> result = jobQueue.findAllJobs(true, Collections.<Long>emptyList());
+        assertThat("if job was not cancelled, it should still return it", result.size(), is(1));
+
+        final String singleId = UUID.randomUUID().toString();
+        JobHolder holder = createNewJobHolder(new Params(0).singleWith(singleId));
+        jobQueue.insert(holder);
+        assertThat("when second job is inserted, it should return it", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(2));
+        jobQueue.insertOrReplace(holder);
+        assertThat("when second job is reinserted, result should not change", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(2));
+        jobQueue.remove(holder);
+        assertThat("when job is removed, it should return one less", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(1));
+
+        JobHolder holder2 = createNewJobHolder(new Params(0).singleWith(singleId));
+        jobQueue.insert(holder2);
+        assertThat("it should return the job", jobQueue.findAllJobs(false, Collections.<Long>emptyList()).size(), is(2));
+        jobQueue.onJobCancelled(holder2);
+        assertThat("when queried w/ exclude cancelled, it should not return the job",
+                jobQueue.findAllJobs(true, Collections.<Long>emptyList()).size(), is(1));
+
+    }
+
     List<String[]> combinations(Set<String> strings) {
         if(strings.size() == 0) {
             List<String[]> result = new ArrayList<String[]>();
@@ -759,7 +789,8 @@ public abstract class JobQueueTestBase extends TestBase {
 
     protected JobHolder createNewJobHolder(Params params) {
         long delay = getDelayMsField(params).get();
-        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(), 0, new DummyJob(params), System.nanoTime(),
+        return new JobHolder(null, getPriorityField(params).get(), getGroupIdField(params).get(),
+                getSingleIdField(params).get(), 0, new DummyJob(params), System.nanoTime(),
                 delay > 0 ? System.nanoTime() +  delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY, JobManager.NOT_RUNNING_SESSION_ID);
     }
 
