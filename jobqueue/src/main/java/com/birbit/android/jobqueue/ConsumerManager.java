@@ -221,6 +221,7 @@ class ConsumerManager {
                 CommandMessage cm = factory.obtain(CommandMessage.class);
                 cm.set(CommandMessage.POKE);
                 consumer.messageQueue.postAt(cm, keepAliveTimeout);
+                JqLog.d("poke consumer manager at %s", keepAliveTimeout);
             }
         }
     }
@@ -315,6 +316,7 @@ class ConsumerManager {
 
             @Override
             public void onIdle() {
+                JqLog.d("consumer manager on idle");
                 JobConsumerIdleMessage idle = factory.obtain(JobConsumerIdleMessage.class);
                 idle.setWorker(Consumer.this);
                 idle.setLastJobCompleted(lastJobCompleted);

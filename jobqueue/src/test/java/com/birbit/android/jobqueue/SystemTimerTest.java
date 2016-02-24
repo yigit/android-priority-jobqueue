@@ -33,6 +33,19 @@ public class SystemTimerTest {
         assertReasonable(timer2.nanoTime(), System.nanoTime() - startNs + start);
     }
 
+    @SuppressLint("DIRECT_TIME_ACCESS")
+    @Test
+    public void testWaitOnObject() throws Throwable {
+        SystemTimer timer = new SystemTimer();
+        //noinspection DIRECT_TIME_ACCESS
+        long startNs = System.nanoTime();
+        long waitUntil = startNs + JobManager.NS_PER_MS * 2000;
+        synchronized (this) {
+            timer.waitOnObjectUntilNs(this, waitUntil);
+        }
+        assertReasonable(System.nanoTime(), waitUntil);
+    }
+
     public void assertReasonable(long value, long expected) {
         long deviation = JobManager.NS_PER_MS * 500;
         MatcherAssert.assertThat("expected value should be in range", value,

@@ -24,7 +24,7 @@ public class SystemTimer implements Timer {
     @Override
     public void waitOnObjectUntilNs(Object object, long untilNs) throws InterruptedException {
         long now = nanoTime();
-        if (now < untilNs) {
+        if (now > untilNs) {
             //noinspection TIMED_WAIT
             object.wait(1);
         } else {

@@ -19,6 +19,7 @@ class DelayedMessageBag {
             addInto.post(msg);
         }
         if (queue != null) {
+            JqLog.d("returning next ready at %d ns", (queue.readyNs - now));
             return queue.readyNs;
         }
         return null;

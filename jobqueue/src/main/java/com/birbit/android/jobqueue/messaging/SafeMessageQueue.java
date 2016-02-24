@@ -80,13 +80,16 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
                     continue; // callback added a message, requery
                 }
                 if (nextDelayedReadyAt != null && nextDelayedReadyAt <= now) {
+                    JqLog.d("next message is ready, requery");
                     continue;
                 }
                 if (running.get()) {
                     try {
                         if (nextDelayedReadyAt == null) {
+                            JqLog.d("will wait on the lock forever");
                             timer.waitOnObject(LOCK);
                         } else {
+                            JqLog.d("will wait on the lock until %d", nextDelayedReadyAt);
                             timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
                         }
                     } catch (InterruptedException ignored) {
