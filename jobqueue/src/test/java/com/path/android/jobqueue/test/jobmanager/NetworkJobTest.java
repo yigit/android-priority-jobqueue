@@ -27,11 +27,11 @@ import java.util.concurrent.TimeUnit;
 @RunWith(ParameterizedRobolectricTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
 public class NetworkJobTest extends JobManagerTestBase {
-    final boolean useWifi;
+    final boolean unmetered;
     static CountDownLatch persistentDummyJobRunLatch;
 
-    public NetworkJobTest(boolean useWifi) {
-        this.useWifi = useWifi;
+    public NetworkJobTest(boolean unmetered) {
+        this.unmetered = unmetered;
     }
 
     @Before
@@ -39,22 +39,22 @@ public class NetworkJobTest extends JobManagerTestBase {
         persistentDummyJobRunLatch = new CountDownLatch(1);
     }
 
-    @ParameterizedRobolectricTestRunner.Parameters(name = "useWifi:{0}")
+    @ParameterizedRobolectricTestRunner.Parameters(name = "unmetered:{0}")
     public static List<Object[]> getParams() {
         return Arrays.asList(new Object[]{true}, new Object[]{false});
     }
 
     private Params addRequirement(Params params) {
-        if (useWifi) {
-            return params.requireWifiNetwork();
+        if (unmetered) {
+            return params.requireUnmeteredNetwork();
         } else {
             return params.requireNetwork();
         }
     }
 
     private Params addRequirement(Params params, long timeoutMs) {
-        if (useWifi) {
-            return params.requireWifiNetworkWithTimeout(timeoutMs);
+        if (unmetered) {
+            return params.requireUnmeteredNetworkWithTimeout(timeoutMs);
         } else {
             return params.requireNetworkWithTimeout(timeoutMs);
         }
@@ -126,7 +126,7 @@ public class NetworkJobTest extends JobManagerTestBase {
         jobManager.addJob(noNetworkPersistentJob);
 
         MatcherAssert.assertThat("count should be correct if there are network and non-network jobs w/o network", jobManager.count(), equalTo(4));
-        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.METERED);
         MatcherAssert.assertThat("count should be correct if there is network and non-network jobs w/o network", jobManager.count(), equalTo(4));
         dummyNetworkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         final CountDownLatch noNetworkLatch = new CountDownLatch(2);
@@ -158,13 +158,13 @@ public class NetworkJobTest extends JobManagerTestBase {
                 }
             }
         });
-        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.METERED);
         mockTimer.incrementMs(10000); // network check delay, make public?
-        if (useWifi) {
-            MatcherAssert.assertThat("if jobs require wifi, they should not be run",
+        if (unmetered) {
+            MatcherAssert.assertThat("if jobs require unmetered, they should not be run",
                     networkLatch.await(10, TimeUnit.SECONDS), is(false));
             MatcherAssert.assertThat(networkLatch.getCount(), is(2L));
-            dummyNetworkUtil.setNetworkStatus(NetworkUtil.WIFI);
+            dummyNetworkUtil.setNetworkStatus(NetworkUtil.UNMETERED);
             mockTimer.incrementMs(10000); // network check delay
         }
         MatcherAssert.assertThat(networkLatch.await(1, TimeUnit.MINUTES), is(true));

@@ -8,7 +8,7 @@ import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import org.fest.reflect.method.*;
+
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.Test;
@@ -112,7 +112,7 @@ public class GroupingTest extends JobManagerTestBase {
                 }
             });
         }
-        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.METERED, true);
         //wait until all jobs are completed
         aJobRun.await(1, TimeUnit.MINUTES);
         MatcherAssert.assertThat("highest priority job should run if it is added before others", firstRunJob.get(), is(FIRST_JOB_ID));

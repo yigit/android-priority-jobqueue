@@ -42,9 +42,9 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
         }
         if (netInfo.getType() == ConnectivityManager.TYPE_WIFI ||
                 netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
-            return NetworkUtil.WIFI;
+            return NetworkUtil.UNMETERED;
         }
-        return NetworkUtil.MOBILE;
+        return NetworkUtil.METERED;
     }
 
     @TargetApi(23)

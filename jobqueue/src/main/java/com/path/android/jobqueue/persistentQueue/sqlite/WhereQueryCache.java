@@ -14,8 +14,8 @@ class WhereQueryCache {
     private static final int INT_SIZE = 6;
     private static final int BOOL_SIZE = 1;
     private static final int NETWORK = 0;
-    private static final int WIFI_NETWORK = NETWORK + BOOL_SIZE;
-    private static final int TAG_TYPE = WIFI_NETWORK + BOOL_SIZE;
+    private static final int UNMETERED_NETWORK = NETWORK + BOOL_SIZE;
+    private static final int TAG_TYPE = UNMETERED_NETWORK + BOOL_SIZE;
     private static final int TAG_COUNT = TAG_TYPE + BOOL_SIZE + BOOL_SIZE;
     private static final int GROUP_COUNT = TAG_COUNT + INT_SIZE;
     private static final int JOB_COUNT = GROUP_COUNT + INT_SIZE;
@@ -60,7 +60,7 @@ class WhereQueryCache {
         if (constraint.shouldNotRequireNetwork()) {
             where.args[count++] = Long.toString(constraint.getNowInNs());
         }
-        if (constraint.shouldNotRequireWifiNetwork()) {
+        if (constraint.shouldNotRequireUnmeteredNetwork()) {
             where.args[count++] = Long.toString(constraint.getNowInNs());
         }
         if (constraint.getTimeLimit() != null) {
@@ -95,7 +95,7 @@ class WhereQueryCache {
         int argCount = 0;
         reusedStringBuilder.append("1");
         int networkTimeoutArgIndex = -1;
-        int wifiTimeoutArgIndex = -1;
+        int unmeteredTimeoutArgIndex = -1;
         if (constraint.shouldNotRequireNetwork()) {
             reusedStringBuilder
                     .append(" AND ")
@@ -104,12 +104,12 @@ class WhereQueryCache {
             networkTimeoutArgIndex = argCount;
             argCount++;
         }
-        if (constraint.shouldNotRequireWifiNetwork()) {
+        if (constraint.shouldNotRequireUnmeteredNetwork()) {
             reusedStringBuilder
                     .append(" AND ")
-                    .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName)
+                    .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)
                     .append(" <= ?");
-            wifiTimeoutArgIndex = argCount;
+            unmeteredTimeoutArgIndex = argCount;
             argCount++;
         }
         if (constraint.getTimeLimit() != null) {
@@ -188,7 +188,7 @@ class WhereQueryCache {
         String[] args = new String[argCount];
         Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);
         where.setNetworkTimeoutArgIndex(networkTimeoutArgIndex);
-        where.setWifiNetworkTimeoutArgIndex(wifiTimeoutArgIndex);
+        where.setUnmeteredNetworkTimeoutArgIndex(unmeteredTimeoutArgIndex);
         return where;
     }
 
@@ -203,7 +203,7 @@ class WhereQueryCache {
         long key;
         //noinspection PointlessBitwiseExpression
         key = (constraint.shouldNotRequireNetwork() ? 1 : 0) << NETWORK
-                | (constraint.shouldNotRequireWifiNetwork() ? 1 : 0) << WIFI_NETWORK
+                | (constraint.shouldNotRequireUnmeteredNetwork() ? 1 : 0) << UNMETERED_NETWORK
                 | (constraint.getTagConstraint() == null ? 2 : constraint.getTagConstraint().ordinal()) << TAG_TYPE
                 | constraint.getTags().size() << TAG_COUNT
                 | constraint.getExcludeGroups().size() << GROUP_COUNT

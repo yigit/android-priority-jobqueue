@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Helper class for {@link SqliteJobQueue} to handle database connection
  */
 public class DbOpenHelper extends SQLiteOpenHelper {
-    private static final int DB_VERSION = 7;
+    private static final int DB_VERSION = 8;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
     /*package*/ static final String JOB_TAGS_TABLE_NAME = "job_holder_tags";
     /*package*/ static final SqlHelper.Property INSERTION_ORDER_COLUMN = new SqlHelper.Property("insertionOrder", "integer", 0);
@@ -21,7 +21,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property("delay_until_ns", "long", 7);
     /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long", 8);
     /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_UNTIL_COLUMN = new SqlHelper.Property("requires_network_until", "integer", 9);
-    /*package*/ static final SqlHelper.Property REQUIRES_WIFI_NETWORK_UNTIL_COLUMN = new SqlHelper.Property("requires_wifi_network_until", "integer", 10);
+    /*package*/ static final SqlHelper.Property REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN = new SqlHelper.Property("requires_unmetered_network_until", "integer", 10);
 
     /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
     /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
@@ -51,7 +51,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 DELAY_UNTIL_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN,
                 REQUIRES_NETWORK_UNTIL_COLUMN,
-                REQUIRES_WIFI_NETWORK_UNTIL_COLUMN
+                REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN
         );
         sqLiteDatabase.execSQL(createQuery);
 

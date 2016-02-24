@@ -38,7 +38,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         //noinspection SLEEP_IN_CODE
         Thread.sleep(2000);
 
-        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE, false);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.METERED, false);
         //noinspection SLEEP_IN_CODE
         Thread.sleep(5000); //wait a little bit more to let consumer run
         MatcherAssert.assertThat("even though network is recovered, job manager should not consume any job because it " +
@@ -47,7 +47,7 @@ public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
             @Override
             public void run() {
-                dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
+                dummyNetworkUtil.setNetworkStatus(NetworkUtil.METERED, true);
             }
 
             @Override

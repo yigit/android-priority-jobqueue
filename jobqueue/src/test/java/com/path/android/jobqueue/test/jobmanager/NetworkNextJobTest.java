@@ -38,7 +38,7 @@ public class NetworkNextJobTest extends JobManagerTestBase {
         MatcherAssert
                 .assertThat("even if there is network, job manager should return correct count",
                         jobManager.count(), equalTo(1));
-        dummyNetworkUtil.setNetworkStatus(NetworkUtil.MOBILE);
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.METERED);
         JobHolder retrieved = nextJob(jobManager);
         MatcherAssert
                 .assertThat("when network is recovered, next job should be retrieved", retrieved,

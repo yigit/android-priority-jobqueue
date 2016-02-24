@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.path.android.jobqueue.network.NetworkUtil.WIFI;
+import static com.path.android.jobqueue.network.NetworkUtil.UNMETERED;
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
@@ -250,7 +250,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if(networkStatus == DISCONNECTED && holder.requiresNetwork(now)) {
             return JobStatus.WAITING_NOT_READY;
         }
-        if(networkStatus != WIFI && holder.requiresWifiNetwork(now)) {
+        if(networkStatus != UNMETERED && holder.requiresUnmeteredNetwork(now)) {
             return JobStatus.WAITING_NOT_READY;
         }
         if(holder.getDelayUntilNs() > now) {
@@ -391,7 +391,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
     @NetworkUtil.NetworkStatus
     private int getNetworkStatus() {
-        return networkUtil == null ? NetworkUtil.WIFI : networkUtil.getNetworkStatus(appContext);
+        return networkUtil == null ? NetworkUtil.UNMETERED : networkUtil.getNetworkStatus(appContext);
     }
 
     Long getNextWakeUpNs(boolean includeNetworkWatch) {

@@ -225,7 +225,7 @@ public class SqlHelper {
         db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET "
                 + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?,"
                 + DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName + "=?, "
-                + DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName + "=?"
+                + DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName + "=?"
             , new Object[]{newDelayTime, newDelayTime, newDelayTime});
     }
 

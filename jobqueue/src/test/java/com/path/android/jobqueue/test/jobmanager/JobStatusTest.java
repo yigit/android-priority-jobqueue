@@ -8,7 +8,6 @@ import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.test.jobs.DummyJob;
-import com.path.android.jobqueue.test.timer.MockTimer;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -22,7 +21,6 @@ import android.os.Build;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -109,7 +107,7 @@ public class JobStatusTest extends JobManagerTestBase {
                     jobManager.getJobStatus(ids[i]), is(JobStatus.WAITING_NOT_READY));
         }
         jobManager.stop();
-        networkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
+        networkUtil.setNetworkStatus(NetworkUtil.METERED, true);
         for(Integer i : networkRequiringJobIndices) {
             assertThat("network requiring job should still be ready after network is there",
                     jobManager.getJobStatus(ids[i]), is(JobStatus.WAITING_READY));

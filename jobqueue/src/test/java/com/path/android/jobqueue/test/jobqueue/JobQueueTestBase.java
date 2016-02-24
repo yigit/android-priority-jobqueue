@@ -794,130 +794,130 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirement() {
+    public void testDelayUntilWithUnmeteredNetworkRequirement() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(1000));
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(1000));
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setShouldNotRequireNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(1000000000L));
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(1000000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirement2() {
+    public void testDelayUntilWithUnmeteredNetworkRequirement2() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(1000)
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(1000)
                 .delayInMs(2000));
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(2000000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirement3() {
+    public void testDelayUntilWithUnmeteredNetworkRequirement3() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(2000)
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(2000)
                 .delayInMs(1000));
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(2000000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirement4() {
+    public void testDelayUntilWithUnmeteredNetworkRequirement4() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(1000)
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(1000)
                 .delayInMs(2000));
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(false);
+        constraint.setShouldNotRequireUnmeteredNetwork(false);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(2000000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirement5() {
+    public void testDelayUntilWithUnmeteredNetworkRequirement5() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(2000)
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(2000)
                 .delayInMs(1000));
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(false);
+        constraint.setShouldNotRequireUnmeteredNetwork(false);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(1000000000L));
     }
 
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirementAndRegularDelayedJob() {
+    public void testDelayUntilWithUnmeteredNetworkRequirementAndRegularDelayedJob() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(1000));
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(1000));
         JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(500));
         jobQueue.insert(holder1);
         jobQueue.insert(holder2);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirementAndRegularDelayedJob2() {
+    public void testDelayUntilWithUnmeteredNetworkRequirementAndRegularDelayedJob2() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(1000));
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(1000));
         JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(500));
         jobQueue.insert(holder2);
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirementAndRegularDelayedJob3() {
+    public void testDelayUntilWithUnmeteredNetworkRequirementAndRegularDelayedJob3() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(500));
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(500));
         JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(1000));
         jobQueue.insert(holder1);
         jobQueue.insert(holder2);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiNetworkRequirementAndRegularDelayedJob4() {
+    public void testDelayUntilWithUnmeteredNetworkRequirementAndRegularDelayedJob4() {
         JobQueue jobQueue = createNewJobQueue();
-        JobHolder holder1 = createNewJobHolder(new Params(2).requireWifiNetworkWithTimeout(500));
+        JobHolder holder1 = createNewJobHolder(new Params(2).requireUnmeteredNetworkWithTimeout(500));
         JobHolder holder2 = createNewJobHolder(new Params(2).delayInMs(1000));
         jobQueue.insert(holder2);
         jobQueue.insert(holder1);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiAndNetworkRequirements() {
+    public void testDelayUntilWithUnmeteredAndNetworkRequirements() {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder holder = createNewJobHolder(
-                new Params(2).requireWifiNetworkWithTimeout(500).requireNetworkWithTimeout(700));
+                new Params(2).requireUnmeteredNetworkWithTimeout(500).requireNetworkWithTimeout(700));
         jobQueue.insert(holder);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         constraint.setShouldNotRequireNetwork(true);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(700000000L));
     }
 
     @Test
-    public void testDelayUntilWithWifiAndNetworkRequirements2() {
+    public void testDelayUntilWithUnmeteredAndNetworkRequirements2() {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder holder = createNewJobHolder(
-                new Params(2).requireWifiNetworkWithTimeout(500).requireNetworkWithTimeout(700));
+                new Params(2).requireUnmeteredNetworkWithTimeout(500).requireNetworkWithTimeout(700));
         jobQueue.insert(holder);
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setShouldNotRequireWifiNetwork(true);
+        constraint.setShouldNotRequireUnmeteredNetwork(true);
         constraint.setShouldNotRequireNetwork(false);
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }

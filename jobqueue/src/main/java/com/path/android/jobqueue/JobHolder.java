@@ -1,7 +1,6 @@
 package com.path.android.jobqueue;
 
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.timer.Timer;
 
 import android.content.Context;
 
@@ -54,7 +53,7 @@ public class JobHolder {
     protected long createdNs;
     protected long runningSessionId;
     protected long requiresNetworkUntilNs;
-    protected long requiresWifiNetworkUntilNs;
+    protected long requiresUnmeteredNetworkUntilNs;
     transient Job job;
     protected final Set<String> tags;
     private boolean cancelled;
@@ -81,7 +80,7 @@ public class JobHolder {
         job.priority = priority;
         this.runningSessionId = runningSessionId;
         this.requiresNetworkUntilNs = job.getRequiresNetworkUntilNs();
-        this.requiresWifiNetworkUntilNs = job.getRequiresWifiNetworkUntilNs();
+        this.requiresUnmeteredNetworkUntilNs = job.getRequiresUnmeteredNetworkUntilNs();
         this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
     }
 
@@ -118,14 +117,14 @@ public class JobHolder {
      *
      * @param timeInNs The current time in ns. This should be the time used by the JobManager.
      *
-     * @return True if the job requires a WIFI network to be run right now, false otherwise.
+     * @return True if the job requires a UNMETERED network to be run right now, false otherwise.
      */
-    public boolean requiresWifiNetwork(long timeInNs) {
-        return requiresWifiNetworkUntilNs > timeInNs;
+    public boolean requiresUnmeteredNetwork(long timeInNs) {
+        return requiresUnmeteredNetworkUntilNs > timeInNs;
     }
 
-    public long getRequiresWifiNetworkUntilNs() {
-        return requiresWifiNetworkUntilNs;
+    public long getRequiresUnmeteredNetworkUntilNs() {
+        return requiresUnmeteredNetworkUntilNs;
     }
 
     public int getPriority() {

@@ -26,8 +26,8 @@ abstract public class Job implements Serializable {
     private String id = UUID.randomUUID().toString();
     private long requiresNetworkUntilNs = Params.NEVER;
     transient private long requiresNetworkTimeoutMs = 0;
-    private long requiresWifiNetworkUntilNs = Params.NEVER;
-    transient private long requiresWifiNetworkTimeoutMs = 0;
+    private long requiresUnmeteredNetworkUntilNs = Params.NEVER;
+    transient private long requiresUnmeteredNetworkTimeoutMs = 0;
     private String groupId;
     private boolean persistent;
     private Set<String> readonlyTags;
@@ -48,7 +48,7 @@ abstract public class Job implements Serializable {
 
     protected Job(Params params) {
         this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
-        this.requiresWifiNetworkTimeoutMs = params.getRequiresWifiNetworkTimeoutMs();
+        this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();
         this.persistent = params.isPersistent();
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
@@ -92,7 +92,7 @@ abstract public class Job implements Serializable {
                     + " a job manager.");
         }
         oos.writeLong(requiresNetworkUntilNs);
-        oos.writeLong(requiresWifiNetworkUntilNs);
+        oos.writeLong(requiresUnmeteredNetworkUntilNs);
         oos.writeObject(groupId);
         oos.writeBoolean(persistent);
         final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();
@@ -108,7 +108,7 @@ abstract public class Job implements Serializable {
 
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         requiresNetworkUntilNs = ois.readLong();
-        requiresWifiNetworkUntilNs = ois.readLong();
+        requiresUnmeteredNetworkUntilNs = ois.readLong();
         groupId = (String) ois.readObject();
         persistent = ois.readBoolean();
         final int tagCount = ois.readInt();
@@ -269,18 +269,18 @@ abstract public class Job implements Serializable {
     }
 
     /**
-     * if job is set to require a WIFI network, it will not be run unless
-     * {@link com.path.android.jobqueue.network.NetworkUtil} reports that there is a WIFI network
+     * if job is set to require a UNMETERED network, it will not be run unless
+     * {@link com.path.android.jobqueue.network.NetworkUtil} reports that there is a UNMETERED network
      * connection or the wait times out if a timeout was provided in
-     * {@link Params#requireWifiNetworkWithTimeout(long)}.
+     * {@link Params#requireUnmeteredNetworkWithTimeout(long)}.
      *
      * @param timer The timer used by the JobManager. Should be the timer that was used while
      *                configuring the JobManager ({@link Configuration#getTimer()},
      *                {@link com.path.android.jobqueue.config.Configuration.Builder#timer}).
      */
-    public final boolean requiresWifiNetwork(Timer timer) {
-        return sealed ? requiresWifiNetworkUntilNs > timer.nanoTime()
-                : requiresWifiNetworkTimeoutMs != Params.NEVER;
+    public final boolean requiresUnmeteredNetwork(Timer timer) {
+        return sealed ? requiresUnmeteredNetworkUntilNs > timer.nanoTime()
+                : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
     }
 
     /**
@@ -296,32 +296,32 @@ abstract public class Job implements Serializable {
     }
 
     /**
-     * Returns whether job requires a WIFI network connection to be run or not, without checking the
-     * timeout. This is convenient since it does not require a reference to the Timer if you are
-     * not using Jobs with requireWifiNetwork with a timeout.
+     * Returns whether job requires a unmetered network connection to be run or not, without
+     * checking the timeout. This is convenient since it does not require a reference to the Timer
+     * if you are not using Jobs with requireUnmeteredNetwork with a timeout.
      *
-     * @return True if job requires a WIFI network to be run, false otherwise.
+     * @return True if job requires a unmetered network to be run, false otherwise.
      */
-    public final boolean requiresWifiNetworkIgnoreTimeout() {
-        return sealed ? requiresWifiNetworkUntilNs > 0
-                : requiresWifiNetworkTimeoutMs > 0;
+    public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
+        return sealed ? requiresUnmeteredNetworkUntilNs > 0
+                : requiresUnmeteredNetworkTimeoutMs > 0;
     }
 
     /**
-     * Returns until which timestamp this Job will require a WIFI network connection to be run.
+     * Returns until which timestamp this Job will require a UNMETERED network connection to be run.
      * <p>
      * This value can be queried only after {@link Job#onAdded()} method is called.
      * <ul>
-     * <li>If the job does not require a WIFI network, it will return {@link Params#NEVER}.</li>
-     * <li>If the job should never be run without a WIFI network, it will return {@link Params#FOREVER}.</li>
-     * <li>Otherwise, it will return the time in ns until which the job should require a WIFI network
+     * <li>If the job does not require a UNMETERED network, it will return {@link Params#NEVER}.</li>
+     * <li>If the job should never be run without a UNMETERED network, it will return {@link Params#FOREVER}.</li>
+     * <li>Otherwise, it will return the time in ns until which the job should require a UNMETERED network
      * to be run and after that timeout it will be run regardless of the network requirements.</li>
      * </ul>
      * @return The timestamp (in ns) until which the job will require a network connection to be
      * run.
      */
-    public long getRequiresWifiNetworkUntilNs() {
-        return requiresWifiNetworkUntilNs;
+    public long getRequiresUnmeteredNetworkUntilNs() {
+        return requiresUnmeteredNetworkUntilNs;
     }
 
     /**
@@ -422,17 +422,17 @@ abstract public class Job implements Serializable {
                     + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);
         }
 
-        if (requiresWifiNetworkTimeoutMs == Params.NEVER) {
+        if (requiresUnmeteredNetworkTimeoutMs == Params.NEVER) {
             // convert it from nano
-            requiresWifiNetworkUntilNs = Params.NEVER;
-        } else if (requiresWifiNetworkTimeoutMs == Params.FOREVER) {
-            requiresWifiNetworkUntilNs = Params.FOREVER;
+            requiresUnmeteredNetworkUntilNs = Params.NEVER;
+        } else if (requiresUnmeteredNetworkTimeoutMs == Params.FOREVER) {
+            requiresUnmeteredNetworkUntilNs = Params.FOREVER;
         } else {
-            requiresWifiNetworkUntilNs = timer.nanoTime()
-                    + TimeUnit.MILLISECONDS.toNanos(requiresWifiNetworkTimeoutMs);
+            requiresUnmeteredNetworkUntilNs = timer.nanoTime()
+                    + TimeUnit.MILLISECONDS.toNanos(requiresUnmeteredNetworkTimeoutMs);
         }
-        if (requiresNetworkUntilNs < requiresWifiNetworkUntilNs) {
-            requiresNetworkUntilNs = requiresWifiNetworkUntilNs;
+        if (requiresNetworkUntilNs < requiresUnmeteredNetworkUntilNs) {
+            requiresNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
         }
         sealed = true;
     }

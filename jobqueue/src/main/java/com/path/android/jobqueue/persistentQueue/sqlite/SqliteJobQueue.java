@@ -5,7 +5,6 @@ import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
-import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
@@ -122,8 +121,8 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
         stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex + 1,
                 jobHolder.getRequiresNetworkUntilNs());
-        stmt.bindLong(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnIndex + 1,
-                jobHolder.getRequiresWifiNetworkUntilNs());
+        stmt.bindLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex + 1,
+                jobHolder.getRequiresUnmeteredNetworkUntilNs());
     }
 
     /**
@@ -265,7 +264,7 @@ public class SqliteJobQueue implements JobQueue {
     public Long getNextJobDelayUntilNs(Constraint constraint) {
         final Where where = createWhere(constraint);
         try {
-            if (constraint.shouldNotRequireNetwork() || constraint.shouldNotRequireWifiNetwork()) {
+            if (constraint.shouldNotRequireNetwork() || constraint.shouldNotRequireUnmeteredNetwork()) {
                 return where.nextJobDelayUntilWithNetworkRequirement(db, sqlHelper)
                         .simpleQueryForLong();
             } else {
@@ -329,8 +328,8 @@ public class SqliteJobQueue implements JobQueue {
                         .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
                         .append(" reqNetworkUntil:")
                         .append(cursor.getLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex))
-                        .append(" reqWifiNetworkUntil:")
-                        .append(cursor.getLong(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnIndex));
+                        .append(" reqUnmeteredNetworkUntil:")
+                        .append(cursor.getLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex));
                 Cursor tags = db.rawQuery("SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName
                         + " FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                         + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?", new String[]{id});

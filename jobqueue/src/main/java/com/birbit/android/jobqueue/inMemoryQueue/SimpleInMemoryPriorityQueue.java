@@ -2,11 +2,9 @@ package com.birbit.android.jobqueue.inMemoryQueue;
 
 import com.birbit.android.jobqueue.Constraint;
 import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.Params;
 import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -138,9 +136,9 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         return null;
     }
 
-    private static Long getDelayUntil(JobHolder holder, boolean hasNetwork, boolean hasWifi) {
+    private static Long getDelayUntil(JobHolder holder, boolean hasNetwork, boolean hasUnmetered) {
         final long networkTimeout = holder.getRequiresNetworkUntilNs();
-        final long wifiTimeout = holder.getRequiresWifiNetworkUntilNs();
+        final long unmeteredTimeout = holder.getRequiresUnmeteredNetworkUntilNs();
         long delay = holder.getDelayUntilNs();
 
         if (!hasNetwork) {
@@ -149,11 +147,11 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
             }
             delay = Math.max(delay, networkTimeout);
         }
-        if (!hasWifi) {
-            if (wifiTimeout == Params.FOREVER) {
+        if (!hasUnmetered) {
+            if (unmeteredTimeout == Params.FOREVER) {
                 return null; // ineligible
             }
-            delay = Math.max(delay, wifiTimeout);
+            delay = Math.max(delay, unmeteredTimeout);
         }
         return delay;
     }
@@ -162,11 +160,11 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     public Long getNextJobDelayUntilNs(Constraint constraint) {
         Long minDelay = null;
         boolean hasNetwork = !constraint.shouldNotRequireNetwork();
-        boolean hasWifi = !constraint.shouldNotRequireWifiNetwork();
-        if (!hasNetwork || !hasWifi) {
+        boolean hasUnmetered = !constraint.shouldNotRequireUnmeteredNetwork();
+        if (!hasNetwork || !hasUnmetered) {
             for (JobHolder holder : jobs) {
                 if (matches(holder, constraint, true)) {
-                    final Long delay = getDelayUntil(holder, hasNetwork, hasWifi);
+                    final Long delay = getDelayUntil(holder, hasNetwork, hasUnmetered);
                     if (delay == null) {
                         continue;// ineligible
                     }
@@ -225,8 +223,8 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
                     && holder.requiresNetwork(constraint.getNowInNs())) {
                 return false;
             }
-            if (constraint.shouldNotRequireWifiNetwork()
-                    && holder.requiresWifiNetwork(constraint.getNowInNs())) {
+            if (constraint.shouldNotRequireUnmeteredNetwork()
+                    && holder.requiresUnmeteredNetwork(constraint.getNowInNs())) {
                 return false;
             }
         }

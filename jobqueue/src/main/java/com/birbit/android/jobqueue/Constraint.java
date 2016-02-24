@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.path.android.jobqueue.network.NetworkUtil.WIFI;
+import static com.path.android.jobqueue.network.NetworkUtil.UNMETERED;
 
 /**
  * This class is used when querying JobQueues to fetch particular jobs.
@@ -21,7 +21,7 @@ import static com.path.android.jobqueue.network.NetworkUtil.WIFI;
  */
 public class Constraint {
     private boolean shouldNotRequireNetwork;
-    private boolean shouldNotRequireWifiNetwork;
+    private boolean shouldNotRequireUnmeteredNetwork;
     private TagConstraint tagConstraint;
     private final Set<String> tags = new HashSet<>();
     private final List<String> excludeGroups = new ArrayList<>();
@@ -39,12 +39,12 @@ public class Constraint {
     }
 
     /**
-     * Returns true if the WIFI network is currently not available.
+     * Returns true if the unmetered network is currently not available.
      *
-     * @return True if the WIFI network connection is currently unavailable, false otherwise.
+     * @return True if the unmetered network connection is currently unavailable, false otherwise.
      */
-    public boolean shouldNotRequireWifiNetwork() {
-        return shouldNotRequireWifiNetwork;
+    public boolean shouldNotRequireUnmeteredNetwork() {
+        return shouldNotRequireUnmeteredNetwork;
     }
 
     /**
@@ -106,8 +106,8 @@ public class Constraint {
         this.shouldNotRequireNetwork = shouldNotRequireNetwork;
     }
 
-    void setShouldNotRequireWifiNetwork(boolean shouldNotRequireWifiNetwork) {
-        this.shouldNotRequireWifiNetwork = shouldNotRequireWifiNetwork;
+    void setShouldNotRequireUnmeteredNetwork(boolean shouldNotRequireUnmeteredNetwork) {
+        this.shouldNotRequireUnmeteredNetwork = shouldNotRequireUnmeteredNetwork;
     }
 
     void setTagConstraint(TagConstraint tagConstraint) {
@@ -153,7 +153,7 @@ public class Constraint {
 
     void clear() {
         shouldNotRequireNetwork = false;
-        shouldNotRequireWifiNetwork = false;
+        shouldNotRequireUnmeteredNetwork = false;
         tagConstraint = null;
         tags.clear();
         excludeGroups.clear();
@@ -165,6 +165,6 @@ public class Constraint {
 
     void setNetworkStatus(@NetworkUtil.NetworkStatus int connectionStatus) {
         setShouldNotRequireNetwork(connectionStatus == DISCONNECTED);
-        setShouldNotRequireWifiNetwork(connectionStatus != WIFI);
+        setShouldNotRequireUnmeteredNetwork(connectionStatus != UNMETERED);
     }
 }

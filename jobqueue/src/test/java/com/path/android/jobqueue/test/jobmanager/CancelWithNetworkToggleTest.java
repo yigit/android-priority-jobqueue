@@ -13,7 +13,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -84,7 +83,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
                 runLatch.countDown();
             }
         });
-        networkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
+        networkUtil.setNetworkStatus(NetworkUtil.METERED, true);
         assertThat("new job should run w/o any issues", runLatch.await(2, TimeUnit.SECONDS), is(true));
     }
 
@@ -142,7 +141,7 @@ public class CancelWithNetworkToggleTest extends JobManagerTestBase {
         assertThat("no jobs should fail to cancel", result[0].getFailedToCancel().size(), is(0));
         final CountDownLatch runLatch = persistentLatches[latchCounter ++];
         jobManager.addJob(new PersistentDummyJob(new Params(3).persist().requireNetwork().groupBy("group").addTags("tag"), latchCounter - 1));
-        networkUtil.setNetworkStatus(NetworkUtil.MOBILE, true);
+        networkUtil.setNetworkStatus(NetworkUtil.METERED, true);
         assertThat("new job should run w/o any issues", runLatch.await(2, TimeUnit.SECONDS), is(true));
     }
 

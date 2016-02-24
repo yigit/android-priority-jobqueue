@@ -33,15 +33,15 @@ public class NetworkJobWithFallbackTest extends JobManagerTestBase {
     }
 
     @Test
-    public void testFallbackFromWifiToMobile() throws InterruptedException {
+    public void testFallbackFromUnmeteredToMobile() throws InterruptedException {
         final DummyNetworkUtilWithConnectivityEventSupport networkUtil =
                 new DummyNetworkUtilWithConnectivityEventSupport();
-        networkUtil.setNetworkStatus(NetworkUtil.MOBILE);
+        networkUtil.setNetworkStatus(NetworkUtil.METERED);
         JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application).networkUtil(networkUtil)
                 .timer(mockTimer));
         DummyJob dummyJob = new DummyJob(new Params(1).setPersistent(persistent)
-                .requireWifiNetworkWithTimeout(2)
+                .requireUnmeteredNetworkWithTimeout(2)
                 .requireNetworkWithTimeout(10));
         jobManager.addJob(dummyJob);
         //noinspection SLEEP_IN_CODE
@@ -60,28 +60,4 @@ public class NetworkJobWithFallbackTest extends JobManagerTestBase {
             }
         });
     }
-
-//    @Test
-//    public void testFallbackFromWifiToNoNetwork() throws InterruptedException {
-//        final DummyNetworkUtilWithConnectivityEventSupport networkUtil =
-//                new DummyNetworkUtilWithConnectivityEventSupport();
-//        networkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
-//        JobManager jobManager = createJobManager(
-//                new Configuration.Builder(RuntimeEnvironment.application).networkUtil(networkUtil)
-//                        .timer(mockTimer));
-//        DummyJob dummyJob = new DummyJob(new Params(1).setPersistent(persistent)
-//                .requireWifiNetworkWithTimeout(2)
-//                .requireNetworkWithTimeout(10));
-//        jobManager.addJob(dummyJob);
-//        //noinspection SLEEP_IN_CODE
-//        Thread.sleep(2000);
-//        MatcherAssert.assertThat(jobManager.getJobStatus(dummyJob.getId()), CoreMatchers.is(
-//                JobStatus.WAITING_NOT_READY));
-//        waitUntilJobsAreDone(jobManager, Arrays.asList(dummyJob), new Runnable() {
-//            @Override
-//            public void run() {
-//                mockTimer.incrementMs(10);
-//            }
-//        });
-//    }
 }

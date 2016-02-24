@@ -10,17 +10,18 @@ import java.util.HashSet;
 public class Params {
 
     /**
-     * Used in requireNetwork / requireWifi configuration if the requirement should be kept forever.
+     * Used in requireNetwork / requireUnmeteredNetwork configuration if the requirement should be
+     * kept forever.
      */
     public static final long FOREVER = Long.MAX_VALUE;
 
     /**
-     * Used in requireNetwork / requireWifi configuration if the constraint is disabled.
+     * Used in requireNetwork / requireUnmeteredNetwork configuration if the constraint is disabled.
      */
     public static final long NEVER = Long.MIN_VALUE;
 
     private long requiresNetworkWithTimeout = NEVER;
-    private long requiresWifiNetworkWithTimeout = NEVER;
+    private long requiresUnmeteredNetworkWithTimeout = NEVER;
     private String groupId = null;
     private boolean persistent = false;
     private int priority;
@@ -44,31 +45,32 @@ public class Params {
     }
 
     /**
-     * Sets the Job as requiring WIFI network.
+     * Sets the Job as requiring UNMETERED network.
      * @return this
      */
-    public Params requireWifiNetwork() {
-        return requireWifiNetworkWithTimeout(FOREVER);
+    public Params requireUnmeteredNetwork() {
+        return requireUnmeteredNetworkWithTimeout(FOREVER);
     }
 
     /**
-     * Sets the Job as requiring a wifi network connection with the given timeoutMs. The Job will
-     * not be run until a network connection is detected. If {@code timeoutMs} is not
-     * {@link #FOREVER}, the Job will be available to run without a WIFI connection if it cannot be
-     * run with WIFI connection in the given time period.
+     * Sets the Job as requiring a unmetered network connection with the given timeoutMs. The Job
+     * will not be run until a network connection is detected. If {@code timeoutMs} is not
+     * {@link #FOREVER}, the Job will be available to run without an unmetered connection if it
+     * cannot be run with unmetered network connection in the given time period.
      * <p>
-     * If you want the job to require WIFI network for a limited time then fall back to mobile
-     * network, you can do so by {@code requireWifi(timeout).requireNetwork()}. You can even specify
-     * a timeout for the non-wifi connection as well if you wish the job to be run if enough time
+     * If you want the job to require unmetered network for a limited time then fall back to metered
+     * network, you can do so by
+     * {@code requireUnmeteredNetworkWithTimeout(timeout).requireNetwork()}. You can even specify
+     * a timeout for the unmetered connection as well if you wish the job to be run if enough time
      * passes and no desired network is available.
      *
      * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
-     *                no WIFI connection.
+     *                no unmetered connection.
      *
      * @return The Params
      */
-    public Params requireWifiNetworkWithTimeout(long timeoutMs) {
-        requiresWifiNetworkWithTimeout = timeoutMs;
+    public Params requireUnmeteredNetworkWithTimeout(long timeoutMs) {
+        requiresUnmeteredNetworkWithTimeout = timeoutMs;
         return this;
     }
 
@@ -77,8 +79,9 @@ public class Params {
      * run until a network connection is detected. If {@code timeoutMs} is not {@link #FOREVER}, the
      * Job will available to run without a network connection if it cannot be run in the given time
      * period.
-     * <p>In case this timeout is set to a value smaller than {@code wifi network requirement}
-     * ({@link #requireWifiNetworkWithTimeout(long)}, the WIFI timeout will override this one.
+     * <p>In case this timeout is set to a value smaller than
+     * {@link #requireUnmeteredNetworkWithTimeout(long)}, the unmetered network timeout will
+     * override this one.
      *
      * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
      *                no network connection.
@@ -146,26 +149,27 @@ public class Params {
     }
 
     /**
-     * Returns when the Job's WIFI network requirement will timeout.
+     * Returns when the Job's UNMETERED network requirement will timeout.
      * <ul>
-     * <li>If the job does not require WIFI network, it will return {@link #NEVER}.</li>
-     * <li>If the job should never be run without WIFI network, it will return {@link #FOREVER}.</li>
+     * <li>If the job does not require UNMETERED network, it will return {@link #NEVER}.</li>
+     * <li>If the job should never be run without UNMETERED network, it will return {@link #FOREVER}.</li>
      * <li>Otherwise, it will return the timeout in ms until which the job should require network
-     * to be run and after that timeout it will be run regardless of the WIFI network requirements.
+     * to be run and after that timeout it will be run regardless of the UNMETERED network requirements.
      * It may still be requiring a network connection via {@link #requireNetwork()} or
      * {@link #requireNetworkWithTimeout(long)}</li>
      * </ul>
      *
      * @return The network requirement constraint
      */
-    public long getRequiresWifiNetworkTimeoutMs() {
-        return requiresWifiNetworkWithTimeout;
+    public long getRequiresUnmeteredNetworkTimeoutMs() {
+        return requiresUnmeteredNetworkWithTimeout;
     }
 
     /**
      * Convenience method to set network requirement.
-     * <p>In case this timeout is set to a value smaller than {@code wifi network requirement}
-     * ({@link #requireWifiNetworkWithTimeout(long)}, the WIFI timeout will override this one.
+     * <p>In case this timeout is set to a value smaller than
+     * {@link #requireUnmeteredNetworkWithTimeout(long), the unmetered network timeout will override
+     * this one.
      *
      * @param requiresNetwork True if Job should not be run without a network, false otherwise.
      * @param timeout The timeout after which Job should be run without checking network status.

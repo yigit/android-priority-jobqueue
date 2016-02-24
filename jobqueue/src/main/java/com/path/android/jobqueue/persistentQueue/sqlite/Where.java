@@ -16,7 +16,7 @@ public class Where {
     private SQLiteStatement nextJobDelayUntilViaNetworkStmt;
     private String nextJobQuery;
     private int networkTimeoutArgIndex = -1;
-    private int wifiNetworkTimeoutArgIndex = -1;
+    private int unmeteredNetworkTimeoutArgIndex = -1;
 
     public Where(long cacheKey, String query, String[] args) {
         this.cacheKey = cacheKey;
@@ -28,8 +28,8 @@ public class Where {
         this.networkTimeoutArgIndex = index;
     }
 
-    public void setWifiNetworkTimeoutArgIndex(int wifiNetworkTimeoutArgIndex) {
-        this.wifiNetworkTimeoutArgIndex = wifiNetworkTimeoutArgIndex;
+    public void setUnmeteredNetworkTimeoutArgIndex(int unmeteredNetworkTimeoutArgIndex) {
+        this.unmeteredNetworkTimeoutArgIndex = unmeteredNetworkTimeoutArgIndex;
     }
 
     public SQLiteStatement countReady(SQLiteDatabase database, StringBuilder stringBuilder) {
@@ -67,9 +67,9 @@ public class Where {
                 sb.append(",")
                         .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);
             }
-            if (wifiNetworkTimeoutArgIndex != -1) {
+            if (unmeteredNetworkTimeoutArgIndex != -1) {
                 sb.append(",")
-                        .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName);
+                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName);
             }
             sb.append(") FROM ")
                     .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
@@ -82,9 +82,9 @@ public class Where {
                         .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
                         .append(" != ").append(Params.FOREVER);
             }
-            if (wifiNetworkTimeoutArgIndex != -1) {
+            if (unmeteredNetworkTimeoutArgIndex != -1) {
                 sb.append(" AND ")
-                        .append(DbOpenHelper.REQUIRES_WIFI_NETWORK_UNTIL_COLUMN.columnName)
+                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)
                         .append(" != ").append(Params.FOREVER);
             }
             sb.append(" ORDER BY 1 ASC").append(" limit 1");
@@ -100,8 +100,8 @@ public class Where {
             nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,
                     Long.toString(Params.FOREVER));
         }
-        if (wifiNetworkTimeoutArgIndex != -1) {
-            nextJobDelayUntilViaNetworkStmt.bindString(wifiNetworkTimeoutArgIndex + 1,
+        if (unmeteredNetworkTimeoutArgIndex != -1) {
+            nextJobDelayUntilViaNetworkStmt.bindString(unmeteredNetworkTimeoutArgIndex + 1,
                     Long.toString(Params.FOREVER));
         }
 

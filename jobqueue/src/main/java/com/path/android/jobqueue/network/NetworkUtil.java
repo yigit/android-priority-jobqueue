@@ -12,21 +12,21 @@ import java.lang.annotation.RetentionPolicy;
  */
 public interface NetworkUtil {
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({DISCONNECTED, MOBILE, WIFI})
+    @IntDef({DISCONNECTED, METERED, UNMETERED})
     @interface NetworkStatus {}
     int DISCONNECTED = 1;
-    int MOBILE = 2;
-    int WIFI = 3;
+    int METERED = 2;
+    int UNMETERED = 3;
 
     /**
      * Returns the current connection status. If you cannot detect granular network type, return
-     * {@link #WIFI} if there is an internet connection or {@link #DISCONNECTED} if there is no
+     * {@link #UNMETERED} if there is an internet connection or {@link #DISCONNECTED} if there is no
      * connection.
      *
      * @param context The application context
      *
      * @return The current connection status. It should be one of {@link #DISCONNECTED},
-     * {@link #MOBILE} or {@link #WIFI}.
+     * {@link #METERED} or {@link #UNMETERED}.
      */
     @NetworkStatus
     int getNetworkStatus(Context context);

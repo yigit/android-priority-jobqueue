@@ -3,7 +3,6 @@ package com.path.android.jobqueue.test.jobmanager;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.Params;
-import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.network.NetworkUtil;
@@ -21,8 +20,6 @@ import android.os.Build;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.path.android.jobqueue.BuildConfig.class)
@@ -77,7 +74,7 @@ public class KeepAliveTest extends JobManagerTestBase {
         waitUntilAJobIsDone(jobManager, new WaitUntilCallback() {
             @Override
             public void run() {
-                networkUtil.setNetworkStatus(NetworkUtil.MOBILE);
+                networkUtil.setNetworkStatus(NetworkUtil.METERED);
             }
 
             @Override
