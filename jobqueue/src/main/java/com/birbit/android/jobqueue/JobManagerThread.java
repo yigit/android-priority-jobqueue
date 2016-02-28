@@ -325,9 +325,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 removeJob(jobHolder);
                 break;
             case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
+                cancelSafely(jobHolder, CancelReason.REACHED_RETRY_LIMIT);
+                removeJob(jobHolder);
+                break;
             case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
+                cancelSafely(jobHolder, CancelReason.CANCELLED_VIA_SHOULD_RE_RUN);
+                removeJob(jobHolder);
+                break;
             case JobHolder.RUN_RESULT_FAIL_SINGLE_ID:
-                cancelSafely(jobHolder, result);
+                cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_WHILE_RUNNING);
                 removeJob(jobHolder);
                 break;
             case JobHolder.RUN_RESULT_TRY_AGAIN:
@@ -357,7 +363,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         }
     }
 
-    private void cancelSafely(JobHolder jobHolder, int cancelReason) {
+    private void cancelSafely(JobHolder jobHolder, @CancelReason int cancelReason) {
         try {
             jobHolder.onCancel(cancelReason);
         } catch (Throwable t) {

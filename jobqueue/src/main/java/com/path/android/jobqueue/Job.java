@@ -180,7 +180,7 @@ abstract public class Job implements Serializable {
      *                   <li>{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}</li>
      *                   </ul>
      */
-    protected void onCancel(int cancelReason) {
+    protected void onCancel(@CancelReason int cancelReason) {
         onCancel();
     }
 

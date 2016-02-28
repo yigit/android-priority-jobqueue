@@ -248,7 +248,7 @@ public class JobHolder {
         this.job.setApplicationContext(applicationContext);
     }
 
-    public void onCancel(int cancelReason) {
+    public void onCancel(@CancelReason int cancelReason) {
         job.onCancel(cancelReason);
     }
 
