@@ -14,7 +14,7 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        url "https://jitpack.io"
     }
 }
 
@@ -52,9 +52,11 @@ android {
     }
 
     dependencies {
-        compile 'de.greenrobot:eventbus:2.1.0-beta-1'
+        compile ('de.greenrobot:eventbus:2.1.0-beta-1') {
+            exclude module: 'support-v4'
+        }
         compile 'org.twitter4j:twitter4j-core:3.0.5'
-        compile 'com.birbit:android-priority-jobqueue:2.0.0-SNAPSHOT@aar'
+        compile 'com.github.yigit:android-priority-jobqueue:v2-SNAPSHOT'
         compile files('external-libs/greenDAO.jar')
     }
 
