@@ -7,7 +7,8 @@ File releaseFile = new File("${projectDir}/releaseConfig.properties")
 if (releaseFile.exists()) {
     releaseConfig.load(new FileInputStream(releaseFile))
 }
-
+// for jitpack
+group='com.github.yigit'
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
@@ -16,16 +17,18 @@ task wrapper(type: Wrapper) {
 
 apply plugin: 'maven'
 apply plugin: 'signing'
+apply plugin: 'com.github.dcendents.android-maven'
 //apply plugin: 'jacoco'
 
 buildscript {
     repositories {
         jcenter()
+        mavenCentral()
     }
 
     dependencies {
         classpath 'com.android.tools.build:gradle:2.0.0-beta5'
-
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'
     }
 }
 
