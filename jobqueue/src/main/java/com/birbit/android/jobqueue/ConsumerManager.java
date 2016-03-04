@@ -184,7 +184,8 @@ class ConsumerManager {
             }
             consumer.messageQueue.post(runJobMessage);
         } else {
-            long keepAliveTimeout = message.getLastJobCompleted() + consumerKeepAliveNs;
+            long keepAliveTimeout = Math.max(timer.nanoTime(), message.getLastJobCompleted())
+                    + consumerKeepAliveNs;
             JqLog.d("keep alive: %s", keepAliveTimeout);
             boolean kill = false;
             if (!mJobManagerThread.isRunning()) {

@@ -40,16 +40,22 @@ public class SystemTimerTest {
         //noinspection DIRECT_TIME_ACCESS
         long startNs = System.nanoTime();
         long waitUntil = startNs + JobManager.NS_PER_MS * 3000;
-        synchronized (this) {
-            timer.waitOnObjectUntilNs(this, waitUntil);
+        final Object object = new Object();
+        synchronized (object) {
+            timer.waitOnObjectUntilNs(object, waitUntil);
         }
-        assertReasonable(System.nanoTime(), waitUntil);
+        assertBetween(System.nanoTime(), waitUntil, waitUntil + 2000 * JobManager.NS_PER_MS);
     }
+
+    public void assertBetween(long value, long min, long max) {
+        MatcherAssert.assertThat("expected value should be in range", value,
+                new Range(min, max));
+    }
+
 
     public void assertReasonable(long value, long expected) {
         long deviation = JobManager.NS_PER_MS * 1500;
-        MatcherAssert.assertThat("expected value should be in range", value,
-                new Range(expected - deviation, expected + deviation));
+        assertBetween(value, expected - deviation, expected + deviation);
     }
 
     static class Range extends BaseMatcher<Long> {
