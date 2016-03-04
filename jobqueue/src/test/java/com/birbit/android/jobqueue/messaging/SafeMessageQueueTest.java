@@ -6,6 +6,6 @@ public class SafeMessageQueueTest extends MessageQueueTestBase<SafeMessageQueue>
 
     @Override
     SafeMessageQueue createMessageQueue(Timer timer, MessageFactory factory) {
-        return new SafeMessageQueue(timer, factory);
+        return new SafeMessageQueue(timer, factory, "test");
     }
 }

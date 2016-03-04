@@ -1,5 +1,6 @@
 package com.birbit.android.jobqueue;
 
+import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueue;
 import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
@@ -7,6 +8,9 @@ import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
+import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.path.android.jobqueue.AsyncAddCallback;
 import com.path.android.jobqueue.CancelResult;
 import com.path.android.jobqueue.Job;
@@ -30,6 +34,7 @@ public class JobManager2 {
     final JobManagerThread jobManagerThread;
     private final PriorityMessageQueue messageQueue;
     private final MessageFactory messageFactory;
+    @SuppressWarnings("FieldCanBeLocal")
     private Thread chefThread;
 
     /**
@@ -44,7 +49,39 @@ public class JobManager2 {
         messageQueue = new PriorityMessageQueue(configuration.getTimer(), messageFactory);
         jobManagerThread = new JobManagerThread(configuration, messageQueue, messageFactory);
         chefThread = new Thread(jobManagerThread, "job-manager");
+        if (configuration.getScheduler() != null) {
+            Scheduler.Callback callback = createSchedulerCallback();
+            configuration.getScheduler().init(configuration.getAppContext(), callback);
+        }
         chefThread.start();
+    }
+
+    private Scheduler.Callback createSchedulerCallback() {
+        return new Scheduler.Callback() {
+            @Override
+            public boolean start(SchedulerConstraint constraint) {
+                dispatchSchedulerStart(constraint);
+                return true;
+            }
+
+            @Override
+            public boolean stop(SchedulerConstraint constraint) {
+                return dispatchSchedulerStop(constraint);
+            }
+        };
+    }
+
+    private void dispatchSchedulerStart(SchedulerConstraint constraint) {
+        SchedulerMessage message = messageFactory.obtain(SchedulerMessage.class);
+        message.set(SchedulerMessage.START, constraint);
+        messageQueue.post(message);
+    }
+
+    private boolean dispatchSchedulerStop(SchedulerConstraint constraint) {
+        SchedulerMessage message = messageFactory.obtain(SchedulerMessage.class);
+        message.set(PublicQueryMessage.START, constraint);
+        Integer result = new IntQueryFuture<>(messageQueue, message).getSafe();
+        return result != null && result == 1;
     }
 
     /**
@@ -82,7 +119,7 @@ public class JobManager2 {
         assertNotInMainThread();
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.ACTIVE_CONSUMER_COUNT, null);
-        return new PublicQueryFuture(messageQueue, message).getSafe();
+        return new IntQueryFuture<>(messageQueue, message).getSafe();
     }
 
     /**
@@ -146,7 +183,7 @@ public class JobManager2 {
         }
         PublicQueryMessage pm = messageFactory.obtain(PublicQueryMessage.class);
         pm.set(PublicQueryMessage.CLEAR, null);
-        new PublicQueryFuture(jobManagerThread.callbackManager.messageQueue, pm).getSafe();
+        new IntQueryFuture<>(jobManagerThread.callbackManager.messageQueue, pm).getSafe();
     }
 
     /**
@@ -327,7 +364,7 @@ public class JobManager2 {
         assertNotInMainThread();
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.COUNT, null);
-        return new PublicQueryFuture(messageQueue, message).getSafe();
+        return new IntQueryFuture<>(messageQueue, message).getSafe();
     }
 
     /**
@@ -341,7 +378,7 @@ public class JobManager2 {
         assertNotInMainThread();
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.COUNT_READY, null);
-        return new PublicQueryFuture(messageQueue, message).getSafe();
+        return new IntQueryFuture<>(messageQueue, message).getSafe();
     }
 
     /**
@@ -356,7 +393,7 @@ public class JobManager2 {
     public JobStatus getJobStatus(String id) {
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.JOB_STATUS, id, null);
-        Integer status = new PublicQueryFuture(messageQueue, message).getSafe();
+        Integer status = new IntQueryFuture<>(messageQueue, message).getSafe();
         return JobStatus.values()[status];
     }
 
@@ -370,14 +407,14 @@ public class JobManager2 {
     public void clear() {
         final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.CLEAR, null);
-        new PublicQueryFuture(messageQueue, message).getSafe();
+        new IntQueryFuture<>(messageQueue, message).getSafe();
     }
 
     void internalRunInJobManagerThread(final Runnable runnable) throws Throwable {
         final Throwable[] error = new Throwable[1];
         final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.INTERNAL_RUNNABLE, null);
-        new PublicQueryFuture(messageQueue, message) {
+        new IntQueryFuture<PublicQueryMessage>(messageQueue, message) {
             @Override
             public void onResult(int result) { // this is hacky but allright
                 try {
@@ -402,13 +439,14 @@ public class JobManager2 {
         }
     }
 
-    static class PublicQueryFuture implements Future<Integer>,IntCallback {
+    static class IntQueryFuture<T extends Message & IntCallback.MessageWithCallback>
+            implements Future<Integer>,IntCallback {
         final MessageQueue messageQueue;
         volatile Integer result = null;
         final CountDownLatch latch = new CountDownLatch(1);
-        final PublicQueryMessage message;
+        final T message;
 
-        public PublicQueryFuture(MessageQueue messageQueue, PublicQueryMessage message) {
+        public IntQueryFuture(MessageQueue messageQueue, T message) {
             this.messageQueue = messageQueue;
             this.message = message;
             message.setCallback(this);

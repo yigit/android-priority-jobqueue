@@ -8,16 +8,17 @@ class UnsafeMessageQueue {
     private Message queue = null;
     private Message tail = null;
     private static final AtomicInteger idCounter = new AtomicInteger(0);
-    public final int id = idCounter.incrementAndGet();
+    public final String logTag;
     private final MessageFactory factory;
 
-    public UnsafeMessageQueue(MessageFactory factory) {
+    public UnsafeMessageQueue(MessageFactory factory, String logTag) {
         this.factory = factory;
+        this.logTag = logTag + "_" + idCounter.incrementAndGet();
     }
 
     Message next() {
         final Message result = queue;
-        JqLog.d("remove message %s from queue %d", result, id);
+        JqLog.d("[%s] remove message %s", logTag, result);
         if (result != null) {
             queue = result.next;
             if (tail == result) {
@@ -28,7 +29,7 @@ class UnsafeMessageQueue {
     }
 
     protected void post(Message message) {
-        JqLog.d("post message %s to queue %d", message, id);
+        JqLog.d("[%s] post message %s", logTag, message);
         if (tail == null) {
             queue = message;
             tail = message;

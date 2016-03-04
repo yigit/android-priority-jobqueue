@@ -213,11 +213,11 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         remove(holder);
     }
 
-    private boolean matches(JobHolder holder, Constraint constraint) {
+    private static boolean matches(JobHolder holder, Constraint constraint) {
         return matches(holder, constraint, false);
     }
     @SuppressWarnings("RedundantIfStatement")
-    private boolean matches(JobHolder holder, Constraint constraint, boolean ignoreNetwork) {
+    private static boolean matches(JobHolder holder, Constraint constraint, boolean ignoreNetwork) {
         if (!ignoreNetwork) {
             if (constraint.shouldNotRequireNetwork()
                     && holder.requiresNetwork(constraint.getNowInNs())) {

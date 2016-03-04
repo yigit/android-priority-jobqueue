@@ -32,7 +32,7 @@ public class CallbackManager {
     private final AtomicBoolean started = new AtomicBoolean(false);
     public CallbackManager(MessageFactory factory, Timer timer) {
         this.timer = timer;
-        this.messageQueue = new SafeMessageQueue(timer, factory);
+        this.messageQueue = new SafeMessageQueue(timer, factory, "jq_callback");
         callbacks = new CopyOnWriteArrayList<>();
         this.factory = factory;
     }
