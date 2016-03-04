@@ -39,12 +39,13 @@ public class SystemTimerTest {
         SystemTimer timer = new SystemTimer();
         //noinspection DIRECT_TIME_ACCESS
         long startNs = System.nanoTime();
-        long waitUntil = startNs + JobManager.NS_PER_MS * 3000;
+        long waitNs = JobManager.NS_PER_MS * 3000;
+        long waitUntil = startNs + waitNs;
         final Object object = new Object();
         synchronized (object) {
             timer.waitOnObjectUntilNs(object, waitUntil);
         }
-        assertBetween(System.nanoTime(), waitUntil, waitUntil + 2000 * JobManager.NS_PER_MS);
+        assertBetween(System.nanoTime() - startNs, waitNs, waitNs + 2000 * JobManager.NS_PER_MS);
     }
 
     public void assertBetween(long value, long min, long max) {
