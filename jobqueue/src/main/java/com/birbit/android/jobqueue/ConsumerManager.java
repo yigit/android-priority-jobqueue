@@ -207,13 +207,15 @@ class ConsumerManager {
                 if (!mWaitingConsumers.contains(consumer)) {
                     mWaitingConsumers.add(consumer);
                 }
-                CommandMessage cm = factory.obtain(CommandMessage.class);
-                cm.set(CommandMessage.POKE);
-                if (!tooMany) {
-                    keepAliveTimeout = timer.nanoTime() + consumerKeepAliveNs;
+                if (tooMany || !mJobManagerThread.canListenToNetwork()) {
+                    CommandMessage cm = factory.obtain(CommandMessage.class);
+                    cm.set(CommandMessage.POKE);
+                    if (!tooMany) {
+                        keepAliveTimeout = timer.nanoTime() + consumerKeepAliveNs;
+                    }
+                    consumer.messageQueue.postAt(cm, keepAliveTimeout);
+                    JqLog.d("poke consumer manager at %s", keepAliveTimeout);
                 }
-                consumer.messageQueue.postAt(cm, keepAliveTimeout);
-                JqLog.d("poke consumer manager at %s", keepAliveTimeout);
             }
         }
     }
