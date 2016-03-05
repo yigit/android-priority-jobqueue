@@ -6,9 +6,9 @@ import android.content.Context;
  * This class handles communication & tracking with a scheduler that can wake up the app / job
  * manager based on external events.
  * <p>
- * JobManager will call attached scheduler every time it think that the app should be waken up for
- * the given job. Each request comes with a token, which should be reported back to the JobManager
- * when the system service wakes it up.
+ * JobManager will call attached scheduler every time it thinks that the app should be waken up for
+ * the given job. Each request comes with a {@link SchedulerConstraint} which should be reported
+ * back to the JobManager when the system service wakes it up.
  */
 abstract public class Scheduler {
     private Callback callback;
@@ -58,10 +58,24 @@ abstract public class Scheduler {
     abstract public void onFinished(SchedulerConstraint constraint, boolean reschedule);
 
     /**
+     * When called, should cancel all pending jobs
+     */
+    public abstract void cancelAll();
+
+    /**
      * Internal class that handles the communication between the JobManager and the scheduler
      */
     public interface Callback {
+        /**
+         * @param constraint
+         * @return True if no jobs to run, false otherwise
+         */
         boolean start(SchedulerConstraint constraint);
+
+        /**
+         * @param constraint
+         * @return True if job should be rescheduled, false otherwise
+         */
         boolean stop(SchedulerConstraint constraint);
     }
 }

@@ -10,7 +10,8 @@ import java.util.List;
 public class TwitterController {
     private static TwitterController instance;
     private Twitter twitter;
-    private Long userId;
+    // in a real app, this would be saved on login and come from shared preferences on startup
+    private final long userId = 1443060589;
     public static final int PAGE_LENGTH = 20;
 
 
@@ -48,10 +49,6 @@ public class TwitterController {
     }
 
     public long getUserId() throws TwitterException {
-        if(userId == null) {
-            userId = twitter.getId();
-        }
         return userId;
-
     }
 }

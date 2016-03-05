@@ -34,6 +34,8 @@ import com.path.android.jobqueue.timer.Timer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
+
 import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
 import static com.path.android.jobqueue.network.NetworkUtil.UNMETERED;
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
@@ -59,6 +61,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     final CallbackManager callbackManager;
 
     private boolean running = true;
+    /**
+     * We set this to true whenever we schedule a wake up and set to false whenever we call
+     * cancelAll. It is not precise, does not cover scheduling across reboots but a fair comprimise
+     * for simplicity.
+     */
+    private boolean shouldCancelAllScheduledWhenEmpty = false;
 
     final PriorityMessageQueue messageQueue;
     @Nullable
@@ -148,12 +156,21 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (scheduler == null) {
             return;
         }
-        SchedulerConstraint constraint = new SchedulerConstraint();
-        constraint.setRequireNetwork(job.requiresNetwork(timer));
-        constraint.setRequireUnmeteredNetwork(job.requiresUnmeteredNetwork(timer));
+        boolean requireNetwork = job.requiresNetwork(timer);
+        boolean requireUnmeteredNetwork = job.requiresUnmeteredNetwork(timer);
         long delayInMs = job.getDelayInMs();
-        constraint.setDelayInMs(delayInMs > 0 ? delayInMs : 0);
+        long delay = delayInMs > 0 ? delayInMs : 0;
+        if (!requireNetwork && !requireUnmeteredNetwork
+                && delay < JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS) {
+            return;
+        }
+
+        SchedulerConstraint constraint = new SchedulerConstraint(UUID.randomUUID().toString());
+        constraint.setNetworkStatus(requireUnmeteredNetwork ? NetworkUtil.UNMETERED :
+                requireNetwork ? NetworkUtil.METERED : NetworkUtil.DISCONNECTED);
+        constraint.setDelayInMs(delay);
         scheduler.request(constraint);
+        shouldCancelAllScheduledWhenEmpty = true;
     }
 
     @Override
@@ -206,6 +223,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     ConstraintChangeMessage constraintMessage =
                             messageFactory.obtain(ConstraintChangeMessage.class);
                     messageQueue.postAt(constraintMessage, nextJobTimeNs);
+                } else if (scheduler != null) {
+                    // if we have a scheduler but the queue is empty, just clean them all.
+                    if (shouldCancelAllScheduledWhenEmpty && persistentJobQueue.count() == 0) {
+                        shouldCancelAllScheduledWhenEmpty = false;
+                        scheduler.cancelAll();
+                    }
                 }
             }
         });
@@ -228,7 +251,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (what == SchedulerMessage.START) {
             handleSchedulerStart(message.getConstraint());
         } else if (what == SchedulerMessage.STOP) {
-            handleSchedulerStop(message.getConstraint(), message.getCallback());
+            handleSchedulerStop(message.getConstraint());
         } else {
             throw new IllegalArgumentException("Unknown scheduler message with what " + what);
         }
@@ -241,19 +264,28 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
         queryConstraint.clear();
         queryConstraint.setNowInNs(timer.nanoTime());
-        if (constraint.requireUnmeteredNetwork()) {
-            queryConstraint.setNetworkStatus(NetworkUtil.UNMETERED);
-        } else if (constraint.requireNetwork()) {
-            queryConstraint.setNetworkStatus(NetworkUtil.METERED);
-        } else {
-            queryConstraint.setNetworkStatus(NetworkUtil.DISCONNECTED);
-        }
+        queryConstraint.setNetworkStatus(constraint.getNetworkStatus());
         return persistentJobQueue.countReadyJobs(queryConstraint) > 0;
     }
 
-    private void handleSchedulerStop(SchedulerConstraint constraint, IntCallback callback) {
-        boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);
-        callback.onResult(hasMatchingJobs ? 1 : 0);
+    private void handleSchedulerStop(SchedulerConstraint constraint) {
+        final List<SchedulerConstraint> pendingCallbacks = this.pendingSchedulerCallbacks;
+        if (pendingCallbacks != null) {
+            for (int i = pendingCallbacks.size() - 1; i >= 0; i--) {
+                SchedulerConstraint pendingConstraint = pendingCallbacks.get(i);
+                if (pendingConstraint.getUuid().equals(constraint.getUuid())) {
+                    pendingCallbacks.remove(i);
+                }
+            }
+        }
+        if (scheduler == null) {
+            return;//nothing to do
+        }
+        final boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);
+        if (hasMatchingJobs) {
+            // reschedule
+            scheduler.request(constraint);
+        }
     }
 
 

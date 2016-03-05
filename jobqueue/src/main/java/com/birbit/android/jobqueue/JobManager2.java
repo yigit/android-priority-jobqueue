@@ -66,7 +66,9 @@ public class JobManager2 {
 
             @Override
             public boolean stop(SchedulerConstraint constraint) {
-                return dispatchSchedulerStop(constraint);
+                dispatchSchedulerStop(constraint);
+                // always return false to avoid blocking the queue
+                return false;
             }
         };
     }
@@ -77,11 +79,10 @@ public class JobManager2 {
         messageQueue.post(message);
     }
 
-    private boolean dispatchSchedulerStop(SchedulerConstraint constraint) {
+    private void dispatchSchedulerStop(SchedulerConstraint constraint) {
         SchedulerMessage message = messageFactory.obtain(SchedulerMessage.class);
         message.set(PublicQueryMessage.START, constraint);
-        Integer result = new IntQueryFuture<>(messageQueue, message).getSafe();
-        return result != null && result == 1;
+        messageQueue.post(message);
     }
 
     /**

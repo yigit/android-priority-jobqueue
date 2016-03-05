@@ -18,6 +18,7 @@ import com.path.android.jobqueue.RunningJobSet;
 import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.network.NetworkUtil;
 import com.path.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
@@ -280,10 +281,13 @@ class ConsumerManager {
             if (!jobHolder.getJob().isPersistent()) {
                 continue;
             }
-            if(constraint.requireNetwork() && jobHolder.requiresNetwork(nowInNs)) {
+            if(constraint.getNetworkStatus() == NetworkUtil.METERED
+                    && jobHolder.requiresNetwork(nowInNs)) {
+                // this will conver any unmeted job :/
                 return true;
             }
-            if (constraint.requireUnmeteredNetwork() && jobHolder.requiresUnmeteredNetwork(nowInNs)) {
+            if (constraint.getNetworkStatus() == NetworkUtil.UNMETERED
+                    && jobHolder.requiresUnmeteredNetwork(nowInNs)) {
                 return true;
             }
             // TODO we are missing delayed jobs here because we don't trigger based on it.

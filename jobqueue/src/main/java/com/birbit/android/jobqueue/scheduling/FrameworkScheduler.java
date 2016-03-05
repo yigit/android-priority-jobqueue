@@ -11,18 +11,20 @@ import android.content.SharedPreferences;
 import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
 
-import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.log.JqLog;
+import com.path.android.jobqueue.network.NetworkUtil;
+
+import java.util.UUID;
 
 /**
  * Scheduler implementation that uses the frameworks' scheduler API.
  */
 @TargetApi(21)
 public class FrameworkScheduler extends Scheduler {
+    private static final String KEY_UUID = "uuid";
     private static final String KEY_ID = "id";
     private static final String KEY_DELAY = "delay";
-    private static final String KEY_REQUIRE_NETWORK = "requireNetwork";
-    private static final String KEY_REQUIRE_UNMETERED_NETWORK = "requireUnmeteredNetwork";
+    private static final String KEY_NETWORK_STATUS = "networkStatus";
 
     private JobScheduler jobScheduler;
     private SharedPreferences preferences;
@@ -84,13 +86,17 @@ public class FrameworkScheduler extends Scheduler {
         JobInfo.Builder builder = new JobInfo.Builder(id, getComponentName())
                 .setExtras(toPersistentBundle(constraint))
                 .setPersisted(true);
-        if (constraint.requireUnmeteredNetwork()) {
-            builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED);
-        } else if (constraint.requireNetwork()) {
-            builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
-        } else {
-            builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
-            builder.setRequiresDeviceIdle(true);
+        switch (constraint.getNetworkStatus()) {
+            case NetworkUtil.UNMETERED:
+                builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED);
+                break;
+            case NetworkUtil.METERED:
+                builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+                break;
+            default:
+                builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE);
+                builder.setRequiresDeviceIdle(true);
+                break;
         }
         int scheduled = jobScheduler.schedule(builder.build());
         JqLog.d("[FW Scheduler] scheduled a framework job. Success? %s id: %d" +
@@ -104,7 +110,7 @@ public class FrameworkScheduler extends Scheduler {
         }
         JobService service = this.jobService;
         if (service == null) {
-            JqLog.e("scheduler onfinished is called but i don't have a job service");
+            JqLog.e("[FW Scheduler] scheduler onfinished is called but i don't have a job service");
             return;
         }
 
@@ -113,24 +119,33 @@ public class FrameworkScheduler extends Scheduler {
             JobParameters params = (JobParameters) data;
             service.jobFinished(params, reschedule);
         } else {
-            JqLog.e("cannot obtain the job parameters");
+            JqLog.e("[FW Scheduler] cannot obtain the job parameters");
         }
 
+    }
+
+    @Override
+    public void cancelAll() {
+        JqLog.d("[FW Scheduler] cancel all");
+        getJobScheduler().cancelAll();
     }
 
     private static PersistableBundle toPersistentBundle(SchedulerConstraint constraint) {
         PersistableBundle bundle = new PersistableBundle();
         // put boolean is api 22
-        bundle.putInt(KEY_REQUIRE_NETWORK, constraint.requireNetwork() ? 1 : 0);
-        bundle.putInt(KEY_REQUIRE_UNMETERED_NETWORK, constraint.requireUnmeteredNetwork() ? 1 : 0);
+        bundle.putString(KEY_UUID, constraint.getUuid());
+        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());
         bundle.putLong(KEY_DELAY, constraint.getDelayInMs());
         return bundle;
     }
 
     private static SchedulerConstraint fromPersistentBundle(PersistableBundle bundle) {
-        SchedulerConstraint constraint = new SchedulerConstraint();
-        constraint.setRequireNetwork(bundle.getInt(KEY_REQUIRE_NETWORK, 0) == 1);
-        constraint.setRequireUnmeteredNetwork(bundle.getInt(KEY_REQUIRE_UNMETERED_NETWORK, 0) == 1);
+        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));
+        if (constraint.getUuid() == null) {
+            // backward compatibility
+            constraint.setUuid(UUID.randomUUID().toString());
+        }
+        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));
         constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));
         return constraint;
     }
@@ -140,6 +155,7 @@ public class FrameworkScheduler extends Scheduler {
         if (JqLog.isDebugEnabled()) {
             JqLog.d("[FW Scheduler] start job %s %d", constraint, params.getJobId());
         }
+        constraint.setData(params);
         return start(constraint);
     }
 
