@@ -18,7 +18,7 @@ abstract public class Scheduler {
 
     }
 
-    public final void init(Context context, Callback callback) {
+    public void init(Context context, Callback callback) {
         this.context = context.getApplicationContext();
         this.callback = callback;
     }
