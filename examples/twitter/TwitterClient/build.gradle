@@ -44,19 +44,19 @@ tasks.create(name: "runTwitter", type: RunApk){
 }
 
 android {
-    compileSdkVersion 17
-    buildToolsVersion "23"
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 17
+        targetSdkVersion 23
     }
 
     dependencies {
         compile ('de.greenrobot:eventbus:2.1.0-beta-1') {
             exclude module: 'support-v4'
         }
-        compile 'org.twitter4j:twitter4j-core:3.0.5'
-        compile 'com.github.yigit:android-priority-jobqueue:v2-SNAPSHOT'
+        compile 'org.twitter4j:twitter4j-core:4.0.4'
+        compile project(':jobqueue')
         compile files('external-libs/greenDAO.jar')
     }
 
