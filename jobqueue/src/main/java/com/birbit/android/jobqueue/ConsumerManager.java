@@ -224,6 +224,14 @@ class ConsumerManager {
      * Excludes cancelled jobs
      */
     Set<String> markJobsCancelled(TagConstraint constraint, String[] tags) {
+        return markJobsCancelled(constraint, tags, false);
+    }
+
+    Set<String> markJobsCancelledSingleId(TagConstraint constraint, String[] tags) {
+        return markJobsCancelled(constraint, tags, true);
+    }
+
+    private Set<String> markJobsCancelled(TagConstraint constraint, String[] tags, boolean singleId) {
         Set<String> result = new HashSet<>();
         for (JobHolder holder : runningJobHolders.values()) {
             JqLog.d("checking job tag %s. tags of job: %s", holder.getJob(),
@@ -237,7 +245,11 @@ class ConsumerManager {
 
             if (constraint.matches(tags, holder.getTags())) {
                 result.add(holder.getId());
-                holder.markAsCancelled();
+                if (singleId) {
+                    holder.markAsCancelledSingleId();
+                } else {
+                    holder.markAsCancelled();
+                }
             }
         }
         return result;
