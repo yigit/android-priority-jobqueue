@@ -27,7 +27,7 @@ public class SystemTimerTest {
         //noinspection DIRECT_TIME_ACCESS
         long start = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
         //noinspection SLEEP_IN_CODE
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         assertReasonable(timer.nanoTime(), System.nanoTime() - startNs + start);
         SystemTimer timer2 = new SystemTimer();
         assertReasonable(timer2.nanoTime(), System.nanoTime() - startNs + start);
@@ -38,18 +38,26 @@ public class SystemTimerTest {
     public void testWaitOnObject() throws Throwable {
         SystemTimer timer = new SystemTimer();
         //noinspection DIRECT_TIME_ACCESS
-        long startNs = System.nanoTime();
-        long waitUntil = startNs + JobManager.NS_PER_MS * 2000;
-        synchronized (this) {
-            timer.waitOnObjectUntilNs(this, waitUntil);
+        long startRealTime = System.nanoTime();
+        long startNs = timer.nanoTime();
+        long waitNs = JobManager.NS_PER_MS * 3000;
+        long waitUntil = startNs + waitNs;
+        final Object object = new Object();
+        synchronized (object) {
+            timer.waitOnObjectUntilNs(object, waitUntil);
         }
-        assertReasonable(System.nanoTime(), waitUntil);
+        assertBetween(System.nanoTime() - startRealTime, waitNs, waitNs + 2000 * JobManager.NS_PER_MS);
     }
 
-    public void assertReasonable(long value, long expected) {
-        long deviation = JobManager.NS_PER_MS * 500;
+    public void assertBetween(long value, long min, long max) {
         MatcherAssert.assertThat("expected value should be in range", value,
-                new Range(expected - deviation, expected + deviation));
+                new Range(min, max));
+    }
+
+
+    public void assertReasonable(long value, long expected) {
+        long deviation = JobManager.NS_PER_MS * 1500;
+        assertBetween(value, expected - deviation, expected + deviation);
     }
 
     static class Range extends BaseMatcher<Long> {

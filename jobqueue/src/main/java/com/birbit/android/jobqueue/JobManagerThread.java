@@ -92,6 +92,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         return callbackManager.removeCallback(callback);
     }
 
+    boolean canListenToNetwork() {
+        return networkUtil instanceof NetworkEventProvider;
+    }
+
     private void handleAddJob(AddJobMessage message) {
         Job job = message.getJob();
         //noinspection deprecation

@@ -186,22 +186,11 @@ class ConsumerManager {
         } else {
             long keepAliveTimeout = message.getLastJobCompleted() + consumerKeepAliveNs;
             JqLog.d("keep alive: %s", keepAliveTimeout);
-            boolean kill = false;
-            if (!mJobManagerThread.isRunning()) {
-                kill = true;
-            } else {
-                Long wakeUpAt = mJobManagerThread.getNextWakeUpNs(false);
-                boolean tooMany = mConsumers.size() > minConsumerCount
-                        && keepAliveTimeout < timer.nanoTime();
-                JqLog.d("wake up at: %s . too many? %s", wakeUpAt, tooMany);
-                if (tooMany) {
-                    if (wakeUpAt == null) {
-                        kill = true;
-                    }
-                } else if (wakeUpAt != null) {
-                    keepAliveTimeout = Math.min(wakeUpAt, keepAliveTimeout);
-                }
-            }
+            final boolean tooMany = mConsumers.size() > minConsumerCount;
+            boolean kill = !mJobManagerThread.isRunning() ||
+                    (tooMany && keepAliveTimeout < timer.nanoTime());
+            JqLog.d("Consumer idle, will kill? %s . isRunning: %s", kill,
+                    mJobManagerThread.isRunning());
             if (kill) {
                 CommandMessage command = factory.obtain(CommandMessage.class);
                 command.set(CommandMessage.QUIT);
@@ -218,10 +207,15 @@ class ConsumerManager {
                 if (!mWaitingConsumers.contains(consumer)) {
                     mWaitingConsumers.add(consumer);
                 }
-                CommandMessage cm = factory.obtain(CommandMessage.class);
-                cm.set(CommandMessage.POKE);
-                consumer.messageQueue.postAt(cm, keepAliveTimeout);
-                JqLog.d("poke consumer manager at %s", keepAliveTimeout);
+                if (tooMany || !mJobManagerThread.canListenToNetwork()) {
+                    CommandMessage cm = factory.obtain(CommandMessage.class);
+                    cm.set(CommandMessage.POKE);
+                    if (!tooMany) {
+                        keepAliveTimeout = timer.nanoTime() + consumerKeepAliveNs;
+                    }
+                    consumer.messageQueue.postAt(cm, keepAliveTimeout);
+                    JqLog.d("poke consumer manager at %s", keepAliveTimeout);
+                }
             }
         }
     }

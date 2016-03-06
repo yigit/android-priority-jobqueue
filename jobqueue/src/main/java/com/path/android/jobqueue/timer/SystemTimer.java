@@ -1,5 +1,6 @@
 package com.path.android.jobqueue.timer;
 
+import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.log.JqLog;
 
 import java.util.concurrent.TimeUnit;
@@ -28,14 +29,7 @@ public class SystemTimer implements Timer {
             //noinspection TIMED_WAIT
             object.wait(1);
         } else {
-            long ms = TimeUnit.NANOSECONDS.toMillis(untilNs - now);
-            if (ms > 0) {
-                //noinspection TIMED_WAIT
-                object.wait(ms);
-            } else {
-                //noinspection TIMED_WAIT
-                object.wait(1);
-            }
+            TimeUnit.NANOSECONDS.timedWait(object, untilNs - now);
         }
     }
 
