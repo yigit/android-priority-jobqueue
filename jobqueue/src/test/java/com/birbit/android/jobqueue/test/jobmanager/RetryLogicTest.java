@@ -1,5 +1,6 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricGradleTestRunner.class)
@@ -526,7 +526,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
             if (onCancelCallback != null) {
                 onCancelCallback.on(this);
             }

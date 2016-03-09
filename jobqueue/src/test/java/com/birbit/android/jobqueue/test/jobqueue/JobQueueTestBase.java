@@ -1,9 +1,9 @@
 package com.birbit.android.jobqueue.test.jobqueue;
 
 import com.birbit.android.jobqueue.Constraint;
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.TestConstraint;
 import com.birbit.android.jobqueue.JobHolder;
-import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobQueue;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.TagConstraint;

@@ -163,13 +163,6 @@ abstract public class Job implements Serializable {
     abstract public void onRun() throws Throwable;
 
     /**
-     * @deprecated  use {@link #onCancel(int)}.
-     */
-    protected void onCancel() {
-
-    }
-
-    /**
      * Called when a job is cancelled.
      * * @param cancelReason It is one of:
      *                   <ul>
@@ -180,19 +173,7 @@ abstract public class Job implements Serializable {
      *                   <li>{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}</li>
      *                   </ul>
      */
-    protected void onCancel(@CancelReason int cancelReason) {
-        onCancel();
-    }
-
-    /**
-     * @deprecated use {@link #shouldReRunOnThrowable(Throwable, int, int)}
-     * This method will be removed in v2.0 and {@link #shouldReRunOnThrowable(Throwable, int, int)}
-     * will become abstract.
-     */
-    @Deprecated
-    protected boolean shouldReRunOnThrowable(Throwable throwable) {
-        return true;
-    }
+    abstract protected void onCancel(@CancelReason int cancelReason);
 
     /**
      * If {@code onRun} method throws an exception, this method is called.
@@ -214,12 +195,9 @@ abstract public class Job implements Serializable {
      * @return A {@link RetryConstraint} to decide whether this Job should be tried again or not and
      * if yes, whether we should add a delay or alter its priority. Returning null from this method
      * is equal to returning {@link RetryConstraint#RETRY}. Default implementation calls
-     * {@link #shouldReRunOnThrowable(Throwable)}.
+     * {@link #shouldReRunOnThrowable(Throwable, int, int)}}.
      */
-    protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
-        boolean reRun = shouldReRunOnThrowable(throwable);
-        return reRun ? RetryConstraint.RETRY : RetryConstraint.CANCEL;
-    }
+    abstract protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount);
 
     /**
      * Runs the job and catches any exception

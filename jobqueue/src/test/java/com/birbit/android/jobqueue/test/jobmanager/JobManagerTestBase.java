@@ -5,11 +5,12 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
 
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobManagerThreadRunnable;
+import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.testing.CleanupRule;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobHolder;
-import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.birbit.android.jobqueue.config.Configuration;
@@ -71,8 +72,7 @@ public class JobManagerTestBase extends TestBase {
         if (config.getTimer() != mockTimer && !canUseRealTimer()) {
             throw new IllegalArgumentException("must use mock timer");
         }
-        final JobManager jobManager = new JobManager(RuntimeEnvironment.application,
-                config);
+        final JobManager jobManager = new JobManager(config);
         createdJobManagers.add(jobManager);
 
         return jobManager;
@@ -169,8 +169,8 @@ public class JobManagerTestBase extends TestBase {
         }
 
         @Override
-        protected boolean shouldReRunOnThrowable(Throwable throwable) {
-            return true;
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            return RetryConstraint.RETRY;
         }
 
         @Override

@@ -1,9 +1,12 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
+import com.birbit.android.jobqueue.CancelResult;
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.network.NetworkUtil;
@@ -121,8 +124,13 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
 
+        }
+
+        @Override
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            throw new UnsupportedOperationException("not expected to arrive here");
         }
     }
 }

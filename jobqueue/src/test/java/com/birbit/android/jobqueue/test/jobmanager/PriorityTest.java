@@ -1,8 +1,10 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.config.Configuration;
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -68,13 +70,13 @@ public class PriorityTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
-
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            return RetryConstraint.CANCEL;
         }
 
         @Override
-        protected boolean shouldReRunOnThrowable(Throwable throwable) {
-            return false;
+        protected void onCancel(@CancelReason int cancelReason) {
+
         }
     }
 }

@@ -1,7 +1,9 @@
 package com.birbit.android.jobqueue.test.jobs;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
 
 public class DummyJob extends Job {
     int onAddedCnt = 0;
@@ -24,14 +26,14 @@ public class DummyJob extends Job {
     }
 
     @Override
-    protected void onCancel() {
+    protected void onCancel(@CancelReason int cancelReason) {
         onCancelCnt++;
     }
 
     @Override
-    protected boolean shouldReRunOnThrowable(Throwable throwable) {
+    protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
         shouldReRunOnThrowableCnt++;
-        return false;
+        return RetryConstraint.CANCEL;
     }
 
     public int getOnAddedCnt() {

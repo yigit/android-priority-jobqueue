@@ -2,7 +2,6 @@ package com.birbit.android.jobqueue;
 
 import java.util.Collection;
 import java.util.HashSet;
-import com.birbit.android.jobqueue.JobManager;
 
 /**
  * This class holds the result of a cancel request via {@link JobManager#cancelJobs(TagConstraint, String...)}
