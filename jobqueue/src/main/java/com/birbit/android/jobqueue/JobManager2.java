@@ -11,15 +11,15 @@ import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.path.android.jobqueue.AsyncAddCallback;
-import com.path.android.jobqueue.CancelResult;
-import com.path.android.jobqueue.Job;
-import com.path.android.jobqueue.JobStatus;
-import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.callback.JobManagerCallback;
-import com.path.android.jobqueue.callback.JobManagerCallbackAdapter;
-import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.AsyncAddCallback;
+import com.birbit.android.jobqueue.CancelResult;
+import com.birbit.android.jobqueue.Job;
+import com.birbit.android.jobqueue.JobStatus;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
 
 import android.os.Looper;
 import android.support.annotation.NonNull;
@@ -42,7 +42,7 @@ public class JobManager2 {
      *
      * @param configuration The configuration to be used for the JobManager
      *
-     * @see com.path.android.jobqueue.config.Configuration.Builder
+     * @see com.birbit.android.jobqueue.config.Configuration.Builder
      */
     public JobManager2(Configuration configuration) {
         messageFactory = new MessageFactory();

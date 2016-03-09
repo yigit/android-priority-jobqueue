@@ -1,8 +1,8 @@
 package com.birbit.android.jobqueue;
 
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.JobQueue;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;

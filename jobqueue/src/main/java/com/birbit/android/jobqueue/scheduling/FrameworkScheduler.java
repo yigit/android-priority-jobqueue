@@ -11,8 +11,8 @@ import android.content.SharedPreferences;
 import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
 
-import com.path.android.jobqueue.log.JqLog;
-import com.path.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.UUID;
 

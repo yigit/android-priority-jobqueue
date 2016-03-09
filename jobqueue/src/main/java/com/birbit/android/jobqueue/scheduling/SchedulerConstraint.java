@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue.scheduling;
 
-import com.path.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 
 /**
  * The constraints that are passed into Scheduler from JobManager
