@@ -4,8 +4,8 @@ import android.content.Context;
 
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.test.timer.MockTimer;
+import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.test.timer.MockTimer;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;

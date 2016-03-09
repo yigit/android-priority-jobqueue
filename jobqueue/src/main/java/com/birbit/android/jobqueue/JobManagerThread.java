@@ -17,21 +17,21 @@ import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.path.android.jobqueue.CancelReason;
-import com.path.android.jobqueue.Job;
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.JobQueue;
-import com.path.android.jobqueue.JobStatus;
-import com.path.android.jobqueue.RetryConstraint;
-import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.callback.JobManagerCallback;
-import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.di.DependencyInjector;
-import com.path.android.jobqueue.log.JqLog;
-import com.path.android.jobqueue.network.NetworkEventProvider;
-import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.CancelReason;
+import com.birbit.android.jobqueue.Job;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.JobStatus;
+import com.birbit.android.jobqueue.RetryConstraint;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.di.DependencyInjector;
+import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkEventProvider;
+import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,8 +39,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.Set;
 
-import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.path.android.jobqueue.network.NetworkUtil.UNMETERED;
+import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
+import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
 
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;

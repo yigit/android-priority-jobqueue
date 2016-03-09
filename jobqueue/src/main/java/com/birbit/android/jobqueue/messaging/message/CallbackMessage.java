@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.messaging.message;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
-import com.path.android.jobqueue.Job;
+import com.birbit.android.jobqueue.Job;
 
 /**
  * Used for external callbacks to user code

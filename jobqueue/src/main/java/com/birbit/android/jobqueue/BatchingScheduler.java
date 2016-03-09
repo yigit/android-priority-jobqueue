@@ -4,7 +4,7 @@ import android.content.Context;
 
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.List;
