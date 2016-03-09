@@ -1,10 +1,14 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.JobManager;
+
 import static org.hamcrest.CoreMatchers.*;
 
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
+
 import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,13 +37,13 @@ public class RunFailingJobTest extends JobManagerTestBase {
             }
 
             @Override
-            protected void onCancel() {
+            protected void onCancel(@CancelReason int cancelReason) {
                 latch.countDown();
             }
 
             @Override
-            protected boolean shouldReRunOnThrowable(Throwable throwable) {
-                return false;
+            protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+                return RetryConstraint.CANCEL;
             }
         });
         latch.await(10, TimeUnit.SECONDS);

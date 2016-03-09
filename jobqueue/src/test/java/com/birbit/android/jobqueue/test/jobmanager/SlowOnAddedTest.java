@@ -1,8 +1,10 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -69,13 +71,13 @@ public class SlowOnAddedTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
 
         }
 
         @Override
-        protected boolean shouldReRunOnThrowable(Throwable throwable) {
-            return true;
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            return RetryConstraint.RETRY;
         }
     }
 

@@ -1,6 +1,5 @@
 package com.birbit.android.jobqueue.timer;
 
-import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.log.JqLog;
 
 import java.util.concurrent.TimeUnit;

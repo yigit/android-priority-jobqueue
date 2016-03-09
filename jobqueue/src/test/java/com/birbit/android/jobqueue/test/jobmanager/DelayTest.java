@@ -1,12 +1,11 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
 
-import com.birbit.android.jobqueue.JobManagerThreadRunnable;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
-import org.fest.reflect.method.*;
+
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
 import org.junit.Test;

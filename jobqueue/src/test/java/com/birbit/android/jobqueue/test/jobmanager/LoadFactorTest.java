@@ -1,13 +1,9 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
-import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
-import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.log.CustomLogger;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
-import com.birbit.android.jobqueue.test.timer.MockTimer;
 
 import static org.hamcrest.CoreMatchers.*;
 import org.hamcrest.*;
@@ -21,7 +17,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)

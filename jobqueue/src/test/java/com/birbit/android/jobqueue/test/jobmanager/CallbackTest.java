@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
-import com.birbit.android.jobqueue.testing.StackTraceRule;
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobStatus;
@@ -12,7 +12,6 @@ import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -197,8 +196,13 @@ public class CallbackTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
 
+        }
+
+        @Override
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            throw new RuntimeException("not expected to arrive here");
         }
     }
 
@@ -206,11 +210,6 @@ public class CallbackTest extends JobManagerTestBase {
 
         protected PublicJob(Params params) {
             super(params);
-        }
-
-        @Override
-        public RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
-            return super.shouldReRunOnThrowable(throwable, runCount, maxRunCount);
         }
 
         @Override
@@ -234,8 +233,14 @@ public class CallbackTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
 
         }
+
+        @Override
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            throw new UnsupportedOperationException("should not be called directly");
+        }
+
     }
 }

@@ -1,12 +1,11 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
 
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,8 +18,6 @@ import android.content.Context;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -96,14 +93,14 @@ public class ApplicationContextTests extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
             assertContext("onCancel");
         }
 
         @Override
-        protected boolean shouldReRunOnThrowable(Throwable throwable) {
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
             assertContext("shouldReRunOnThrowable");
-            return retryCount < 2;
+            return retryCount < 2 ? RetryConstraint.RETRY : RetryConstraint.CANCEL;
         }
     }
 }

@@ -1,8 +1,10 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.birbit.android.jobqueue.config.Configuration;
@@ -188,8 +190,13 @@ public class NetworkJobTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel() {
+        protected void onCancel(@CancelReason int cancelReason) {
 
+        }
+
+        @Override
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            throw new RuntimeException("not expected arrive here");
         }
     }
 }
