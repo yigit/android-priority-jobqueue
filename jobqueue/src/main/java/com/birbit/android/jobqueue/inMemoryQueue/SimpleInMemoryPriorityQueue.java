@@ -96,6 +96,12 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
+    public void substitute(JobHolder newJob, JobHolder oldJob) {
+        remove(oldJob);
+        insert(newJob);
+    }
+
+    @Override
     public void remove(JobHolder jobHolder) {
         idCache.remove(jobHolder.getId());
         jobs.remove(jobHolder);

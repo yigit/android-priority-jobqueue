@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     public static final int DEFAULT_RETRY_LIMIT = 20;
+    private static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
     private String id = UUID.randomUUID().toString();
     private long requiresNetworkUntilNs = Params.NEVER;
     transient private long requiresNetworkTimeoutMs = 0;
@@ -53,8 +54,18 @@ abstract public class Job implements Serializable {
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
         this.delayInMs = params.getDelayMs();
-        final Set<String> tags = params.getTags();
-        this.readonlyTags = tags == null ? null : Collections.unmodifiableSet(tags);
+        final String singleId = params.getSingleId();
+        if (params.getTags() != null || singleId != null) {
+            final Set<String> tags = params.getTags() != null ? params.getTags() : new HashSet<String>();
+            if (singleId != null) {
+                final String tagForSingleId = createTagForSingleId(singleId);
+                tags.add(tagForSingleId);
+                if (this.groupId == null) {
+                    this.groupId = tagForSingleId;
+                }
+            }
+            this.readonlyTags = Collections.unmodifiableSet(tags);
+        }
     }
 
     public String getId() {
@@ -152,9 +163,26 @@ abstract public class Job implements Serializable {
     abstract public void onRun() throws Throwable;
 
     /**
-     * Called when a job is cancelled.
+     * @deprecated  use {@link #onCancel(int)}.
      */
-    abstract protected void onCancel();
+    protected void onCancel() {
+
+    }
+
+    /**
+     * Called when a job is cancelled.
+     * * @param cancelReason It is one of:
+     *                   <ul>
+     *                   <li>{@link CancelReason#REACHED_RETRY_LIMIT}</li>
+     *                   <li>{@link CancelReason#CANCELLED_VIA_SHOULD_RE_RUN}</li>
+     *                   <li>{@link CancelReason#CANCELLED_WHILE_RUNNING}</li>
+     *                   <li>{@link CancelReason#SINGLE_INSTANCE_WHILE_RUNNING}</li>
+     *                   <li>{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}</li>
+     *                   </ul>
+     */
+    protected void onCancel(@CancelReason int cancelReason) {
+        onCancel();
+    }
 
     /**
      * @deprecated use {@link #shouldReRunOnThrowable(Throwable, int, int)}
@@ -231,6 +259,9 @@ abstract public class Job implements Serializable {
         JqLog.d("safeRunResult for %s : %s. re run:%s. cancelled: %s", this, !failed, reRun, cancelled);
         if (!failed) {
             return JobHolder.RUN_RESULT_SUCCESS;
+        }
+        if (holder.isCancelledSingleId()) {
+            return JobHolder.RUN_RESULT_FAIL_SINGLE_ID;
         }
         if (holder.isCancelled()) {
             return JobHolder.RUN_RESULT_FAIL_FOR_CANCEL;
@@ -350,6 +381,27 @@ abstract public class Job implements Serializable {
      */
     public final String getRunGroupId() {
         return groupId;
+    }
+
+    /**
+     * Some jobs only need a single instance to be queued to run. For instance, if a user has made several changes
+     * to a resource while offline, you can save every change locally during {@link #onAdded()}, but
+     * only update the resource remotely once with the latest changes.
+     * @return
+     */
+    public final String getSingleInstanceId() {
+        if (readonlyTags != null) {
+            for (String tag : readonlyTags) {
+                if (tag.startsWith(SINGLE_ID_TAG_PREFIX)) {
+                    return tag;
+                }
+            }
+        }
+        return null;
+    }
+
+    private String createTagForSingleId(String singleId) {
+        return SINGLE_ID_TAG_PREFIX + singleId;
     }
 
     /**

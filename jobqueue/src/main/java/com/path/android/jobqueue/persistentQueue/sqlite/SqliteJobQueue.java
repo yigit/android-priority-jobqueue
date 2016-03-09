@@ -69,6 +69,18 @@ public class SqliteJobQueue implements JobQueue {
         return insertId != -1;
     }
 
+    @Override
+    public void substitute(JobHolder newJob, JobHolder oldJob) {
+        db.beginTransaction();
+        try {
+            remove(oldJob);
+            insert(newJob);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
     private boolean insertWithTags(JobHolder jobHolder) {
         final SQLiteStatement stmt = sqlHelper.getInsertStatement();
         final SQLiteStatement tagsStmt = sqlHelper.getInsertTagsStatement();

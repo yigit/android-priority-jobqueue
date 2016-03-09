@@ -37,6 +37,12 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
+    public void substitute(JobHolder newJob, JobHolder oldJob) {
+        invalidateCache();
+        delegate.substitute(newJob, oldJob);
+    }
+
+    @Override
     public void remove(JobHolder jobHolder) {
         invalidateCache();
         delegate.remove(jobHolder);

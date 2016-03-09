@@ -17,12 +17,14 @@ import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
+import com.path.android.jobqueue.CancelReason;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.JobStatus;
 import com.path.android.jobqueue.RetryConstraint;
+import com.path.android.jobqueue.TagConstraint;
 import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.di.DependencyInjector;
@@ -35,9 +37,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 
 import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
 import static com.path.android.jobqueue.network.NetworkUtil.UNMETERED;
+
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
@@ -123,16 +127,23 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 .delayUntilNs(delayUntilNs)
                 .runningSessionId(NOT_RUNNING_SESSION_ID).build();
 
-        final boolean persistent = job.isPersistent();
-        if (persistent) {
-            persistentJobQueue.insert(jobHolder);
+        JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());
+        final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());
+        if (insert) {
+            JobQueue queue = job.isPersistent() ? persistentJobQueue : nonPersistentJobQueue;
+            if (oldJob != null) { //the other job was running, will be cancelled if it fails
+                consumerManager.markJobsCancelledSingleId(TagConstraint.ANY, new String[]{job.getSingleInstanceId()});
+                queue.substitute(jobHolder, oldJob);
+            } else {
+                queue.insert(jobHolder);
+            }
+            if (JqLog.isDebugEnabled()) {
+                JqLog.d("added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
+                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
+                        , job.isPersistent(), job.requiresNetwork(timer));
+            }
         } else {
-            nonPersistentJobQueue.insert(jobHolder);
-        }
-        if(JqLog.isDebugEnabled()) {
-            JqLog.d("added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
-                    , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
-                    , persistent, job.requiresNetwork(timer));
+            JqLog.d("another job with same singleId: %s was already queued", job.getSingleInstanceId());
         }
         if(dependencyInjector != null) {
             //inject members b4 calling onAdded
@@ -145,10 +156,14 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
         }
         callbackManager.notifyOnAdded(jobHolder.getJob());
-        consumerManager.onJobAdded();
-        if (persistent) {
-            // tell scheduler that we may want to be invoked
-            scheduleWakeUpFor(job);
+        if (insert) {
+            consumerManager.onJobAdded();
+            if (job.isPersistent()) {
+                scheduleWakeUpFor(job);
+            }
+        } else {
+            cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);
+            callbackManager.notifyOnDone(jobHolder.getJob());
         }
     }
 
@@ -171,6 +186,29 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         constraint.setDelayInMs(delay);
         scheduler.request(constraint);
         shouldCancelAllScheduledWhenEmpty = true;
+    }
+
+    /**
+     * Returns a queued job with the same single id. If any matching non-running job is found,
+     * that one is returned. Otherwise any matching running job will be returned.
+     */
+    private JobHolder findJobBySingleId(/*Nullable*/String singleIdTag) {
+        if (singleIdTag != null) {
+            queryConstraint.clear();
+            queryConstraint.setTags(new String[]{singleIdTag});
+            queryConstraint.setTagConstraint(TagConstraint.ANY);
+            Set<JobHolder> jobs = nonPersistentJobQueue.findJobs(queryConstraint);
+            jobs.addAll(persistentJobQueue.findJobs(queryConstraint));
+            if (!jobs.isEmpty()) {
+                for (JobHolder job : jobs) {
+                    if (!consumerManager.isJobRunning(job.getId())) {
+                        return job;
+                    }
+                }
+                return jobs.iterator().next();
+            }
+        }
+        return null;
     }
 
     @Override
@@ -421,13 +459,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 removeJob(jobHolder);
                 break;
             case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
+                cancelSafely(jobHolder, CancelReason.REACHED_RETRY_LIMIT);
+                removeJob(jobHolder);
+                break;
             case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
-                try {
-                    jobHolder.onCancel();
-                } catch (Throwable t) {
-                    JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
-                }
-                callbackManager.notifyOnCancel(jobHolder.getJob(), false);
+                cancelSafely(jobHolder, CancelReason.CANCELLED_VIA_SHOULD_RE_RUN);
+                removeJob(jobHolder);
+                break;
+            case JobHolder.RUN_RESULT_FAIL_SINGLE_ID:
+                cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_WHILE_RUNNING);
                 removeJob(jobHolder);
                 break;
             case JobHolder.RUN_RESULT_TRY_AGAIN:
@@ -437,7 +477,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             case JobHolder.RUN_RESULT_FAIL_FOR_CANCEL:
                 JqLog.d("running job failed and cancelled, doing nothing. "
                         + "Will be removed after it's onCancel is called by the "
-                        + "JobManager");
+                        + "CancelHandler");
                 break;
             default:
                 JqLog.e("unknown job holder result");
@@ -457,6 +497,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 }
             }
         }
+    }
+
+    private void cancelSafely(JobHolder jobHolder, @CancelReason int cancelReason) {
+        try {
+            jobHolder.onCancel(cancelReason);
+        } catch (Throwable t) {
+            JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
+        }
+        callbackManager.notifyOnCancel(jobHolder.getJob(), false);
     }
 
     private void insertOrReplace(JobHolder jobHolder) {
