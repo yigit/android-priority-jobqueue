@@ -4,7 +4,7 @@ import com.birbit.android.jobqueue.IntCallback;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
 
-public class PublicQueryMessage extends Message {
+public class PublicQueryMessage extends Message implements IntCallback.MessageWithCallback {
     public static final int COUNT = 0;
     public static final int COUNT_READY = 1;
     public static final int START = 2;
@@ -12,8 +12,9 @@ public class PublicQueryMessage extends Message {
     public static final int JOB_STATUS = 4;
     public static final int CLEAR = 5;
     public static final int ACTIVE_CONSUMER_COUNT = 6;
+    public static final int SCHEDULER_START = 7;
     // used for testing
-    public static final int INTERNAL_RUNNABLE = 7;
+    public static final int INTERNAL_RUNNABLE = 101;
 
     private IntCallback callback;
     private int what = -1;

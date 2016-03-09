@@ -65,7 +65,7 @@ public class ConsumerTest {
     public void idleMessage() {
         MessageFactory factory = new MessageFactory();
         PriorityMessageQueue pmq = new PriorityMessageQueue(timer, factory);
-        SafeMessageQueue mq = new SafeMessageQueue(timer, factory);
+        SafeMessageQueue mq = new SafeMessageQueue(timer, factory, "test");
         setRunning(pmq);
         setRunning(mq);
         timer.setNow(2001);
@@ -81,7 +81,7 @@ public class ConsumerTest {
         MessageFactory factory = new MessageFactory();
         PriorityMessageQueue pmq = new PriorityMessageQueue(timer, factory);
         setRunning(pmq);
-        SafeMessageQueue mq = new SafeMessageQueue(timer, factory);
+        SafeMessageQueue mq = new SafeMessageQueue(timer, factory, "test");
         setRunning(mq);
         timer.setNow(2001);
         Consumer consumer = new Consumer(pmq, mq, factory, timer);
@@ -105,7 +105,7 @@ public class ConsumerTest {
         MessageFactory factory = new MessageFactory();
         PriorityMessageQueue pmq = new PriorityMessageQueue(timer, factory);
         setRunning(pmq);
-        SafeMessageQueue mq = spy(new SafeMessageQueue(timer, factory));
+        SafeMessageQueue mq = spy(new SafeMessageQueue(timer, factory, "test"));
         setRunning(mq);
         timer.setNow(2001);
         Consumer consumer = new Consumer(pmq, mq, factory, timer);

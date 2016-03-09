@@ -17,6 +17,7 @@ public class PriorityMessageQueue implements MessageQueue {
     // used when jobs are posted inside sync blocks
     private boolean postJobTick = false;
     private final MessageFactory factory;
+    private static final String LOG_TAG = "priority_mq";
 
     @SuppressWarnings("unused")
     public PriorityMessageQueue(Timer timer, MessageFactory factory) {
@@ -34,6 +35,7 @@ public class PriorityMessageQueue implements MessageQueue {
         while (running.get()) {
             Message message = next(consumer);
             if (message != null) {
+                JqLog.d("[%s] consuming message of type %s", LOG_TAG, message.type);
                 consumer.handleMessage(message);
                 factory.release(message);
             }
@@ -68,9 +70,9 @@ public class PriorityMessageQueue implements MessageQueue {
             final long now;
             synchronized (LOCK) {
                 now = timer.nanoTime();
-                JqLog.d("looking for next message at time %s", now);
+                JqLog.d("[%s] looking for next message at time %s", LOG_TAG, now);
                 nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);
-                JqLog.d("next delayed job %s", nextDelayedReadyAt);
+                JqLog.d("[%s] next delayed job %s", LOG_TAG, nextDelayedReadyAt);
                 for (int i = Type.MAX_PRIORITY; i >= 0; i--) {
                     UnsafeMessageQueue mq = queues[i];
                     if (mq == null) {
@@ -88,7 +90,7 @@ public class PriorityMessageQueue implements MessageQueue {
                 calledOnIdle = true;
             }
             synchronized (LOCK) {
-                JqLog.d("did on idle post a message? %s", postJobTick);
+                JqLog.d("[%s] did on idle post a message? %s", LOG_TAG, postJobTick);
                 // callback may add new messages
                 if (postJobTick) {
                     continue; // idle posted jobs, requery
@@ -117,7 +119,7 @@ public class PriorityMessageQueue implements MessageQueue {
             postJobTick = true;
             int index = message.type.priority;
             if (queues[index] == null) {
-                queues[index] = new UnsafeMessageQueue(factory);
+                queues[index] = new UnsafeMessageQueue(factory, "queue_" + message.type.name());
             }
             queues[index].post(message);
             timer.notifyObject(LOCK);

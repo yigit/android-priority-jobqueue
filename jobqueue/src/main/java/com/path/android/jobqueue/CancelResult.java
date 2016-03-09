@@ -37,7 +37,7 @@ public class CancelResult {
     }
 
     /**
-     * @return The list of jobs that were running when cancel was called and finished running
+     * @return The list of jobs that were running when cancel was called and onFinished running
      * successfully before they could be cancelled.
      */
     public Collection<Job> getFailedToCancel() {

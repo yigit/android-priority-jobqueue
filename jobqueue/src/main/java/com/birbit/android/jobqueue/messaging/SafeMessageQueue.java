@@ -13,8 +13,8 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
     // used to check if any new message is posted inside sync block
     private boolean postMessageTick = false;
     private final MessageFactory factory;
-    public SafeMessageQueue(Timer timer, MessageFactory factory) {
-        super(factory);
+    public SafeMessageQueue(Timer timer, MessageFactory factory, String logTag) {
+        super(factory, logTag);
         this.factory = factory;
         this.timer = timer;
         this.delayedBag = new DelayedMessageBag(factory);
@@ -37,7 +37,7 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
                 factory.release(message);
             }
         }
-        JqLog.d("finished queue %s", id);
+        JqLog.d("[%s] finished queue", logTag);
     }
 
     @Override
@@ -80,16 +80,17 @@ public class SafeMessageQueue extends UnsafeMessageQueue implements MessageQueue
                     continue; // callback added a message, requery
                 }
                 if (nextDelayedReadyAt != null && nextDelayedReadyAt <= now) {
-                    JqLog.d("next message is ready, requery");
+                    JqLog.d("[%s] next message is ready, requery", logTag);
                     continue;
                 }
                 if (running.get()) {
                     try {
                         if (nextDelayedReadyAt == null) {
-                            JqLog.d("will wait on the lock forever");
+                            JqLog.d("[%s] will wait on the lock forever", logTag);
                             timer.waitOnObject(LOCK);
                         } else {
-                            JqLog.d("will wait on the lock until %d", nextDelayedReadyAt);
+                            JqLog.d("[%s] will wait on the lock until %d", logTag,
+                                    nextDelayedReadyAt);
                             timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);
                         }
                     } catch (InterruptedException ignored) {

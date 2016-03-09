@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 
 @RunWith(JUnit4.class)
 public class UnsafeMessageQueueTest {
-    UnsafeMessageQueue mq = new UnsafeMessageQueue(new MessageFactory());
+    UnsafeMessageQueue mq = new UnsafeMessageQueue(new MessageFactory(), "test");
     List<Long> items = Arrays.asList(1000L, 2000L, 3000L);
     Map<Long, Message> added = new HashMap<>();
     

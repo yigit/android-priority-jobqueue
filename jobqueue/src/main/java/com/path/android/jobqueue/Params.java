@@ -149,6 +149,36 @@ public class Params {
     }
 
     /**
+     * Convenience method to set unmetered network requirement.
+     * @param requiresUnmeteredNetwork true|false
+     * @param timeout The timeout(ms) after which Job should be run without checking unmetered network
+     *                status. If {@param requiresUnmeteredNetwork} is {@code false}, this value is
+     *                ignored.
+     * @return this
+     * @see #setRequiresUnmeteredNetwork(boolean)
+     * @see #requireUnmeteredNetwork()
+     */
+    public Params setRequiresUnmeteredNetwork(boolean requiresUnmeteredNetwork, long timeout) {
+        if (!requiresUnmeteredNetwork) {
+            this.requiresUnmeteredNetworkWithTimeout = NEVER;
+        } else {
+            this.requiresUnmeteredNetworkWithTimeout = timeout;
+        }
+        return this;
+    }
+
+    /**
+     * Convenience method to set unmetered network requirement.
+     * @param requiresUnmeteredNetwork true|false
+     * @return this
+     * @see #setRequiresUnmeteredNetwork(boolean, long)
+     * @see #requireUnmeteredNetwork()
+     */
+    public Params setRequiresUnmeteredNetwork(boolean requiresUnmeteredNetwork) {
+        return setRequiresUnmeteredNetwork(requiresUnmeteredNetwork, FOREVER);
+    }
+
+    /**
      * Returns when the Job's network requirement will timeout.
      * <ul>
      * <li>If the job does not require network, it will return {@link #NEVER}.</li>

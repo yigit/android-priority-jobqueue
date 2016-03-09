@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
@@ -13,6 +14,9 @@ import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
+import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.path.android.jobqueue.CancelReason;
 import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
@@ -32,6 +36,7 @@ import com.path.android.jobqueue.timer.Timer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.Set;
 
 import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
@@ -45,6 +50,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
     final Timer timer;
     private final Context appContext;
+    @SuppressWarnings("FieldCanBeLocal")
     private final long sessionId;
     final JobQueue persistentJobQueue;
     final JobQueue nonPersistentJobQueue;
@@ -52,14 +58,23 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private final DependencyInjector dependencyInjector;
     private final MessageFactory messageFactory;
     final ConsumerManager consumerManager;
-    private List<CancelHandler> pendingCancelHandlers;
+    @Nullable private List<CancelHandler> pendingCancelHandlers;
+    @Nullable private List<SchedulerConstraint> pendingSchedulerCallbacks;
     final Constraint queryConstraint = new Constraint();
 
     final CallbackManager callbackManager;
 
     private boolean running = true;
+    /**
+     * We set this to true whenever we schedule a wake up and set to false whenever we call
+     * cancelAll. It is not precise, does not cover scheduling across reboots but a fair comprimise
+     * for simplicity.
+     */
+    private boolean shouldCancelAllScheduledWhenEmpty = false;
 
     final PriorityMessageQueue messageQueue;
+    @Nullable
+    Scheduler scheduler;
 
     JobManagerThread(Configuration config, PriorityMessageQueue messageQueue,
             MessageFactory messageFactory) {
@@ -71,6 +86,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         timer = config.getTimer();
         appContext = config.getAppContext();
         sessionId = timer.nanoTime();
+        scheduler = config.getScheduler();
         this.persistentJobQueue = config.getQueueFactory()
                 .createPersistentQueue(config, sessionId);
         this.nonPersistentJobQueue = config.getQueueFactory()
@@ -142,10 +158,34 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         callbackManager.notifyOnAdded(jobHolder.getJob());
         if (insert) {
             consumerManager.onJobAdded();
+            if (job.isPersistent()) {
+                scheduleWakeUpFor(job);
+            }
         } else {
             cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);
             callbackManager.notifyOnDone(jobHolder.getJob());
         }
+    }
+
+    private void scheduleWakeUpFor(Job job) {
+        if (scheduler == null) {
+            return;
+        }
+        boolean requireNetwork = job.requiresNetwork(timer);
+        boolean requireUnmeteredNetwork = job.requiresUnmeteredNetwork(timer);
+        long delayInMs = job.getDelayInMs();
+        long delay = delayInMs > 0 ? delayInMs : 0;
+        if (!requireNetwork && !requireUnmeteredNetwork
+                && delay < JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS) {
+            return;
+        }
+
+        SchedulerConstraint constraint = new SchedulerConstraint(UUID.randomUUID().toString());
+        constraint.setNetworkStatus(requireUnmeteredNetwork ? NetworkUtil.UNMETERED :
+                requireNetwork ? NetworkUtil.METERED : NetworkUtil.DISCONNECTED);
+        constraint.setDelayInMs(delay);
+        scheduler.request(constraint);
+        shouldCancelAllScheduledWhenEmpty = true;
     }
 
     /**
@@ -181,7 +221,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         handleAddJob((AddJobMessage) message);
                         break;
                     case JOB_CONSUMER_IDLE:
-                        consumerManager.handleIdle((JobConsumerIdleMessage) message);
+                        boolean busy = consumerManager.handleIdle((JobConsumerIdleMessage) message);
+                        if (!busy) {
+                            invokeSchedulersIfIdle();
+                        }
                         break;
                     case RUN_JOB_RESULT:
                         handleRunJobResult((RunJobResultMessage) message);
@@ -198,6 +241,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     case COMMAND:
                         handleCommand((CommandMessage) message);
                         break;
+                    case SCHEDULER:
+                        handleSchedulerMessage((SchedulerMessage) message);
+                        break;
                 }
             }
 
@@ -212,11 +258,95 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 // same as now
                 JqLog.d("Job queue idle. next job at: %s", nextJobTimeNs);
                 if (nextJobTimeNs != null) {
-                    ConstraintChangeMessage constraintMessage = messageFactory.obtain(ConstraintChangeMessage.class);
+                    ConstraintChangeMessage constraintMessage =
+                            messageFactory.obtain(ConstraintChangeMessage.class);
                     messageQueue.postAt(constraintMessage, nextJobTimeNs);
+                } else if (scheduler != null) {
+                    // if we have a scheduler but the queue is empty, just clean them all.
+                    if (shouldCancelAllScheduledWhenEmpty && persistentJobQueue.count() == 0) {
+                        shouldCancelAllScheduledWhenEmpty = false;
+                        scheduler.cancelAll();
+                    }
                 }
             }
         });
+    }
+
+    private void invokeSchedulersIfIdle() {
+        if (scheduler == null || pendingSchedulerCallbacks == null
+                || pendingSchedulerCallbacks.isEmpty() || !consumerManager.areAllConsumersIdle()) {
+            return;
+        }
+        for (int i = pendingSchedulerCallbacks.size() - 1; i >= 0; i--) {
+            SchedulerConstraint constraint = pendingSchedulerCallbacks.remove(i);
+            boolean reschedule = hasJobsWithSchedulerConstraint(constraint);
+            scheduler.onFinished(constraint, reschedule);
+        }
+    }
+
+    private void handleSchedulerMessage(SchedulerMessage message) {
+        final int what = message.getWhat();
+        if (what == SchedulerMessage.START) {
+            handleSchedulerStart(message.getConstraint());
+        } else if (what == SchedulerMessage.STOP) {
+            handleSchedulerStop(message.getConstraint());
+        } else {
+            throw new IllegalArgumentException("Unknown scheduler message with what " + what);
+        }
+    }
+
+    private boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint) {
+        if (consumerManager.hasJobsWithSchedulerConstraint(constraint, timer.nanoTime())) {
+            return true;
+        }
+
+        queryConstraint.clear();
+        queryConstraint.setNowInNs(timer.nanoTime());
+        queryConstraint.setNetworkStatus(constraint.getNetworkStatus());
+        return persistentJobQueue.countReadyJobs(queryConstraint) > 0;
+    }
+
+    private void handleSchedulerStop(SchedulerConstraint constraint) {
+        final List<SchedulerConstraint> pendingCallbacks = this.pendingSchedulerCallbacks;
+        if (pendingCallbacks != null) {
+            for (int i = pendingCallbacks.size() - 1; i >= 0; i--) {
+                SchedulerConstraint pendingConstraint = pendingCallbacks.get(i);
+                if (pendingConstraint.getUuid().equals(constraint.getUuid())) {
+                    pendingCallbacks.remove(i);
+                }
+            }
+        }
+        if (scheduler == null) {
+            return;//nothing to do
+        }
+        final boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);
+        if (hasMatchingJobs) {
+            // reschedule
+            scheduler.request(constraint);
+        }
+    }
+
+
+    private void handleSchedulerStart(SchedulerConstraint constraint) {
+        if (!isRunning()) {
+            if (scheduler != null) {
+                scheduler.onFinished(constraint, true);
+            }
+            return;
+        }
+        boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);
+        if (!hasMatchingJobs) {
+            if (scheduler != null) {
+                scheduler.onFinished(constraint, false);
+            }
+            return;
+        }
+        if (pendingSchedulerCallbacks == null) {
+            pendingSchedulerCallbacks = new ArrayList<>();
+        }
+        // add this to callbacks to be invoked when job runs
+        pendingSchedulerCallbacks.add(constraint);
+        consumerManager.handleConstraintChange();
     }
 
     private void handleCommand(CommandMessage message) {
@@ -349,6 +479,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         + "Will be removed after it's onCancel is called by the "
                         + "CancelHandler");
                 break;
+            default:
+                JqLog.e("unknown job holder result");
         }
         consumerManager.handleRunJobResult(message, jobHolder, retryConstraint);
         callbackManager.notifyAfterRun(jobHolder.getJob(), result);

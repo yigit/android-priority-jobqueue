@@ -2,6 +2,7 @@ package com.path.android.jobqueue.config;
 
 import com.birbit.android.jobqueue.DefaultQueueFactory;
 import com.birbit.android.jobqueue.QueueFactory;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.di.DependencyInjector;
 import com.path.android.jobqueue.log.CustomLogger;
@@ -24,19 +25,20 @@ public class Configuration {
     public static final int MAX_CONSUMER_COUNT = 5;
     public static final int MIN_CONSUMER_COUNT = 0;
 
-    private String id = DEFAULT_ID;
-    private int maxConsumerCount = MAX_CONSUMER_COUNT;
-    private int minConsumerCount = MIN_CONSUMER_COUNT;
-    private int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
-    private int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;
-    private Context appContext;
-    private QueueFactory queueFactory;
-    private DependencyInjector dependencyInjector;
-    private NetworkUtil networkUtil;
-    private CustomLogger customLogger;
-    private Timer timer;
-    private boolean inTestMode = false;
-    private boolean resetDelaysOnRestart = false;
+    String id = DEFAULT_ID;
+    int maxConsumerCount = MAX_CONSUMER_COUNT;
+    int minConsumerCount = MIN_CONSUMER_COUNT;
+    int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;
+    int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;
+    Context appContext;
+    QueueFactory queueFactory;
+    DependencyInjector dependencyInjector;
+    NetworkUtil networkUtil;
+    CustomLogger customLogger;
+    Timer timer;
+    Scheduler scheduler;
+    boolean inTestMode = false;
+    boolean resetDelaysOnRestart = false;
 
     private Configuration(){
         //use builder instead
@@ -92,6 +94,10 @@ public class Configuration {
 
     public boolean resetDelaysOnRestart() {
         return resetDelaysOnRestart;
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 
     public static final class Builder {
@@ -253,6 +259,20 @@ public class Configuration {
          */
         public Builder inTestMode() {
             configuration.inTestMode = true;
+            return this;
+        }
+
+        /**
+         * Assigns a scheduler that can be used to wake up the application when JobManager has jobs
+         * to execute. This is the integration point with the system
+         * {@link android.app.job.JobScheduler}.
+         *
+         * @param scheduler The scheduler to be used
+         *
+         * @return The builder
+         */
+        public Builder scheduler(Scheduler scheduler) {
+            configuration.scheduler = scheduler;
             return this;
         }
 
