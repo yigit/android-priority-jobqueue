@@ -48,7 +48,6 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
             return false;
         }
 
-        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
