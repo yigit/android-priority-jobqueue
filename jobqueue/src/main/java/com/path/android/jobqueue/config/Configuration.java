@@ -287,7 +287,7 @@ public class Configuration {
          * @param threadPriority
          * @return
          */
-        public Builder setThreadPriority(int threadPriority) {
+        public Builder consumerThreadPriority(int threadPriority) {
             configuration.threadPriority = threadPriority;
             return this;
         }
