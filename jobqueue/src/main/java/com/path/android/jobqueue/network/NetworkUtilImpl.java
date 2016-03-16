@@ -1,10 +1,12 @@
 package com.path.android.jobqueue.network;
 
+import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build.VERSION;
@@ -33,6 +35,16 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     @Override
     public boolean isConnected(Context context) {
         if (isDozing(context)) {
+            return false;
+        }
+
+        int permState = context.checkCallingOrSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE);
+        if (permState != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+
+        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) {
             return false;
         }
 

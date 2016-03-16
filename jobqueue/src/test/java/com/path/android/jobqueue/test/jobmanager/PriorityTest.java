@@ -22,7 +22,12 @@ public class PriorityTest extends JobManagerTestBase {
 
     @Test
     public void testPriority() throws Exception {
-        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application).maxConsumerCount(1));
+        JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
+        dummyNetworkUtil.setHasNetwork(true);
+
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+            .networkUtil(dummyNetworkUtil).maxConsumerCount(1));
+
         testPriority(jobManager, false);
     }
 

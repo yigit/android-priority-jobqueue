@@ -5,6 +5,7 @@ import com.path.android.jobqueue.JobManager;
 import static org.hamcrest.CoreMatchers.*;
 
 import com.path.android.jobqueue.Params;
+import com.path.android.jobqueue.config.Configuration;
 import org.hamcrest.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,7 +21,13 @@ public class RunFailingJobTest extends JobManagerTestBase {
     @Test
     public void runFailingJob() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
-        JobManager jobManager = createJobManager();
+
+        JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
+        dummyNetworkUtil.setHasNetwork(true);
+
+        JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
+            .networkUtil(dummyNetworkUtil));
+
         jobManager.addJob(new Job(new Params(0).requireNetwork()) {
             @Override
             public void onAdded() {
