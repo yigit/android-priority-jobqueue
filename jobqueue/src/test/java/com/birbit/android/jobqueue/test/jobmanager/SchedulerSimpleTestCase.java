@@ -69,7 +69,7 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
                 .timer(mockTimer)
                 .networkUtil(networkUtil)
                 .inTestMode()
-                .scheduler(scheduler);
+                .scheduler(scheduler, false);
         if (requireUnmeteredNetwork) {
             networkUtil.setNetworkStatus(NetworkUtil.UNMETERED);
         } else if (requireNetwork) {
