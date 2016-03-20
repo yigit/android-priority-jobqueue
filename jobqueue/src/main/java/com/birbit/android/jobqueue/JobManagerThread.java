@@ -79,6 +79,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         appContext = config.getAppContext();
         sessionId = timer.nanoTime();
         scheduler = config.getScheduler();
+        if (scheduler != null && config.batchSchedulerRequests() &&
+                !(scheduler instanceof BatchingScheduler)) {
+            scheduler = new BatchingScheduler(scheduler, timer);
+        }
         this.persistentJobQueue = config.getQueueFactory()
                 .createPersistentQueue(config, sessionId);
         this.nonPersistentJobQueue = config.getQueueFactory()

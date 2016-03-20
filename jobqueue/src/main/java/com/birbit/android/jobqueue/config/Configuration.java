@@ -39,6 +39,7 @@ public class Configuration {
     Scheduler scheduler;
     boolean inTestMode = false;
     boolean resetDelaysOnRestart = false;
+    boolean batchSchedulerRequests = true;
 
     private Configuration(){
         //use builder instead
@@ -50,6 +51,10 @@ public class Configuration {
 
     public String getId() {
         return id;
+    }
+
+    public boolean batchSchedulerRequests() {
+        return batchSchedulerRequests;
     }
 
     public QueueFactory getQueueFactory() {
@@ -266,14 +271,53 @@ public class Configuration {
          * Assigns a scheduler that can be used to wake up the application when JobManager has jobs
          * to execute. This is the integration point with the system
          * {@link android.app.job.JobScheduler}.
+         * <p>
+         * <b>Batching</b>
+         * <br/>
+         * By default, JobManager batches scheduling requests so that it will not call JobScheduler
+         * too many times. For instance, if a persistent job that requires network is added, when
+         * batching is enabled, JobManager creates the JobScheduler request with
+         * {@link com.birbit.android.jobqueue.BatchingScheduler#DEFAULT_BATCHING_PERIOD_IN_MS} delay.
+         * Any subsequent job request that has the same criteria will use the previous batching
+         * request. This way, JobManager can avoid making a JobScheduler request for every job.
+         * It will still execute the Job if it becomes available without waiting for the delay but
+         * if the application is killed, the JobScheduler will wait until the delay passes before
+         * waking up the application to consume the jobs.
+         *
+         * @param scheduler The scheduler to be used
+         * @param batch     Defines whether the scheduling requests should be batched or not.
+         *
+         * @return The builder
+         */
+        public Builder scheduler(Scheduler scheduler, boolean batch) {
+            configuration.scheduler = scheduler;
+            configuration.batchSchedulerRequests = batch;
+            return this;
+        }
+
+        /**
+         * Assigns a scheduler that can be used to wake up the application when JobManager has jobs
+         * to execute. This is the integration point with the system
+         * {@link android.app.job.JobScheduler}.
+         * <p>
+         * <b>Batching</b>
+         * <br/>
+         * By default, JobManager batches scheduling requests so that it will not call JobScheduler
+         * too many times. For instance, if a persistent job that requires network is added, when
+         * batching is enabled, JobManager creates the JobScheduler request with
+         * {@link com.birbit.android.jobqueue.BatchingScheduler#DEFAULT_BATCHING_PERIOD_IN_MS} delay.
+         * Any subsequent job request that has the same criteria will use the previous batching
+         * request. This way, JobManager can avoid making a JobScheduler request for every job.
+         * It will still execute the Job if it becomes available without waiting for the delay but
+         * if the application is killed, the JobScheduler will wait until the delay passes before
+         * waking up the application to consume the jobs.
          *
          * @param scheduler The scheduler to be used
          *
          * @return The builder
          */
         public Builder scheduler(Scheduler scheduler) {
-            configuration.scheduler = scheduler;
-            return this;
+            return scheduler(scheduler, true);
         }
 
         public Configuration build() {
