@@ -40,7 +40,7 @@ public class Configuration {
     Scheduler scheduler;
     boolean inTestMode = false;
     boolean resetDelaysOnRestart = false;
-	int threadPriority = DEFAULT_THREAD_PRIORITY;
+    int threadPriority = DEFAULT_THREAD_PRIORITY;
 
     private Configuration(){
         //use builder instead
