@@ -89,7 +89,7 @@ public class GcmScheduler extends Scheduler {
 
     @Override
     public void cancelAll() {
-        gcmNetworkManager.cancelAllTasks(GcmTaskService.class);
+        gcmNetworkManager.cancelAllTasks(serviceClass);
     }
 
     private static int toNetworkState(@NetworkUtil.NetworkStatus int networkStatus) {
