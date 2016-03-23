@@ -24,7 +24,7 @@ class RunApk extends DefaultTask {
     def runApp() {
         println "running path on device or emulator"
         println "adb:" + adbExec
-        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.path.android.jobqueue.examples.twitter/com.path.android.jobqueue.examples.twitter.SampleTwitterClient"
+        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.birbit.android.jobqueue.examples.twitter/com.birbit.android.jobqueue.examples.twitter.SampleTwitterClient"
         println cmd
         def proc = cmd.execute()
         proc.in.eachLine {line -> println line}
@@ -58,6 +58,8 @@ android {
         compile 'org.twitter4j:twitter4j-core:3.0.5'
         compile project(":jobqueue")
         compile files('external-libs/greenDAO.jar')
+        compile 'com.google.android.gms:play-services-gcm:8.4.0'
+
     }
 
     sourceSets {

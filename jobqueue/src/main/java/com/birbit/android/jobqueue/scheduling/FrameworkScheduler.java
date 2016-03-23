@@ -27,7 +27,7 @@ public class FrameworkScheduler extends Scheduler {
     private static final String KEY_NETWORK_STATUS = "networkStatus";
 
     private JobScheduler jobScheduler;
-    private SharedPreferences preferences;
+    private static SharedPreferences preferences;
     private ComponentName componentName;
     // set when service invokes, cleared when service dies
     @Nullable private JobService jobService;
@@ -41,12 +41,14 @@ public class FrameworkScheduler extends Scheduler {
         this.jobService = jobService;
     }
 
-    private SharedPreferences getPreferences() {
-        if (preferences == null) {
-            preferences = getApplicationContext().getSharedPreferences("jobqueue_fw_scheduler",
-                    Context.MODE_PRIVATE);
+    private static SharedPreferences getPreferences(Context context) {
+        synchronized (FrameworkScheduler.class) {
+            if (preferences == null) {
+                preferences = context.getSharedPreferences("jobqueue_fw_scheduler",
+                        Context.MODE_PRIVATE);
+            }
+            return preferences;
         }
-        return preferences;
     }
 
     private ComponentName getComponentName() {
@@ -64,10 +66,12 @@ public class FrameworkScheduler extends Scheduler {
      * @return A unique integer id for the next Job request to be sent to system scheduler
      */
     public int createId() {
-        final SharedPreferences preferences = getPreferences();
-        final int id = preferences.getInt(KEY_ID, 0) + 1;
-        preferences.edit().putInt(KEY_ID, id).commit();
-        return id;
+        synchronized (FrameworkScheduler.class) {
+            final SharedPreferences preferences = getPreferences(getApplicationContext());
+            final int id = preferences.getInt(KEY_ID, 0) + 1;
+            preferences.edit().putInt(KEY_ID, id).commit();
+            return id;
+        }
     }
 
     private JobScheduler getJobScheduler() {
@@ -139,7 +143,7 @@ public class FrameworkScheduler extends Scheduler {
         return bundle;
     }
 
-    private static SchedulerConstraint fromPersistentBundle(PersistableBundle bundle) {
+    private static SchedulerConstraint fromBundle(PersistableBundle bundle) {
         SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));
         if (constraint.getUuid() == null) {
             // backward compatibility
@@ -151,7 +155,7 @@ public class FrameworkScheduler extends Scheduler {
     }
 
     public boolean onStartJob(JobParameters params) {
-        SchedulerConstraint constraint = fromPersistentBundle(params.getExtras());
+        SchedulerConstraint constraint = fromBundle(params.getExtras());
         if (JqLog.isDebugEnabled()) {
             JqLog.d("[FW Scheduler] start job %s %d", constraint, params.getJobId());
         }
@@ -160,7 +164,7 @@ public class FrameworkScheduler extends Scheduler {
     }
 
     public boolean onStopJob(JobParameters params) {
-        SchedulerConstraint constraint = fromPersistentBundle(params.getExtras());
+        SchedulerConstraint constraint = fromBundle(params.getExtras());
         return stop(constraint);
     }
 }
