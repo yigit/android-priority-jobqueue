@@ -1,11 +1,9 @@
 package com.path.android.jobqueue.executor;
 
-import com.path.android.jobqueue.Job;
 import com.path.android.jobqueue.JobHolder;
 import com.path.android.jobqueue.JobManager;
 import com.path.android.jobqueue.JobQueue;
 import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.callback.JobManagerCallback;
 import com.path.android.jobqueue.config.Configuration;
 import com.path.android.jobqueue.log.JqLog;
 
@@ -25,6 +23,7 @@ public class JobConsumerExecutor {
     private int maxConsumerSize;
     private int minConsumerSize;
     private int loadFactor;
+    private int threadPriority;
     private final ThreadGroup threadGroup;
     private final Contract contract;
     private final int keepAliveSeconds;
@@ -38,6 +37,7 @@ public class JobConsumerExecutor {
         this.maxConsumerSize = config.getMaxConsumerCount();
         this.minConsumerSize = config.getMinConsumerCount();
         this.keepAliveSeconds = config.getConsumerKeepAlive();
+        this.threadPriority = config.getThreadPriority();
         this.contract = contract;
         threadGroup = new ThreadGroup("JobConsumers");
         runningJobHolders = new ConcurrentHashMap<String, JobHolder>();
@@ -85,6 +85,7 @@ public class JobConsumerExecutor {
         synchronized (threadGroup) {
             Thread thread = new Thread(threadGroup, new JobConsumer(contract, this));
             activeConsumerCount.incrementAndGet();
+            thread.setPriority(threadPriority);
             thread.start();
         }
     }
