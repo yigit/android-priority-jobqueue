@@ -47,6 +47,8 @@ class ConsumerManager {
 
     private final long consumerKeepAliveNs;
 
+    private final int threadPriority;
+
     private final int loadFactor;
 
     private final ThreadGroup threadGroup;
@@ -74,6 +76,7 @@ class ConsumerManager {
         this.maxConsumerCount = configuration.getMaxConsumerCount();
         this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000
                 * JobManagerThread.NS_PER_MS;
+        this.threadPriority = configuration.getThreadPriority();
         runningJobHolders = new HashMap<>();
         runningJobGroups = new RunningJobSet(timer);
         threadGroup = new ThreadGroup("JobConsumers");
@@ -144,6 +147,7 @@ class ConsumerManager {
         Consumer consumer = new Consumer(jobManagerThread.messageQueue,
                 new SafeMessageQueue(timer, factory, "consumer"), factory, timer);
         Thread thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
+        thread.setPriority(threadPriority);
         consumers.add(consumer);
         thread.start();
     }

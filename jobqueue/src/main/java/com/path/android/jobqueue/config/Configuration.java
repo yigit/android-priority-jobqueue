@@ -24,6 +24,7 @@ public class Configuration {
     public static final int DEFAULT_LOAD_FACTOR_PER_CONSUMER = 3;
     public static final int MAX_CONSUMER_COUNT = 5;
     public static final int MIN_CONSUMER_COUNT = 0;
+    private static final int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
 
     String id = DEFAULT_ID;
     int maxConsumerCount = MAX_CONSUMER_COUNT;
@@ -39,6 +40,7 @@ public class Configuration {
     Scheduler scheduler;
     boolean inTestMode = false;
     boolean resetDelaysOnRestart = false;
+    int threadPriority = DEFAULT_THREAD_PRIORITY;
 
     private Configuration(){
         //use builder instead
@@ -98,6 +100,10 @@ public class Configuration {
 
     public Scheduler getScheduler() {
         return scheduler;
+    }
+
+    public int getThreadPriority() {
+        return threadPriority;
     }
 
     public static final class Builder {
@@ -273,6 +279,16 @@ public class Configuration {
          */
         public Builder scheduler(Scheduler scheduler) {
             configuration.scheduler = scheduler;
+            return this;
+        }
+
+        /**
+         * Sets the priority for the threads of this manager. By default it is {@value #DEFAULT_THREAD_PRIORITY}
+         * @param threadPriority
+         * @return
+         */
+        public Builder consumerThreadPriority(int threadPriority) {
+            configuration.threadPriority = threadPriority;
             return this;
         }
 
