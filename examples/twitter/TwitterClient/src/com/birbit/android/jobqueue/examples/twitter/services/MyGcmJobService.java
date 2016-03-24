@@ -10,9 +10,4 @@ import com.google.android.gms.gcm.TaskParams;
  * Created by yboyar on 3/20/16.
  */
 public class MyGcmJobService extends GcmJobSchedulerService {
-
-  @Override
-  public GcmScheduler getScheduler() {
-    return TwitterApplication.getInstance().getGcmTaskScheduler();
-  }
 }

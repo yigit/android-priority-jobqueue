@@ -5,8 +5,4 @@ import com.birbit.android.jobqueue.scheduling.FrameworkScheduler;
 import com.birbit.android.jobqueue.examples.twitter.TwitterApplication;
 
 public class MyJobService extends FrameworkJobSchedulerService {
-    @Override
-    public FrameworkScheduler getScheduler() {
-        return TwitterApplication.getInstance().getFrameworkScheduler();
-    }
 }

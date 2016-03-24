@@ -5,11 +5,13 @@ import android.os.Build;
 import android.util.Log;
 
 import com.birbit.android.jobqueue.examples.twitter.services.MyGcmJobService;
+import com.birbit.android.jobqueue.scheduling.FrameworkJobSchedulerService;
 import com.birbit.android.jobqueue.scheduling.FrameworkScheduler;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.examples.twitter.services.MyJobService;
 import com.birbit.android.jobqueue.log.CustomLogger;
+import com.birbit.android.jobqueue.scheduling.GcmJobSchedulerService;
 import com.birbit.android.jobqueue.scheduling.GcmScheduler;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -18,8 +20,6 @@ import com.google.android.gms.common.GoogleApiAvailability;
 public class TwitterApplication extends Application {
     private static TwitterApplication instance;
     private JobManager jobManager;
-    private FrameworkScheduler frameworkScheduler;
-    private GcmScheduler gcmTaskScheduler;
 
     public TwitterApplication() {
         instance = this;
@@ -60,13 +60,13 @@ public class TwitterApplication extends Application {
         .loadFactor(3)//3 jobs per consumer
         .consumerKeepAlive(120);//wait 2 minute
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            frameworkScheduler = new FrameworkScheduler(MyJobService.class);
-            builder.scheduler(frameworkScheduler);
+            builder.scheduler(FrameworkJobSchedulerService.createSchedulerFor(this,
+                    MyJobService.class), false);
         } else {
             int enableGcm = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
             if (enableGcm == ConnectionResult.SUCCESS) {
-                gcmTaskScheduler = new GcmScheduler(this, MyGcmJobService.class);
-                builder.scheduler(gcmTaskScheduler);
+                builder.scheduler(GcmJobSchedulerService.createSchedulerFor(this,
+                        MyGcmJobService.class), false);
             }
         }
         jobManager = new JobManager(builder.build());
@@ -74,14 +74,6 @@ public class TwitterApplication extends Application {
 
     public JobManager getJobManager() {
         return jobManager;
-    }
-
-    public FrameworkScheduler getFrameworkScheduler() {
-        return frameworkScheduler;
-    }
-
-    public GcmScheduler getGcmTaskScheduler() {
-        return gcmTaskScheduler;
     }
 
     public static TwitterApplication getInstance() {
