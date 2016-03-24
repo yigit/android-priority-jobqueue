@@ -1,10 +1,10 @@
 package com.birbit.android.jobqueue;
 
 import com.birbit.android.jobqueue.inMemoryQueue.SimpleInMemoryPriorityQueue;
-import com.path.android.jobqueue.*;
-import com.path.android.jobqueue.cachedQueue.CachedJobQueue;
-import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+import com.birbit.android.jobqueue.*;
+import com.birbit.android.jobqueue.cachedQueue.CachedJobQueue;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 
 /**
  * Default implementation of QueueFactory that creates one {@link SqliteJobQueue} and

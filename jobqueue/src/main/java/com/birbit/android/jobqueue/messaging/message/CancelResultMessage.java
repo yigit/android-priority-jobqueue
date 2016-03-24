@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.messaging.message;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
-import com.path.android.jobqueue.CancelResult;
+import com.birbit.android.jobqueue.CancelResult;
 
 public class CancelResultMessage extends Message {
     CancelResult.AsyncCancelCallback callback;

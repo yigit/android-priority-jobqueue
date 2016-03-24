@@ -11,8 +11,8 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.test.timer.MockTimer;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.test.timer.MockTimer;
 
 import org.fest.reflect.core.Reflection;
 import org.hamcrest.CoreMatchers;

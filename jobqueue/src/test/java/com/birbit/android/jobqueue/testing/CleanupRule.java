@@ -1,13 +1,9 @@
 package com.birbit.android.jobqueue.testing;
 
-import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.test.jobmanager.JobManagerTestBase;
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.test.jobmanager.JobManagerTestBase;
 
-import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.robolectric.Robolectric;
-
-import java.util.Map;
 
 public class CleanupRule extends ThreadDumpRule {
     final JobManagerTestBase test;

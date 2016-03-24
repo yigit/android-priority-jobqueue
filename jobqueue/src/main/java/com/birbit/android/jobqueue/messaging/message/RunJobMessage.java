@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.messaging.message;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
-import com.path.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.JobHolder;
 
 public class RunJobMessage extends Message {
     private JobHolder jobHolder;
