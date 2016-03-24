@@ -1,6 +1,7 @@
 ### V2 is on the way!
 There is a major internal rewrite of this project for more stability and new features. Although API is not final, I highly suggest using the 2.0.0-SNAPSHOT . You can start using it via JitPack.
 Updated source can be found in the [v2 branch](https://github.com/yigit/android-priority-jobqueue/tree/v2).
+See the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
 repositories {
@@ -14,7 +15,6 @@ dependedencies {
     compile 'com.github.yigit:android-priority-jobqueue:v2-SNAPSHOT'
 }
 ```
-See the sample project's [build file](https://github.com/yigit/android-priority-jobqueue/blob/v2/examples/twitter/TwitterClient/build.gradle) as a reference to use snapshot version from JitPack.
 Android Priority Job Queue (Job Manager)
 ==========================
 
