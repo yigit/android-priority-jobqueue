@@ -59,7 +59,7 @@ public class TwitterApplication extends Application {
         .maxConsumerCount(3)//up to 3 consumers at a time
         .loadFactor(3)//3 jobs per consumer
         .consumerKeepAlive(120);//wait 2 minute
-        if (false && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             frameworkScheduler = new FrameworkScheduler(MyJobService.class);
             builder.scheduler(frameworkScheduler);
         } else {
