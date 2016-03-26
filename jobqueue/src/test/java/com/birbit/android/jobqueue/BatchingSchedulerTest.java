@@ -109,8 +109,7 @@ public class BatchingSchedulerTest {
                 CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
     }
 
-    private static SchedulerConstraint createConstraint(
-            @NetworkUtil.NetworkStatus int networkStatus, long delay) {
+    private static SchedulerConstraint createConstraint(int networkStatus, long delay) {
         SchedulerConstraint constraint = new SchedulerConstraint("abc");
         constraint.setDelayInMs(delay);
         constraint.setNetworkStatus(networkStatus);

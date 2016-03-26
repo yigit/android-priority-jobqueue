@@ -180,10 +180,9 @@ public class JobManagerTestBase extends TestBase {
     }
 
     protected static class DummyNetworkUtil implements NetworkUtil {
-        @NetworkStatus
         private int networkStatus;
 
-        protected void setNetworkStatus(@NetworkStatus  int networkStatus) {
+        protected void setNetworkStatus(int networkStatus) {
             this.networkStatus = networkStatus;
         }
 
@@ -195,11 +194,10 @@ public class JobManagerTestBase extends TestBase {
 
     protected static class DummyNetworkUtilWithConnectivityEventSupport extends DummyNetworkUtil
             implements NetworkUtil, NetworkEventProvider {
-        @NetworkStatus
         private int networkStatus;
         private Listener listener;
 
-        protected void setNetworkStatus(@NetworkStatus int networkStatus, boolean notifyListener) {
+        protected void setNetworkStatus(int networkStatus, boolean notifyListener) {
             this.networkStatus = networkStatus;
             if(notifyListener && listener != null) {
                 listener.onNetworkChange(networkStatus);
@@ -207,7 +205,7 @@ public class JobManagerTestBase extends TestBase {
         }
 
         @Override
-        protected void setNetworkStatus(@NetworkStatus int networkStatus) {
+        protected void setNetworkStatus(int networkStatus) {
             setNetworkStatus(networkStatus, true);
         }
 
