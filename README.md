@@ -1,18 +1,10 @@
 ### V2 is on the way!
-There is a major internal rewrite of this project for more stability and new features. Although API is not final, I highly suggest using the 2.0.0-SNAPSHOT . You can start using it via JitPack.
-Updated source can be found in the [v2 branch](https://github.com/yigit/android-priority-jobqueue/tree/v2).
+There is a major internal rewrite of this project for more stability and new features. Although API is not final, I highly suggest using 2.0..
 See the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
-repositories {
-    mavenCentral()
-    maven {
-        url "https://jitpack.io"
-    }
-}
-
 dependedencies {
-    compile 'com.github.yigit:android-priority-jobqueue:v2-SNAPSHOT'
+    compile 'com.github.yigit:android-priority-jobqueue:2.0.0-alpha1'
 }
 ```
 Android Priority Job Queue (Job Manager)
@@ -55,7 +47,7 @@ Although not required, it is most useful when used with an event bus. It also su
 
 Since a code example is worth thousands of documentation pages, here it is.
 
-File: [PostTweetJob.java](https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/jobs/PostTweetJob.java)
+File: [PostTweetJob.java](https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/birbit/android/jobqueue/examples/twitter/jobs/PostTweetJob.java)
 ``` java
 // A job to send a tweet
 public class PostTweetJob extends Job {
@@ -95,7 +87,7 @@ public class PostTweetJob extends Job {
 
 ```
 
-File: [TweetActivity.java](https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/SampleTwitterClient.java#L53)
+File: [TweetActivity.java](https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/birbit/android/jobqueue/examples/twitter/SampleTwitterClient.java#L53)
 ``` java
 //...
 public void onSendClick() {
@@ -168,6 +160,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.0-alpha1 (March 26, 2016)
+   - A major rewrite with 70+ commits
+   - [Migration guide][13]
   - 1.3.5 (Nov 7, 2015)
    - Default NetworkUtil is now Doze aware. (thanks @coltin)
    - RetryConstraint Delay can be applied to the group to preserve jobs' execution order. (#41)
@@ -258,15 +253,16 @@ THE SOFTWARE.
 </pre>
 
 
-[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkUtil.java
-[2]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/network/NetworkEventProvider.java
+[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/network/NetworkUtil.java
+[2]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/network/NetworkEventProvider.java
 [3]: http://yigit.github.io/android-priority-jobqueue/coverage-report/index.html
 [4]: http://yigit.github.io/android-priority-jobqueue/javadoc/index.html
 [5]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22android-priority-jobqueue%22
 [6]: https://github.com/yigit/android-priority-jobqueue/tree/master/examples
-[7]: https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/path/android/jobqueue/examples/twitter/TwitterApplication.java#L26
+[7]: https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/birbit/android/jobqueue/examples/twitter/TwitterApplication.java#L26
 [8]: http://www.youtube.com/watch?v=xHXn3Kg2IQE
 [9]: https://github.com/yigit/android-priority-jobqueue/wiki
 [10]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Manager-Configuration
 [11]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Configuration
-[12]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/path/android/jobqueue/Params.java
+[12]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/Params.java
+[13]: https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration
