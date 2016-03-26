@@ -6,4 +6,6 @@
           android:versionName="2.0.0-alpha1">
     <uses-sdk tools:overrideLibrary="com.google.android.gms.gcm, com.google.android.gms.base,
     com.google.android.gms, com.google.android.gms.measurement"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>
