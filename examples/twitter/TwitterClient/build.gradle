@@ -4,7 +4,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.3.0'
+        classpath 'com.android.tools.build:gradle:1.5.0'
     }
 }
 
@@ -14,7 +14,7 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        url "https://jitpack.io"
     }
 }
 
@@ -24,7 +24,7 @@ class RunApk extends DefaultTask {
     def runApp() {
         println "running path on device or emulator"
         println "adb:" + adbExec
-        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.path.android.jobqueue.examples.twitter/com.path.android.jobqueue.examples.twitter.SampleTwitterClient"
+        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.birbit.android.jobqueue.examples.twitter/com.birbit.android.jobqueue.examples.twitter.SampleTwitterClient"
         println cmd
         def proc = cmd.execute()
         proc.in.eachLine {line -> println line}
@@ -44,18 +44,22 @@ tasks.create(name: "runTwitter", type: RunApk){
 }
 
 android {
-    compileSdkVersion 17
+    compileSdkVersion 23
     buildToolsVersion "23"
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 17
+        targetSdkVersion 23
     }
 
     dependencies {
-        compile 'de.greenrobot:eventbus:2.1.0-beta-1'
+        compile ('de.greenrobot:eventbus:2.1.0-beta-1') {
+            exclude module: 'support-v4'
+        }
         compile 'org.twitter4j:twitter4j-core:3.0.5'
-        compile 'com.birbit:android-priority-jobqueue:1.3.3'
+        compile project(":jobqueue")
         compile files('external-libs/greenDAO.jar')
+        compile 'com.google.android.gms:play-services-gcm:8.4.0'
+
     }
 
     sourceSets {

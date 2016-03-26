@@ -7,31 +7,35 @@ File releaseFile = new File("${projectDir}/releaseConfig.properties")
 if (releaseFile.exists()) {
     releaseConfig.load(new FileInputStream(releaseFile))
 }
-
+// for jitpack
+group='com.github.yigit'
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
+    gradleVersion = '2.10'
 }
 
 apply plugin: 'maven'
 apply plugin: 'signing'
-apply plugin: 'jacoco'
+apply plugin: 'com.github.dcendents.android-maven'
+//apply plugin: 'jacoco'
 
 buildscript {
     repositories {
         jcenter()
+        mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.5.0'
-
+        classpath 'com.android.tools.build:gradle:2.0.0-beta6'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'
     }
 }
 
 repositories {
     mavenCentral()
     jcenter()
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
 }
 
 configurations {
@@ -47,20 +51,37 @@ dependencies {
     testCompile 'org.easytesting:fest-util:1.2.5'
     testCompile 'org.easytesting:fest-reflect:1.4.1'
     testCompile 'org.mockito:mockito-core:2.0.2-beta'
+
+    // use an old version since we only need a few util classes that were already there for a long
+    // time. If app depends on a newer one, gradle will pick it for us.
+    compile 'com.android.support:support-v4:21.0.3'
+    // build tools does not allow makingt this provided so we make it optional when pom is created
+    compile 'com.google.android.gms:play-services-gcm:8.4.0'
+
 }
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "23.0.1"
     buildTypes {
         debug {
             testCoverageEnabled = true
+        }
+        release {
+            testCoverageEnabled = false
         }
     }
 
     defaultConfig {
         minSdkVersion 7
         targetSdkVersion 23
+    }
+
+    testOptions {
+        unitTests.all {
+            // All the usual Gradle options.
+            jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
+        }
     }
 }
 
@@ -103,7 +124,6 @@ android.libraryVariants.all { variant ->
         from android.sourceSets.main.getJava().getSrcDirs()
         classifier = 'sources'
     }
-    artifacts.add('archives', jarTask);
     artifacts.add('archives', javadocJarTask);
     artifacts.add('archives', sourcesJarTask);
 }
@@ -121,8 +141,11 @@ afterEvaluate { project ->
                 pom.artifactId = 'android-priority-jobqueue'
 
 
-                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
+//                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+//                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
+//                }
+                snapshotRepository(url: mavenLocal().url) {
+
                 }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
@@ -166,6 +189,14 @@ afterEvaluate { project ->
                         }
                     }
                 }
+                pom.whenConfigured { MavenPom pom ->
+                    pom.dependencies.each {
+                        if (it.artifactId == 'play-services-gcm') {
+                            it.optional = true
+                            it.scope = "provided"
+                        }
+                    }
+                }
             }
         }
     }
@@ -174,6 +205,12 @@ afterEvaluate { project ->
         required { gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
+}
+task testLint(type : Exec) {
+    workingDir project.projectDir
+    // SET ANDROID_LINT_JARS ENV VARIABLE
+    commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
+
 }
 
 task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
@@ -191,7 +228,7 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
 
     additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
     sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = files("$buildDir/jacoco/testDebug.exec")
+    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
 
     reports {
         xml.enabled = true
