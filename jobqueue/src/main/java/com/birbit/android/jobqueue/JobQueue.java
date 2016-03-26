@@ -11,8 +11,9 @@ import java.util.Set;
 public interface JobQueue {
     /**
      * Inserts the given JobHolder.
+     *
      * @param jobHolder
-     * @return
+     * @return True if job is added, false otherwise
      */
     boolean insert(JobHolder jobHolder);
 
@@ -21,13 +22,15 @@ public interface JobQueue {
      * if job has an insertion ID, it should replace the existing one
      *  should also reset running session id to {@link JobManager#NOT_RUNNING_SESSION_ID}
      *  Is called when a job is re-added (due to exception during run)
-     * @param jobHolder
-     * @return
+     *
+     * @param jobHolder The JobHolder to be added
+     * @return True if job is added, false otherwise
      */
     boolean insertOrReplace(JobHolder jobHolder);
 
     /**
      * Remove the old job from the queue while inserting the new one.
+     *
      * @param newJob To be inserted
      * @param oldJob To be removed
      */
@@ -36,13 +39,14 @@ public interface JobQueue {
     /**
      * Removes the job from the data store.
      * Is called after a job is completed (or cancelled)
-     * @param jobHolder
+     *
+     * @param jobHolder The JobHolder to be removed
      */
     void remove(JobHolder jobHolder);
 
     /**
      * Returns the # of jobs that are waiting to be run
-     * @return
+     * @return The number of jobs that are waiting in the queue
      */
     int count();
 

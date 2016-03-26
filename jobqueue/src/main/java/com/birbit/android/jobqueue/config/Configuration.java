@@ -19,12 +19,31 @@ import android.net.ConnectivityManager;
  * {@link com.birbit.android.jobqueue.JobManager} configuration object
  */
 public class Configuration {
+    /**
+     * The default id for a Job. If you have multiple JobManagers, you should set this value via
+     * {@link Builder#id(String)}
+     */
     public static final String DEFAULT_ID = "default_job_manager";
+    /**
+     * The default timeout for an idle thread before it is destroyed
+     */
     public static final int DEFAULT_THREAD_KEEP_ALIVE_SECONDS = 15;
+    /**
+     * The default number of jobs per thread before JobManager creates a new one
+     */
     public static final int DEFAULT_LOAD_FACTOR_PER_CONSUMER = 3;
+    /**
+     * The default max number of consumers that will be created by the JobManager
+     */
     public static final int MAX_CONSUMER_COUNT = 5;
+    /**
+     * The default min number of consumers that will be kept alive by the JobManager
+     */
     public static final int MIN_CONSUMER_COUNT = 0;
-    private static final int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
+    /**
+     * The default priority for new job consumers ({@code Thread.NORM_PRIORITY}).
+     */
+    public static final int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
 
     String id = DEFAULT_ID;
     int maxConsumerCount = MAX_CONSUMER_COUNT;
@@ -122,7 +141,7 @@ public class Configuration {
         /**
          * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
          * create multiple instances of it.
-         * default id is {@value #DEFAULT_ID}
+         * default id is {@link #DEFAULT_ID}
          * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
          */
         public Builder id(String id) {
@@ -131,7 +150,8 @@ public class Configuration {
         }
 
         /**
-         * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration. it defaults to {@value #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
+         * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration.
+         * It defaults to {@link #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
          * @param keepAlive in seconds
          */
         public Builder consumerKeepAlive(int keepAlive) {
@@ -180,8 +200,10 @@ public class Configuration {
         }
 
         /**
-         * convenient configuration to replace job serializer while using {@link SqliteJobQueue} queue for persistence.
-         * by default, it uses a {@link SqliteJobQueue.JavaSerializer} which will use default Java serialization.
+         * convenient configuration to replace job serializer while using {@link SqliteJobQueue}
+         * queue for persistence. By default, it uses a
+         * {@link com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue.JavaSerializer}
+         * which will use default Java serialization.
          * @param jobSerializer The serializer to be used to persist jobs.
          *
          * @return The builder
@@ -206,7 +228,7 @@ public class Configuration {
          * before {Job#onAdded} method is called.
          * if job is persistent, it will also be called before run method.
          * @param injector your dependency injector interface, if using one
-         * @return
+         * @return The builder
          */
         public Builder injector(DependencyInjector injector) {
             configuration.dependencyInjector = injector;
@@ -214,8 +236,8 @@ public class Configuration {
         }
 
         /**
-         * # of max consumers to run concurrently. defaults to {@value #MAX_CONSUMER_COUNT}
-         * @param count
+         * # of max consumers to run concurrently. defaults to {@link #MAX_CONSUMER_COUNT}
+         * @param count The max number of threads that JobManager can create to run jobs
          */
         public Builder maxConsumerCount(int count) {
             configuration.maxConsumerCount = count;
@@ -223,8 +245,10 @@ public class Configuration {
         }
 
         /**
-         * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to {@value #MIN_CONSUMER_COUNT}
-         * @param count
+         * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to
+         * {@link #MIN_CONSUMER_COUNT}
+         *
+         * @param count The min of of threads that JobManager will keep alive even if they are idle.
          */
         public Builder minConsumerCount(int count) {
             configuration.minConsumerCount = count;
@@ -244,7 +268,7 @@ public class Configuration {
         /**
          * you can provide a custom logger to get logs from JobManager.
          * by default, logs will go no-where.
-         * @param logger
+         * @param logger The logger to be used by the JobManager.
          */
         public Builder customLogger(CustomLogger logger) {
             configuration.customLogger = logger;
@@ -255,8 +279,9 @@ public class Configuration {
          * calculated by # of jobs (running+waiting) per thread
          * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
          * (10/2) =5
-         * defaults to {@value #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
-         * @param loadFactor
+         * defaults to {@link #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
+         *
+         * @param loadFactor Number of available jobs per thread
          */
         public Builder loadFactor(int loadFactor) {
             configuration.loadFactor = loadFactor;
@@ -302,9 +327,11 @@ public class Configuration {
         }
 
         /**
-         * Sets the priority for the threads of this manager. By default it is {@value #DEFAULT_THREAD_PRIORITY}
-         * @param threadPriority
-         * @return
+         * Sets the priority for the threads of this manager. By default it is
+         * {@link #DEFAULT_THREAD_PRIORITY}.
+         * @param threadPriority The thread priority to be used for new jobs
+         *
+         * @return The builder
          */
         public Builder consumerThreadPriority(int threadPriority) {
             configuration.threadPriority = threadPriority;

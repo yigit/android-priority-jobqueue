@@ -355,7 +355,8 @@ abstract public class Job implements Serializable {
      * never run them in parallel (unless they are being sent to different conversations).
      * By assigning same groupId to jobs, you can ensure that that type of jobs will be run in the order they were given
      * (if their priority is the same).
-     * @return
+     *
+     * @return The groupId of the job or null if it is not grouped
      */
     public final String getRunGroupId() {
         return groupId;
@@ -365,7 +366,8 @@ abstract public class Job implements Serializable {
      * Some jobs only need a single instance to be queued to run. For instance, if a user has made several changes
      * to a resource while offline, you can save every change locally during {@link #onAdded()}, but
      * only update the resource remotely once with the latest changes.
-     * @return
+     *
+     * @return The single instance id of the job or null if it is not a single instance job
      */
     public final String getSingleInstanceId() {
         if (readonlyTags != null) {
@@ -385,7 +387,8 @@ abstract public class Job implements Serializable {
     /**
      * By default, jobs will be retried {@code DEFAULT_RETRY_LIMIT}  times.
      * If job fails this many times, onCancel will be called w/o calling {@link #shouldReRunOnThrowable(Throwable, int, int)}
-     * @return
+     *
+     * @return The number of times the job should be re-tried before being cancelled automatically
      */
     protected int getRetryLimit() {
         return DEFAULT_RETRY_LIMIT;

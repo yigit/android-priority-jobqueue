@@ -23,10 +23,10 @@ public interface JobManagerCallback {
     /**
      * Used in {@link #onJobRun(Job, int)} when job throws an exception in {@link Job#onRun()}
      * and will be cancelled because it was cancelled via
-     * {@link JobManager#cancelJobs(TagConstraint, String...)} while it was running.
+     * {@link com.birbit.android.jobqueue.JobManager#cancelJobs(TagConstraint, String...)} while it was running.
      *
-     * @see JobManager#cancelJobs(TagConstraint, String...)
-     * @see JobManager#cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)
+     * @see com.birbit.android.jobqueue.JobManager#cancelJobs(TagConstraint, String...)
+     * @see com.birbit.android.jobqueue.JobManager#cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)
      */
     int RESULT_CANCEL_CANCELLED_WHILE_RUNNING = JobHolder.RUN_RESULT_FAIL_FOR_CANCEL;
     /**
@@ -81,7 +81,7 @@ public interface JobManagerCallback {
      *
      * @param job              The Job that was cancelled.
      * @param byCancelRequest  If true, the Job was cancelled in response to a
-     *                         {@link JobManager#cancelJobs(TagConstraint, String...)} request.
+     *                         {@link com.birbit.android.jobqueue.JobManager#cancelJobs(TagConstraint, String...)} request.
      */
     void onJobCancelled(Job job, boolean byCancelRequest);
 

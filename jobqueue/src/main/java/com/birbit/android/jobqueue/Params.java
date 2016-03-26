@@ -106,7 +106,7 @@ public class Params {
 
     /**
      * Sets the single instance id. If there is another Job with the same single id queued and
-     * not yet running, this Job will get {@link Job#onCancel(CancelReason)} called immediately after
+     * not yet running, this Job will get {@link Job#onCancel(int)} called immediately after
      * {@link Job#onAdded()} and only the previous Job will run. That is, {@link Job#onRun()}
      * will only be called once.
      * <p>If no group id was set, one will be set automatically.
@@ -150,9 +150,10 @@ public class Params {
 
     /**
      * Convenience method to set unmetered network requirement.
+     *
      * @param requiresUnmeteredNetwork true|false
      * @param timeout The timeout(ms) after which Job should be run without checking unmetered network
-     *                status. If {@param requiresUnmeteredNetwork} is {@code false}, this value is
+     *                status. If {@code requiresUnmeteredNetwork} is {@code false}, this value is
      *                ignored.
      * @return this
      * @see #setRequiresUnmeteredNetwork(boolean)
@@ -213,12 +214,12 @@ public class Params {
     /**
      * Convenience method to set network requirement.
      * <p>In case this timeout is set to a value smaller than
-     * {@link #requireUnmeteredNetworkWithTimeout(long), the unmetered network timeout will override
+     * {@link #requireUnmeteredNetworkWithTimeout(long)}, the unmetered network timeout will override
      * this one.
      *
      * @param requiresNetwork True if Job should not be run without a network, false otherwise.
      * @param timeout The timeout after which Job should be run without checking network status.
-     *                If {@param requiresNetwork} is {@code false}, this value is ignored.
+     *                If {@code requiresNetwork} is {@code false}, this value is ignored.
      *
      * @return The params
      * @see #setRequiresNetwork(boolean)
@@ -235,7 +236,7 @@ public class Params {
 
     /**
      * convenience method to set group id.
-     * @param groupId
+     * @param groupId The group id for the job
      * @return this
      */
     public Params setGroupId(String groupId) {
@@ -245,7 +246,7 @@ public class Params {
 
     /**
      * convenience method to set single id.
-     * @param singleId
+     * @param singleId The single instance run id for the job
      * @return this
      */
     public Params setSingleId(String singleId) {
@@ -276,8 +277,9 @@ public class Params {
     /**
      * Attaches given tags to the Job.
      * These are initially used for cancelling or querying jobs but usage will be extended
+     *
      * @param newTags List of tags to add
-     * @return
+     * @return this
      */
     public Params addTags(String... newTags) {
         if(tags == null) {
@@ -291,7 +293,7 @@ public class Params {
      * Removes the given tags from the Job.
      *
      * @param oldTags List of tags to be removed
-     * @return
+     * @return this
      */
     public Params removeTags(String... oldTags) {
         if(tags == null) {

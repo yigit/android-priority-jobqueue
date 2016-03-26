@@ -7,7 +7,7 @@ package com.birbit.android.jobqueue.log;
 public interface CustomLogger {
     /**
      * JobManager may call this before logging something that is (relatively) expensive to calculate
-     * @return
+     * @return True if debug logs are enabled
      */
     boolean isDebugEnabled();
     void d(String text, Object... args);
