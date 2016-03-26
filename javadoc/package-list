@@ -11,7 +11,3 @@ com.birbit.android.jobqueue.network
 com.birbit.android.jobqueue.persistentQueue.sqlite
 com.birbit.android.jobqueue.scheduling
 com.birbit.android.jobqueue.timer
-com.google.android.gms
-com.google.android.gms.base
-com.google.android.gms.gcm
-com.google.android.gms.measurement

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>DelayedMessageBag.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging</a> &gt; <span class="el_source">DelayedMessageBag.java</span></div><h1>DelayedMessageBag.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging;
+
+import com.birbit.android.jobqueue.log.JqLog;
+
+class DelayedMessageBag {
+<span class="fc" id="L6">    Message queue = null;</span>
+    final MessageFactory factory;
+
+<span class="fc" id="L9">    DelayedMessageBag(MessageFactory factory) {</span>
+<span class="fc" id="L10">        this.factory = factory;</span>
+<span class="fc" id="L11">    }</span>
+
+    Long flushReadyMessages(long now, MessageQueue addInto) {
+<span class="fc" id="L14">        JqLog.d(&quot;flushing messages at time %s&quot;, now);</span>
+<span class="fc bfc" id="L15" title="All 4 branches covered.">        while (queue != null &amp;&amp; queue.readyNs &lt;= now) {</span>
+<span class="fc" id="L16">            Message msg = queue;</span>
+<span class="fc" id="L17">            queue = msg.next;</span>
+<span class="fc" id="L18">            msg.next = null;</span>
+<span class="fc" id="L19">            addInto.post(msg);</span>
+<span class="fc" id="L20">        }</span>
+<span class="fc bfc" id="L21" title="All 2 branches covered.">        if (queue != null) {</span>
+<span class="fc" id="L22">            JqLog.d(&quot;returning next ready at %d ns&quot;, (queue.readyNs - now));</span>
+<span class="fc" id="L23">            return queue.readyNs;</span>
+        }
+<span class="fc" id="L25">        return null;</span>
+    }
+    void add(Message message, long readyNs) {
+<span class="fc" id="L28">        JqLog.d(&quot;add delayed message %s at time %s&quot;, message, readyNs);</span>
+<span class="fc" id="L29">        message.readyNs = readyNs;</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (queue == null) {</span>
+<span class="fc" id="L31">            queue = message;</span>
+<span class="fc" id="L32">            return;</span>
+        }
+<span class="fc" id="L34">        Message prev = null;</span>
+<span class="fc" id="L35">        Message curr = queue;</span>
+<span class="fc bfc" id="L36" title="All 4 branches covered.">        while (curr != null &amp;&amp; curr.readyNs &lt;= readyNs) {</span>
+<span class="fc" id="L37">            prev = curr;</span>
+<span class="fc" id="L38">            curr = curr.next;</span>
+        }
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        if (prev == null) {</span>
+<span class="fc" id="L41">            message.next = queue;</span>
+<span class="fc" id="L42">            queue = message;</span>
+        } else {
+<span class="fc" id="L44">            prev.next = message;</span>
+<span class="fc" id="L45">            message.next = curr;</span>
+        }
+<span class="fc" id="L47">    }</span>
+
+    public void clear() {
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        while (queue != null) {</span>
+<span class="fc" id="L51">            Message curr = queue;</span>
+<span class="fc" id="L52">            queue = curr.next;</span>
+<span class="fc" id="L53">            factory.release(curr);</span>
+<span class="fc" id="L54">        }</span>
+<span class="fc" id="L55">        queue = null;</span>
+<span class="fc" id="L56">    }</span>
+
+    public void removeMessages(MessagePredicate predicate) {
+<span class="fc" id="L59">        Message prev = null;</span>
+<span class="fc" id="L60">        Message curr = queue;</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        while (curr != null) {</span>
+<span class="fc" id="L62">            final boolean remove = predicate.onMessage(curr);</span>
+<span class="fc" id="L63">            final Message next = curr.next;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            if (remove) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">                if (prev == null) {</span>
+<span class="fc" id="L66">                    queue = curr.next;</span>
+                } else {
+<span class="fc" id="L68">                    prev.next = curr.next;</span>
+                }
+<span class="fc" id="L70">                factory.release(curr);</span>
+            } else {
+<span class="fc" id="L72">                prev = curr;</span>
+            }
+<span class="fc" id="L74">            curr = next;</span>
+<span class="fc" id="L75">        }</span>
+<span class="fc" id="L76">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

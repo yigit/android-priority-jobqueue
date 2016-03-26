@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Configuration.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.config</a> &gt; <span class="el_source">Configuration.java</span></div><h1>Configuration.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.config;
+
+import com.birbit.android.jobqueue.DefaultQueueFactory;
+import com.birbit.android.jobqueue.QueueFactory;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.di.DependencyInjector;
+import com.birbit.android.jobqueue.log.CustomLogger;
+import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.network.NetworkUtilImpl;
+import com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+import com.birbit.android.jobqueue.timer.SystemTimer;
+import com.birbit.android.jobqueue.timer.Timer;
+
+import android.content.Context;
+import android.net.ConnectivityManager;
+
+/**
+ * {@link com.birbit.android.jobqueue.JobManager} configuration object
+ */
+public class Configuration {
+    /**
+     * The default id for a Job. If you have multiple JobManagers, you should set this value via
+     * {@link Builder#id(String)}
+     */
+    public static final String DEFAULT_ID = &quot;default_job_manager&quot;;
+    /**
+     * The default timeout for an idle thread before it is destroyed
+     */
+    public static final int DEFAULT_THREAD_KEEP_ALIVE_SECONDS = 15;
+    /**
+     * The default number of jobs per thread before JobManager creates a new one
+     */
+    public static final int DEFAULT_LOAD_FACTOR_PER_CONSUMER = 3;
+    /**
+     * The default max number of consumers that will be created by the JobManager
+     */
+    public static final int MAX_CONSUMER_COUNT = 5;
+    /**
+     * The default min number of consumers that will be kept alive by the JobManager
+     */
+    public static final int MIN_CONSUMER_COUNT = 0;
+    /**
+     * The default priority for new job consumers ({@code Thread.NORM_PRIORITY}).
+     */
+    public static final int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
+
+<span class="fc" id="L48">    String id = DEFAULT_ID;</span>
+<span class="fc" id="L49">    int maxConsumerCount = MAX_CONSUMER_COUNT;</span>
+<span class="fc" id="L50">    int minConsumerCount = MIN_CONSUMER_COUNT;</span>
+<span class="fc" id="L51">    int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;</span>
+<span class="fc" id="L52">    int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;</span>
+    Context appContext;
+    QueueFactory queueFactory;
+    DependencyInjector dependencyInjector;
+    NetworkUtil networkUtil;
+    CustomLogger customLogger;
+    Timer timer;
+    Scheduler scheduler;
+<span class="fc" id="L60">    boolean inTestMode = false;</span>
+<span class="fc" id="L61">    boolean resetDelaysOnRestart = false;</span>
+<span class="fc" id="L62">    int threadPriority = DEFAULT_THREAD_PRIORITY;</span>
+<span class="fc" id="L63">    boolean batchSchedulerRequests = true;</span>
+
+<span class="fc" id="L65">    private Configuration(){</span>
+        //use builder instead
+<span class="fc" id="L67">    }</span>
+
+    public Context getAppContext() {
+<span class="fc" id="L70">        return appContext;</span>
+    }
+
+    public String getId() {
+<span class="nc" id="L74">        return id;</span>
+    }
+
+    public boolean batchSchedulerRequests() {
+<span class="fc" id="L78">        return batchSchedulerRequests;</span>
+    }
+
+    public QueueFactory getQueueFactory() {
+<span class="fc" id="L82">        return queueFactory;</span>
+    }
+
+    public DependencyInjector getDependencyInjector() {
+<span class="fc" id="L86">        return dependencyInjector;</span>
+    }
+
+    public int getConsumerKeepAlive() {
+<span class="fc" id="L90">        return consumerKeepAlive;</span>
+    }
+
+    public NetworkUtil getNetworkUtil() {
+<span class="fc" id="L94">        return networkUtil;</span>
+    }
+
+    public int getMaxConsumerCount() {
+<span class="fc" id="L98">        return maxConsumerCount;</span>
+    }
+
+    public int getMinConsumerCount() {
+<span class="fc" id="L102">        return minConsumerCount;</span>
+    }
+
+    public CustomLogger getCustomLogger() {
+<span class="fc" id="L106">        return customLogger;</span>
+    }
+
+    public int getLoadFactor() {
+<span class="fc" id="L110">        return loadFactor;</span>
+    }
+
+    public boolean isInTestMode() {
+<span class="fc" id="L114">        return inTestMode;</span>
+    }
+
+    public Timer getTimer() {
+<span class="fc" id="L118">        return timer;</span>
+    }
+
+    public boolean resetDelaysOnRestart() {
+<span class="fc" id="L122">        return resetDelaysOnRestart;</span>
+    }
+
+    public Scheduler getScheduler() {
+<span class="fc" id="L126">        return scheduler;</span>
+    }
+
+    public int getThreadPriority() {
+<span class="fc" id="L130">        return threadPriority;</span>
+    }
+
+    public static final class Builder {
+        private Configuration configuration;
+
+<span class="fc" id="L136">        public Builder(Context context) {</span>
+<span class="fc" id="L137">            this.configuration = new Configuration();</span>
+<span class="fc" id="L138">            this.configuration.appContext = context.getApplicationContext();</span>
+<span class="fc" id="L139">        }</span>
+
+        /**
+         * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
+         * create multiple instances of it.
+         * default id is {@link #DEFAULT_ID}
+         * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
+         */
+        public Builder id(String id) {
+<span class="fc" id="L148">            configuration.id = id;</span>
+<span class="fc" id="L149">            return this;</span>
+        }
+
+        /**
+         * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration.
+         * It defaults to {@link #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
+         * @param keepAlive in seconds
+         */
+        public Builder consumerKeepAlive(int keepAlive) {
+<span class="fc" id="L158">            configuration.consumerKeepAlive = keepAlive;</span>
+<span class="fc" id="L159">            return this;</span>
+        }
+
+        /**
+         * JobManager 1.x versions used to clear delay for existing jobs when the application is
+         * restarted because there is no reliable way to measure time difference between device
+         * reboots (and from the app's perspective, device reboot is no different than app restart).
+         * &lt;p&gt;
+         * This may cause unexpected behaviors as delayed persistent jobs instantly become available
+         * when application restarts.
+         * &lt;p&gt;
+         * JobManager 2.x versions change this behavior and does not reset the delay of persistent
+         * jobs on restart. This may create a problem if jobs were added when the device's clock is
+         * set to some unreasonable time but for common cases, it is more desirable.
+         * &lt;p&gt;
+         * You can get the v1 behavior by calling this method. Note that it will also effect jobs
+         * which require network with a timeout. Their timeouts will be triggered on restart if you
+         * call this method.
+         *
+         * @return The builder
+         */
+        public Builder resetDelaysOnRestart() {
+<span class="nc" id="L181">            configuration.resetDelaysOnRestart = true;</span>
+<span class="nc" id="L182">            return this;</span>
+        }
+
+        /**
+         * JobManager needs one persistent and one non-persistent {@link JobQueue} to function.
+         * By default, it will use {@link SqliteJobQueue} and
+         * {@link com.birbit.android.jobqueue.inMemoryQueue.SimpleInMemoryPriorityQueue}
+         * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
+         * {@code JobQueueTestBase} to ensure it will work fine.
+         * @param queueFactory your custom queue factory.
+         */
+        public Builder queueFactory(com.birbit.android.jobqueue.QueueFactory queueFactory) {
+<span class="nc bnc" id="L194" title="All 4 branches missed.">            if(configuration.queueFactory != null &amp;&amp; queueFactory != null) {</span>
+<span class="nc" id="L195">                throw new RuntimeException(&quot;already set a queue factory. This might happen if&quot;</span>
+                        + &quot;you've provided a custom job serializer&quot;);
+            }
+<span class="nc" id="L198">            configuration.queueFactory = queueFactory;</span>
+<span class="nc" id="L199">            return this;</span>
+        }
+
+        /**
+         * convenient configuration to replace job serializer while using {@link SqliteJobQueue}
+         * queue for persistence. By default, it uses a
+         * {@link com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue.JavaSerializer}
+         * which will use default Java serialization.
+         * @param jobSerializer The serializer to be used to persist jobs.
+         *
+         * @return The builder
+         */
+        public Builder jobSerializer(SqliteJobQueue.JobSerializer jobSerializer) {
+<span class="fc" id="L212">            configuration.queueFactory = new DefaultQueueFactory(jobSerializer);</span>
+<span class="fc" id="L213">            return this;</span>
+        }
+
+        /**
+         * By default, Job Manager comes with a simple {@link NetworkUtilImpl} that queries {@link ConnectivityManager}
+         * to check if network connection exists. You can provide your own if you need a custom logic (e.g. check your
+         * server health etc).
+         */
+        public Builder networkUtil(NetworkUtil networkUtil) {
+<span class="fc" id="L222">            configuration.networkUtil = networkUtil;</span>
+<span class="fc" id="L223">            return this;</span>
+        }
+
+        /**
+         * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
+         * before {Job#onAdded} method is called.
+         * if job is persistent, it will also be called before run method.
+         * @param injector your dependency injector interface, if using one
+         * @return The builder
+         */
+        public Builder injector(DependencyInjector injector) {
+<span class="fc" id="L234">            configuration.dependencyInjector = injector;</span>
+<span class="fc" id="L235">            return this;</span>
+        }
+
+        /**
+         * # of max consumers to run concurrently. defaults to {@link #MAX_CONSUMER_COUNT}
+         * @param count The max number of threads that JobManager can create to run jobs
+         */
+        public Builder maxConsumerCount(int count) {
+<span class="fc" id="L243">            configuration.maxConsumerCount = count;</span>
+<span class="fc" id="L244">            return this;</span>
+        }
+
+        /**
+         * you can specify to keep minConsumers alive even if there are no ready jobs. defaults to
+         * {@link #MIN_CONSUMER_COUNT}
+         *
+         * @param count The min of of threads that JobManager will keep alive even if they are idle.
+         */
+        public Builder minConsumerCount(int count) {
+<span class="fc" id="L254">            configuration.minConsumerCount = count;</span>
+<span class="fc" id="L255">            return this;</span>
+        }
+
+        /**
+         * You can specify a custom timer to control task execution. Useful for testing.
+         *
+         * @param timer The timer to use
+         */
+        public Builder timer(Timer timer) {
+<span class="fc" id="L264">            configuration.timer = timer;</span>
+<span class="fc" id="L265">            return this;</span>
+        }
+
+        /**
+         * you can provide a custom logger to get logs from JobManager.
+         * by default, logs will go no-where.
+         * @param logger The logger to be used by the JobManager.
+         */
+        public Builder customLogger(CustomLogger logger) {
+<span class="nc" id="L274">            configuration.customLogger = logger;</span>
+<span class="nc" id="L275">            return this;</span>
+        }
+
+        /**
+         * calculated by # of jobs (running+waiting) per thread
+         * for instance, at a given time, if you have two consumers and 10 jobs in waiting queue (or running right now), load is
+         * (10/2) =5
+         * defaults to {@link #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
+         *
+         * @param loadFactor Number of available jobs per thread
+         */
+        public Builder loadFactor(int loadFactor) {
+<span class="fc" id="L287">            configuration.loadFactor = loadFactor;</span>
+<span class="fc" id="L288">            return this;</span>
+        }
+
+        /**
+         * Sets the JobManager in test mode. This information is passed to JobQueue's.
+         * If you are using default JobQueues, calling this method will cause {@link SqliteJobQueue}
+         * to use an in-memory database.
+         */
+        public Builder inTestMode() {
+<span class="fc" id="L297">            configuration.inTestMode = true;</span>
+<span class="fc" id="L298">            return this;</span>
+        }
+
+        /**
+         * Assigns a scheduler that can be used to wake up the application when JobManager has jobs
+         * to execute. This is the integration point with the system
+         * {@link android.app.job.JobScheduler}.
+         * &lt;p&gt;
+         * &lt;b&gt;Batching&lt;/b&gt;
+         * &lt;br/&gt;
+         * By default, JobManager batches scheduling requests so that it will not call JobScheduler
+         * too many times. For instance, if a persistent job that requires network is added, when
+         * batching is enabled, JobManager creates the JobScheduler request with
+         * {@link com.birbit.android.jobqueue.BatchingScheduler#DEFAULT_BATCHING_PERIOD_IN_MS} delay.
+         * Any subsequent job request that has the same criteria will use the previous batching
+         * request. This way, JobManager can avoid making a JobScheduler request for every job.
+         * It will still execute the Job if it becomes available without waiting for the delay but
+         * if the application is killed, the JobScheduler will wait until the delay passes before
+         * waking up the application to consume the jobs.
+         *
+         * @param scheduler The scheduler to be used
+         * @param batch     Defines whether the scheduling requests should be batched or not.
+         *
+         * @return The builder
+         */
+        public Builder scheduler(Scheduler scheduler, boolean batch) {
+<span class="fc" id="L324">            configuration.scheduler = scheduler;</span>
+<span class="fc" id="L325">            configuration.batchSchedulerRequests = batch;</span>
+<span class="fc" id="L326">            return this;</span>
+        }
+
+        /**
+         * Sets the priority for the threads of this manager. By default it is
+         * {@link #DEFAULT_THREAD_PRIORITY}.
+         * @param threadPriority The thread priority to be used for new jobs
+         *
+         * @return The builder
+         */
+        public Builder consumerThreadPriority(int threadPriority) {
+<span class="nc" id="L337">            configuration.threadPriority = threadPriority;</span>
+<span class="nc" id="L338">            return this;</span>
+        }
+        /*
+         * Assigns a scheduler that can be used to wake up the application when JobManager has jobs
+         * to execute. This is the integration point with the system
+         * {@link android.app.job.JobScheduler}.
+         * &lt;p&gt;
+         * &lt;b&gt;Batching&lt;/b&gt;
+         * &lt;br/&gt;
+         * By default, JobManager batches scheduling requests so that it will not call JobScheduler
+         * too many times. For instance, if a persistent job that requires network is added, when
+         * batching is enabled, JobManager creates the JobScheduler request with
+         * {@link com.birbit.android.jobqueue.BatchingScheduler#DEFAULT_BATCHING_PERIOD_IN_MS} delay.
+         * Any subsequent job request that has the same criteria will use the previous batching
+         * request. This way, JobManager can avoid making a JobScheduler request for every job.
+         * It will still execute the Job if it becomes available without waiting for the delay but
+         * if the application is killed, the JobScheduler will wait until the delay passes before
+         * waking up the application to consume the jobs.
+         *
+         * @param scheduler The scheduler to be used
+         *
+         * @return The builder
+         */
+        public Builder scheduler(Scheduler scheduler) {
+<span class="nc" id="L362">            return scheduler(scheduler, true);</span>
+        }
+
+        public Configuration build() {
+<span class="fc bfc" id="L366" title="All 2 branches covered.">            if(configuration.queueFactory == null) {</span>
+<span class="fc" id="L367">                configuration.queueFactory = new DefaultQueueFactory();</span>
+            }
+<span class="fc bfc" id="L369" title="All 2 branches covered.">            if(configuration.networkUtil == null) {</span>
+<span class="fc" id="L370">                configuration.networkUtil = new NetworkUtilImpl(configuration.appContext);</span>
+            }
+<span class="fc bfc" id="L372" title="All 2 branches covered.">            if (configuration.timer == null) {</span>
+<span class="fc" id="L373">                configuration.timer = new SystemTimer();</span>
+            }
+<span class="fc" id="L375">            return configuration;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

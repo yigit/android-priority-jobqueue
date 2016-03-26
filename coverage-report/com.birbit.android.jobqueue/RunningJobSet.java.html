@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>RunningJobSet.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">RunningJobSet.java</span></div><h1>RunningJobSet.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
+
+import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.timer.Timer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeSet;
+
+/**
+ * a util class that holds running jobs sorted by name and unique.
+ * it behaves like CopyOnWriteLists
+ */
+public class RunningJobSet {
+    private ArrayList&lt;String&gt; publicClone;
+    private final TreeSet&lt;String&gt; internalSet;
+    private final Map&lt;String, Long&gt; groupDelays;
+    private long groupDelayTimeout;
+    private final Timer timer;
+
+<span class="fc" id="L24">    public RunningJobSet(Timer timer) {</span>
+<span class="fc" id="L25">        internalSet = new TreeSet&lt;&gt;();</span>
+<span class="fc" id="L26">        groupDelays = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L27">        groupDelayTimeout = Long.MAX_VALUE;</span>
+<span class="fc" id="L28">        this.timer = timer;</span>
+<span class="fc" id="L29">    }</span>
+
+    public synchronized void addGroupUntil(String group, long until) {
+<span class="fc" id="L32">        JqLog.d(&quot;add group delay to %s until %s&quot;, group, until);</span>
+<span class="fc" id="L33">        Long current = groupDelays.get(group);</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (current != null) {</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">             if (current &gt; until) {</span>
+<span class="nc" id="L36">                 return; // nothing to change</span>
+             }
+        }
+<span class="fc" id="L39">        groupDelays.put(group, until);</span>
+<span class="fc" id="L40">        groupDelayTimeout = calculateNextDelayForGroups();</span>
+<span class="fc" id="L41">        publicClone = null;</span>
+<span class="fc" id="L42">    }</span>
+
+    public synchronized Collection&lt;String&gt; getSafe() {
+<span class="fc" id="L45">        final long now = timer.nanoTime();</span>
+<span class="fc bfc" id="L46" title="All 4 branches covered.">        if(publicClone == null || now &gt; groupDelayTimeout) {</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (groupDelays.isEmpty()) {</span>
+<span class="fc" id="L48">                publicClone = new ArrayList&lt;&gt;(internalSet);</span>
+<span class="fc" id="L49">                groupDelayTimeout = Long.MAX_VALUE;</span>
+            } else {
+<span class="fc" id="L51">                TreeSet&lt;String&gt; tmpClone = new TreeSet&lt;&gt;(internalSet);</span>
+<span class="fc" id="L52">                Iterator&lt;Map.Entry&lt;String, Long&gt;&gt; itr = groupDelays.entrySet().iterator();</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">                while(itr.hasNext()) {</span>
+<span class="fc" id="L54">                    Map.Entry&lt;String, Long&gt; entry = itr.next();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">                    if (entry.getValue() &gt; now) {</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">                        if (!tmpClone.contains(entry.getKey())) {</span>
+<span class="fc" id="L57">                            tmpClone.add(entry.getKey());</span>
+                        }
+                    } else {
+<span class="fc" id="L60">                        itr.remove();</span>
+                    }
+<span class="fc" id="L62">                }</span>
+<span class="fc" id="L63">                publicClone = new ArrayList&lt;&gt;(tmpClone);</span>
+<span class="fc" id="L64">                groupDelayTimeout = calculateNextDelayForGroups();</span>
+            }
+        }
+<span class="fc" id="L67">        return publicClone;</span>
+    }
+    public Long getNextDelayForGroups() {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (groupDelayTimeout == Long.MAX_VALUE) {</span>
+<span class="fc" id="L71">            return null;</span>
+        }
+<span class="fc" id="L73">        return groupDelayTimeout;</span>
+    }
+    private long calculateNextDelayForGroups() {
+<span class="fc" id="L76">        long result = Long.MAX_VALUE;</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        for (Long value : groupDelays.values()) {</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">            if (value &lt; result) {</span>
+<span class="fc" id="L79">                result = value;</span>
+            }
+<span class="fc" id="L81">        }</span>
+<span class="fc" id="L82">        return result;</span>
+    }
+
+    public synchronized void add(String group) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (group == null) {</span>
+<span class="fc" id="L87">            return;</span>
+        }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if(internalSet.add(group)) {</span>
+<span class="fc" id="L90">            publicClone = null;//invalidate</span>
+        }
+<span class="fc" id="L92">    }</span>
+
+    public synchronized void remove(String group) {
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">        if (group == null) {</span>
+<span class="nc" id="L96">            return;</span>
+        }
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        if(internalSet.remove(group)) {</span>
+<span class="fc" id="L99">            publicClone = null;</span>
+        }
+<span class="fc" id="L101">    }</span>
+
+    public synchronized void clear() {
+<span class="nc" id="L104">        internalSet.clear();</span>
+<span class="nc" id="L105">        groupDelays.clear();</span>
+<span class="nc" id="L106">        publicClone = null;</span>
+<span class="nc" id="L107">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

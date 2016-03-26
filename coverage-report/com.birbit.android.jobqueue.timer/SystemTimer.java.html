@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>SystemTimer.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.timer</a> &gt; <span class="el_source">SystemTimer.java</span></div><h1>SystemTimer.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.timer;
+
+import com.birbit.android.jobqueue.log.JqLog;
+
+import java.util.concurrent.TimeUnit;
+
+public class SystemTimer implements Timer {
+    final long startWallClock;
+    final long startNs;
+<span class="fc" id="L10">    public SystemTimer() {</span>
+<span class="fc" id="L11">        JqLog.d(&quot;creating system timer&quot;);</span>
+        //noinspection DIRECT_TIME_ACCESS
+<span class="fc" id="L13">        startWallClock = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());</span>
+        //noinspection DIRECT_TIME_ACCESS
+<span class="fc" id="L15">        startNs = System.nanoTime();</span>
+<span class="fc" id="L16">    }</span>
+
+    @Override
+    public long nanoTime() {
+        //noinspection DIRECT_TIME_ACCESS
+<span class="fc" id="L21">        return System.nanoTime() - startNs + startWallClock;</span>
+    }
+
+    @Override
+    public void waitOnObjectUntilNs(Object object, long untilNs) throws InterruptedException {
+<span class="fc" id="L26">        long now = nanoTime();</span>
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">        if (now &gt; untilNs) {</span>
+            //noinspection TIMED_WAIT
+<span class="nc" id="L29">            object.wait(1);</span>
+        } else {
+<span class="fc" id="L31">            TimeUnit.NANOSECONDS.timedWait(object, untilNs - now);</span>
+        }
+<span class="fc" id="L33">    }</span>
+
+    @Override
+    public void waitOnObject(Object object) throws InterruptedException {
+        //noinspection TIMED_WAIT
+<span class="fc" id="L38">        object.wait();</span>
+<span class="fc" id="L39">    }</span>
+
+    @Override
+    public void notifyObject(Object object) {
+        //noinspection NOTIFY_ON_OBJECT
+<span class="fc" id="L44">        object.notifyAll();</span>
+<span class="fc" id="L45">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

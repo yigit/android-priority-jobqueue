@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>JobHolder.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">JobHolder.java</span></div><h1>JobHolder.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
+
+import com.birbit.android.jobqueue.config.Configuration;
+
+import android.content.Context;
+
+import java.util.Collections;
+import java.util.Set;
+
+/**
+ * Container class to address Jobs inside job manager.
+ */
+public class JobHolder {
+
+    /**
+     * Internal constant. Job's onRun method completed w/o any exception.
+     */
+    public static final int RUN_RESULT_SUCCESS = 1;
+    /**
+     * Internal constant. Job's onRun method thrown an exception and either it does not want to
+     * run again or reached retry limit.
+     */
+    public static final int RUN_RESULT_FAIL_RUN_LIMIT = 2;
+
+    /**
+     * Internal constant. Job's onRun method has thrown an exception and it was cancelled after it
+     * started.
+     */
+    public static final int RUN_RESULT_FAIL_FOR_CANCEL = 3;
+    /**
+     * Internal constant. Job's onRun method failed but wants to retry.
+     */
+    public static final int RUN_RESULT_TRY_AGAIN = 4;
+
+    /**
+     * The job decided not to run in shouldReRun method.
+     */
+    public static final int RUN_RESULT_FAIL_SHOULD_RE_RUN = 5;
+    /**
+     * Internal constant. Job's onRun method has thrown an exception and another job with the
+     * same single instance id had been queued.
+     */
+    public static final int RUN_RESULT_FAIL_SINGLE_ID = 6;
+
+    protected Long insertionOrder;
+    protected String id;
+    protected int priority;
+    protected String groupId;
+    protected int runCount;
+    /**
+     * job will be delayed until this nanotime
+     */
+    protected long delayUntilNs;
+    /**
+     * When job is created, Timer.nanoTime() is assigned to {@code createdNs} value so that we know
+     * when job is created in relation to others
+     */
+    protected long createdNs;
+    protected long runningSessionId;
+    protected long requiresNetworkUntilNs;
+    protected long requiresUnmeteredNetworkUntilNs;
+    transient Job job;
+    protected final Set&lt;String&gt; tags;
+    private boolean cancelled;
+    private boolean cancelledSingleId;
+    private boolean successful;
+
+    /**
+     * @param priority         Higher is better
+     * @param groupId          which group does this job belong to? default null
+     * @param runCount         Incremented each time job is fetched to run, initial value should be 0
+     * @param job              Actual job to run
+     * @param createdNs        System.nanotime
+     * @param delayUntilNs     System.nanotime value where job can be run the very first time
+     * @param runningSessionId
+     */
+    private JobHolder(int priority, String groupId, int runCount, Job job, long createdNs,
+<span class="fc" id="L78">            long delayUntilNs, long runningSessionId) {</span>
+<span class="fc" id="L79">        this.id = job.getId();</span>
+<span class="fc" id="L80">        this.priority = priority;</span>
+<span class="fc" id="L81">        this.groupId = groupId;</span>
+<span class="fc" id="L82">        this.runCount = runCount;</span>
+<span class="fc" id="L83">        this.createdNs = createdNs;</span>
+<span class="fc" id="L84">        this.delayUntilNs = delayUntilNs;</span>
+<span class="fc" id="L85">        this.job = job;</span>
+<span class="fc" id="L86">        job.priority = priority;</span>
+<span class="fc" id="L87">        this.runningSessionId = runningSessionId;</span>
+<span class="fc" id="L88">        this.requiresNetworkUntilNs = job.getRequiresNetworkUntilNs();</span>
+<span class="fc" id="L89">        this.requiresUnmeteredNetworkUntilNs = job.getRequiresUnmeteredNetworkUntilNs();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());</span>
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * runs the job w/o throwing any exceptions
+     * @param currentRunCount
+     * @return RUN_RESULT*
+     */
+    public int safeRun(int currentRunCount) {
+<span class="fc" id="L99">        return job.safeRun(this, currentRunCount);</span>
+    }
+
+    public String getId() {
+<span class="fc" id="L103">        return id;</span>
+    }
+
+    /**
+     * The time should be acquired from {@link Configuration#getTimer()}
+     *
+     * @param timeInNs The current time in ns. This should be the time used by the JobManager.
+     *
+     * @return True if the job requires network to be run right now, false otherwise.
+     */
+    public boolean requiresNetwork(long timeInNs) {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        return requiresNetworkUntilNs &gt; timeInNs;</span>
+    }
+
+    public long getRequiresNetworkUntilNs() {
+<span class="fc" id="L118">        return requiresNetworkUntilNs;</span>
+    }
+
+    /**
+     * The time should be acquired from {@link Configuration#getTimer()}
+     *
+     * @param timeInNs The current time in ns. This should be the time used by the JobManager.
+     *
+     * @return True if the job requires a UNMETERED network to be run right now, false otherwise.
+     */
+    public boolean requiresUnmeteredNetwork(long timeInNs) {
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        return requiresUnmeteredNetworkUntilNs &gt; timeInNs;</span>
+    }
+
+    public long getRequiresUnmeteredNetworkUntilNs() {
+<span class="fc" id="L133">        return requiresUnmeteredNetworkUntilNs;</span>
+    }
+
+    public int getPriority() {
+<span class="fc" id="L137">        return priority;</span>
+    }
+
+    public void setPriority(int priority) {
+<span class="fc" id="L141">        this.priority = priority;</span>
+<span class="fc" id="L142">        this.job.priority = this.priority;</span>
+<span class="fc" id="L143">    }</span>
+
+    public Long getInsertionOrder() {
+<span class="fc" id="L146">        return insertionOrder;</span>
+    }
+
+    public void setInsertionOrder(long insertionOrder) {
+<span class="fc" id="L150">        this.insertionOrder = insertionOrder;</span>
+<span class="fc" id="L151">    }</span>
+
+    public void setDelayUntilNs(long delayUntilNs) {
+<span class="fc" id="L154">        this.delayUntilNs = delayUntilNs;</span>
+<span class="fc" id="L155">    }</span>
+
+    public int getRunCount() {
+<span class="fc" id="L158">        return runCount;</span>
+    }
+
+    public void setRunCount(int runCount) {
+<span class="fc" id="L162">        this.runCount = runCount;</span>
+<span class="fc" id="L163">    }</span>
+
+    public long getCreatedNs() {
+<span class="fc" id="L166">        return createdNs;</span>
+    }
+
+    public void setCreatedNs(long createdNs) {
+<span class="nc" id="L170">        this.createdNs = createdNs;</span>
+<span class="nc" id="L171">    }</span>
+
+    public long getRunningSessionId() {
+<span class="fc" id="L174">        return runningSessionId;</span>
+    }
+
+    public void setRunningSessionId(long runningSessionId) {
+<span class="fc" id="L178">        this.runningSessionId = runningSessionId;</span>
+<span class="fc" id="L179">    }</span>
+
+    public long getDelayUntilNs() {
+<span class="fc" id="L182">        return delayUntilNs;</span>
+    }
+
+    public Job getJob() {
+<span class="fc" id="L186">        return job;</span>
+    }
+
+    public void setJob(Job job) {
+<span class="fc" id="L190">        this.job = job;</span>
+<span class="fc" id="L191">        this.id = job.getId();</span>
+<span class="fc" id="L192">    }</span>
+
+    public String getGroupId() {
+<span class="fc" id="L195">        return groupId;</span>
+    }
+
+    public Set&lt;String&gt; getTags() {
+<span class="fc" id="L199">        return tags;</span>
+    }
+
+    public void markAsCancelled() {
+<span class="fc" id="L203">        cancelled = true;</span>
+<span class="fc" id="L204">        job.cancelled = true;</span>
+<span class="fc" id="L205">    }</span>
+
+    public boolean isCancelled() {
+<span class="fc" id="L208">        return cancelled;</span>
+    }
+
+    public void markAsCancelledSingleId() {
+<span class="fc" id="L212">        cancelledSingleId = true;</span>
+<span class="fc" id="L213">        markAsCancelled();</span>
+<span class="fc" id="L214">    }</span>
+
+    public boolean isCancelledSingleId() {
+<span class="fc" id="L217">        return cancelledSingleId;</span>
+    }
+
+    @Override
+    public int hashCode() {
+        //we don't really care about overflow.
+<span class="fc" id="L223">        return id.hashCode();</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if(!(o instanceof JobHolder)) {</span>
+<span class="nc" id="L229">            return false;</span>
+        }
+<span class="nc" id="L231">        JobHolder other = (JobHolder) o;</span>
+<span class="nc" id="L232">        return id.equals(other.id);</span>
+    }
+
+    public boolean hasTags() {
+<span class="pc bpc" id="L236" title="1 of 4 branches missed.">        return tags != null &amp;&amp; tags.size() &gt; 0;</span>
+    }
+
+    public synchronized void markAsSuccessful() {
+<span class="fc" id="L240">        successful = true;</span>
+<span class="fc" id="L241">    }</span>
+
+    public synchronized boolean isSuccessful() {
+<span class="nc" id="L244">        return successful;</span>
+    }
+
+    public void setApplicationContext(Context applicationContext) {
+<span class="fc" id="L248">        this.job.setApplicationContext(applicationContext);</span>
+<span class="fc" id="L249">    }</span>
+
+    public void onCancel(@CancelReason int cancelReason) {
+<span class="fc" id="L252">        job.onCancel(cancelReason);</span>
+<span class="fc" id="L253">    }</span>
+
+    public RetryConstraint getRetryConstraint() {
+<span class="fc" id="L256">        return job.retryConstraint;</span>
+    }
+
+<span class="fc" id="L259">    public static class Builder {</span>
+        private int priority;
+        private String groupId;
+        private int runCount;
+        private Job job;
+        private long createdNs;
+<span class="fc" id="L265">        private long delayUntilNs = JobManager.NOT_DELAYED_JOB_DELAY;</span>
+        private Long insertionOrder;
+        private long runningSessionId;
+<span class="fc" id="L268">        private int providedFlags = 0;</span>
+        private static final int FLAG_SESSION_ID = 1;
+        private static final int FLAG_PRIORITY = 1 &lt;&lt; 1;
+        private static final int FLAG_CREATED_AT = 1 &lt;&lt; 2;
+
+        public Builder priority(int priority) {
+<span class="fc" id="L274">            this.priority = priority;</span>
+<span class="fc" id="L275">            providedFlags |= FLAG_PRIORITY;</span>
+<span class="fc" id="L276">            return this;</span>
+        }
+        public Builder groupId(String groupId) {
+<span class="fc" id="L279">            this.groupId = groupId;</span>
+<span class="fc" id="L280">            return this;</span>
+        }
+        public Builder runCount(int runCount) {
+<span class="fc" id="L283">            this.runCount = runCount;</span>
+<span class="fc" id="L284">            return this;</span>
+        }
+        public Builder job(Job job) {
+<span class="fc" id="L287">            this.job = job;</span>
+<span class="fc" id="L288">            return this;</span>
+        }
+        public Builder createdNs(long createdNs) {
+<span class="fc" id="L291">            this.createdNs = createdNs;</span>
+<span class="fc" id="L292">            providedFlags |= FLAG_CREATED_AT;</span>
+<span class="fc" id="L293">            return this;</span>
+        }
+        public Builder delayUntilNs(long delayUntilNs) {
+<span class="fc" id="L296">            this.delayUntilNs = delayUntilNs;</span>
+<span class="fc" id="L297">            return this;</span>
+        }
+        public Builder insertionOrder(long insertionOrder) {
+<span class="fc" id="L300">            this.insertionOrder = insertionOrder;</span>
+<span class="fc" id="L301">            return this;</span>
+        }
+        public Builder runningSessionId(long runningSessionId) {
+<span class="fc" id="L304">            this.runningSessionId = runningSessionId;</span>
+<span class="fc" id="L305">            providedFlags |= FLAG_SESSION_ID;</span>
+<span class="fc" id="L306">            return this;</span>
+        }
+        public JobHolder build() {
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">            if (job == null) {</span>
+<span class="nc" id="L310">                throw new IllegalArgumentException(&quot;must provide a job&quot;);</span>
+            }
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">            if ((providedFlags &amp; FLAG_PRIORITY) == 0) {</span>
+<span class="nc" id="L313">                throw new IllegalArgumentException(&quot;must provide a priority&quot;);</span>
+            }
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">            if ((providedFlags &amp; FLAG_SESSION_ID) == 0) {</span>
+<span class="nc" id="L316">                throw new IllegalArgumentException(&quot;must provide a session id&quot;);</span>
+            }
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">            if ((providedFlags &amp; FLAG_CREATED_AT) == 0) {</span>
+<span class="nc" id="L319">                throw new IllegalArgumentException(&quot;must provide a created timestamp&quot;);</span>
+            }
+<span class="fc" id="L321">            JobHolder jobHolder = new JobHolder(priority, groupId, runCount, job, createdNs,</span>
+                    delayUntilNs, runningSessionId);
+<span class="fc bfc" id="L323" title="All 2 branches covered.">            if (insertionOrder != null) {</span>
+<span class="fc" id="L324">                jobHolder.setInsertionOrder(insertionOrder);</span>
+            }
+<span class="fc" id="L326">            return jobHolder;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

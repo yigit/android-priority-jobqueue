@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>PriorityMessageQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging</a> &gt; <span class="el_source">PriorityMessageQueue.java</span></div><h1>PriorityMessageQueue.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging;
+
+import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.timer.Timer;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Uses multiple message queues to simulate priority.
+ */
+public class PriorityMessageQueue implements MessageQueue {
+<span class="fc" id="L12">    private final Object LOCK = new Object();</span>
+    private final UnsafeMessageQueue[] queues;
+    private final DelayedMessageBag delayedBag;
+    private final Timer timer;
+<span class="fc" id="L16">    private final AtomicBoolean running = new AtomicBoolean(false);</span>
+    // used when jobs are posted inside sync blocks
+<span class="fc" id="L18">    private boolean postJobTick = false;</span>
+    private final MessageFactory factory;
+    private static final String LOG_TAG = &quot;priority_mq&quot;;
+
+    @SuppressWarnings(&quot;unused&quot;)
+<span class="fc" id="L23">    public PriorityMessageQueue(Timer timer, MessageFactory factory) {</span>
+<span class="fc" id="L24">        delayedBag = new DelayedMessageBag(factory);</span>
+<span class="fc" id="L25">        this.factory = factory;</span>
+<span class="fc" id="L26">        queues = new UnsafeMessageQueue[Type.MAX_PRIORITY + 1];</span>
+<span class="fc" id="L27">        this.timer = timer;</span>
+<span class="fc" id="L28">    }</span>
+
+    @Override
+    public void consume(MessageQueueConsumer consumer) {
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">        if(running.getAndSet(true)) {</span>
+<span class="nc" id="L33">            throw new IllegalStateException(&quot;only 1 consumer per MQ&quot;);</span>
+        }
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        while (running.get()) {</span>
+<span class="fc" id="L36">            Message message = next(consumer);</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            if (message != null) {</span>
+<span class="fc" id="L38">                JqLog.d(&quot;[%s] consuming message of type %s&quot;, LOG_TAG, message.type);</span>
+<span class="fc" id="L39">                consumer.handleMessage(message);</span>
+<span class="fc" id="L40">                factory.release(message);</span>
+            }
+<span class="fc" id="L42">        }</span>
+<span class="fc" id="L43">    }</span>
+
+    @Override
+    public void clear() {
+<span class="fc" id="L47">        synchronized (LOCK) {</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">            for (int i = Type.MAX_PRIORITY; i &gt;= 0; i--) {</span>
+<span class="fc" id="L49">                UnsafeMessageQueue mq = queues[i];</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">                if (mq == null) {</span>
+<span class="fc" id="L51">                    continue;</span>
+                }
+<span class="fc" id="L53">                mq.clear();</span>
+            }
+<span class="pc" id="L55">        }</span>
+<span class="fc" id="L56">    }</span>
+
+    @Override
+    public void stop() {
+<span class="fc" id="L60">        running.set(false);</span>
+<span class="fc" id="L61">        synchronized (LOCK) {</span>
+<span class="fc" id="L62">            timer.notifyObject(LOCK);</span>
+<span class="pc" id="L63">        }</span>
+<span class="fc" id="L64">    }</span>
+
+    public Message next(MessageQueueConsumer consumer) {
+<span class="fc" id="L67">        boolean calledOnIdle = false;</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        while (running.get()) {</span>
+            final Long nextDelayedReadyAt;
+            final long now;
+<span class="fc" id="L71">            synchronized (LOCK) {</span>
+<span class="fc" id="L72">                now = timer.nanoTime();</span>
+<span class="fc" id="L73">                JqLog.d(&quot;[%s] looking for next message at time %s&quot;, LOG_TAG, now);</span>
+<span class="fc" id="L74">                nextDelayedReadyAt = delayedBag.flushReadyMessages(now, this);</span>
+<span class="fc" id="L75">                JqLog.d(&quot;[%s] next delayed job %s&quot;, LOG_TAG, nextDelayedReadyAt);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">                for (int i = Type.MAX_PRIORITY; i &gt;= 0; i--) {</span>
+<span class="fc" id="L77">                    UnsafeMessageQueue mq = queues[i];</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">                    if (mq == null) {</span>
+<span class="fc" id="L79">                        continue;</span>
+                    }
+<span class="fc" id="L81">                    Message message = mq.next();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">                    if (message != null) {</span>
+<span class="fc" id="L83">                        return message;</span>
+                    }
+                }
+<span class="fc" id="L86">                postJobTick = false;</span>
+<span class="pc" id="L87">            }</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (!calledOnIdle) {</span>
+<span class="fc" id="L89">                consumer.onIdle();</span>
+<span class="fc" id="L90">                calledOnIdle = true;</span>
+            }
+<span class="fc" id="L92">            synchronized (LOCK) {</span>
+<span class="fc" id="L93">                JqLog.d(&quot;[%s] did on idle post a message? %s&quot;, LOG_TAG, postJobTick);</span>
+                // callback may add new messages
+<span class="fc bfc" id="L95" title="All 2 branches covered.">                if (postJobTick) {</span>
+<span class="fc" id="L96">                    continue; // idle posted jobs, requery</span>
+                }
+<span class="pc bpc" id="L98" title="1 of 4 branches missed.">                if (nextDelayedReadyAt != null &amp;&amp; nextDelayedReadyAt &lt;= now) {</span>
+<span class="nc" id="L99">                    continue;</span>
+                }
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">                if (running.get()) {</span>
+                    try {
+<span class="fc bfc" id="L103" title="All 2 branches covered.">                        if (nextDelayedReadyAt == null) {</span>
+<span class="fc" id="L104">                            timer.waitOnObject(LOCK);</span>
+                        } else {
+<span class="fc" id="L106">                            timer.waitOnObjectUntilNs(LOCK, nextDelayedReadyAt);</span>
+                        }
+<span class="nc" id="L108">                    } catch (InterruptedException ignored) {</span>
+<span class="fc" id="L109">                    }</span>
+                }
+<span class="pc" id="L111">            }</span>
+<span class="fc" id="L112">        }</span>
+<span class="fc" id="L113">        return null;</span>
+    }
+
+    @Override
+    public void post(Message message) {
+<span class="fc" id="L118">        synchronized (LOCK) {</span>
+<span class="fc" id="L119">            postJobTick = true;</span>
+<span class="fc" id="L120">            int index = message.type.priority;</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">            if (queues[index] == null) {</span>
+<span class="fc" id="L122">                queues[index] = new UnsafeMessageQueue(factory, &quot;queue_&quot; + message.type.name());</span>
+            }
+<span class="fc" id="L124">            queues[index].post(message);</span>
+<span class="fc" id="L125">            timer.notifyObject(LOCK);</span>
+<span class="pc" id="L126">        }</span>
+<span class="fc" id="L127">    }</span>
+
+    @Override
+    public void postAt(Message message, long readyNs) {
+<span class="fc" id="L131">        synchronized (LOCK) {</span>
+<span class="fc" id="L132">            postJobTick = true;</span>
+<span class="fc" id="L133">            delayedBag.add(message, readyNs);</span>
+<span class="fc" id="L134">            timer.notifyObject(LOCK);</span>
+<span class="pc" id="L135">        }</span>
+<span class="fc" id="L136">    }</span>
+
+    @Override
+    public void cancelMessages(MessagePredicate predicate) {
+<span class="fc" id="L140">        synchronized (LOCK) {</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">            for (int i = 0; i &lt;= Type.MAX_PRIORITY; i++) {</span>
+<span class="fc" id="L142">                UnsafeMessageQueue mq = queues[i];</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">                if (mq == null) {</span>
+<span class="fc" id="L144">                    continue;</span>
+                }
+<span class="fc" id="L146">                mq.removeMessages(predicate);</span>
+            }
+<span class="fc" id="L148">            delayedBag.removeMessages(predicate);</span>
+<span class="pc" id="L149">        }</span>
+<span class="fc" id="L150">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

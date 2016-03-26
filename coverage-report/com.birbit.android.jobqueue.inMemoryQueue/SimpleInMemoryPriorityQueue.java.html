@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>SimpleInMemoryPriorityQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.inMemoryQueue</a> &gt; <span class="el_source">SimpleInMemoryPriorityQueue.java</span></div><h1>SimpleInMemoryPriorityQueue.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.inMemoryQueue;
+
+import com.birbit.android.jobqueue.Constraint;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.config.Configuration;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
+
+/**
+ * A simple implementation of in memory {@link com.birbit.android.jobqueue.JobQueue}
+ */
+public class SimpleInMemoryPriorityQueue implements JobQueue {
+<span class="fc" id="L23">    private final TreeSet&lt;JobHolder&gt; jobs = new TreeSet&lt;&gt;(new Comparator&lt;JobHolder&gt;() {</span>
+        @Override
+        public int compare(JobHolder holder1, JobHolder holder2) {
+<span class="fc bfc" id="L26" title="All 2 branches covered.">            if (holder1.getJob().getId().equals(holder2.getJob().getId())) {</span>
+<span class="fc" id="L27">                return 0;</span>
+            }
+<span class="fc" id="L29">            int cmp = compareInt(holder1.getPriority(), holder2.getPriority());</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">            if(cmp != 0) {</span>
+<span class="fc" id="L31">                return cmp;</span>
+            }
+
+<span class="fc" id="L34">            cmp = -compareLong(holder1.getCreatedNs(), holder2.getCreatedNs());</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">            if(cmp != 0) {</span>
+<span class="fc" id="L36">                return cmp;</span>
+            }
+            //if jobs were created at the same time, smaller id first
+<span class="fc" id="L39">            return -compareLong(holder1.getInsertionOrder(), holder2.getInsertionOrder());</span>
+        }
+
+        private int compareInt(int i1, int i2) {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            if (i1 &gt; i2) {</span>
+<span class="fc" id="L44">                return -1;</span>
+            }
+<span class="fc bfc" id="L46" title="All 2 branches covered.">            if (i2 &gt; i1) {</span>
+<span class="fc" id="L47">                return 1;</span>
+            }
+<span class="fc" id="L49">            return 0;</span>
+        }
+
+        private int compareLong(long l1, long l2) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            if (l1 &gt; l2) {</span>
+<span class="fc" id="L54">                return -1;</span>
+            }
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            if (l2 &gt; l1) {</span>
+<span class="fc" id="L57">                return 1;</span>
+            }
+<span class="fc" id="L59">            return 0;</span>
+        }
+    });
+<span class="fc" id="L62">    private final Map&lt;String, JobHolder&gt; idCache = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L64">    private final AtomicLong insertionOrderCounter = new AtomicLong(0);</span>
+<span class="fc" id="L65">    private final List&lt;String&gt; reusedList = new ArrayList&lt;&gt;();</span>
+    private final long sessionId;
+
+    public SimpleInMemoryPriorityQueue(
+<span class="fc" id="L69">            @SuppressWarnings(&quot;UnusedParameters&quot;) Configuration configuration, long sessionId) {</span>
+<span class="fc" id="L70">        this.sessionId = sessionId;</span>
+<span class="fc" id="L71">    }</span>
+    @Override
+    public boolean insert(JobHolder jobHolder) {
+<span class="fc" id="L74">        jobHolder.setInsertionOrder(insertionOrderCounter.incrementAndGet());</span>
+<span class="fc" id="L75">        JobHolder existing = idCache.get(jobHolder.getId());</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        if (existing != null) {</span>
+<span class="nc" id="L77">            throw new IllegalArgumentException(&quot;cannot add a job with the same id twice&quot;);</span>
+        }
+<span class="fc" id="L79">        idCache.put(jobHolder.getId(), jobHolder);</span>
+<span class="fc" id="L80">        jobs.add(jobHolder);</span>
+<span class="fc" id="L81">        return true;</span>
+    }
+
+    @Override
+    public boolean insertOrReplace(JobHolder jobHolder) {
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (jobHolder.getInsertionOrder() == null) {</span>
+<span class="nc" id="L87">            return insert(jobHolder);</span>
+        }
+<span class="fc" id="L89">        JobHolder existing = idCache.get(jobHolder.getId());</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (existing != null) {</span>
+<span class="fc" id="L91">            remove(existing);</span>
+        }
+<span class="fc" id="L93">        idCache.put(jobHolder.getId(), jobHolder);</span>
+<span class="fc" id="L94">        jobs.add(jobHolder);</span>
+<span class="fc" id="L95">        return true;</span>
+    }
+
+    @Override
+    public void substitute(JobHolder newJob, JobHolder oldJob) {
+<span class="nc" id="L100">        remove(oldJob);</span>
+<span class="nc" id="L101">        insert(newJob);</span>
+<span class="nc" id="L102">    }</span>
+
+    @Override
+    public void remove(JobHolder jobHolder) {
+<span class="fc" id="L106">        idCache.remove(jobHolder.getId());</span>
+<span class="fc" id="L107">        jobs.remove(jobHolder);</span>
+<span class="fc" id="L108">    }</span>
+
+    @Override
+    public int count() {
+<span class="fc" id="L112">        return jobs.size();</span>
+    }
+
+    @Override
+    public int countReadyJobs(Constraint constraint) {
+<span class="fc" id="L117">        int count = 0;</span>
+<span class="fc" id="L118">        reusedList.clear();</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        for (JobHolder holder : jobs) {</span>
+<span class="fc" id="L120">            String groupId = holder.getGroupId();</span>
+<span class="fc bfc" id="L121" title="All 6 branches covered.">            if ((groupId == null || !reusedList.contains(groupId)) &amp;&amp; matches(holder, constraint)) {</span>
+<span class="fc" id="L122">                count ++;</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                if (groupId != null) {</span>
+<span class="fc" id="L124">                    reusedList.add(groupId);</span>
+                }
+            }
+<span class="fc" id="L127">        }</span>
+<span class="fc" id="L128">        reusedList.clear();</span>
+<span class="fc" id="L129">        return count;</span>
+    }
+
+    @Override
+    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (JobHolder holder : jobs) {</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">            if (matches(holder, constraint)) {</span>
+<span class="fc" id="L136">                remove(holder);</span>
+<span class="fc" id="L137">                holder.setRunCount(holder.getRunCount() + 1);</span>
+<span class="fc" id="L138">                holder.setRunningSessionId(sessionId);</span>
+<span class="fc" id="L139">                return holder;</span>
+            }
+<span class="fc" id="L141">        }</span>
+<span class="fc" id="L142">        return null;</span>
+    }
+
+    private static Long getDelayUntil(JobHolder holder, boolean hasNetwork, boolean hasUnmetered) {
+<span class="fc" id="L146">        final long networkTimeout = holder.getRequiresNetworkUntilNs();</span>
+<span class="fc" id="L147">        final long unmeteredTimeout = holder.getRequiresUnmeteredNetworkUntilNs();</span>
+<span class="fc" id="L148">        long delay = holder.getDelayUntilNs();</span>
+
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (!hasNetwork) {</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">            if (networkTimeout == Params.FOREVER) {</span>
+<span class="fc" id="L152">                return null; // ineligible</span>
+            }
+<span class="fc" id="L154">            delay = Math.max(delay, networkTimeout);</span>
+        }
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (!hasUnmetered) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">            if (unmeteredTimeout == Params.FOREVER) {</span>
+<span class="fc" id="L158">                return null; // ineligible</span>
+            }
+<span class="fc" id="L160">            delay = Math.max(delay, unmeteredTimeout);</span>
+        }
+<span class="fc" id="L162">        return delay;</span>
+    }
+
+    @Override
+    public Long getNextJobDelayUntilNs(Constraint constraint) {
+<span class="fc" id="L167">        Long minDelay = null;</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        boolean hasNetwork = !constraint.shouldNotRequireNetwork();</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        boolean hasUnmetered = !constraint.shouldNotRequireUnmeteredNetwork();</span>
+<span class="fc bfc" id="L170" title="All 4 branches covered.">        if (!hasNetwork || !hasUnmetered) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">            for (JobHolder holder : jobs) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">                if (matches(holder, constraint, true)) {</span>
+<span class="fc" id="L173">                    final Long delay = getDelayUntil(holder, hasNetwork, hasUnmetered);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">                    if (delay == null) {</span>
+<span class="fc" id="L175">                        continue;// ineligible</span>
+                    }
+<span class="fc bfc" id="L177" title="All 4 branches covered.">                    if (minDelay == null || delay &lt; minDelay) {</span>
+<span class="fc" id="L178">                        minDelay = delay;</span>
+                    }
+                }
+<span class="fc" id="L181">            }</span>
+        } else {
+<span class="fc bfc" id="L183" title="All 2 branches covered.">            for (JobHolder holder : jobs) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">                if (matches(holder, constraint)) {</span>
+<span class="fc bfc" id="L185" title="All 4 branches covered.">                    if (minDelay == null || holder.getDelayUntilNs() &lt; minDelay) {</span>
+<span class="fc" id="L186">                        minDelay = holder.getDelayUntilNs();</span>
+                    }
+                }
+<span class="fc" id="L189">            }</span>
+        }
+
+<span class="fc" id="L192">        return minDelay;</span>
+    }
+
+    @Override
+    public void clear() {
+<span class="fc" id="L197">        jobs.clear();</span>
+<span class="fc" id="L198">        idCache.clear();</span>
+<span class="fc" id="L199">    }</span>
+
+    @Override
+    public JobHolder findJobById(String id) {
+<span class="fc" id="L203">        return idCache.get(id);</span>
+    }
+
+    @Override
+    public Set&lt;JobHolder&gt; findJobs(Constraint constraint) {
+<span class="fc" id="L208">        Set&lt;JobHolder&gt; result = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        for (JobHolder holder : jobs) {</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">            if (matches(holder, constraint)) {</span>
+<span class="fc" id="L211">                result.add(holder);</span>
+            }
+<span class="fc" id="L213">        }</span>
+<span class="fc" id="L214">        return result;</span>
+    }
+
+    @Override
+    public void onJobCancelled(JobHolder holder) {
+<span class="fc" id="L219">        remove(holder);</span>
+<span class="fc" id="L220">    }</span>
+
+    private static boolean matches(JobHolder holder, Constraint constraint) {
+<span class="fc" id="L223">        return matches(holder, constraint, false);</span>
+    }
+    @SuppressWarnings(&quot;RedundantIfStatement&quot;)
+    private static boolean matches(JobHolder holder, Constraint constraint, boolean ignoreNetwork) {
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        if (!ignoreNetwork) {</span>
+<span class="fc bfc" id="L228" title="All 4 branches covered.">            if (constraint.shouldNotRequireNetwork()</span>
+                    &amp;&amp; holder.requiresNetwork(constraint.getNowInNs())) {
+<span class="fc" id="L230">                return false;</span>
+            }
+<span class="fc bfc" id="L232" title="All 4 branches covered.">            if (constraint.shouldNotRequireUnmeteredNetwork()</span>
+                    &amp;&amp; holder.requiresUnmeteredNetwork(constraint.getNowInNs())) {
+<span class="fc" id="L234">                return false;</span>
+            }
+        }
+<span class="fc bfc" id="L237" title="All 4 branches covered.">        if (constraint.getTimeLimit() != null &amp;&amp; holder.getDelayUntilNs() &gt; constraint.getTimeLimit()) {</span>
+<span class="fc" id="L238">            return false;</span>
+        }
+<span class="fc bfc" id="L240" title="All 4 branches covered.">        if (holder.getGroupId() != null &amp;&amp; constraint.getExcludeGroups().contains(holder.getGroupId())) {</span>
+<span class="fc" id="L241">            return false;</span>
+        }
+<span class="fc bfc" id="L243" title="All 2 branches covered.">        if (constraint.getExcludeJobIds().contains(holder.getId())) {</span>
+<span class="fc" id="L244">            return false;</span>
+        }
+<span class="fc bfc" id="L246" title="All 8 branches covered.">        if (constraint.getTagConstraint() != null &amp;&amp;</span>
+                (holder.getTags() == null || constraint.getTags().isEmpty() ||
+                !constraint.getTagConstraint().matches(constraint.getTags(), holder.getTags()))) {
+<span class="fc" id="L249">            return false;</span>
+        }
+<span class="fc" id="L251">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

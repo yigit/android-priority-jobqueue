@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>FrameworkScheduler.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.scheduling</a> &gt; <span class="el_source">FrameworkScheduler.java</span></div><h1>FrameworkScheduler.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.scheduling;
+
+import android.annotation.TargetApi;
+import android.app.job.JobInfo;
+import android.app.job.JobParameters;
+import android.app.job.JobScheduler;
+import android.app.job.JobService;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.PersistableBundle;
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkUtil;
+
+import java.util.UUID;
+
+/**
+ * Scheduler implementation that uses the frameworks' scheduler API.
+ */
+@TargetApi(21)
+public class FrameworkScheduler extends Scheduler {
+    private static final String KEY_UUID = &quot;uuid&quot;;
+    private static final String KEY_ID = &quot;id&quot;;
+    private static final String KEY_DELAY = &quot;delay&quot;;
+    private static final String KEY_NETWORK_STATUS = &quot;networkStatus&quot;;
+
+    private JobScheduler jobScheduler;
+    private static SharedPreferences preferences;
+    private ComponentName componentName;
+    // set when service invokes, cleared when service dies
+    @Nullable private JobService jobService;
+    private final Class&lt;? extends FrameworkJobSchedulerService&gt; serviceImpl;
+
+<span class="nc" id="L36">    public FrameworkScheduler(Class&lt; ? extends FrameworkJobSchedulerService&gt; serviceImpl) {</span>
+<span class="nc" id="L37">        this.serviceImpl = serviceImpl;</span>
+<span class="nc" id="L38">    }</span>
+
+    public void setJobService(@Nullable JobService jobService) {
+<span class="nc" id="L41">        this.jobService = jobService;</span>
+<span class="nc" id="L42">    }</span>
+
+    private static SharedPreferences getPreferences(Context context) {
+<span class="nc" id="L45">        synchronized (FrameworkScheduler.class) {</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            if (preferences == null) {</span>
+<span class="nc" id="L47">                preferences = context.getSharedPreferences(&quot;jobqueue_fw_scheduler&quot;,</span>
+                        Context.MODE_PRIVATE);
+            }
+<span class="nc" id="L50">            return preferences;</span>
+<span class="nc" id="L51">        }</span>
+    }
+
+    private ComponentName getComponentName() {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (componentName == null) {</span>
+<span class="nc" id="L56">            componentName = new ComponentName(getApplicationContext().getPackageName(),</span>
+                    serviceImpl.getCanonicalName());
+        }
+<span class="nc" id="L59">        return componentName;</span>
+    }
+
+    /**
+     * Creates a new ID for the job info. Can be overridden if you need to provide different ids not
+     * to conflict with the rest of your application.
+     *
+     * @return A unique integer id for the next Job request to be sent to system scheduler
+     */
+    public int createId() {
+<span class="nc" id="L69">        synchronized (FrameworkScheduler.class) {</span>
+<span class="nc" id="L70">            final SharedPreferences preferences = getPreferences(getApplicationContext());</span>
+<span class="nc" id="L71">            final int id = preferences.getInt(KEY_ID, 0) + 1;</span>
+<span class="nc" id="L72">            preferences.edit().putInt(KEY_ID, id).commit();</span>
+<span class="nc" id="L73">            return id;</span>
+<span class="nc" id="L74">        }</span>
+    }
+
+    private JobScheduler getJobScheduler() {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (jobScheduler == null) {</span>
+<span class="nc" id="L79">            jobScheduler = (JobScheduler) getApplicationContext()</span>
+                    .getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        }
+<span class="nc" id="L82">        return jobScheduler;</span>
+    }
+
+    @Override
+    public void request(SchedulerConstraint constraint) {
+<span class="nc" id="L87">        JobScheduler jobScheduler = getJobScheduler();</span>
+
+<span class="nc" id="L89">        final int id = createId();</span>
+<span class="nc" id="L90">        JobInfo.Builder builder = new JobInfo.Builder(id, getComponentName())</span>
+                .setExtras(toPersistentBundle(constraint))
+                .setPersisted(true);
+<span class="nc bnc" id="L93" title="All 3 branches missed.">        switch (constraint.getNetworkStatus()) {</span>
+            case NetworkUtil.UNMETERED:
+<span class="nc" id="L95">                builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED);</span>
+<span class="nc" id="L96">                break;</span>
+            case NetworkUtil.METERED:
+<span class="nc" id="L98">                builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);</span>
+<span class="nc" id="L99">                break;</span>
+            default:
+<span class="nc" id="L101">                builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE);</span>
+<span class="nc" id="L102">                builder.setRequiresDeviceIdle(true);</span>
+                break;
+        }
+<span class="nc" id="L105">        int scheduled = jobScheduler.schedule(builder.build());</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        JqLog.d(&quot;[FW Scheduler] scheduled a framework job. Success? %s id: %d&quot; +</span>
+                &quot; created id: %d&quot;, scheduled &gt; 0, scheduled, id);
+<span class="nc" id="L108">    }</span>
+
+    @Override
+    public void onFinished(SchedulerConstraint constraint, boolean reschedule) {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L113">            JqLog.d(&quot;[FW Scheduler] on finished job %s. reschedule:%s&quot;, constraint, reschedule);</span>
+        }
+<span class="nc" id="L115">        JobService service = this.jobService;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (service == null) {</span>
+<span class="nc" id="L117">            JqLog.e(&quot;[FW Scheduler] scheduler onfinished is called but i don't have a job service&quot;);</span>
+<span class="nc" id="L118">            return;</span>
+        }
+
+<span class="nc" id="L121">        Object data = constraint.getData();</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (data instanceof JobParameters) {</span>
+<span class="nc" id="L123">            JobParameters params = (JobParameters) data;</span>
+<span class="nc" id="L124">            service.jobFinished(params, reschedule);</span>
+<span class="nc" id="L125">        } else {</span>
+<span class="nc" id="L126">            JqLog.e(&quot;[FW Scheduler] cannot obtain the job parameters&quot;);</span>
+        }
+
+<span class="nc" id="L129">    }</span>
+
+    @Override
+    public void cancelAll() {
+<span class="nc" id="L133">        JqLog.d(&quot;[FW Scheduler] cancel all&quot;);</span>
+<span class="nc" id="L134">        getJobScheduler().cancelAll();</span>
+<span class="nc" id="L135">    }</span>
+
+    private static PersistableBundle toPersistentBundle(SchedulerConstraint constraint) {
+<span class="nc" id="L138">        PersistableBundle bundle = new PersistableBundle();</span>
+        // put boolean is api 22
+<span class="nc" id="L140">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
+<span class="nc" id="L141">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
+<span class="nc" id="L142">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
+<span class="nc" id="L143">        return bundle;</span>
+    }
+
+    private static SchedulerConstraint fromBundle(PersistableBundle bundle) {
+<span class="nc" id="L147">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
+            // backward compatibility
+<span class="nc" id="L150">            constraint.setUuid(UUID.randomUUID().toString());</span>
+        }
+<span class="nc" id="L152">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
+<span class="nc" id="L153">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
+<span class="nc" id="L154">        return constraint;</span>
+    }
+
+    public boolean onStartJob(JobParameters params) {
+<span class="nc" id="L158">        SchedulerConstraint constraint = fromBundle(params.getExtras());</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L160">            JqLog.d(&quot;[FW Scheduler] start job %s %d&quot;, constraint, params.getJobId());</span>
+        }
+<span class="nc" id="L162">        constraint.setData(params);</span>
+<span class="nc" id="L163">        return start(constraint);</span>
+    }
+
+    public boolean onStopJob(JobParameters params) {
+<span class="nc" id="L167">        SchedulerConstraint constraint = fromBundle(params.getExtras());</span>
+<span class="nc" id="L168">        return stop(constraint);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

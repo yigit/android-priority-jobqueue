@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Type.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging</a> &gt; <span class="el_source">Type.java</span></div><h1>Type.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging;
+
+import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
+import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
+import com.birbit.android.jobqueue.messaging.message.CancelMessage;
+import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
+import com.birbit.android.jobqueue.messaging.message.CommandMessage;
+import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
+import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
+import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
+import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
+import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
+import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * All message types
+ */
+<span class="pc" id="L21">public enum Type {</span>
+<span class="fc" id="L22">    CALLBACK(CallbackMessage.class, 0),</span>
+<span class="fc" id="L23">    CANCEL_RESULT_CALLBACK(CancelResultMessage.class, 0),</span>
+<span class="fc" id="L24">    RUN_JOB(RunJobMessage.class, 0),</span>
+<span class="fc" id="L25">    COMMAND(CommandMessage.class, 0),</span>
+<span class="fc" id="L26">    PUBLIC_QUERY(PublicQueryMessage.class, 0),</span>
+<span class="fc" id="L27">    JOB_CONSUMER_IDLE(JobConsumerIdleMessage.class, 0), // MUST ARRIVE AFTER JOB RESULT</span>
+<span class="fc" id="L28">    ADD_JOB(AddJobMessage.class, 1),</span>
+<span class="fc" id="L29">    CANCEL(CancelMessage.class, 1),</span>
+<span class="fc" id="L30">    CONSTRAINT_CHANGE(ConstraintChangeMessage.class, 2),</span>
+<span class="fc" id="L31">    RUN_JOB_RESULT(RunJobResultMessage.class, 3),</span>
+<span class="fc" id="L32">    SCHEDULER(SchedulerMessage.class, 4);</span>
+    final Class&lt;? extends Message&gt; klass;
+    final static Map&lt;Class&lt;? extends Message&gt;, Type&gt; mapping;
+    final int priority; // higher is better
+    final static int MAX_PRIORITY;
+
+<span class="fc" id="L38">    Type(Class&lt;? extends Message&gt; klass, int priority) {</span>
+<span class="fc" id="L39">        this.klass = klass;</span>
+<span class="fc" id="L40">        this.priority = priority;</span>
+<span class="fc" id="L41">    }</span>
+    static {
+<span class="fc" id="L43">        int maxPriority = 0;</span>
+<span class="fc" id="L44">        mapping = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        for (Type type : Type.values()) {</span>
+<span class="fc" id="L46">            mapping.put(type.klass, type);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (type.priority &gt; maxPriority) {</span>
+<span class="fc" id="L48">                maxPriority = type.priority;</span>
+            }
+        }
+<span class="fc" id="L51">        MAX_PRIORITY = maxPriority;</span>
+<span class="fc" id="L52">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

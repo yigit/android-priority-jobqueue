@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>UnsafeMessageQueue.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging</a> &gt; <span class="el_source">UnsafeMessageQueue.java</span></div><h1>UnsafeMessageQueue.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging;
+
+import com.birbit.android.jobqueue.log.JqLog;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+class UnsafeMessageQueue {
+<span class="fc" id="L8">    private Message queue = null;</span>
+<span class="fc" id="L9">    private Message tail = null;</span>
+<span class="fc" id="L10">    private static final AtomicInteger idCounter = new AtomicInteger(0);</span>
+    public final String logTag;
+    private final MessageFactory factory;
+
+<span class="fc" id="L14">    public UnsafeMessageQueue(MessageFactory factory, String logTag) {</span>
+<span class="fc" id="L15">        this.factory = factory;</span>
+<span class="fc" id="L16">        this.logTag = logTag + &quot;_&quot; + idCounter.incrementAndGet();</span>
+<span class="fc" id="L17">    }</span>
+
+    Message next() {
+<span class="fc" id="L20">        final Message result = queue;</span>
+<span class="fc" id="L21">        JqLog.d(&quot;[%s] remove message %s&quot;, logTag, result);</span>
+<span class="fc bfc" id="L22" title="All 2 branches covered.">        if (result != null) {</span>
+<span class="fc" id="L23">            queue = result.next;</span>
+<span class="fc bfc" id="L24" title="All 2 branches covered.">            if (tail == result) {</span>
+<span class="fc" id="L25">                tail = null;</span>
+            }
+        }
+<span class="fc" id="L28">        return result;</span>
+    }
+
+    protected void post(Message message) {
+<span class="fc" id="L32">        JqLog.d(&quot;[%s] post message %s&quot;, logTag, message);</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        if (tail == null) {</span>
+<span class="fc" id="L34">            queue = message;</span>
+<span class="fc" id="L35">            tail = message;</span>
+        } else {
+<span class="fc" id="L37">            tail.next = message;</span>
+<span class="fc" id="L38">            tail = message;</span>
+        }
+<span class="fc" id="L40">    }</span>
+
+    protected void postAtFront(Message message) {
+<span class="fc" id="L43">        message.next = queue;</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (tail == null) {</span>
+<span class="fc" id="L45">            tail = message;</span>
+        }
+<span class="fc" id="L47">        queue = message;</span>
+<span class="fc" id="L48">    }</span>
+
+    protected void removeMessages(MessagePredicate predicate) {
+<span class="fc" id="L51">        Message prev = null;</span>
+<span class="fc" id="L52">        Message curr = queue;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        while (curr != null) {</span>
+<span class="fc" id="L54">            final boolean remove = predicate.onMessage(curr);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">            if (remove) {</span>
+<span class="fc" id="L56">                final Message next = curr.next;</span>
+<span class="fc" id="L57">                remove(prev, curr);</span>
+<span class="fc" id="L58">                curr = next;</span>
+<span class="fc" id="L59">            } else {</span>
+<span class="fc" id="L60">                prev = curr;</span>
+<span class="fc" id="L61">                curr = curr.next;</span>
+            }
+<span class="fc" id="L63">        }</span>
+<span class="fc" id="L64">    }</span>
+
+    private void remove(Message prev, Message curr) {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (tail == curr) {</span>
+<span class="fc" id="L68">            tail = prev;</span>
+        }
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (prev == null) {</span>
+<span class="fc" id="L71">            queue = curr.next;</span>
+        } else {
+<span class="fc" id="L73">            prev.next = curr.next;</span>
+        }
+<span class="fc" id="L75">        factory.release(curr);</span>
+<span class="fc" id="L76">    }</span>
+
+    public void clear() {
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        while (queue != null) {</span>
+<span class="fc" id="L80">            Message curr = queue;</span>
+<span class="fc" id="L81">            queue = curr.next;</span>
+<span class="fc" id="L82">            factory.release(curr);</span>
+<span class="fc" id="L83">        }</span>
+<span class="fc" id="L84">        tail = null;</span>
+<span class="fc" id="L85">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

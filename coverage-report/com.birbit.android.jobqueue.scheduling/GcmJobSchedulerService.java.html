@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>GcmJobSchedulerService.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.scheduling</a> &gt; <span class="el_source">GcmJobSchedulerService.java</span></div><h1>GcmJobSchedulerService.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.scheduling;
+
+import android.content.Context;
+
+import com.birbit.android.jobqueue.log.JqLog;
+import com.google.android.gms.gcm.GcmNetworkManager;
+import com.google.android.gms.gcm.GcmTaskService;
+import com.google.android.gms.gcm.TaskParams;
+
+import java.util.HashMap;
+import java.util.Map;
+
+<span class="nc" id="L13">abstract public class GcmJobSchedulerService extends GcmTaskService {</span>
+    private static final Map&lt;Class&lt;? extends GcmJobSchedulerService&gt;, GcmScheduler&gt;
+<span class="nc" id="L15">            schedulerMap = new HashMap&lt;&gt;();</span>
+
+    /**
+     * Creates a scheduler for the given service.
+     * Keep in mind that there is a strict 1-1 mapping between the created scheduler and the
+     * service. You should pass the returned scheduler to the JobManager configuration.
+     *
+     * @param appContext The application context
+     * @param klass The service implementation that extends GcmJobSchedulerService.
+     *
+     * @return A scheduler that is associated with the given service class.
+     */
+    public static GcmScheduler createSchedulerFor(Context appContext,
+            Class&lt;? extends GcmJobSchedulerService&gt; klass) {
+<span class="nc bnc" id="L29" title="All 2 branches missed.">        if (GcmJobSchedulerService.class == klass) {</span>
+<span class="nc" id="L30">            throw new IllegalArgumentException(&quot;You must create a service that extends&quot; +</span>
+                    &quot; GcmJobSchedulerService&quot;);
+        }
+<span class="nc" id="L33">        synchronized (schedulerMap) {</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">            if (schedulerMap.get(klass) != null) {</span>
+<span class="nc" id="L35">                throw new IllegalStateException(&quot;You can create 1 scheduler per&quot; +</span>
+                        &quot; GcmJobSchedulerService. &quot; + klass.getCanonicalName() +
+                        &quot; already has one.&quot;);
+            }
+<span class="nc" id="L39">            GcmScheduler scheduler = new GcmScheduler(appContext.getApplicationContext(), klass);</span>
+<span class="nc" id="L40">            schedulerMap.put(klass, scheduler);</span>
+<span class="nc" id="L41">            return scheduler;</span>
+<span class="nc" id="L42">        }</span>
+    }
+
+    @Override
+    public int onRunTask(TaskParams taskParams) {
+<span class="nc" id="L47">        GcmScheduler scheduler = getScheduler();</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (scheduler != null) {</span>
+<span class="nc" id="L49">            return scheduler.onStartJob(taskParams);</span>
+        } else {
+<span class="nc" id="L51">            JqLog.e(&quot;RunTask on GcmJobSchedulerService has been called but it does not have a &quot; +</span>
+                    &quot;scheduler. Make sure you've initialized JobManager before the service might&quot; +
+                    &quot; be created.&quot;);
+<span class="nc" id="L54">            return GcmNetworkManager.RESULT_FAILURE;</span>
+        }
+
+    }
+
+    protected GcmScheduler getScheduler() {
+<span class="nc" id="L60">        return schedulerMap.get(getClass());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

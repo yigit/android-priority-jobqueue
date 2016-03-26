@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>DbOpenHelper.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.persistentQueue.sqlite</a> &gt; <span class="el_source">DbOpenHelper.java</span></div><h1>DbOpenHelper.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.persistentQueue.sqlite;
+
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+/**
+ * Helper class for {@link SqliteJobQueue} to handle database connection
+ */
+public class DbOpenHelper extends SQLiteOpenHelper {
+    private static final int DB_VERSION = 8;
+    /*package*/ static final String JOB_HOLDER_TABLE_NAME = &quot;job_holder&quot;;
+    /*package*/ static final String JOB_TAGS_TABLE_NAME = &quot;job_holder_tags&quot;;
+<span class="fc" id="L14">    /*package*/ static final SqlHelper.Property INSERTION_ORDER_COLUMN = new SqlHelper.Property(&quot;insertionOrder&quot;, &quot;integer&quot;, 0);</span>
+<span class="fc" id="L15">    /*package*/ static final SqlHelper.Property ID_COLUMN = new SqlHelper.Property(&quot;_id&quot;, &quot;text&quot;, 1, null, true);</span>
+<span class="fc" id="L16">    /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property(&quot;priority&quot;, &quot;integer&quot;, 2);</span>
+<span class="fc" id="L17">    /*package*/ static final SqlHelper.Property GROUP_ID_COLUMN = new SqlHelper.Property(&quot;group_id&quot;, &quot;text&quot;, 3);</span>
+<span class="fc" id="L18">    /*package*/ static final SqlHelper.Property RUN_COUNT_COLUMN = new SqlHelper.Property(&quot;run_count&quot;, &quot;integer&quot;, 4);</span>
+<span class="fc" id="L19">    /*package*/ static final SqlHelper.Property BASE_JOB_COLUMN = new SqlHelper.Property(&quot;base_job&quot;, &quot;byte&quot;, 5);</span>
+<span class="fc" id="L20">    /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property(&quot;created_ns&quot;, &quot;long&quot;, 6);</span>
+<span class="fc" id="L21">    /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property(&quot;delay_until_ns&quot;, &quot;long&quot;, 7);</span>
+<span class="fc" id="L22">    /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property(&quot;running_session_id&quot;, &quot;long&quot;, 8);</span>
+<span class="fc" id="L23">    /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_UNTIL_COLUMN = new SqlHelper.Property(&quot;requires_network_until&quot;, &quot;integer&quot;, 9);</span>
+<span class="fc" id="L24">    /*package*/ static final SqlHelper.Property REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN = new SqlHelper.Property(&quot;requires_unmetered_network_until&quot;, &quot;integer&quot;, 10);</span>
+
+<span class="fc" id="L26">    /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property(&quot;_id&quot;, &quot;integer&quot;, 0);</span>
+<span class="fc" id="L27">    /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property(&quot;job_id&quot;, &quot;text&quot;, 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));</span>
+<span class="fc" id="L28">    /*package*/ static final SqlHelper.Property TAGS_NAME_COLUMN = new SqlHelper.Property(&quot;tag_name&quot;, &quot;text&quot;, 2);</span>
+
+
+
+    /*package*/ static final int COLUMN_COUNT = 11;
+    /*package*/ static final int TAGS_COLUMN_COUNT = 3;
+
+    static final String TAG_INDEX_NAME = &quot;TAG_NAME_INDEX&quot;;
+
+    public DbOpenHelper(Context context, String name) {
+<span class="fc" id="L38">        super(context, name, null, DB_VERSION);</span>
+<span class="fc" id="L39">    }</span>
+
+    @Override
+    public void onCreate(SQLiteDatabase sqLiteDatabase) {
+<span class="fc" id="L43">        String createQuery = SqlHelper.create(JOB_HOLDER_TABLE_NAME,</span>
+                INSERTION_ORDER_COLUMN,
+                ID_COLUMN,
+                PRIORITY_COLUMN,
+                GROUP_ID_COLUMN,
+                RUN_COUNT_COLUMN,
+                BASE_JOB_COLUMN,
+                CREATED_NS_COLUMN,
+                DELAY_UNTIL_NS_COLUMN,
+                RUNNING_SESSION_ID_COLUMN,
+                REQUIRES_NETWORK_UNTIL_COLUMN,
+                REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN
+        );
+<span class="fc" id="L56">        sqLiteDatabase.execSQL(createQuery);</span>
+
+<span class="fc" id="L58">        String createTagsQuery = SqlHelper.create(JOB_TAGS_TABLE_NAME,</span>
+                TAGS_ID_COLUMN,
+                TAGS_JOB_ID_COLUMN,
+                TAGS_NAME_COLUMN);
+<span class="fc" id="L62">        sqLiteDatabase.execSQL(createTagsQuery);</span>
+
+<span class="fc" id="L64">        sqLiteDatabase.execSQL(&quot;CREATE INDEX IF NOT EXISTS &quot; + TAG_INDEX_NAME + &quot; ON &quot;</span>
+                + JOB_TAGS_TABLE_NAME + &quot;(&quot; + DbOpenHelper.TAGS_NAME_COLUMN.columnName + &quot;)&quot;);
+<span class="fc" id="L66">    }</span>
+
+    @Override
+    public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
+<span class="nc" id="L70">        sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));</span>
+<span class="nc" id="L71">        sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));</span>
+<span class="nc" id="L72">        sqLiteDatabase.execSQL(&quot;DROP INDEX IF EXISTS &quot; + TAG_INDEX_NAME);</span>
+<span class="nc" id="L73">        onCreate(sqLiteDatabase);</span>
+<span class="nc" id="L74">    }</span>
+
+    @Override
+    public void onDowngrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
+<span class="nc" id="L78">        onUpgrade(sqLiteDatabase, oldVersion, newVersion);</span>
+<span class="nc" id="L79">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

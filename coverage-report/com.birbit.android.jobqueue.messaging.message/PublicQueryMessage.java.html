@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>PublicQueryMessage.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging.message</a> &gt; <span class="el_source">PublicQueryMessage.java</span></div><h1>PublicQueryMessage.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging.message;
+
+import com.birbit.android.jobqueue.IntCallback;
+import com.birbit.android.jobqueue.messaging.Message;
+import com.birbit.android.jobqueue.messaging.Type;
+
+public class PublicQueryMessage extends Message implements IntCallback.MessageWithCallback {
+    public static final int COUNT = 0;
+    public static final int COUNT_READY = 1;
+    public static final int START = 2;
+    public static final int STOP = 3;
+    public static final int JOB_STATUS = 4;
+    public static final int CLEAR = 5;
+    public static final int ACTIVE_CONSUMER_COUNT = 6;
+    public static final int SCHEDULER_START = 7;
+    // used for testing
+    public static final int INTERNAL_RUNNABLE = 101;
+
+    private IntCallback callback;
+<span class="fc" id="L20">    private int what = -1;</span>
+    private String stringArg;
+
+    public PublicQueryMessage() {
+<span class="fc" id="L24">        super(Type.PUBLIC_QUERY);</span>
+<span class="fc" id="L25">    }</span>
+
+    public void set(int what, IntCallback callback) {
+<span class="fc" id="L28">        this.callback = callback;</span>
+<span class="fc" id="L29">        this.what = what;</span>
+<span class="fc" id="L30">    }</span>
+
+    public void set(int what, String stringArg, IntCallback callback) {
+<span class="fc" id="L33">        this.what = what;</span>
+<span class="fc" id="L34">        this.stringArg = stringArg;</span>
+<span class="fc" id="L35">        this.callback = callback;</span>
+<span class="fc" id="L36">    }</span>
+
+    public IntCallback getCallback() {
+<span class="fc" id="L39">        return callback;</span>
+    }
+
+    public int getWhat() {
+<span class="fc" id="L43">        return what;</span>
+    }
+
+    public String getStringArg() {
+<span class="fc" id="L47">        return stringArg;</span>
+    }
+
+    public void setCallback(IntCallback callback) {
+<span class="fc" id="L51">        this.callback = callback;</span>
+<span class="fc" id="L52">    }</span>
+
+    @Override
+    protected void onRecycled() {
+<span class="fc" id="L56">        callback = null;</span>
+<span class="fc" id="L57">        what = -1;</span>
+<span class="fc" id="L58">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L62">        return &quot;PublicQuery[&quot; + what + &quot;]&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

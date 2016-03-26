@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>JobManager.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">JobManager.java</span></div><h1>JobManager.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
+
+import com.birbit.android.jobqueue.messaging.Message;
+import com.birbit.android.jobqueue.messaging.MessageFactory;
+import com.birbit.android.jobqueue.messaging.MessageQueue;
+import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
+import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
+import com.birbit.android.jobqueue.messaging.message.CancelMessage;
+import com.birbit.android.jobqueue.messaging.message.CommandMessage;
+import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
+import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
+import com.birbit.android.jobqueue.AsyncAddCallback;
+import com.birbit.android.jobqueue.CancelResult;
+import com.birbit.android.jobqueue.Job;
+import com.birbit.android.jobqueue.JobStatus;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
+
+import android.os.Looper;
+import android.support.annotation.NonNull;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+public class JobManager {
+    public static final long NS_PER_MS = 1000000;
+    public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
+    public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
+<span class="fc" id="L37">    public static final long NETWORK_CHECK_INTERVAL = TimeUnit.MILLISECONDS.toNanos(10000);</span>
+    /**
+     * The min delay in MS which will trigger usage of JobScheduler.
+     * If a job is added with a delay in less than this value, JobManager will not use the scheduler
+     * to wake up the application.
+     */
+    public static final long MIN_DELAY_TO_USE_SCHEDULER_IN_MS = 1000 * 30;
+
+    final JobManagerThread jobManagerThread;
+    private final PriorityMessageQueue messageQueue;
+    private final MessageFactory messageFactory;
+    @SuppressWarnings(&quot;FieldCanBeLocal&quot;)
+    private Thread chefThread;
+
+    /**
+     * Creates a JobManager with the given configuration
+     *
+     * @param configuration The configuration to be used for the JobManager
+     *
+     * @see com.birbit.android.jobqueue.config.Configuration.Builder
+     */
+<span class="fc" id="L58">    public JobManager(Configuration configuration) {</span>
+<span class="fc" id="L59">        messageFactory = new MessageFactory();</span>
+<span class="fc" id="L60">        messageQueue = new PriorityMessageQueue(configuration.getTimer(), messageFactory);</span>
+<span class="fc" id="L61">        jobManagerThread = new JobManagerThread(configuration, messageQueue, messageFactory);</span>
+<span class="fc" id="L62">        chefThread = new Thread(jobManagerThread, &quot;job-manager&quot;);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (configuration.getScheduler() != null) {</span>
+<span class="fc" id="L64">            Scheduler.Callback callback = createSchedulerCallback();</span>
+<span class="fc" id="L65">            configuration.getScheduler().init(configuration.getAppContext(), callback);</span>
+        }
+<span class="fc" id="L67">        chefThread.start();</span>
+<span class="fc" id="L68">    }</span>
+
+    private Scheduler.Callback createSchedulerCallback() {
+<span class="fc" id="L71">        return new Scheduler.Callback() {</span>
+            @Override
+            public boolean start(SchedulerConstraint constraint) {
+<span class="nc" id="L74">                dispatchSchedulerStart(constraint);</span>
+<span class="nc" id="L75">                return true;</span>
+            }
+
+            @Override
+            public boolean stop(SchedulerConstraint constraint) {
+<span class="nc" id="L80">                dispatchSchedulerStop(constraint);</span>
+                // always return false to avoid blocking the queue
+<span class="nc" id="L82">                return false;</span>
+            }
+        };
+    }
+
+    private void dispatchSchedulerStart(SchedulerConstraint constraint) {
+<span class="nc" id="L88">        SchedulerMessage message = messageFactory.obtain(SchedulerMessage.class);</span>
+<span class="nc" id="L89">        message.set(SchedulerMessage.START, constraint);</span>
+<span class="nc" id="L90">        messageQueue.post(message);</span>
+<span class="nc" id="L91">    }</span>
+
+    private void dispatchSchedulerStop(SchedulerConstraint constraint) {
+<span class="nc" id="L94">        SchedulerMessage message = messageFactory.obtain(SchedulerMessage.class);</span>
+<span class="nc" id="L95">        message.set(PublicQueryMessage.START, constraint);</span>
+<span class="nc" id="L96">        messageQueue.post(message);</span>
+<span class="nc" id="L97">    }</span>
+
+    /**
+     * Starts the JobManager if it is not already running.
+     *
+     * @see #stop()
+     */
+    public void start() {
+<span class="fc" id="L105">        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L106">        message.set(PublicQueryMessage.START, null);</span>
+<span class="fc" id="L107">        messageQueue.post(message);</span>
+<span class="fc" id="L108">    }</span>
+
+    /**
+     * Stops the JobManager. Currently running Jobs will continue to run but no new Jobs will be
+     * run until restarted.
+     *
+     * @see #start()
+     */
+    public void stop() {
+<span class="fc" id="L117">        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L118">        message.set(PublicQueryMessage.STOP, null);</span>
+<span class="fc" id="L119">        messageQueue.post(message);</span>
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * Returns the number of consumer threads that are currently running Jobs. This number includes
+     * consumer threads that are currently idle.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     * @return The number of consumer threads
+     */
+    public int getActiveConsumerCount() {
+<span class="fc" id="L131">        assertNotInMainThread();</span>
+<span class="fc" id="L132">        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L133">        message.set(PublicQueryMessage.ACTIVE_CONSUMER_COUNT, null);</span>
+<span class="fc" id="L134">        return new IntQueryFuture&lt;&gt;(messageQueue, message).getSafe();</span>
+    }
+
+    /**
+     * Destroys the JobManager. You cannot make any calls to this JobManager after this call.
+     * Useful to be called after your tests.
+     *
+     * @see #stopAndWaitUntilConsumersAreFinished()
+     */
+    public void destroy() {
+<span class="fc" id="L144">        JqLog.d(&quot;destroying job queue&quot;);</span>
+<span class="fc" id="L145">        stopAndWaitUntilConsumersAreFinished();</span>
+<span class="fc" id="L146">        CommandMessage message = messageFactory.obtain(CommandMessage.class);</span>
+<span class="fc" id="L147">        message.set(CommandMessage.QUIT);</span>
+<span class="fc" id="L148">        messageQueue.post(message);</span>
+<span class="fc" id="L149">        jobManagerThread.callbackManager.destroy();</span>
+<span class="fc" id="L150">    }</span>
+
+    /**
+     * Stops the JobManager and waits until all currently running Jobs are complete (or failed).
+     * Useful to be called in your tests.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     *
+     * @see #destroy()
+     */
+    public void stopAndWaitUntilConsumersAreFinished() {
+<span class="fc" id="L162">        waitUntilConsumersAreFinished(true);</span>
+<span class="fc" id="L163">    }</span>
+
+    /**
+     * Waits until all consumers are destroyed. If min consumer count is NOT 0, this method will
+     * never return.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     */
+    public void waitUntilConsumersAreFinished() {
+<span class="fc" id="L173">        waitUntilConsumersAreFinished(false);</span>
+<span class="fc" id="L174">    }</span>
+
+    private void waitUntilConsumersAreFinished(boolean stop) {
+<span class="fc" id="L177">        assertNotInMainThread();</span>
+<span class="fc" id="L178">        final CountDownLatch latch = new CountDownLatch(1);</span>
+<span class="fc" id="L179">        jobManagerThread.consumerManager.addNoConsumersListener(new Runnable() {</span>
+            @Override
+            public void run() {
+<span class="fc" id="L182">                latch.countDown();</span>
+<span class="fc" id="L183">                jobManagerThread.consumerManager.removeNoConsumersListener(this);</span>
+<span class="fc" id="L184">            }</span>
+        });
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (stop) {</span>
+<span class="fc" id="L187">            stop();</span>
+        }
+<span class="fc bfc" id="L189" title="All 2 branches covered.">        if(jobManagerThread.consumerManager.getWorkerCount() == 0) {</span>
+<span class="fc" id="L190">            return;</span>
+        }
+        try {
+<span class="fc" id="L193">            latch.await();</span>
+<span class="nc" id="L194">        } catch (InterruptedException ignored) {</span>
+<span class="fc" id="L195">        }</span>
+<span class="fc" id="L196">        PublicQueryMessage pm = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L197">        pm.set(PublicQueryMessage.CLEAR, null);</span>
+<span class="fc" id="L198">        new IntQueryFuture&lt;&gt;(jobManagerThread.callbackManager.messageQueue, pm).getSafe();</span>
+<span class="fc" id="L199">    }</span>
+
+    /**
+     * Adds a Job to the JobManager. This method instantly returns and does not wait until the Job
+     * is added. You should always prefer this method over {@link #addJob(Job)}.
+     *
+     * @param job The Job to be added
+     *
+     * @see #addJobInBackground(Job, AsyncAddCallback)
+     * @see #addJob(Job)
+     */
+    public void addJobInBackground(Job job) {
+<span class="fc" id="L211">        AddJobMessage message = messageFactory.obtain(AddJobMessage.class);</span>
+<span class="fc" id="L212">        message.setJob(job);</span>
+<span class="fc" id="L213">        messageQueue.post(message);</span>
+<span class="fc" id="L214">    }</span>
+
+    /**
+     * Cancels the Jobs that match the given criteria. If a Job that matches the criteria is
+     * currently running, JobManager waits until it finishes its {@link Job#onRun()} method before
+     * calling the callback.
+     *
+     * @param cancelCallback The callback to call once cancel is handled
+     * @param constraint The constraint to be used to match tags
+     * @param tags The list of tags
+     */
+    public void cancelJobsInBackground(final CancelResult.AsyncCancelCallback cancelCallback,
+            final TagConstraint constraint, final String... tags) {
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        if (constraint == null) {</span>
+<span class="nc" id="L228">            throw new IllegalArgumentException(&quot;must provide a TagConstraint&quot;);</span>
+        }
+<span class="fc" id="L230">        CancelMessage message = messageFactory.obtain(CancelMessage.class);</span>
+<span class="fc" id="L231">        message.setCallback(cancelCallback);</span>
+<span class="fc" id="L232">        message.setConstraint(constraint);</span>
+<span class="fc" id="L233">        message.setTags(tags);</span>
+<span class="fc" id="L234">        messageQueue.post(message);</span>
+<span class="fc" id="L235">    }</span>
+
+    /**
+     * Adds a JobManagerCallback to observe this JobManager.
+     *
+     * @param callback The callback to be added
+     */
+    public void addCallback(JobManagerCallback callback) {
+<span class="fc" id="L243">        jobManagerThread.addCallback(callback);</span>
+<span class="fc" id="L244">    }</span>
+
+    /**
+     * Removes the JobManagerCallback from the callbacks list. This method is safe to be called
+     * inside any method of the JobManagerCallback.
+     *
+     * @param callback The callback to be removed
+     *
+     * @return true if the callback is removed, false otherwise (if it did not exist).
+     */
+    public boolean removeCallback(JobManagerCallback callback) {
+<span class="fc" id="L255">        return jobManagerThread.removeCallback(callback);</span>
+    }
+
+    /**
+     * Adds the Job to the JobManager and waits until the add is handled.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     *
+     * Even if you are not on the main thread, you should prefer using
+     * {@link #addJobInBackground(Job)} or {@link #addJobInBackground(Job, AsyncAddCallback)} if
+     * you don't need to block your thread until the Job is actually added.
+     *
+     * @param job The Job to be added
+     *
+     * @see #addJobInBackground(Job)
+     * @see #addJobInBackground(Job, AsyncAddCallback)
+     */
+    public void addJob(Job job) {
+<span class="fc" id="L274">        assertNotInMainThread(&quot;Cannot call this method on main thread. Use addJobInBackground &quot;</span>
+                + &quot;instead.&quot;);
+<span class="fc" id="L276">        final CountDownLatch latch = new CountDownLatch(1);</span>
+<span class="fc" id="L277">        final String uuid = job.getId();</span>
+<span class="fc" id="L278">        addCallback(new JobManagerCallbackAdapter() {</span>
+            @Override
+            public void onJobAdded(Job job) {
+<span class="fc bfc" id="L281" title="All 2 branches covered.">                if (uuid.equals(job.getId())) {</span>
+<span class="fc" id="L282">                    latch.countDown();</span>
+<span class="fc" id="L283">                    removeCallback(this);</span>
+                }
+<span class="fc" id="L285">            }</span>
+        });
+<span class="fc" id="L287">        addJobInBackground(job);</span>
+        try {
+<span class="fc" id="L289">            latch.await();</span>
+<span class="nc" id="L290">        } catch (InterruptedException ignored) {</span>
+
+<span class="fc" id="L292">        }</span>
+<span class="fc" id="L293">    }</span>
+
+    /**
+     * Adds a Job in a background thread and calls the provided callback once the Job is added
+     * to the JobManager.
+     *
+     * @param job The Job to be added
+     * @param callback The callback to be invoked once Job is saved in the JobManager's queues
+     */
+    public void addJobInBackground(Job job, final AsyncAddCallback callback) {
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">        if (callback == null) {</span>
+<span class="nc" id="L304">            addJobInBackground(job);</span>
+<span class="nc" id="L305">            return;</span>
+        }
+<span class="fc" id="L307">        final String uuid = job.getId();</span>
+<span class="fc" id="L308">        addCallback(new JobManagerCallbackAdapter() {</span>
+            @Override
+            public void onJobAdded(Job job) {
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">                if (uuid.equals(job.getId())) {</span>
+                    try {
+<span class="fc" id="L313">                        callback.onAdded();</span>
+                    } finally {
+<span class="pc" id="L315">                        removeCallback(this);</span>
+<span class="fc" id="L316">                    }</span>
+                }
+<span class="fc" id="L318">            }</span>
+        });
+<span class="fc" id="L320">        addJobInBackground(job);</span>
+<span class="fc" id="L321">    }</span>
+
+    /**
+     * Cancels jobs that match the given criteria. This method blocks until the cancellation is
+     * handled, which might be a long time if a Job that matches the given criteria is currently
+     * running. Consider using
+     * {@link #cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)}
+     * if possible.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     *
+     * @param constraint The constraints to be used for tags
+     * @param tags The list of tags
+     *
+     * @return A cancel result that has the list of cancelled and failed to cancel Jobs. A job
+     * might fail to cancel if it already started before cancel request is handled.
+     */
+    public CancelResult cancelJobs(TagConstraint constraint, String... tags) {
+<span class="fc" id="L340">        assertNotInMainThread(&quot;Cannot call this method on main thread. Use cancelJobsInBackground&quot;</span>
+                + &quot; instead&quot;);
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">        if (constraint == null) {</span>
+<span class="nc" id="L343">            throw new IllegalArgumentException(&quot;must provide a TagConstraint&quot;);</span>
+        }
+<span class="fc" id="L345">        final CountDownLatch latch = new CountDownLatch(1);</span>
+<span class="fc" id="L346">        final CancelResult[] result = new CancelResult[1];</span>
+<span class="fc" id="L347">        CancelResult.AsyncCancelCallback myCallback = new CancelResult.AsyncCancelCallback() {</span>
+            @Override
+            public void onCancelled(CancelResult cancelResult) {
+<span class="fc" id="L350">                result[0] = cancelResult;</span>
+<span class="fc" id="L351">                latch.countDown();</span>
+<span class="fc" id="L352">            }</span>
+        };
+<span class="fc" id="L354">        CancelMessage message = messageFactory.obtain(CancelMessage.class);</span>
+<span class="fc" id="L355">        message.setConstraint(constraint);</span>
+<span class="fc" id="L356">        message.setTags(tags);</span>
+<span class="fc" id="L357">        message.setCallback(myCallback);</span>
+<span class="fc" id="L358">        messageQueue.post(message);</span>
+        try {
+<span class="fc" id="L360">            latch.await();</span>
+<span class="nc" id="L361">        } catch (InterruptedException ignored) {</span>
+<span class="fc" id="L362">        }</span>
+<span class="fc" id="L363">        return result[0];</span>
+    }
+
+    /**
+     * Returns the number of jobs in the JobManager. This number does not include jobs that are
+     * currently running.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     *
+     * @return The number of jobs that are waiting to be run
+     */
+    public int count() {
+<span class="fc" id="L376">        assertNotInMainThread();</span>
+<span class="fc" id="L377">        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L378">        message.set(PublicQueryMessage.COUNT, null);</span>
+<span class="fc" id="L379">        return new IntQueryFuture&lt;&gt;(messageQueue, message).getSafe();</span>
+    }
+
+    /**
+     * Returns the number of jobs that are ready to be executed but waiting in the queue.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     * @return The number of jobs that are ready to be executed but waiting in the queue.
+     */
+    public int countReadyJobs() {
+<span class="fc" id="L390">        assertNotInMainThread();</span>
+<span class="fc" id="L391">        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L392">        message.set(PublicQueryMessage.COUNT_READY, null);</span>
+<span class="fc" id="L393">        return new IntQueryFuture&lt;&gt;(messageQueue, message).getSafe();</span>
+    }
+
+    /**
+     * Returns the current status of a given job
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     * @param id The id of the job ({@link Job#getId()})
+     *
+     * @return The current status of the Job
+     */
+    public JobStatus getJobStatus(String id) {
+<span class="fc" id="L406">        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L407">        message.set(PublicQueryMessage.JOB_STATUS, id, null);</span>
+<span class="fc" id="L408">        Integer status = new IntQueryFuture&lt;&gt;(messageQueue, message).getSafe();</span>
+<span class="fc" id="L409">        return JobStatus.values()[status];</span>
+    }
+
+    /**
+     * Clears all waiting Jobs in the JobManager. Note that this won't touch any job that is
+     * currently running.
+     * &lt;p&gt;
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     */
+    public void clear() {
+<span class="fc" id="L420">        final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L421">        message.set(PublicQueryMessage.CLEAR, null);</span>
+<span class="fc" id="L422">        new IntQueryFuture&lt;&gt;(messageQueue, message).getSafe();</span>
+<span class="fc" id="L423">    }</span>
+
+    void internalRunInJobManagerThread(final Runnable runnable) throws Throwable {
+<span class="fc" id="L426">        final Throwable[] error = new Throwable[1];</span>
+<span class="fc" id="L427">        final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);</span>
+<span class="fc" id="L428">        message.set(PublicQueryMessage.INTERNAL_RUNNABLE, null);</span>
+<span class="fc" id="L429">        new IntQueryFuture&lt;PublicQueryMessage&gt;(messageQueue, message) {</span>
+            @Override
+            public void onResult(int result) { // this is hacky but allright
+                try {
+<span class="fc" id="L433">                    runnable.run();</span>
+<span class="nc" id="L434">                } catch (Throwable t) {</span>
+<span class="nc" id="L435">                    error[0] = t;</span>
+<span class="fc" id="L436">                }</span>
+<span class="fc" id="L437">                super.onResult(result);</span>
+<span class="fc" id="L438">            }</span>
+        }.getSafe();
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">        if (error[0] != null) {</span>
+<span class="nc" id="L441">            throw error[0];</span>
+        }
+<span class="fc" id="L443">    }</span>
+
+    private void assertNotInMainThread() {
+<span class="fc" id="L446">        assertNotInMainThread(&quot;Cannot call this method on main thread.&quot;);</span>
+<span class="fc" id="L447">    }</span>
+    private void assertNotInMainThread(String message) {
+<span class="pc bpc" id="L449" title="1 of 2 branches missed.">        if (Looper.getMainLooper().getThread() == Thread.currentThread()) {</span>
+<span class="nc" id="L450">            throw new IllegalStateException(message);</span>
+        }
+<span class="fc" id="L452">    }</span>
+
+    static class IntQueryFuture&lt;T extends Message &amp; IntCallback.MessageWithCallback&gt;
+            implements Future&lt;Integer&gt;,IntCallback {
+        final MessageQueue messageQueue;
+<span class="fc" id="L457">        volatile Integer result = null;</span>
+<span class="fc" id="L458">        final CountDownLatch latch = new CountDownLatch(1);</span>
+        final T message;
+
+<span class="fc" id="L461">        public IntQueryFuture(MessageQueue messageQueue, T message) {</span>
+<span class="fc" id="L462">            this.messageQueue = messageQueue;</span>
+<span class="fc" id="L463">            this.message = message;</span>
+<span class="fc" id="L464">            message.setCallback(this);</span>
+<span class="fc" id="L465">        }</span>
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+<span class="nc" id="L469">            return false;</span>
+        }
+
+        @Override
+        public boolean isCancelled() {
+<span class="nc" id="L474">            return false;</span>
+        }
+
+        @Override
+        public boolean isDone() {
+<span class="nc bnc" id="L479" title="All 2 branches missed.">            return latch.getCount() == 0;</span>
+        }
+
+        public Integer getSafe() {
+            try {
+<span class="fc" id="L484">                return get();</span>
+<span class="nc" id="L485">            } catch (Throwable t) {</span>
+<span class="nc" id="L486">                JqLog.e(t, &quot;message is not complete&quot;);</span>
+            }
+<span class="nc" id="L488">            throw new RuntimeException(&quot;cannot get the result of the JobManager query&quot;);</span>
+        }
+
+        @Override
+        public Integer get() throws InterruptedException, ExecutionException {
+<span class="fc" id="L493">            messageQueue.post(message);</span>
+<span class="fc" id="L494">            latch.await();</span>
+<span class="fc" id="L495">            return result;</span>
+        }
+
+        @Override
+        public Integer get(long timeout, @NonNull TimeUnit unit)
+                throws InterruptedException, ExecutionException, TimeoutException {
+<span class="nc" id="L501">            messageQueue.post(message);</span>
+<span class="nc" id="L502">            latch.await(timeout, unit);</span>
+<span class="nc" id="L503">            return result;</span>
+        }
+
+        @Override
+        public void onResult(int result) {
+<span class="fc" id="L508">            this.result = result;</span>
+<span class="fc" id="L509">            latch.countDown();</span>
+<span class="fc" id="L510">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

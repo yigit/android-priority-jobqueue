@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Scheduler.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.scheduling</a> &gt; <span class="el_source">Scheduler.java</span></div><h1>Scheduler.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.scheduling;
+
+import android.content.Context;
+
+/**
+ * This class handles communication &amp; tracking with a scheduler that can wake up the app / job
+ * manager based on external events.
+ * &lt;p&gt;
+ * JobManager will call attached scheduler every time it thinks that the app should be waken up for
+ * the given job. Each request comes with a {@link SchedulerConstraint} which should be reported
+ * back to the JobManager when the system service wakes it up.
+ */
+abstract public class Scheduler {
+    private Callback callback;
+    private Context context;
+
+<span class="fc" id="L17">    protected Scheduler() {</span>
+
+<span class="fc" id="L19">    }</span>
+
+    public void init(Context context, Callback callback) {
+<span class="fc" id="L22">        this.context = context.getApplicationContext();</span>
+<span class="fc" id="L23">        this.callback = callback;</span>
+<span class="fc" id="L24">    }</span>
+
+    public Context getApplicationContext() {
+<span class="nc" id="L27">        return context;</span>
+    }
+
+    abstract public void request(SchedulerConstraint constraint);
+
+    /**
+     * Triggers the JobManager to handle the given constraint. JobManager always call
+     * {@link #onFinished(SchedulerConstraint, boolean)} with an async callback.
+     *
+     * @param constraint The constraint
+     */
+    public final boolean start(SchedulerConstraint constraint) {
+<span class="nc bnc" id="L39" title="All 2 branches missed.">        if (callback == null) {</span>
+<span class="nc" id="L40">            throw new IllegalStateException(&quot;JobManager callback is not configured&quot;);</span>
+        }
+<span class="nc" id="L42">        return callback.start(constraint);</span>
+    }
+
+    public final boolean stop(SchedulerConstraint constraint) {
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (callback == null) {</span>
+<span class="nc" id="L47">            throw new IllegalStateException(&quot;JobManager callback is not configured&quot;);</span>
+        }
+<span class="nc" id="L49">        return callback.stop(constraint);</span>
+    }
+
+    /**
+     * Called by the JobManager when a scheduled constraint is handled.
+     *
+     * @param constraint The original constraint
+     * @param reschedule True if the job should be rescheduled
+     */
+    abstract public void onFinished(SchedulerConstraint constraint, boolean reschedule);
+
+    /**
+     * When called, should cancel all pending jobs
+     */
+    public abstract void cancelAll();
+
+    /**
+     * Internal class that handles the communication between the JobManager and the scheduler
+     */
+    public interface Callback {
+        /**
+         * @param constraint
+         * @return True if no jobs to run, false otherwise
+         */
+        boolean start(SchedulerConstraint constraint);
+
+        /**
+         * @param constraint
+         * @return True if job should be rescheduled, false otherwise
+         */
+        boolean stop(SchedulerConstraint constraint);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

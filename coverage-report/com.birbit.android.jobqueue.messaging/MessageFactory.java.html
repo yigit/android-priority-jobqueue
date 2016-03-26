@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>MessageFactory.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging</a> &gt; <span class="el_source">MessageFactory.java</span></div><h1>MessageFactory.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging;
+
+import com.birbit.android.jobqueue.log.JqLog;
+
+import java.util.Arrays;
+
+public class MessageFactory {
+    private static final int CACHE_LIMIT = 20;
+<span class="fc" id="L9">    Message[] pools = new Message[Type.values().length];</span>
+<span class="fc" id="L10">    int[] counts = new int[pools.length];</span>
+
+<span class="fc" id="L12">    public MessageFactory() {</span>
+<span class="fc" id="L13">        Arrays.fill(counts, 0);</span>
+<span class="fc" id="L14">    }</span>
+
+    public &lt;T extends Message&gt; T obtain(Class&lt;T&gt; klass) {
+<span class="fc" id="L17">        final Type type = Type.mapping.get(klass);</span>
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+<span class="fc" id="L19">        synchronized (type) {</span>
+<span class="fc" id="L20">            Message message = pools[type.ordinal()];</span>
+<span class="fc bfc" id="L21" title="All 2 branches covered.">            if (message != null) {</span>
+<span class="fc" id="L22">                pools[type.ordinal()] = message.next;</span>
+<span class="fc" id="L23">                counts[type.ordinal()] -= 1;</span>
+<span class="fc" id="L24">                message.next = null;</span>
+                //noinspection unchecked
+<span class="fc" id="L26">                return (T) message;</span>
+            }
+            try {
+<span class="fc" id="L29">                return klass.newInstance();</span>
+<span class="nc" id="L30">            } catch (InstantiationException e) {</span>
+<span class="nc" id="L31">                JqLog.e(e, &quot;Cannot create an instance of &quot; + klass + &quot;. Make sure it has a empty&quot; +</span>
+                        &quot; constructor.&quot;);
+<span class="nc" id="L33">            } catch (IllegalAccessException e) {</span>
+<span class="nc" id="L34">                JqLog.e(e, &quot;Cannot create an instance of &quot; + klass + &quot;. Make sure it has a public&quot; +</span>
+                        &quot; empty constructor.&quot;);
+<span class="nc" id="L36">            }</span>
+<span class="nc" id="L37">        }</span>
+<span class="nc" id="L38">        return null;</span>
+    }
+    public void release(Message message) {
+<span class="fc" id="L41">        final Type type = message.type;</span>
+<span class="fc" id="L42">        message.recycle();</span>
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+<span class="fc" id="L44">        synchronized (type) {</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">            if (counts[type.ordinal()] &lt; CACHE_LIMIT) {</span>
+<span class="fc" id="L46">                message.next = pools[type.ordinal()];</span>
+<span class="fc" id="L47">                pools[type.ordinal()] = message;</span>
+<span class="fc" id="L48">                counts[type.ordinal()] += 1;</span>
+            }
+<span class="pc" id="L50">        }</span>
+<span class="fc" id="L51">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

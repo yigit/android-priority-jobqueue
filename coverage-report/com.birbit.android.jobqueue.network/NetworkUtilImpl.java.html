@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>NetworkUtilImpl.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.network</a> &gt; <span class="el_source">NetworkUtilImpl.java</span></div><h1>NetworkUtilImpl.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.network;
+
+import android.annotation.TargetApi;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.net.NetworkRequest;
+import android.os.Build;
+import android.os.Build.VERSION;
+import android.os.PowerManager;
+
+/**
+ * default implementation for network Utility to observe network events
+ */
+public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
+    private Listener listener;
+<span class="fc" id="L22">    public NetworkUtilImpl(final Context context) {</span>
+<span class="pc bpc" id="L23" title="1 of 2 branches missed.">        if (VERSION.SDK_INT &gt;= Build.VERSION_CODES.LOLLIPOP) {</span>
+<span class="pc bpc" id="L24" title="1 of 2 branches missed.">            if (VERSION.SDK_INT &gt;= Build.VERSION_CODES.M) {</span>
+<span class="nc" id="L25">                listenForIdle(context);</span>
+            }
+<span class="fc" id="L27">            listeNetworkViaConnectivityManager(context);</span>
+        } else {
+<span class="nc" id="L29">            context.getApplicationContext().registerReceiver(new BroadcastReceiver() {</span>
+                @Override
+                public void onReceive(Context context, Intent intent) {
+<span class="nc" id="L32">                    dispatchNetworkChange(context);</span>
+<span class="nc" id="L33">                }</span>
+            }, getNetworkIntentFilter());
+        }
+<span class="fc" id="L36">    }</span>
+
+    @TargetApi(23)
+    private void listeNetworkViaConnectivityManager(final Context context) {
+<span class="fc" id="L40">        ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext()</span>
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+<span class="fc" id="L42">        NetworkRequest request = new NetworkRequest.Builder()</span>
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                .build();
+<span class="fc" id="L46">        cm.registerNetworkCallback(request, new ConnectivityManager.NetworkCallback() {</span>
+            @Override
+            public void onAvailable(Network network) {
+<span class="nc" id="L49">                dispatchNetworkChange(context);</span>
+<span class="nc" id="L50">            }</span>
+        });
+<span class="fc" id="L52">    }</span>
+
+    @TargetApi(23)
+    private void listenForIdle(Context context) {
+<span class="nc" id="L56">        context.getApplicationContext().registerReceiver(new BroadcastReceiver() {</span>
+            @Override
+            public void onReceive(Context context, Intent intent) {
+<span class="nc" id="L59">                dispatchNetworkChange(context);</span>
+<span class="nc" id="L60">            }</span>
+        }, new IntentFilter(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED));
+<span class="nc" id="L62">    }</span>
+
+    void dispatchNetworkChange(Context context) {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if(listener == null) {//shall not be but just be safe</span>
+<span class="nc" id="L66">            return;</span>
+        }
+        //http://developer.android.com/reference/android/net/ConnectivityManager.html#EXTRA_NETWORK_INFO
+        //Since NetworkInfo can vary based on UID, applications should always obtain network information
+        // through getActiveNetworkInfo() or getAllNetworkInfo().
+<span class="nc" id="L71">        listener.onNetworkChange(getNetworkStatus(context));</span>
+<span class="nc" id="L72">    }</span>
+
+    @Override
+    public int getNetworkStatus(Context context) {
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        if (isDozing(context)) {</span>
+<span class="nc" id="L77">            return NetworkUtil.DISCONNECTED;</span>
+        }
+<span class="fc" id="L79">        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);</span>
+<span class="fc" id="L80">        NetworkInfo netInfo = cm.getActiveNetworkInfo();</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        if (netInfo == null) {</span>
+<span class="nc" id="L82">            return NetworkUtil.DISCONNECTED;</span>
+        }
+<span class="pc bpc" id="L84" title="2 of 4 branches missed.">        if (netInfo.getType() == ConnectivityManager.TYPE_WIFI ||</span>
+                netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
+<span class="nc" id="L86">            return NetworkUtil.UNMETERED;</span>
+        }
+<span class="fc" id="L88">        return NetworkUtil.METERED;</span>
+    }
+
+    @TargetApi(23)
+    private static IntentFilter getNetworkIntentFilter() {
+<span class="nc" id="L93">        IntentFilter networkIntentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (VERSION.SDK_INT &gt;= 23) {</span>
+<span class="nc" id="L95">            networkIntentFilter.addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED);</span>
+        }
+<span class="nc" id="L97">        return networkIntentFilter;</span>
+    }
+
+    /**
+     * Returns true if the device is in Doze/Idle mode. Should be called before checking the network connection because
+     * the ConnectionManager may report the device is connected when it isn't during Idle mode.
+     */
+    @TargetApi(23)
+    private static boolean isDozing(Context context) {
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (VERSION.SDK_INT &gt;= 23) {</span>
+<span class="nc" id="L107">            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);</span>
+<span class="nc bnc" id="L108" title="All 4 branches missed.">            return powerManager.isDeviceIdleMode() &amp;&amp;</span>
+                    !powerManager.isIgnoringBatteryOptimizations(context.getPackageName());
+        } else {
+<span class="fc" id="L111">            return false;</span>
+        }
+    }
+
+    @Override
+    public void setListener(Listener listener) {
+<span class="fc" id="L117">        this.listener = listener;</span>
+<span class="fc" id="L118">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

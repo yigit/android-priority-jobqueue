@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>SqlHelper.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.persistentQueue.sqlite</a> &gt; <span class="el_source">SqlHelper.java</span></div><h1>SqlHelper.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.persistentQueue.sqlite;
+
+import com.birbit.android.jobqueue.log.JqLog;
+
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+
+/**
+ * Helper class for {@link SqliteJobQueue} to generate sql queries and statements.
+ */
+public class SqlHelper {
+
+    /**package**/ String FIND_BY_ID_QUERY;
+    /**package**/ String FIND_BY_TAG_QUERY;
+
+    private SQLiteStatement insertStatement;
+    private SQLiteStatement insertTagsStatement;
+    private SQLiteStatement insertOrReplaceStatement;
+    private SQLiteStatement deleteStatement;
+    private SQLiteStatement onJobFetchedForRunningStatement;
+    private SQLiteStatement countStatement;
+<span class="fc" id="L22">    final StringBuilder reusedStringBuilder = new StringBuilder();</span>
+
+
+    final SQLiteDatabase db;
+    final String tableName;
+    final String primaryKeyColumnName;
+    final int columnCount;
+    final String tagsTableName;
+    final int tagsColumnCount;
+    final long sessionId;
+
+    public SqlHelper(SQLiteDatabase db, String tableName, String primaryKeyColumnName,
+<span class="fc" id="L34">            int columnCount, String tagsTableName, int tagsColumnCount, long sessionId) {</span>
+<span class="fc" id="L35">        this.db = db;</span>
+<span class="fc" id="L36">        this.tableName = tableName;</span>
+<span class="fc" id="L37">        this.columnCount = columnCount;</span>
+<span class="fc" id="L38">        this.primaryKeyColumnName = primaryKeyColumnName;</span>
+<span class="fc" id="L39">        this.sessionId = sessionId;</span>
+<span class="fc" id="L40">        this.tagsColumnCount = tagsColumnCount;</span>
+<span class="fc" id="L41">        this.tagsTableName = tagsTableName;</span>
+<span class="fc" id="L42">        FIND_BY_ID_QUERY = &quot;SELECT * FROM &quot; + tableName + &quot; WHERE &quot; + DbOpenHelper.ID_COLUMN.columnName + &quot; = ?&quot;;</span>
+<span class="fc" id="L43">        FIND_BY_TAG_QUERY = &quot;SELECT * FROM &quot; + tableName + &quot; WHERE &quot; + DbOpenHelper.ID_COLUMN.columnName</span>
+                + &quot; IN ( SELECT &quot; + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + &quot; FROM &quot; + tagsTableName
+                + &quot; WHERE &quot; + DbOpenHelper.TAGS_NAME_COLUMN.columnName + &quot; = ?)&quot;;
+<span class="fc" id="L46">    }</span>
+
+    public static String create(String tableName, Property primaryKey, Property... properties) {
+<span class="fc" id="L49">        StringBuilder builder = new StringBuilder(&quot;CREATE TABLE IF NOT EXISTS &quot;);</span>
+<span class="fc" id="L50">        builder.append(tableName).append(&quot; (&quot;);</span>
+<span class="fc" id="L51">        builder.append(primaryKey.columnName).append(&quot; &quot;);</span>
+<span class="fc" id="L52">        builder.append(primaryKey.type);</span>
+<span class="fc" id="L53">        builder.append(&quot;  primary key &quot;);</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (Property property : properties) {</span>
+<span class="fc" id="L55">            builder.append(&quot;, `&quot;).append(property.columnName).append(&quot;` &quot;).append(property.type);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">            if (property.unique) {</span>
+<span class="fc" id="L57">                builder.append(&quot; UNIQUE&quot;);</span>
+            }
+        }
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        for (Property property : properties) {</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">            if (property.foreignKey != null) {</span>
+<span class="fc" id="L62">                ForeignKey key = property.foreignKey;</span>
+<span class="fc" id="L63">                builder.append(&quot;, FOREIGN KEY(`&quot;).append(property.columnName)</span>
+                        .append(&quot;`) REFERENCES &quot;).append(key.targetTable).append(&quot;(`&quot;)
+                        .append(key.targetFieldName).append(&quot;`) ON DELETE CASCADE&quot;);
+            }
+        }
+<span class="fc" id="L68">        builder.append(&quot; );&quot;);</span>
+<span class="fc" id="L69">        JqLog.d(builder.toString());</span>
+<span class="fc" id="L70">        return builder.toString();</span>
+    }
+
+    public static String drop(String tableName) {
+<span class="nc" id="L74">        return &quot;DROP TABLE IF EXISTS &quot; + tableName;</span>
+    }
+
+    public SQLiteStatement getInsertStatement() {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (insertStatement == null) {</span>
+<span class="fc" id="L79">            reusedStringBuilder.setLength(0);</span>
+<span class="fc" id="L80">            reusedStringBuilder.append(&quot;INSERT INTO &quot;).append(tableName);</span>
+<span class="fc" id="L81">            reusedStringBuilder.append(&quot; VALUES (&quot;);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">            for (int i = 0; i &lt; columnCount; i++) {</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">                if (i != 0) {</span>
+<span class="fc" id="L84">                    reusedStringBuilder.append(&quot;,&quot;);</span>
+                }
+<span class="fc" id="L86">                reusedStringBuilder.append(&quot;?&quot;);</span>
+            }
+<span class="fc" id="L88">            reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="fc" id="L89">            insertStatement = db.compileStatement(reusedStringBuilder.toString());</span>
+        }
+<span class="fc" id="L91">        return insertStatement;</span>
+    }
+
+    public SQLiteStatement getInsertTagsStatement() {
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (insertTagsStatement == null) {</span>
+<span class="fc" id="L96">            reusedStringBuilder.setLength(0);</span>
+<span class="fc" id="L97">            reusedStringBuilder.append(&quot;INSERT INTO &quot;)</span>
+                    .append(DbOpenHelper.JOB_TAGS_TABLE_NAME);
+<span class="fc" id="L99">            reusedStringBuilder.append(&quot; VALUES (&quot;);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">            for (int i = 0; i &lt; tagsColumnCount; i++) {</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">                if (i != 0) {</span>
+<span class="fc" id="L102">                    reusedStringBuilder.append(&quot;,&quot;);</span>
+                }
+<span class="fc" id="L104">                reusedStringBuilder.append(&quot;?&quot;);</span>
+            }
+<span class="fc" id="L106">            reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="fc" id="L107">            insertTagsStatement = db.compileStatement(reusedStringBuilder.toString());</span>
+        }
+<span class="fc" id="L109">        return insertTagsStatement;</span>
+    }
+
+    public SQLiteStatement getCountStatement() {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (countStatement == null) {</span>
+<span class="fc" id="L114">            countStatement = db.compileStatement(&quot;SELECT COUNT(*) FROM &quot; + tableName + &quot; WHERE &quot; +</span>
+                    DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + &quot; != ?&quot;);
+        }
+<span class="fc" id="L117">        return countStatement;</span>
+    }
+
+    public SQLiteStatement getInsertOrReplaceStatement() {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (insertOrReplaceStatement == null) {</span>
+<span class="fc" id="L122">            reusedStringBuilder.setLength(0);</span>
+<span class="fc" id="L123">            reusedStringBuilder.append(&quot;INSERT OR REPLACE INTO &quot;).append(tableName);</span>
+<span class="fc" id="L124">            reusedStringBuilder.append(&quot; VALUES (&quot;);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">            for (int i = 0; i &lt; columnCount; i++) {</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">                if (i != 0) {</span>
+<span class="fc" id="L127">                    reusedStringBuilder.append(&quot;,&quot;);</span>
+                }
+<span class="fc" id="L129">                reusedStringBuilder.append(&quot;?&quot;);</span>
+            }
+<span class="fc" id="L131">            reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="fc" id="L132">            insertOrReplaceStatement = db.compileStatement(reusedStringBuilder.toString());</span>
+        }
+<span class="fc" id="L134">        return insertOrReplaceStatement;</span>
+    }
+
+    public SQLiteStatement getDeleteStatement() {
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (deleteStatement == null) {</span>
+<span class="fc" id="L139">            deleteStatement = db.compileStatement(&quot;DELETE FROM &quot; + tableName + &quot; WHERE &quot;</span>
+                    + primaryKeyColumnName + &quot; = ?&quot;);
+        }
+<span class="fc" id="L142">        return deleteStatement;</span>
+    }
+
+    public SQLiteStatement getOnJobFetchedForRunningStatement() {
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        if (onJobFetchedForRunningStatement == null) {</span>
+<span class="fc" id="L147">            String sql = &quot;UPDATE &quot; + tableName + &quot; SET &quot;</span>
+                    + DbOpenHelper.RUN_COUNT_COLUMN.columnName + &quot; = ? , &quot;
+                    + DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName + &quot; = ? &quot;
+                    + &quot; WHERE &quot; + primaryKeyColumnName + &quot; = ? &quot;;
+<span class="fc" id="L151">            onJobFetchedForRunningStatement = db.compileStatement(sql);</span>
+        }
+<span class="fc" id="L153">        return onJobFetchedForRunningStatement;</span>
+    }
+
+    public String createSelect(String where, Integer limit, Order... orders) {
+<span class="fc" id="L157">        reusedStringBuilder.setLength(0);</span>
+<span class="fc" id="L158">        reusedStringBuilder.append(&quot;SELECT * FROM &quot;);</span>
+<span class="fc" id="L159">        reusedStringBuilder.append(tableName);</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">        if (where != null) {</span>
+<span class="fc" id="L161">            reusedStringBuilder.append(&quot; WHERE &quot;).append(where);</span>
+        }
+<span class="fc" id="L163">        boolean first = true;</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        for (Order order : orders) {</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">            if (first) {</span>
+<span class="fc" id="L166">                reusedStringBuilder.append(&quot; ORDER BY &quot;);</span>
+            } else {
+<span class="fc" id="L168">                reusedStringBuilder.append(&quot;,&quot;);</span>
+            }
+<span class="fc" id="L170">            first = false;</span>
+<span class="fc" id="L171">            reusedStringBuilder.append(order.property.columnName).append(&quot; &quot;).append(order.type);</span>
+        }
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        if (limit != null) {</span>
+<span class="fc" id="L174">            reusedStringBuilder.append(&quot; LIMIT &quot;).append(limit);</span>
+        }
+<span class="fc" id="L176">        return reusedStringBuilder.toString();</span>
+    }
+
+    public String createSelectOneField(Property property, String where, Integer limit,
+            Order... orders) {
+<span class="fc" id="L181">        reusedStringBuilder.setLength(0);</span>
+
+<span class="fc" id="L183">        reusedStringBuilder.append(&quot;SELECT &quot;)</span>
+                .append(property.columnName).append(&quot; FROM &quot;)
+                .append(tableName);
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        if (where != null) {</span>
+<span class="fc" id="L187">            reusedStringBuilder.append(&quot; WHERE &quot;).append(where);</span>
+        }
+<span class="fc" id="L189">        boolean first = true;</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        for (Order order : orders) {</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">            if (first) {</span>
+<span class="fc" id="L192">                reusedStringBuilder.append(&quot; ORDER BY &quot;);</span>
+            } else {
+<span class="nc" id="L194">                reusedStringBuilder.append(&quot;,&quot;);</span>
+            }
+<span class="fc" id="L196">            first = false;</span>
+<span class="fc" id="L197">            reusedStringBuilder.append(order.property.columnName).append(&quot; &quot;).append(order.type);</span>
+        }
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        if (limit != null) {</span>
+<span class="fc" id="L200">            reusedStringBuilder.append(&quot; LIMIT &quot;).append(limit);</span>
+        }
+<span class="fc" id="L202">        return reusedStringBuilder.toString();</span>
+    }
+
+    static void addPlaceholdersInto(StringBuilder stringBuilder, int count) {
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        if (count == 0) {</span>
+<span class="nc" id="L207">            throw new IllegalArgumentException(&quot;cannot create placeholders for 0 items&quot;);</span>
+        }
+<span class="fc" id="L209">        stringBuilder.append(&quot;?&quot;);</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">        for (int i = 1; i &lt; count; i ++) {</span>
+<span class="fc" id="L211">            stringBuilder.append(&quot;,?&quot;);</span>
+        }
+<span class="fc" id="L213">    }</span>
+
+    public void truncate() {
+<span class="fc" id="L216">        db.execSQL(&quot;DELETE FROM &quot; + DbOpenHelper.JOB_HOLDER_TABLE_NAME);</span>
+<span class="fc" id="L217">        vacuum();</span>
+<span class="fc" id="L218">    }</span>
+
+    public void vacuum() {
+<span class="fc" id="L221">        db.execSQL(&quot;VACUUM&quot;);</span>
+<span class="fc" id="L222">    }</span>
+
+    public void resetDelayTimesTo(long newDelayTime) {
+<span class="nc" id="L225">        db.execSQL(&quot;UPDATE &quot; + DbOpenHelper.JOB_HOLDER_TABLE_NAME + &quot; SET &quot;</span>
+                + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + &quot;=?,&quot;
+                + DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName + &quot;=?, &quot;
+                + DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName + &quot;=?&quot;
+            , new Object[]{newDelayTime, newDelayTime, newDelayTime});
+<span class="nc" id="L230">    }</span>
+
+    public static class Property {
+        /*package*/ final String columnName;
+        /*package*/ final String type;
+        public final int columnIndex;
+        public final ForeignKey foreignKey;
+        public final boolean unique;
+
+        public Property(String columnName, String type, int columnIndex) {
+<span class="fc" id="L240">            this(columnName, type, columnIndex, null, false);</span>
+<span class="fc" id="L241">        }</span>
+
+        public Property(String columnName, String type, int columnIndex, ForeignKey foreignKey) {
+<span class="fc" id="L244">            this(columnName, type, columnIndex, foreignKey, false);</span>
+<span class="fc" id="L245">        }</span>
+
+        public Property(String columnName, String type, int columnIndex, ForeignKey foreignKey,
+<span class="fc" id="L248">                boolean unique) {</span>
+<span class="fc" id="L249">            this.columnName = columnName;</span>
+<span class="fc" id="L250">            this.type = type;</span>
+<span class="fc" id="L251">            this.columnIndex = columnIndex;</span>
+<span class="fc" id="L252">            this.foreignKey = foreignKey;</span>
+<span class="fc" id="L253">            this.unique = unique;</span>
+<span class="fc" id="L254">        }</span>
+    }
+
+    public static class ForeignKey {
+        final String targetTable;
+        final String targetFieldName;
+
+<span class="fc" id="L261">        public ForeignKey(String targetTable, String targetFieldName) {</span>
+<span class="fc" id="L262">            this.targetTable = targetTable;</span>
+<span class="fc" id="L263">            this.targetFieldName = targetFieldName;</span>
+<span class="fc" id="L264">        }</span>
+    }
+
+    public static class Order {
+        final Property property;
+        final Type type;
+
+<span class="fc" id="L271">        public Order(Property property, Type type) {</span>
+<span class="fc" id="L272">            this.property = property;</span>
+<span class="fc" id="L273">            this.type = type;</span>
+<span class="fc" id="L274">        }</span>
+
+<span class="pc" id="L276">        public enum Type {</span>
+<span class="fc" id="L277">            ASC,</span>
+<span class="fc" id="L278">            DESC</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>
