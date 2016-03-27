@@ -24,7 +24,7 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
             if (VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 listenForIdle(context);
             }
-            listeNetworkViaConnectivityManager(context);
+            listenNetworkViaConnectivityManager(context);
         } else {
             context.getApplicationContext().registerReceiver(new BroadcastReceiver() {
                 @Override
@@ -36,7 +36,7 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     }
 
     @TargetApi(23)
-    private void listeNetworkViaConnectivityManager(final Context context) {
+    private void listenNetworkViaConnectivityManager(final Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext()
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest request = new NetworkRequest.Builder()
