@@ -12,6 +12,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
+import android.support.annotation.VisibleForTesting;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -50,6 +51,11 @@ public class SqliteJobQueue implements JobQueue {
         if (configuration.resetDelaysOnRestart()) {
             sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
         }
+    }
+
+    @VisibleForTesting
+    public SQLiteDatabase getDb() {
+        return db;
     }
 
     /**
@@ -166,10 +172,19 @@ public class SqliteJobQueue implements JobQueue {
 
     private void delete(String id) {
         pendingCancelations.remove(id);
-        SQLiteStatement stmt = sqlHelper.getDeleteStatement();
-        stmt.clearBindings();
-        stmt.bindString(1, id);
-        stmt.execute();
+        db.beginTransaction();
+        try {
+            SQLiteStatement stmt = sqlHelper.getDeleteStatement();
+            stmt.clearBindings();
+            stmt.bindString(1, id);
+            stmt.execute();
+            SQLiteStatement deleteTagsStmt = sqlHelper.getDeleteJobTagsStatement();
+            deleteTagsStmt.bindString(1, id);
+            deleteTagsStmt.execute();
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
     }
 
     /**

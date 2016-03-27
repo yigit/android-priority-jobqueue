@@ -17,6 +17,7 @@ public class SqlHelper {
     private SQLiteStatement insertTagsStatement;
     private SQLiteStatement insertOrReplaceStatement;
     private SQLiteStatement deleteStatement;
+    private SQLiteStatement deleteJobTagsStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
     final StringBuilder reusedStringBuilder = new StringBuilder();
@@ -140,6 +141,14 @@ public class SqlHelper {
                     + primaryKeyColumnName + " = ?");
         }
         return deleteStatement;
+    }
+
+    public SQLiteStatement getDeleteJobTagsStatement() {
+        if (deleteJobTagsStatement == null) {
+            deleteJobTagsStatement = db.compileStatement("DELETE FROM " + tagsTableName
+                    + " WHERE " + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + "= ?");
+        }
+        return deleteJobTagsStatement;
     }
 
     public SQLiteStatement getOnJobFetchedForRunningStatement() {
