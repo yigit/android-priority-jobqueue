@@ -223,6 +223,7 @@ public class SqlHelper {
 
     public void truncate() {
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME);
+        db.execSQL("DELETE FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME);
         vacuum();
     }
 

@@ -65,6 +65,8 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         assertTags(queue, new TagInfo(0, vh1.getId(), "a"),
                 new TagInfo(0, vh1.getId(), "b"),
                 new TagInfo(0, vh1.getId(), "c"));
+        queue.clear();
+        assertTags(queue);
     }
 
     private void assertTags(SqliteJobQueue queue, TagInfo... expected) {
