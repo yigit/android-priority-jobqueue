@@ -4,7 +4,7 @@ See the migration guide here: [migration from v1 to v2](https://github.com/yigit
 
 ``` gradle
 dependedencies {
-    compile 'com.birbit.yigit:android-priority-jobqueue:2.0.0-alpha2'
+    compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha2'
 }
 ```
 Android Priority Job Queue (Job Manager)
