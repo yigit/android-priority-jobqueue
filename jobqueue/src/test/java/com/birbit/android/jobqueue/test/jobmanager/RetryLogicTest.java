@@ -6,14 +6,19 @@ import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
+import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
+import com.birbit.android.jobqueue.timer.SystemTimer;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import android.annotation.TargetApi;
@@ -80,6 +85,50 @@ public class RetryLogicTest extends JobManagerTestBase {
                 is(10L));
         assertThat("exp 3", RetryConstraint.createExponentialBackoff(3, 5).getNewDelayInMs(),
                 is(20L));
+    }
+
+    @Override
+    protected boolean canUseRealTimer() {
+        return true;
+    }
+
+    @Test
+    public void issue127() throws InterruptedException {
+        final long[] times = new long[4];
+        final Timer systemTimer = new SystemTimer();
+        JobManager jobManager = createJobManager(
+                new Configuration.Builder(RuntimeEnvironment.application).timer(systemTimer));
+        final CountDownLatch latch = new CountDownLatch(1);
+        DummyJob dummyJob = new DummyJob(new Params(1)) {
+            @Override
+            public void onRun() throws Throwable {
+                super.onRun();
+                times[getCurrentRunCount() - 1] = systemTimer.nanoTime();
+                throw new RuntimeException("?");
+            }
+
+            @Override
+            protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+                if (runCount == 4) {
+                    return RetryConstraint.CANCEL;
+                }
+                return RetryConstraint.createExponentialBackoff(runCount, 1000);
+            }
+
+            @Override
+            protected void onCancel(@CancelReason int cancelReason) {
+                super.onCancel(cancelReason);
+                latch.countDown();
+            }
+        };
+        jobManager.addJob(dummyJob);
+        assertThat("finish in 10 seconds", latch.await(10, TimeUnit.SECONDS));
+        long diff = TimeUnit.NANOSECONDS.toMillis(times[1] - times[0]);
+        assertThat(diff > 1000 && diff < 2000, is(true));
+        diff = TimeUnit.NANOSECONDS.toMillis(times[2] - times[1]);
+        assertThat(diff > 2000 && diff < 3000, is(true));
+        diff = TimeUnit.NANOSECONDS.toMillis(times[3] - times[2]);
+        assertThat(diff > 4000 && diff < 5000, is(true));
     }
 
     @Test
