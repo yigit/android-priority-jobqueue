@@ -91,37 +91,41 @@ public class RetryLogicTest extends JobManagerTestBase {
     protected boolean canUseRealTimer() {
         return true;
     }
+    static final long[] times = new long[4];
+    static final Timer systemTimer = new SystemTimer();
+    static final CountDownLatch latch = new CountDownLatch(1);
+    public static class Issue127Job extends DummyJob {
+        public Issue127Job(Params params) {
+            super(params);
+        }
 
+        @Override
+        public void onRun() throws Throwable {
+            super.onRun();
+            times[getCurrentRunCount() - 1] = systemTimer.nanoTime();
+            throw new RuntimeException("?");
+        }
+
+        @Override
+        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            if (runCount == 4) {
+                return RetryConstraint.CANCEL;
+            }
+            return RetryConstraint.createExponentialBackoff(runCount, 1000);
+        }
+
+        @Override
+        protected void onCancel(@CancelReason int cancelReason) {
+            super.onCancel(cancelReason);
+            latch.countDown();
+        }
+    }
     @Test
     public void issue127() throws InterruptedException {
-        final long[] times = new long[4];
-        final Timer systemTimer = new SystemTimer();
         JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application).timer(systemTimer));
-        final CountDownLatch latch = new CountDownLatch(1);
-        DummyJob dummyJob = new DummyJob(new Params(1)) {
-            @Override
-            public void onRun() throws Throwable {
-                super.onRun();
-                times[getCurrentRunCount() - 1] = systemTimer.nanoTime();
-                throw new RuntimeException("?");
-            }
-
-            @Override
-            protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
-                if (runCount == 4) {
-                    return RetryConstraint.CANCEL;
-                }
-                return RetryConstraint.createExponentialBackoff(runCount, 1000);
-            }
-
-            @Override
-            protected void onCancel(@CancelReason int cancelReason) {
-                super.onCancel(cancelReason);
-                latch.countDown();
-            }
-        };
-        jobManager.addJob(dummyJob);
+        Issue127Job job = new Issue127Job(new Params(1).requireNetwork().persist());
+        jobManager.addJob(job);
         assertThat("finish in 10 seconds", latch.await(10, TimeUnit.SECONDS));
         long diff = TimeUnit.NANOSECONDS.toMillis(times[1] - times[0]);
         assertThat(diff > 1000 && diff < 2000, is(true));
