@@ -30,6 +30,11 @@ public class JqLog {
             public void e(String text, Object... args) {
                 //void
             }
+
+            @Override
+            public void v(String text, Object... args) {
+                //void
+            }
         });
     }
 
@@ -51,5 +56,9 @@ public class JqLog {
 
     public static void e(String text, Object... args) {
         customLogger.e(text, args);
+    }
+
+    public static void v(String text, Object... args) {
+        customLogger.v(text, args);
     }
 }
