@@ -17,6 +17,7 @@ public class SqlHelper {
     private SQLiteStatement insertTagsStatement;
     private SQLiteStatement insertOrReplaceStatement;
     private SQLiteStatement deleteStatement;
+    private SQLiteStatement deleteJobTagsStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
     final StringBuilder reusedStringBuilder = new StringBuilder();
@@ -142,6 +143,14 @@ public class SqlHelper {
         return deleteStatement;
     }
 
+    public SQLiteStatement getDeleteJobTagsStatement() {
+        if (deleteJobTagsStatement == null) {
+            deleteJobTagsStatement = db.compileStatement("DELETE FROM " + tagsTableName
+                    + " WHERE " + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + "= ?");
+        }
+        return deleteJobTagsStatement;
+    }
+
     public SQLiteStatement getOnJobFetchedForRunningStatement() {
         if (onJobFetchedForRunningStatement == null) {
             String sql = "UPDATE " + tableName + " SET "
@@ -214,6 +223,7 @@ public class SqlHelper {
 
     public void truncate() {
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME);
+        db.execSQL("DELETE FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME);
         vacuum();
     }
 
