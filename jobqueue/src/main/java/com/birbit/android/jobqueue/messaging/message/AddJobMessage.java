@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.messaging.message;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
-import com.path.android.jobqueue.Job;
+import com.birbit.android.jobqueue.Job;
 
 public class AddJobMessage extends Message {
     private Job job;

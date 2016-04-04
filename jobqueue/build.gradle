@@ -18,7 +18,7 @@ task wrapper(type: Wrapper) {
 apply plugin: 'maven'
 apply plugin: 'signing'
 apply plugin: 'com.github.dcendents.android-maven'
-//apply plugin: 'jacoco'
+apply plugin: 'jacoco'
 
 buildscript {
     repositories {
@@ -51,9 +51,13 @@ dependencies {
     testCompile 'org.easytesting:fest-util:1.2.5'
     testCompile 'org.easytesting:fest-reflect:1.4.1'
     testCompile 'org.mockito:mockito-core:2.0.2-beta'
+
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
     compile 'com.android.support:support-v4:21.0.3'
+    // build tools does not allow makingt this provided so we make it optional when pom is created
+    compile 'com.google.android.gms:play-services-gcm:8.4.0'
+
 }
 
 android {
@@ -109,6 +113,7 @@ android.libraryVariants.all { variant ->
         source = variant.javaCompile.source
         ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
         classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
+        exclude 'com/google/**'
     }
 
     def javadocJarTask = project.tasks.create(name: "javadocJar${suffix}", type: Jar) {
@@ -137,12 +142,12 @@ afterEvaluate { project ->
                 pom.artifactId = 'android-priority-jobqueue'
 
 
-                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
-                }
-//                snapshotRepository(url: mavenLocal().url) {
-//
+//                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+//                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
 //                }
+                snapshotRepository(url: mavenLocal().url) {
+
+                }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                     authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
@@ -185,6 +190,14 @@ afterEvaluate { project ->
                         }
                     }
                 }
+                pom.whenConfigured { MavenPom pom ->
+                    pom.dependencies.each {
+                        if (it.artifactId == 'play-services-gcm') {
+                            it.optional = true
+                            it.scope = "provided"
+                        }
+                    }
+                }
             }
         }
     }
@@ -211,7 +224,8 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
             excludes: ['**/R.class',
                        '**/R$*.class',
                        '**/BuildConfig.*',
-                       '**/Manifest*.*']
+                       '**/Manifest*.*',
+                        'com/google/**']
     )
 
     additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())

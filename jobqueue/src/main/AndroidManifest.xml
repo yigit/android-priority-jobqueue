@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.path.android.jobqueue"
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.birbit.android.jobqueue"
           android:versionCode="3"
-          android:versionName="2.0.0-SNAPSHOT">
-    <application>
-    </application>
+          android:versionName="2.0.0-alpha2">
+    <uses-sdk tools:overrideLibrary="com.google.android.gms.gcm, com.google.android.gms.base,
+    com.google.android.gms, com.google.android.gms.measurement"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>

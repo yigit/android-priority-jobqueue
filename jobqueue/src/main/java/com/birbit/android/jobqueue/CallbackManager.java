@@ -9,10 +9,10 @@ import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
-import com.path.android.jobqueue.CancelResult;
-import com.path.android.jobqueue.Job;
-import com.path.android.jobqueue.callback.JobManagerCallback;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.CancelResult;
+import com.birbit.android.jobqueue.Job;
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;

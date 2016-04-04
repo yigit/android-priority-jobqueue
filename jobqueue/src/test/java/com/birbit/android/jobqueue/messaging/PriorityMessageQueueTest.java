@@ -2,8 +2,8 @@ package com.birbit.android.jobqueue.messaging;
 
 import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
-import com.path.android.jobqueue.test.timer.MockTimer;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.test.timer.MockTimer;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

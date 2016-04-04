@@ -1,11 +1,11 @@
 package com.birbit.android.jobqueue;
 
-import com.path.android.jobqueue.CancelReason;
-import com.path.android.jobqueue.CancelResult;
-import com.path.android.jobqueue.Job;
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.CancelReason;
+import com.birbit.android.jobqueue.CancelResult;
+import com.birbit.android.jobqueue.Job;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.log.JqLog;
 
 import java.util.ArrayList;
 import java.util.Collection;
