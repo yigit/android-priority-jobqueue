@@ -1,12 +1,9 @@
 package com.birbit.android.jobqueue;
 
-import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.timer.SystemTimer;
+import com.birbit.android.jobqueue.timer.SystemTimer;
 
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

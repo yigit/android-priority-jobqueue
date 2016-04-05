@@ -1,10 +1,10 @@
 package com.birbit.android.jobqueue.inMemoryQueue;
 
 import com.birbit.android.jobqueue.Constraint;
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.JobQueue;
-import com.path.android.jobqueue.Params;
-import com.path.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.config.Configuration;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,7 +17,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * A simple implementation of in memory {@link com.path.android.jobqueue.JobQueue}
+ * A simple implementation of in memory {@link com.birbit.android.jobqueue.JobQueue}
  */
 public class SimpleInMemoryPriorityQueue implements JobQueue {
     private final TreeSet<JobHolder> jobs = new TreeSet<>(new Comparator<JobHolder>() {

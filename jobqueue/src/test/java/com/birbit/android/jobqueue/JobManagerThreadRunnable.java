@@ -1,9 +1,5 @@
 package com.birbit.android.jobqueue;
 
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.JobManager;
-import com.path.android.jobqueue.JobQueue;
-
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 
@@ -11,7 +7,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class JobManagerThreadRunnable<T> {
-    JobManager2 jobManager;
+    JobManager jobManager;
     AtomicBoolean running = new AtomicBoolean(false);
     public JobManagerThreadRunnable(JobManager jobManager) {
         this.jobManager = jobManager;

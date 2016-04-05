@@ -1,7 +1,7 @@
 package com.birbit.android.jobqueue;
 
-import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,8 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.path.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.path.android.jobqueue.network.NetworkUtil.UNMETERED;
+import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
+import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
 
 /**
  * This class is used when querying JobQueues to fetch particular jobs.

@@ -12,14 +12,14 @@ import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.path.android.jobqueue.JobHolder;
-import com.path.android.jobqueue.RetryConstraint;
-import com.path.android.jobqueue.RunningJobSet;
-import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.config.Configuration;
-import com.path.android.jobqueue.log.JqLog;
-import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.RetryConstraint;
+import com.birbit.android.jobqueue.RunningJobSet;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +46,8 @@ class ConsumerManager {
     private final int minConsumerCount;
 
     private final long consumerKeepAliveNs;
+
+    private final int threadPriority;
 
     private final int loadFactor;
 
@@ -74,6 +76,7 @@ class ConsumerManager {
         this.maxConsumerCount = configuration.getMaxConsumerCount();
         this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000
                 * JobManagerThread.NS_PER_MS;
+        this.threadPriority = configuration.getThreadPriority();
         runningJobHolders = new HashMap<>();
         runningJobGroups = new RunningJobSet(timer);
         threadGroup = new ThreadGroup("JobConsumers");
@@ -144,6 +147,7 @@ class ConsumerManager {
         Consumer consumer = new Consumer(jobManagerThread.messageQueue,
                 new SafeMessageQueue(timer, factory, "consumer"), factory, timer);
         Thread thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
+        thread.setPriority(threadPriority);
         consumers.add(consumer);
         thread.start();
     }

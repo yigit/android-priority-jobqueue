@@ -1,7 +1,7 @@
 package com.birbit.android.jobqueue;
 
-import com.path.android.jobqueue.TagConstraint;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.TagConstraint;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.Collection;
 

@@ -4,8 +4,8 @@ import android.content.Context;
 
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.path.android.jobqueue.network.NetworkUtil;
-import com.path.android.jobqueue.test.timer.MockTimer;
+import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.test.timer.MockTimer;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -109,8 +109,7 @@ public class BatchingSchedulerTest {
                 CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
     }
 
-    private static SchedulerConstraint createConstraint(
-            @NetworkUtil.NetworkStatus int networkStatus, long delay) {
+    private static SchedulerConstraint createConstraint(int networkStatus, long delay) {
         SchedulerConstraint constraint = new SchedulerConstraint("abc");
         constraint.setDelayInMs(delay);
         constraint.setNetworkStatus(networkStatus);

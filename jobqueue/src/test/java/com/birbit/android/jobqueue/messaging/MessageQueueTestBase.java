@@ -3,9 +3,9 @@ package com.birbit.android.jobqueue.messaging;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.testing.CleanupRule;
 import com.birbit.android.jobqueue.testing.ThreadDumpRule;
-import com.path.android.jobqueue.test.TestBase;
-import com.path.android.jobqueue.test.timer.MockTimer;
-import com.path.android.jobqueue.timer.Timer;
+import com.birbit.android.jobqueue.test.TestBase;
+import com.birbit.android.jobqueue.test.timer.MockTimer;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import junit.framework.Assert;
 import junit.framework.AssertionFailedError;
