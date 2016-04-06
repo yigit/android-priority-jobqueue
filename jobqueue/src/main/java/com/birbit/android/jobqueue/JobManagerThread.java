@@ -628,7 +628,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         final int networkStatus = getNetworkStatus();
         JobHolder jobHolder;
         boolean persistent = false;
-        JqLog.d("looking for next job");
+        JqLog.v("looking for next job");
         queryConstraint.clear();
         queryConstraint.setNowInNs(timer.nanoTime());
         queryConstraint.setNetworkStatus(networkStatus);
@@ -636,12 +636,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         queryConstraint.setExcludeRunning(true);
         queryConstraint.setTimeLimit(timer.nanoTime());
         jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);
-        JqLog.d("non persistent result %s", jobHolder);
+        JqLog.v("non persistent result %s", jobHolder);
         if (jobHolder == null) {
             //go to disk, there aren't any non-persistent jobs
             jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);
             persistent = true;
-            JqLog.d("persistent result %s", jobHolder);
+            JqLog.v("persistent result %s", jobHolder);
         }
         if(jobHolder == null) {
             return null;

@@ -52,6 +52,11 @@ public class TestBase {
                 Log.e(TAG, prefix() + String.format(text, args));
             }
 
+            @Override
+            public void v(String text, Object... args) {
+                Log.v(TAG, prefix() + String.format(text, args));
+            }
+
             private String prefix() {
                 return Thread.currentThread().getName() + "[" + System.currentTimeMillis() + "]";
             }
@@ -83,6 +88,12 @@ public class TestBase {
             @Override
             public void e(String text, Object... args) {
                 logs.append(Thread.currentThread().getName()).append("[e]:");
+                logs.append(String.format(text, args)).append("\n");
+            }
+
+            @Override
+            public void v(String text, Object... args) {
+                logs.append(Thread.currentThread().getName()).append("[v]:");
                 logs.append(String.format(text, args)).append("\n");
             }
         });
