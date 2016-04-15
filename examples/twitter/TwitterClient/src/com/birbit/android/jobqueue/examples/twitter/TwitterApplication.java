@@ -54,6 +54,11 @@ public class TwitterApplication extends Application {
             public void e(String text, Object... args) {
                 Log.e(TAG, String.format(text, args));
             }
+
+            @Override
+            public void v(String text, Object... args) {
+
+            }
         })
         .minConsumerCount(1)//always keep at least one consumer alive
         .maxConsumerCount(3)//up to 3 consumers at a time
