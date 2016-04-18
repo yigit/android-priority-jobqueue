@@ -1,10 +1,12 @@
 package com.birbit.android.jobqueue.network;
 
+import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -73,10 +75,20 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
 
     @Override
     public int getNetworkStatus(Context context) {
+        int permState = context.checkCallingOrSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE);
+        if (permState != PackageManager.PERMISSION_GRANTED) {
+            return NetworkUtil.DISCONNECTED;
+        }
+
         if (isDozing(context)) {
             return NetworkUtil.DISCONNECTED;
         }
+
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) {
+            return NetworkUtil.DISCONNECTED;
+        }
+
         NetworkInfo netInfo = cm.getActiveNetworkInfo();
         if (netInfo == null) {
             return NetworkUtil.DISCONNECTED;
@@ -105,7 +117,7 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     private static boolean isDozing(Context context) {
         if (VERSION.SDK_INT >= 23) {
             PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-            return powerManager.isDeviceIdleMode() &&
+            return powerManager != null && powerManager.isDeviceIdleMode() &&
                     !powerManager.isIgnoringBatteryOptimizations(context.getPackageName());
         } else {
             return false;
