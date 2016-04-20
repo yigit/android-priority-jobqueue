@@ -67,6 +67,8 @@ public class PostTweetJob extends Job {
     @Override
     public void onRun() throws Throwable {
         // Job logic goes here. In this example, the network call to post to Twitter is done here.
+        // All work done here should be synchronous, a job is removed from the queue once 
+        // onRun() finishes.
         webservice.postTweet(text);
     }
     @Override
