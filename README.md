@@ -76,7 +76,7 @@ public class PostTweetJob extends Job {
             int maxRunCount) {
         // An error occurred in onRun.
         // Return value determines whether this job should retry or cancel. You can further
-        // specifcy a backoff strategy or change the job's priority. You can also apply the
+        // specify a backoff strategy or change the job's priority. You can also apply the
         // delay to the whole group to preserve jobs' running order.
         return RetryConstraint.createExponentialBackoff(runCount, 1000);
     }
