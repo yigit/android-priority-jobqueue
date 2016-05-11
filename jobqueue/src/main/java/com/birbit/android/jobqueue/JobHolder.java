@@ -254,7 +254,7 @@ public class JobHolder {
     }
 
     public void onCancel(@CancelReason int cancelReason) {
-        job.onCancel(cancelReason, getThrowable());
+        job.onCancel(cancelReason, throwable);
     }
 
     public RetryConstraint getRetryConstraint() {
