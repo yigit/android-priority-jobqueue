@@ -1,5 +1,8 @@
 package com.birbit.android.jobqueue;
 
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
@@ -9,9 +12,6 @@ import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
-import com.birbit.android.jobqueue.CancelResult;
-import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -112,7 +112,7 @@ public class CallbackManager {
                 notifyAfterRunListeners(cm.getJob(), cm.getResultCode());
                 break;
             case CallbackMessage.ON_CANCEL:
-                notifyOnCancelListeners(cm.getJob(), cm.isByUserRequest());
+                notifyOnCancelListeners(cm.getJob(), cm.isByUserRequest(), cm.getThrowable());
                 break;
             case CallbackMessage.ON_DONE:
                 notifyOnDoneListeners(cm.getJob());
@@ -123,9 +123,9 @@ public class CallbackManager {
         }
     }
 
-    private void notifyOnCancelListeners(Job job, boolean byCancelRequest) {
+    private void notifyOnCancelListeners(Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
         for (JobManagerCallback callback : callbacks) {
-            callback.onJobCancelled(job, byCancelRequest);
+            callback.onJobCancelled(job, byCancelRequest, throwable);
         }
     }
 
@@ -175,12 +175,12 @@ public class CallbackManager {
         messageQueue.post(callback);
     }
 
-    public void notifyOnCancel(Job job, boolean byCancelRequest) {
+    public void notifyOnCancel(Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
         if (!hasAnyCallbacks()) {
             return;
         }
         CallbackMessage callback = factory.obtain(CallbackMessage.class);
-        callback.set(job, CallbackMessage.ON_CANCEL, byCancelRequest);
+        callback.set(job, CallbackMessage.ON_CANCEL, byCancelRequest, throwable);
         messageQueue.post(callback);
     }
 

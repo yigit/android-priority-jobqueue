@@ -15,6 +15,7 @@ import org.robolectric.annotation.Config;
 
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.support.annotation.NonNull;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +38,7 @@ public class CountTest extends JobManagerTestBase {
         final CountDownLatch jobsToRun = new CountDownLatch(20);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 if (resultCode == JobManagerCallback.RESULT_SUCCEED) {
                     jobsToRun.countDown();
                 }

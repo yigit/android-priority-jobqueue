@@ -1,5 +1,8 @@
 package com.birbit.android.jobqueue.callback;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelResult;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobHolder;
@@ -57,7 +60,7 @@ public interface JobManagerCallback {
      *
      * @param job The Job that was added to the JobManager.
      */
-    void onJobAdded(Job job);
+    void onJobAdded(@NonNull Job job);
 
     /**
      * Called after a Job has been Run. Might be called multiple times if the Job runs multiple
@@ -74,7 +77,7 @@ public interface JobManagerCallback {
      *                   <li>{@link #RESULT_FAIL_WILL_RETRY}</li>
      *                   </ul>
      */
-    void onJobRun(Job job, int resultCode);
+    void onJobRun(@NonNull Job job, int resultCode);
 
     /**
      * Called when a job is cancelled.
@@ -82,8 +85,9 @@ public interface JobManagerCallback {
      * @param job              The Job that was cancelled.
      * @param byCancelRequest  If true, the Job was cancelled in response to a
      *                         {@link com.birbit.android.jobqueue.JobManager#cancelJobs(TagConstraint, String...)} request.
+     * @param throwable        The exception that was thrown from the last execution of {@link Job#onRun()}
      */
-    void onJobCancelled(Job job, boolean byCancelRequest);
+    void onJobCancelled(@NonNull Job job, boolean byCancelRequest, @Nullable Throwable throwable);
 
     /**
      * Called <b>after</b> a Job is removed from the JobManager. It might be cancelled or onFinished.
@@ -91,7 +95,7 @@ public interface JobManagerCallback {
      *
      * @param job The Job that was just removed from the JobManager.
      */
-    void onDone(Job job);
+    void onDone(@NonNull Job job);
 
     /**
      * Called <b>after</b> a Job is run and its run result has been handled. For instance, if the
@@ -102,5 +106,5 @@ public interface JobManagerCallback {
      *
      * @see #onJobRun(Job, int)
      */
-    void onAfterJobRun(Job job, int resultCode);
+    void onAfterJobRun(@NonNull Job job, int resultCode);
 }

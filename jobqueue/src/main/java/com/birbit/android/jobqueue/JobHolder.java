@@ -1,8 +1,9 @@
 package com.birbit.android.jobqueue;
 
-import com.birbit.android.jobqueue.config.Configuration;
-
 import android.content.Context;
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.config.Configuration;
 
 import java.util.Collections;
 import java.util.Set;
@@ -64,6 +65,10 @@ public class JobHolder {
     private boolean cancelled;
     private boolean cancelledSingleId;
     private boolean successful;
+    /**
+     * Eventual exception thrown from the last execution of {@link Job#onRun}
+     */
+    @Nullable private Throwable throwable;
 
     /**
      * @param priority         Higher is better
@@ -249,11 +254,20 @@ public class JobHolder {
     }
 
     public void onCancel(@CancelReason int cancelReason) {
-        job.onCancel(cancelReason);
+        job.onCancel(cancelReason, getThrowable());
     }
 
     public RetryConstraint getRetryConstraint() {
         return job.retryConstraint;
+    }
+
+    void setThrowable(@Nullable Throwable throwable) {
+        this.throwable = throwable;
+    }
+
+    @Nullable
+    Throwable getThrowable() {
+        return throwable;
     }
 
     public static class Builder {

@@ -18,6 +18,7 @@ import org.robolectric.annotation.Config;
 
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.support.annotation.NonNull;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,7 +76,7 @@ public class GroupingTest extends JobManagerTestBase {
         final CountDownLatch aJobRun = new CountDownLatch(1);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onJobRun(Job job, int resultCode) {
+            public void onJobRun(@NonNull Job job, int resultCode) {
                 aJobRun.countDown();
             }
         });

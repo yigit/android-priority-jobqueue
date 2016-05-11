@@ -1,5 +1,9 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
@@ -14,13 +18,11 @@ import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
-import android.content.Context;
-
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -93,12 +95,12 @@ public class ApplicationContextTests extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
             assertContext("onCancel");
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             assertContext("shouldReRunOnThrowable");
             return retryCount < 2 ? RetryConstraint.RETRY : RetryConstraint.CANCEL;
         }

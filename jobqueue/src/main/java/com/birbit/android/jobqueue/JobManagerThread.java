@@ -3,6 +3,10 @@ package com.birbit.android.jobqueue;
 import android.content.Context;
 import android.support.annotation.Nullable;
 
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.di.DependencyInjector;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
@@ -11,25 +15,21 @@ import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
-import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
+import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
-import com.birbit.android.jobqueue.scheduling.Scheduler;
-import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.birbit.android.jobqueue.callback.JobManagerCallback;
-import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.di.DependencyInjector;
-import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkEventProvider;
 import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
 import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
@@ -501,7 +501,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         } catch (Throwable t) {
             JqLog.e(t, "job's onCancel did throw an exception, ignoring...");
         }
-        callbackManager.notifyOnCancel(jobHolder.getJob(), false);
+        callbackManager.notifyOnCancel(jobHolder.getJob(), false, jobHolder.getThrowable());
     }
 
     private void insertOrReplace(JobHolder jobHolder) {

@@ -1,15 +1,17 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
-import com.birbit.android.jobqueue.CancelResult;
-import com.birbit.android.jobqueue.JobManager;
-import com.birbit.android.jobqueue.RetryConstraint;
-import com.birbit.android.jobqueue.scheduling.Scheduler;
-import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.Job;
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
+import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -124,12 +126,12 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
 
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             throw new UnsupportedOperationException("not expected to arrive here");
         }
     }

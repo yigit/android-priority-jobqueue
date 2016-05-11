@@ -1,8 +1,10 @@
 package com.birbit.android.jobqueue.messaging.message;
 
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
-import com.birbit.android.jobqueue.Job;
 
 /**
  * Used for external callbacks to user code
@@ -18,6 +20,8 @@ public class CallbackMessage extends Message {
     private int resultCode;
     private boolean byUserRequest;
     private Job job;
+    @Nullable private Throwable throwable;
+
     public CallbackMessage() {
         super(Type.CALLBACK);
     }
@@ -25,6 +29,7 @@ public class CallbackMessage extends Message {
     @Override
     protected void onRecycled() {
         job = null;
+        throwable = null;
     }
 
     public void set(Job job, int what) {
@@ -38,10 +43,11 @@ public class CallbackMessage extends Message {
         this.job = job;
     }
 
-    public void set(Job job, int what, boolean byUserRequest) {
+    public void set(Job job, int what, boolean byUserRequest, @Nullable Throwable throwable) {
         this.what = what;
         this.byUserRequest = byUserRequest;
         this.job = job;
+        this.throwable = throwable;
     }
 
     public int getWhat() {
@@ -58,5 +64,10 @@ public class CallbackMessage extends Message {
 
     public Job getJob() {
         return job;
+    }
+
+    @Nullable
+    public Throwable getThrowable() {
+        return throwable;
     }
 }

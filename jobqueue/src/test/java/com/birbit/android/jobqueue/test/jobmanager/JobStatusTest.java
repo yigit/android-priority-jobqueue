@@ -18,6 +18,7 @@ import org.robolectric.annotation.Config;
 
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +85,7 @@ public class JobStatusTest extends JobManagerTestBase {
         final CountDownLatch twoLatchJobDone = new CountDownLatch(1);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 if (job == twoLatchJob && resultCode == RESULT_SUCCEED) {
                     jobManager.removeCallback(this);
                     twoLatchJobDone.countDown();
@@ -115,7 +116,7 @@ public class JobStatusTest extends JobManagerTestBase {
         final CountDownLatch networkRequiredLatch = new CountDownLatch(networkRequiringJobIndices.size());
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onDone(Job job) {
+            public void onDone(@NonNull Job job) {
                 if (job.getTags().contains(REQ_NETWORK_TAG)) {
                     networkRequiredLatch.countDown();
                 }

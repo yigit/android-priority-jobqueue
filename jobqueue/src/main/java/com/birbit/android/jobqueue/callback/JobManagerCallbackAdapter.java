@@ -1,5 +1,8 @@
 package com.birbit.android.jobqueue.callback;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.Job;
 
 /**
@@ -8,27 +11,27 @@ import com.birbit.android.jobqueue.Job;
  */
 public class JobManagerCallbackAdapter implements JobManagerCallback {
     @Override
-    public void onJobAdded(Job job) {
+    public void onJobAdded(@NonNull Job job) {
 
     }
 
     @Override
-    public void onJobRun(Job job, int resultCode) {
+    public void onJobRun(@NonNull Job job, int resultCode) {
 
     }
 
     @Override
-    public void onJobCancelled(Job job, boolean byCancelRequest) {
+    public void onJobCancelled(@NonNull Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
 
     }
 
     @Override
-    public void onDone(Job job) {
+    public void onDone(@NonNull Job job) {
 
     }
 
     @Override
-    public void onAfterJobRun(Job job, int resultCode) {
+    public void onAfterJobRun(@NonNull Job job, int resultCode) {
 
     }
 }

@@ -1,5 +1,8 @@
 package com.birbit.android.jobqueue.test.jobs;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.Params;
@@ -26,12 +29,12 @@ public class DummyJob extends Job {
     }
 
     @Override
-    protected void onCancel(@CancelReason int cancelReason) {
+    protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
         onCancelCnt++;
     }
 
     @Override
-    protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+    protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
         shouldReRunOnThrowableCnt++;
         return RetryConstraint.CANCEL;
     }

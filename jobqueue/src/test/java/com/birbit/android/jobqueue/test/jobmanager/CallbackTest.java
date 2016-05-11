@@ -1,5 +1,8 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
@@ -14,14 +17,23 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.mockito.Mockito.*;
-
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -54,11 +66,12 @@ public class CallbackTest extends JobManagerTestBase {
 
     @Test
     public void cancelViaRetryLimit() throws Throwable {
+        final Throwable error = new Exception();
         JobManagerCallback callback = mock(JobManagerCallback.class);
         final PublicJob job = mock(PublicJob.class);
         doNothing().when(job).onAdded();
         doReturn("a").when(job).getId();
-        doThrow(new Exception()).when(job).onRun();
+        doThrow(error).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
         doReturn(RetryConstraint.RETRY).when(job)
                 .shouldReRunOnThrowable(any(Throwable.class), anyInt(), anyInt());
@@ -80,7 +93,7 @@ public class CallbackTest extends JobManagerTestBase {
         verify(callback).onJobAdded(job);
         verify(callback, times(2)).onJobRun(job, JobManagerCallback.RESULT_FAIL_WILL_RETRY);
         verify(callback, times(1)).onJobRun(job, JobManagerCallback.RESULT_CANCEL_REACHED_RETRY_LIMIT);
-        verify(callback).onJobCancelled(job, false);
+        verify(callback).onJobCancelled(job, false, error);
     }
 
     @Test
@@ -108,7 +121,7 @@ public class CallbackTest extends JobManagerTestBase {
 
         verify(callback).onJobAdded(job);
         verify(callback, times(1)).onJobRun(job, JobManagerCallback.RESULT_CANCEL_CANCELLED_VIA_SHOULD_RE_RUN);
-        verify(callback).onJobCancelled(job, false);
+        verify(callback).onJobCancelled(job, false, null);
     }
 
     @Test
@@ -156,7 +169,7 @@ public class CallbackTest extends JobManagerTestBase {
         jobManager.stopAndWaitUntilConsumersAreFinished();
         verify(callback).onJobAdded(job);
         verify(callback, times(1)).onJobRun(job, JobManagerCallback.RESULT_CANCEL_CANCELLED_WHILE_RUNNING);
-        verify(callback).onJobCancelled(job, true);
+        verify(callback).onJobCancelled(job, true, null);
     }
 
     @Test
@@ -196,12 +209,12 @@ public class CallbackTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
 
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             throw new RuntimeException("not expected to arrive here");
         }
     }
@@ -233,12 +246,12 @@ public class CallbackTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
 
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             throw new UnsupportedOperationException("should not be called directly");
         }
 

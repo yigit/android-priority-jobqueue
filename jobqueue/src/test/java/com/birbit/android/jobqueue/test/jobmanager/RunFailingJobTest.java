@@ -1,22 +1,24 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
-
-import static org.hamcrest.CoreMatchers.*;
-
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
 
-import org.hamcrest.*;
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.*;
+import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -37,12 +39,12 @@ public class RunFailingJobTest extends JobManagerTestBase {
             }
 
             @Override
-            protected void onCancel(@CancelReason int cancelReason) {
+            protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
                 latch.countDown();
             }
 
             @Override
-            protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+            protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
                 return RetryConstraint.CANCEL;
             }
         });

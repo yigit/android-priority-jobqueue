@@ -1,5 +1,11 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.util.Pair;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
@@ -16,13 +22,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
 
-import android.annotation.TargetApi;
-import android.os.Build;
-import android.util.Pair;
-
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.CoreMatchers.*;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,6 +31,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -192,7 +195,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         final Throwable[] afterJobError = new Throwable[1];
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onJobRun(Job job, int resultCode) {
+            public void onJobRun(@NonNull Job job, int resultCode) {
                 synchronized (this) {
                     try {
                         if (job instanceof RetryJob) {
@@ -209,7 +212,7 @@ public class RetryLogicTest extends JobManagerTestBase {
             }
 
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 synchronized (this) {
                     try {
                         if (job instanceof RetryJob) {
@@ -305,7 +308,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         final JobManager jobManager = createJobManager();
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 try {
                     mockTimer.incrementMs(1999);
                     assertThat("no jobs should be ready", jobManager.countReadyJobs(), is(0));
@@ -526,7 +529,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
             if (onCancelCallback != null) {
                 onCancelCallback.on(this);
             }
@@ -534,8 +537,8 @@ public class RetryLogicTest extends JobManagerTestBase {
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount,
-                int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount,
+                                                         int maxRunCount) {
             if (retryProvider != null) {
                 return retryProvider.build(this, throwable, runCount, maxRunCount);
             }

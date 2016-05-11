@@ -1,5 +1,6 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.birbit.android.jobqueue.CancelResult;
@@ -115,7 +116,7 @@ public class MultiThreadTest extends JobManagerTestBase {
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             return RetryConstraint.RETRY;
         }
     };

@@ -1,10 +1,12 @@
 package com.birbit.android.jobqueue;
 
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.timer.Timer;
-
-import android.content.Context;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -164,7 +166,7 @@ abstract public class Job implements Serializable {
 
     /**
      * Called when a job is cancelled.
-     * * @param cancelReason It is one of:
+     * @param cancelReason It is one of:
      *                   <ul>
      *                   <li>{@link CancelReason#REACHED_RETRY_LIMIT}</li>
      *                   <li>{@link CancelReason#CANCELLED_VIA_SHOULD_RE_RUN}</li>
@@ -172,8 +174,9 @@ abstract public class Job implements Serializable {
      *                   <li>{@link CancelReason#SINGLE_INSTANCE_WHILE_RUNNING}</li>
      *                   <li>{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}</li>
      *                   </ul>
+     * @param throwable The exception that was thrown from the last execution of {@link #onRun()}
      */
-    abstract protected void onCancel(@CancelReason int cancelReason);
+    abstract protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable);
 
     /**
      * If {@code onRun} method throws an exception, this method is called.
@@ -197,7 +200,7 @@ abstract public class Job implements Serializable {
      * is equal to returning {@link RetryConstraint#RETRY}. Default implementation calls
      * {@link #shouldReRunOnThrowable(Throwable, int, int)}}.
      */
-    abstract protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount);
+    abstract protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount);
 
     /**
      * Runs the job and catches any exception
@@ -211,6 +214,7 @@ abstract public class Job implements Serializable {
         }
         boolean reRun = false;
         boolean failed = false;
+        Throwable throwable = null;
         try {
             onRun();
             if (JqLog.isDebugEnabled()) {
@@ -218,6 +222,7 @@ abstract public class Job implements Serializable {
             }
         } catch (Throwable t) {
             failed = true;
+            throwable = t;
             JqLog.e(t, "error while executing job %s", this);
             reRun = currentRunCount < getRetryLimit();
             if(reRun && !cancelled) {
@@ -250,6 +255,8 @@ abstract public class Job implements Serializable {
         if (currentRunCount < getRetryLimit()) {
             return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
         } else {
+            // only set the Throwable if we are sure the Job is not gonna run again
+            holder.setThrowable(throwable);
             return JobHolder.RUN_RESULT_FAIL_RUN_LIMIT;
         }
     }

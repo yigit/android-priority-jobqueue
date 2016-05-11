@@ -1,10 +1,5 @@
 package com.birbit.android.jobqueue;
 
-import com.birbit.android.jobqueue.CancelReason;
-import com.birbit.android.jobqueue.CancelResult;
-import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.JobHolder;
-import com.birbit.android.jobqueue.TagConstraint;
 import com.birbit.android.jobqueue.log.JqLog;
 
 import java.util.ArrayList;
@@ -79,7 +74,7 @@ class CancelHandler {
             jobManagerThread.callbackManager.notifyCancelResult(result, callback);
         }
         for (JobHolder jobHolder : cancelled) {
-            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true);
+            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true, jobHolder.getThrowable());
         }
     }
 

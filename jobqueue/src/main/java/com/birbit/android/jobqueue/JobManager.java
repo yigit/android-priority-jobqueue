@@ -1,5 +1,12 @@
 package com.birbit.android.jobqueue;
 
+import android.os.Looper;
+import android.support.annotation.NonNull;
+
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueue;
@@ -11,18 +18,6 @@ import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.birbit.android.jobqueue.AsyncAddCallback;
-import com.birbit.android.jobqueue.CancelResult;
-import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.JobStatus;
-import com.birbit.android.jobqueue.TagConstraint;
-import com.birbit.android.jobqueue.callback.JobManagerCallback;
-import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
-import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.log.JqLog;
-
-import android.os.Looper;
-import android.support.annotation.NonNull;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -277,7 +272,7 @@ public class JobManager {
         final String uuid = job.getId();
         addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onJobAdded(Job job) {
+            public void onJobAdded(@NonNull Job job) {
                 if (uuid.equals(job.getId())) {
                     latch.countDown();
                     removeCallback(this);
@@ -307,7 +302,7 @@ public class JobManager {
         final String uuid = job.getId();
         addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onJobAdded(Job job) {
+            public void onJobAdded(@NonNull Job job) {
                 if (uuid.equals(job.getId())) {
                     try {
                         callback.onAdded();
