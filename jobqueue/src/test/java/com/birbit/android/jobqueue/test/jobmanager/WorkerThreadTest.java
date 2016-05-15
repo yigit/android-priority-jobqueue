@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
@@ -82,10 +83,10 @@ public class WorkerThreadTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {}
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {}
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             return RetryConstraint.CANCEL;
         }
     }
