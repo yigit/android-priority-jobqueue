@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
+import android.support.annotation.NonNull;
 
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobManagerThreadRunnable;
@@ -169,7 +170,7 @@ public class JobManagerTestBase extends TestBase {
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             return RetryConstraint.RETRY;
         }
 
@@ -279,7 +280,7 @@ public class JobManagerTestBase extends TestBase {
         final CountDownLatch latch = new CountDownLatch(uuids.size());
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onDone(Job job) {
+            public void onDone(@NonNull Job job) {
                 if (uuids.remove(job.getId())) {
                     latch.countDown();
                 }
@@ -297,7 +298,7 @@ public class JobManagerTestBase extends TestBase {
         final Throwable[] throwable = new Throwable[1];
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onDone(Job job) {
+            public void onDone(@NonNull Job job) {
                 synchronized (this) {
                     super.onDone(job);
                     if (callback != null) {

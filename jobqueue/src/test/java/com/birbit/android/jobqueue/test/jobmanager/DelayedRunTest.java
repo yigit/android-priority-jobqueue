@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.support.annotation.NonNull;
+
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
@@ -77,18 +79,18 @@ public class DelayedRunTest extends JobManagerTestBase {
         final JobManager jobManager = createJobManager();
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onJobRun(Job job, int resultCode) {
+            public void onJobRun(@NonNull Job job, int resultCode) {
                 super.onJobRun(job, resultCode);
                 System.out.println("CB job run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime());
             }
 
             @Override
-            public void onDone(Job job) {
+            public void onDone(@NonNull Job job) {
                 System.out.println("CB job done " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime());
             }
 
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 System.out.println("CB job after run " + job.getTags().toArray()[0] + ", " + mockTimer.nanoTime());
             }
         });

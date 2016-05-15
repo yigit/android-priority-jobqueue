@@ -6,7 +6,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * A list of possible reasons why a Job was cancelled. A reason will be passed to {@link Job#onCancel(int)}.
+ * A list of possible reasons why a Job was cancelled. A reason will be passed to {@link Job#onCancel(int, Throwable)}.
  */
 @Retention(RetentionPolicy.SOURCE)
 @IntDef({CancelReason.REACHED_RETRY_LIMIT,

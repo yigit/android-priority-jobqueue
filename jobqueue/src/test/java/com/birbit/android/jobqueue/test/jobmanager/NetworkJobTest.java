@@ -1,5 +1,10 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
@@ -10,21 +15,22 @@ import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
-import static org.hamcrest.CoreMatchers.*;
-import org.hamcrest.*;
+
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.*;
+import org.robolectric.ParameterizedRobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
-
-import android.annotation.TargetApi;
-import android.os.Build;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(ParameterizedRobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -134,7 +140,7 @@ public class NetworkJobTest extends JobManagerTestBase {
         final CountDownLatch noNetworkLatch = new CountDownLatch(2);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 if (resultCode == JobManagerCallback.RESULT_SUCCEED) {
                     MatcherAssert.assertThat("should be a no network job", job.requiresNetwork(mockTimer), is(false));
                     noNetworkLatch.countDown();
@@ -150,7 +156,7 @@ public class NetworkJobTest extends JobManagerTestBase {
         final CountDownLatch networkLatch = new CountDownLatch(2);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
             @Override
-            public void onAfterJobRun(Job job, int resultCode) {
+            public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 if (resultCode == JobManagerCallback.RESULT_SUCCEED) {
                     MatcherAssert.assertThat("should be a network job", job.requiresNetwork(mockTimer), is(true));
                     networkLatch.countDown();
@@ -190,12 +196,12 @@ public class NetworkJobTest extends JobManagerTestBase {
         }
 
         @Override
-        protected void onCancel(@CancelReason int cancelReason) {
+        protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
 
         }
 
         @Override
-        protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount) {
+        protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount) {
             throw new RuntimeException("not expected arrive here");
         }
     }

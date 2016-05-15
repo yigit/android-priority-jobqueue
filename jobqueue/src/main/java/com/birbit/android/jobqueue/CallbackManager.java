@@ -1,5 +1,9 @@
 package com.birbit.android.jobqueue;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
@@ -9,9 +13,6 @@ import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
-import com.birbit.android.jobqueue.CancelResult;
-import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,7 +38,7 @@ public class CallbackManager {
         this.factory = factory;
     }
 
-    void addCallback(JobManagerCallback callback) {
+    void addCallback(@NonNull JobManagerCallback callback) {
         callbacks.add(callback);
         callbacksSize.incrementAndGet();
         startIfNeeded();
@@ -49,7 +50,7 @@ public class CallbackManager {
         }
     }
 
-    boolean removeCallback(JobManagerCallback callback) {
+    boolean removeCallback(@NonNull JobManagerCallback callback) {
         boolean removed = callbacks.remove(callback);
         if (removed) {
             callbacksSize.decrementAndGet();
@@ -98,12 +99,12 @@ public class CallbackManager {
         }, "job-manager-callbacks").start();
     }
 
-    private void deliverCancelResult(CancelResultMessage message) {
+    private void deliverCancelResult(@NonNull CancelResultMessage message) {
         message.getCallback().onCancelled(message.getResult());
         startIfNeeded();
     }
 
-    private void deliverMessage(CallbackMessage cm) {
+    private void deliverMessage(@NonNull CallbackMessage cm) {
         switch (cm.getWhat()) {
             case CallbackMessage.ON_ADDED:
                 notifyOnAddedListeners(cm.getJob());
@@ -112,7 +113,7 @@ public class CallbackManager {
                 notifyAfterRunListeners(cm.getJob(), cm.getResultCode());
                 break;
             case CallbackMessage.ON_CANCEL:
-                notifyOnCancelListeners(cm.getJob(), cm.isByUserRequest());
+                notifyOnCancelListeners(cm.getJob(), cm.isByUserRequest(), cm.getThrowable());
                 break;
             case CallbackMessage.ON_DONE:
                 notifyOnDoneListeners(cm.getJob());
@@ -123,37 +124,37 @@ public class CallbackManager {
         }
     }
 
-    private void notifyOnCancelListeners(Job job, boolean byCancelRequest) {
+    private void notifyOnCancelListeners(@NonNull Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
         for (JobManagerCallback callback : callbacks) {
-            callback.onJobCancelled(job, byCancelRequest);
+            callback.onJobCancelled(job, byCancelRequest, throwable);
         }
     }
 
-    private void notifyOnRunListeners(Job job, int resultCode) {
+    private void notifyOnRunListeners(@NonNull Job job, int resultCode) {
         for (JobManagerCallback callback : callbacks) {
             callback.onJobRun(job, resultCode);
         }
     }
 
-    private void notifyAfterRunListeners(Job job, int resultCode) {
+    private void notifyAfterRunListeners(@NonNull Job job, int resultCode) {
         for (JobManagerCallback callback : callbacks) {
             callback.onAfterJobRun(job, resultCode);
         }
     }
 
-    private void notifyOnDoneListeners(Job job) {
+    private void notifyOnDoneListeners(@NonNull Job job) {
         for (JobManagerCallback callback : callbacks) {
             callback.onDone(job);
         }
     }
 
-    private void notifyOnAddedListeners(Job job) {
+    private void notifyOnAddedListeners(@NonNull Job job) {
         for (JobManagerCallback callback : callbacks) {
             callback.onJobAdded(job);
         }
     }
 
-    public void notifyOnRun(Job job, int result) {
+    public void notifyOnRun(@NonNull Job job, int result) {
         if (!hasAnyCallbacks()) {
             return;
         }
@@ -166,7 +167,7 @@ public class CallbackManager {
         return callbacksSize.get() > 0;
     }
 
-    public void notifyAfterRun(Job job, int result) {
+    public void notifyAfterRun(@NonNull Job job, int result) {
         if (!hasAnyCallbacks()) {
             return;
         }
@@ -175,16 +176,16 @@ public class CallbackManager {
         messageQueue.post(callback);
     }
 
-    public void notifyOnCancel(Job job, boolean byCancelRequest) {
+    public void notifyOnCancel(@NonNull Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
         if (!hasAnyCallbacks()) {
             return;
         }
         CallbackMessage callback = factory.obtain(CallbackMessage.class);
-        callback.set(job, CallbackMessage.ON_CANCEL, byCancelRequest);
+        callback.set(job, CallbackMessage.ON_CANCEL, byCancelRequest, throwable);
         messageQueue.post(callback);
     }
 
-    public void notifyOnAdded(Job job) {
+    public void notifyOnAdded(@NonNull Job job) {
         if (!hasAnyCallbacks()) {
             return;
         }
@@ -193,7 +194,7 @@ public class CallbackManager {
         messageQueue.post(callback);
     }
 
-    public void notifyOnDone(Job job) {
+    public void notifyOnDone(@NonNull Job job) {
         if (!hasAnyCallbacks()) {
             return;
         }
@@ -202,7 +203,7 @@ public class CallbackManager {
         messageQueue.post(callback);
     }
 
-    public void notifyCancelResult(CancelResult result, CancelResult.AsyncCancelCallback callback) {
+    public void notifyCancelResult(@NonNull CancelResult result, @NonNull CancelResult.AsyncCancelCallback callback) {
         CancelResultMessage message = factory.obtain(CancelResultMessage.class);
         message.set(callback, result);
         messageQueue.post(message);
