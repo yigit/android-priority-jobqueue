@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue;
 
+import android.support.annotation.NonNull;
+
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
@@ -23,7 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * This class is responsible to communicate with the Workers(consumers) that run the jobs.
@@ -58,9 +62,9 @@ class ConsumerManager {
 
     final RunningJobSet runningJobGroups;
 
-    private final WorkerFactory workerFactory;
+    private final ThreadFactory workerFactory;
 
-    private CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners
+    private final CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners
             = new CopyOnWriteArrayList<>();
 
     ConsumerManager(JobManagerThread jobManagerThread, Timer timer, MessageFactory factory,
@@ -144,7 +148,13 @@ class ConsumerManager {
         JqLog.d("adding another consumer");
         Consumer consumer = new Consumer(jobManagerThread.messageQueue,
                 new SafeMessageQueue(timer, factory, "consumer"), factory, timer);
-        final Thread thread = workerFactory.create(threadGroup, consumer, threadPriority);
+        final Thread thread;
+        if (workerFactory != null) {
+            thread = workerFactory.newThread(consumer);
+        } else {
+            thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
+            thread.setPriority(threadPriority);
+        }
         consumers.add(consumer);
         thread.start();
     }
@@ -170,7 +180,7 @@ class ConsumerManager {
     /**
      * @return true if consumer received a job or busy, false otherwise
      */
-    boolean handleIdle(JobConsumerIdleMessage message) {
+    boolean handleIdle(@NonNull JobConsumerIdleMessage message) {
         Consumer consumer = (Consumer) message.getWorker();
         if (consumer.hasJob) {
             return true;// ignore, it has a job to process.

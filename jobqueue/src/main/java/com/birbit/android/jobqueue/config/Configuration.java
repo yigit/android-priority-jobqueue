@@ -6,10 +6,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.DefaultQueueFactory;
-import com.birbit.android.jobqueue.DefaultWorkerFactory;
 import com.birbit.android.jobqueue.JobQueue;
 import com.birbit.android.jobqueue.QueueFactory;
-import com.birbit.android.jobqueue.WorkerFactory;
 import com.birbit.android.jobqueue.di.DependencyInjector;
 import com.birbit.android.jobqueue.log.CustomLogger;
 import com.birbit.android.jobqueue.network.NetworkUtil;
@@ -18,6 +16,8 @@ import com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.timer.SystemTimer;
 import com.birbit.android.jobqueue.timer.Timer;
+
+import java.util.concurrent.ThreadFactory;
 
 /**
  * {@link com.birbit.android.jobqueue.JobManager} configuration object
@@ -65,7 +65,7 @@ public class Configuration {
     boolean resetDelaysOnRestart = false;
     int threadPriority = DEFAULT_THREAD_PRIORITY;
     boolean batchSchedulerRequests = true;
-    WorkerFactory workerFactory = null;
+    ThreadFactory workerFactory = null;
 
     private Configuration(){
         //use builder instead
@@ -143,8 +143,8 @@ public class Configuration {
         return threadPriority;
     }
 
-    @NonNull
-    public WorkerFactory getWorkerFactory() {
+    @Nullable
+    public ThreadFactory getWorkerFactory() {
         return workerFactory;
     }
 
@@ -360,7 +360,10 @@ public class Configuration {
 
         /**
          * Sets the priority for the threads of this manager. By default it is
-         * {@link #DEFAULT_THREAD_PRIORITY}.
+         * {@link #DEFAULT_THREAD_PRIORITY}.<br />
+         * If a worker factory is installed, this parameter becomes meaningless. It's up to the
+         * factory to proper configure the {@link Thread} it generates.
+         *
          * @param threadPriority The thread priority to be used for new jobs
          *
          * @return The builder
@@ -398,15 +401,17 @@ public class Configuration {
         }
 
         /**
-         * Provide a factory class to create new worker instances for when JobManager needs them.
-         * The default implementation creates instances of {@link Thread}.
+         * Provide a factory class to create new worker instances for when JobManager needs them.<br />
+         * When a factory is installed, it becomes its responsability to configure
+         * the {@link Thread} with proper group and priority, making JobManager's
+         * consumer thread priority meaningless.
          *
          * @param workerFactory The factory to be used
          *
          * @return The builder
          */
         @NonNull
-        public Builder workerFactory(@NonNull final WorkerFactory workerFactory) {
+        public Builder workerFactory(@NonNull final ThreadFactory workerFactory) {
             configuration.workerFactory = workerFactory;
             return this;
         }
@@ -421,9 +426,6 @@ public class Configuration {
             }
             if (configuration.timer == null) {
                 configuration.timer = new SystemTimer();
-            }
-            if (configuration.workerFactory == null) {
-                configuration.workerFactory = DefaultWorkerFactory.getInstance();
             }
             return configuration;
         }

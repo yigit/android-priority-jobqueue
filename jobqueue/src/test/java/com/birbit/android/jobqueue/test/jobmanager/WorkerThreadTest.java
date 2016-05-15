@@ -8,7 +8,6 @@ import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
-import com.birbit.android.jobqueue.WorkerFactory;
 import com.birbit.android.jobqueue.config.Configuration;
 
 import org.hamcrest.MatcherAssert;
@@ -19,6 +18,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.util.UUID;
+import java.util.concurrent.ThreadFactory;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -31,11 +31,10 @@ public class WorkerThreadTest extends JobManagerTestBase {
         final JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .timer(mockTimer)
-                        .workerFactory(new WorkerFactory() {
-                            @NonNull
+                        .workerFactory(new ThreadFactory() {
                             @Override
-                            public Thread create(@NonNull ThreadGroup threadGroup, @NonNull Runnable consumer, int priority) {
-                                return new DummyThread(threadGroup, consumer, priority);
+                            public Thread newThread(@NonNull Runnable r) {
+                                return new DummyThread(r);
                             }
                         })
         );
@@ -56,9 +55,8 @@ public class WorkerThreadTest extends JobManagerTestBase {
 
     static class DummyThread extends Thread {
 
-        public DummyThread(ThreadGroup threadGroup, Runnable runnable, int priority) {
-            super(threadGroup, runnable, "dummy-worker-" + UUID.randomUUID().toString());
-            setPriority(priority);
+        public DummyThread(Runnable runnable) {
+            super(runnable, "dummy-worker-" + UUID.randomUUID().toString());
         }
 
     }
