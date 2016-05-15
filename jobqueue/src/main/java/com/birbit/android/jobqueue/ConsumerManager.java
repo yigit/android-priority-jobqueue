@@ -1,5 +1,9 @@
 package com.birbit.android.jobqueue;
 
+import android.support.annotation.NonNull;
+
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessagePredicate;
@@ -11,14 +15,8 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
-import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.birbit.android.jobqueue.JobHolder;
-import com.birbit.android.jobqueue.RetryConstraint;
-import com.birbit.android.jobqueue.RunningJobSet;
-import com.birbit.android.jobqueue.TagConstraint;
-import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
@@ -29,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * This class is responsible to communicate with the Workers(consumers) that run the jobs.
@@ -63,7 +62,9 @@ class ConsumerManager {
 
     final RunningJobSet runningJobGroups;
 
-    private CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners
+    private final ThreadFactory threadFactory;
+
+    private final CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners
             = new CopyOnWriteArrayList<>();
 
     ConsumerManager(JobManagerThread jobManagerThread, Timer timer, MessageFactory factory,
@@ -77,6 +78,7 @@ class ConsumerManager {
         this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000
                 * JobManagerThread.NS_PER_MS;
         this.threadPriority = configuration.getThreadPriority();
+        this.threadFactory = configuration.getThreadFactory();
         runningJobHolders = new HashMap<>();
         runningJobGroups = new RunningJobSet(timer);
         threadGroup = new ThreadGroup("JobConsumers");
@@ -146,8 +148,13 @@ class ConsumerManager {
         JqLog.d("adding another consumer");
         Consumer consumer = new Consumer(jobManagerThread.messageQueue,
                 new SafeMessageQueue(timer, factory, "consumer"), factory, timer);
-        Thread thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
-        thread.setPriority(threadPriority);
+        final Thread thread;
+        if (threadFactory != null) {
+            thread = threadFactory.newThread(consumer);
+        } else {
+            thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
+            thread.setPriority(threadPriority);
+        }
         consumers.add(consumer);
         thread.start();
     }
@@ -173,7 +180,7 @@ class ConsumerManager {
     /**
      * @return true if consumer received a job or busy, false otherwise
      */
-    boolean handleIdle(JobConsumerIdleMessage message) {
+    boolean handleIdle(@NonNull JobConsumerIdleMessage message) {
         Consumer consumer = (Consumer) message.getWorker();
         if (consumer.hasJob) {
             return true;// ignore, it has a job to process.

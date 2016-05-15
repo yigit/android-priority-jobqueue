@@ -1,19 +1,23 @@
 package com.birbit.android.jobqueue.config;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.DefaultQueueFactory;
-import com.birbit.android.jobqueue.QueueFactory;
-import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.QueueFactory;
 import com.birbit.android.jobqueue.di.DependencyInjector;
 import com.birbit.android.jobqueue.log.CustomLogger;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.network.NetworkUtilImpl;
 import com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.timer.SystemTimer;
 import com.birbit.android.jobqueue.timer.Timer;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * {@link com.birbit.android.jobqueue.JobManager} configuration object
@@ -61,15 +65,18 @@ public class Configuration {
     boolean resetDelaysOnRestart = false;
     int threadPriority = DEFAULT_THREAD_PRIORITY;
     boolean batchSchedulerRequests = true;
+    ThreadFactory threadFactory = null;
 
     private Configuration(){
         //use builder instead
     }
 
+    @NonNull
     public Context getAppContext() {
         return appContext;
     }
 
+    @NonNull
     public String getId() {
         return id;
     }
@@ -78,10 +85,12 @@ public class Configuration {
         return batchSchedulerRequests;
     }
 
+    @NonNull
     public QueueFactory getQueueFactory() {
         return queueFactory;
     }
 
+    @Nullable
     public DependencyInjector getDependencyInjector() {
         return dependencyInjector;
     }
@@ -90,6 +99,7 @@ public class Configuration {
         return consumerKeepAlive;
     }
 
+    @NonNull
     public NetworkUtil getNetworkUtil() {
         return networkUtil;
     }
@@ -102,6 +112,7 @@ public class Configuration {
         return minConsumerCount;
     }
 
+    @Nullable
     public CustomLogger getCustomLogger() {
         return customLogger;
     }
@@ -114,6 +125,7 @@ public class Configuration {
         return inTestMode;
     }
 
+    @NonNull
     public Timer getTimer() {
         return timer;
     }
@@ -122,6 +134,7 @@ public class Configuration {
         return resetDelaysOnRestart;
     }
 
+    @Nullable
     public Scheduler getScheduler() {
         return scheduler;
     }
@@ -130,10 +143,15 @@ public class Configuration {
         return threadPriority;
     }
 
+    @Nullable
+    public ThreadFactory getThreadFactory() {
+        return threadFactory;
+    }
+
     public static final class Builder {
         private Configuration configuration;
 
-        public Builder(Context context) {
+        public Builder(@NonNull Context context) {
             this.configuration = new Configuration();
             this.configuration.appContext = context.getApplicationContext();
         }
@@ -144,7 +162,8 @@ public class Configuration {
          * default id is {@link #DEFAULT_ID}
          * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
          */
-        public Builder id(String id) {
+        @NonNull
+        public Builder id(@NonNull String id) {
             configuration.id = id;
             return this;
         }
@@ -154,6 +173,7 @@ public class Configuration {
          * It defaults to {@link #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
          * @param keepAlive in seconds
          */
+        @NonNull
         public Builder consumerKeepAlive(int keepAlive) {
             configuration.consumerKeepAlive = keepAlive;
             return this;
@@ -177,6 +197,7 @@ public class Configuration {
          *
          * @return The builder
          */
+        @NonNull
         public Builder resetDelaysOnRestart() {
             configuration.resetDelaysOnRestart = true;
             return this;
@@ -190,7 +211,8 @@ public class Configuration {
          * {@code JobQueueTestBase} to ensure it will work fine.
          * @param queueFactory your custom queue factory.
          */
-        public Builder queueFactory(com.birbit.android.jobqueue.QueueFactory queueFactory) {
+        @NonNull
+        public Builder queueFactory(@Nullable QueueFactory queueFactory) {
             if(configuration.queueFactory != null && queueFactory != null) {
                 throw new RuntimeException("already set a queue factory. This might happen if"
                         + "you've provided a custom job serializer");
@@ -208,7 +230,8 @@ public class Configuration {
          *
          * @return The builder
          */
-        public Builder jobSerializer(SqliteJobQueue.JobSerializer jobSerializer) {
+        @NonNull
+        public Builder jobSerializer(@NonNull SqliteJobQueue.JobSerializer jobSerializer) {
             configuration.queueFactory = new DefaultQueueFactory(jobSerializer);
             return this;
         }
@@ -218,7 +241,8 @@ public class Configuration {
          * to check if network connection exists. You can provide your own if you need a custom logic (e.g. check your
          * server health etc).
          */
-        public Builder networkUtil(NetworkUtil networkUtil) {
+        @NonNull
+        public Builder networkUtil(@Nullable NetworkUtil networkUtil) {
             configuration.networkUtil = networkUtil;
             return this;
         }
@@ -230,7 +254,8 @@ public class Configuration {
          * @param injector your dependency injector interface, if using one
          * @return The builder
          */
-        public Builder injector(DependencyInjector injector) {
+        @NonNull
+        public Builder injector(@Nullable DependencyInjector injector) {
             configuration.dependencyInjector = injector;
             return this;
         }
@@ -239,6 +264,7 @@ public class Configuration {
          * # of max consumers to run concurrently. defaults to {@link #MAX_CONSUMER_COUNT}
          * @param count The max number of threads that JobManager can create to run jobs
          */
+        @NonNull
         public Builder maxConsumerCount(int count) {
             configuration.maxConsumerCount = count;
             return this;
@@ -250,6 +276,7 @@ public class Configuration {
          *
          * @param count The min of of threads that JobManager will keep alive even if they are idle.
          */
+        @NonNull
         public Builder minConsumerCount(int count) {
             configuration.minConsumerCount = count;
             return this;
@@ -260,7 +287,8 @@ public class Configuration {
          *
          * @param timer The timer to use
          */
-        public Builder timer(Timer timer) {
+        @NonNull
+        public Builder timer(@Nullable Timer timer) {
             configuration.timer = timer;
             return this;
         }
@@ -270,7 +298,8 @@ public class Configuration {
          * by default, logs will go no-where.
          * @param logger The logger to be used by the JobManager.
          */
-        public Builder customLogger(CustomLogger logger) {
+        @NonNull
+        public Builder customLogger(@Nullable CustomLogger logger) {
             configuration.customLogger = logger;
             return this;
         }
@@ -283,6 +312,7 @@ public class Configuration {
          *
          * @param loadFactor Number of available jobs per thread
          */
+        @NonNull
         public Builder loadFactor(int loadFactor) {
             configuration.loadFactor = loadFactor;
             return this;
@@ -293,6 +323,7 @@ public class Configuration {
          * If you are using default JobQueues, calling this method will cause {@link SqliteJobQueue}
          * to use an in-memory database.
          */
+        @NonNull
         public Builder inTestMode() {
             configuration.inTestMode = true;
             return this;
@@ -320,7 +351,8 @@ public class Configuration {
          *
          * @return The builder
          */
-        public Builder scheduler(Scheduler scheduler, boolean batch) {
+        @NonNull
+        public Builder scheduler(@Nullable Scheduler scheduler, boolean batch) {
             configuration.scheduler = scheduler;
             configuration.batchSchedulerRequests = batch;
             return this;
@@ -328,16 +360,20 @@ public class Configuration {
 
         /**
          * Sets the priority for the threads of this manager. By default it is
-         * {@link #DEFAULT_THREAD_PRIORITY}.
+         * {@link #DEFAULT_THREAD_PRIORITY}.<br />
+         * If a {@link ThreadFactory} is provided, this value is ignored.
+         *
          * @param threadPriority The thread priority to be used for new jobs
          *
          * @return The builder
          */
+        @NonNull
         public Builder consumerThreadPriority(int threadPriority) {
             configuration.threadPriority = threadPriority;
             return this;
         }
-        /*
+
+        /**
          * Assigns a scheduler that can be used to wake up the application when JobManager has jobs
          * to execute. This is the integration point with the system
          * {@link android.app.job.JobScheduler}.
@@ -358,10 +394,28 @@ public class Configuration {
          *
          * @return The builder
          */
-        public Builder scheduler(Scheduler scheduler) {
+        @NonNull
+        public Builder scheduler(@Nullable Scheduler scheduler) {
             return scheduler(scheduler, true);
         }
 
+        /**
+         * Provide a factory class to create new worker instances when JobManager needs them.<br />
+         * When a factory is installed, it becomes its responsability to configure
+         * the {@link Thread} with proper group and priority. JobManager will use the {@link Thread}
+         * as is.
+         *
+         * @param threadFactory The factory to be used
+         *
+         * @return The builder
+         */
+        @NonNull
+        public Builder threadFactory(@Nullable final ThreadFactory threadFactory) {
+            configuration.threadFactory = threadFactory;
+            return this;
+        }
+
+        @NonNull
         public Configuration build() {
             if(configuration.queueFactory == null) {
                 configuration.queueFactory = new DefaultQueueFactory();
