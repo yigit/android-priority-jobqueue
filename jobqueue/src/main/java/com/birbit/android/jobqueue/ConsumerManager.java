@@ -62,7 +62,7 @@ class ConsumerManager {
 
     final RunningJobSet runningJobGroups;
 
-    private final ThreadFactory workerFactory;
+    private final ThreadFactory threadFactory;
 
     private final CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners
             = new CopyOnWriteArrayList<>();
@@ -78,7 +78,7 @@ class ConsumerManager {
         this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000
                 * JobManagerThread.NS_PER_MS;
         this.threadPriority = configuration.getThreadPriority();
-        this.workerFactory = configuration.getWorkerFactory();
+        this.threadFactory = configuration.getThreadFactory();
         runningJobHolders = new HashMap<>();
         runningJobGroups = new RunningJobSet(timer);
         threadGroup = new ThreadGroup("JobConsumers");
@@ -149,8 +149,8 @@ class ConsumerManager {
         Consumer consumer = new Consumer(jobManagerThread.messageQueue,
                 new SafeMessageQueue(timer, factory, "consumer"), factory, timer);
         final Thread thread;
-        if (workerFactory != null) {
-            thread = workerFactory.newThread(consumer);
+        if (threadFactory != null) {
+            thread = threadFactory.newThread(consumer);
         } else {
             thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
             thread.setPriority(threadPriority);

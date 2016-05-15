@@ -22,16 +22,16 @@ import java.util.concurrent.ThreadFactory;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
-public class WorkerThreadTest extends JobManagerTestBase {
+public class ThreadFactoryTest extends JobManagerTestBase {
 
     private Throwable error;
 
     @Test
-    public void testWorkerThread() throws Throwable {
+    public void testThreadFactory() throws Throwable {
         final JobManager jobManager = createJobManager(
                 new Configuration.Builder(RuntimeEnvironment.application)
                         .timer(mockTimer)
-                        .workerFactory(new ThreadFactory() {
+                        .threadFactory(new ThreadFactory() {
                             @Override
                             public Thread newThread(@NonNull Runnable r) {
                                 return new DummyThread(r);

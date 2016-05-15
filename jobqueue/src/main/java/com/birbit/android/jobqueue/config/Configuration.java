@@ -65,7 +65,7 @@ public class Configuration {
     boolean resetDelaysOnRestart = false;
     int threadPriority = DEFAULT_THREAD_PRIORITY;
     boolean batchSchedulerRequests = true;
-    ThreadFactory workerFactory = null;
+    ThreadFactory threadFactory = null;
 
     private Configuration(){
         //use builder instead
@@ -144,8 +144,8 @@ public class Configuration {
     }
 
     @Nullable
-    public ThreadFactory getWorkerFactory() {
-        return workerFactory;
+    public ThreadFactory getThreadFactory() {
+        return threadFactory;
     }
 
     public static final class Builder {
@@ -242,7 +242,7 @@ public class Configuration {
          * server health etc).
          */
         @NonNull
-        public Builder networkUtil(@NonNull NetworkUtil networkUtil) {
+        public Builder networkUtil(@Nullable NetworkUtil networkUtil) {
             configuration.networkUtil = networkUtil;
             return this;
         }
@@ -255,7 +255,7 @@ public class Configuration {
          * @return The builder
          */
         @NonNull
-        public Builder injector(@NonNull DependencyInjector injector) {
+        public Builder injector(@Nullable DependencyInjector injector) {
             configuration.dependencyInjector = injector;
             return this;
         }
@@ -288,7 +288,7 @@ public class Configuration {
          * @param timer The timer to use
          */
         @NonNull
-        public Builder timer(@NonNull Timer timer) {
+        public Builder timer(@Nullable Timer timer) {
             configuration.timer = timer;
             return this;
         }
@@ -299,7 +299,7 @@ public class Configuration {
          * @param logger The logger to be used by the JobManager.
          */
         @NonNull
-        public Builder customLogger(@NonNull CustomLogger logger) {
+        public Builder customLogger(@Nullable CustomLogger logger) {
             configuration.customLogger = logger;
             return this;
         }
@@ -352,7 +352,7 @@ public class Configuration {
          * @return The builder
          */
         @NonNull
-        public Builder scheduler(@NonNull Scheduler scheduler, boolean batch) {
+        public Builder scheduler(@Nullable Scheduler scheduler, boolean batch) {
             configuration.scheduler = scheduler;
             configuration.batchSchedulerRequests = batch;
             return this;
@@ -361,8 +361,7 @@ public class Configuration {
         /**
          * Sets the priority for the threads of this manager. By default it is
          * {@link #DEFAULT_THREAD_PRIORITY}.<br />
-         * If a worker factory is installed, this parameter becomes meaningless. It's up to the
-         * factory to proper configure the {@link Thread} it generates.
+         * If a {@link ThreadFactory} is provided, this value is ignored.
          *
          * @param threadPriority The thread priority to be used for new jobs
          *
@@ -396,23 +395,23 @@ public class Configuration {
          * @return The builder
          */
         @NonNull
-        public Builder scheduler(@NonNull Scheduler scheduler) {
+        public Builder scheduler(@Nullable Scheduler scheduler) {
             return scheduler(scheduler, true);
         }
 
         /**
-         * Provide a factory class to create new worker instances for when JobManager needs them.<br />
+         * Provide a factory class to create new worker instances when JobManager needs them.<br />
          * When a factory is installed, it becomes its responsability to configure
-         * the {@link Thread} with proper group and priority, making JobManager's
-         * consumer thread priority meaningless.
+         * the {@link Thread} with proper group and priority. JobManager will use the {@link Thread}
+         * as is.
          *
-         * @param workerFactory The factory to be used
+         * @param threadFactory The factory to be used
          *
          * @return The builder
          */
         @NonNull
-        public Builder workerFactory(@NonNull final ThreadFactory workerFactory) {
-            configuration.workerFactory = workerFactory;
+        public Builder threadFactory(@Nullable final ThreadFactory threadFactory) {
+            configuration.threadFactory = threadFactory;
             return this;
         }
 
