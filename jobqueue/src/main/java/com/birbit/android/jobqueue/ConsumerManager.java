@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue;
 
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessagePredicate;
@@ -11,14 +13,8 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
-import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.birbit.android.jobqueue.JobHolder;
-import com.birbit.android.jobqueue.RetryConstraint;
-import com.birbit.android.jobqueue.RunningJobSet;
-import com.birbit.android.jobqueue.TagConstraint;
-import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
@@ -27,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -63,6 +58,8 @@ class ConsumerManager {
 
     final RunningJobSet runningJobGroups;
 
+    private final WorkerFactory workerFactory;
+
     private CopyOnWriteArrayList<Runnable> internalZeroConsumersListeners
             = new CopyOnWriteArrayList<>();
 
@@ -77,6 +74,7 @@ class ConsumerManager {
         this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000
                 * JobManagerThread.NS_PER_MS;
         this.threadPriority = configuration.getThreadPriority();
+        this.workerFactory = configuration.getWorkerFactory();
         runningJobHolders = new HashMap<>();
         runningJobGroups = new RunningJobSet(timer);
         threadGroup = new ThreadGroup("JobConsumers");
@@ -146,8 +144,7 @@ class ConsumerManager {
         JqLog.d("adding another consumer");
         Consumer consumer = new Consumer(jobManagerThread.messageQueue,
                 new SafeMessageQueue(timer, factory, "consumer"), factory, timer);
-        Thread thread = new Thread(threadGroup, consumer, "job-queue-worker-" + UUID.randomUUID());
-        thread.setPriority(threadPriority);
+        final Thread thread = workerFactory.create(threadGroup, consumer, threadPriority);
         consumers.add(consumer);
         thread.start();
     }
