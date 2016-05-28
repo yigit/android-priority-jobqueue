@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
-import com.birbit.android.jobqueue.Constraint;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Set;
 
@@ -12,10 +13,11 @@ public interface JobQueue {
     /**
      * Inserts the given JobHolder.
      *
-     * @param jobHolder
+     * @param jobHolder The JobHolder to be inserted
+     *
      * @return True if job is added, false otherwise
      */
-    boolean insert(JobHolder jobHolder);
+    boolean insert(@NonNull JobHolder jobHolder);
 
     /**
      * Does the same thing with insert but the only difference is that
@@ -26,7 +28,7 @@ public interface JobQueue {
      * @param jobHolder The JobHolder to be added
      * @return True if job is added, false otherwise
      */
-    boolean insertOrReplace(JobHolder jobHolder);
+    boolean insertOrReplace(@NonNull JobHolder jobHolder);
 
     /**
      * Remove the old job from the queue while inserting the new one.
@@ -34,7 +36,7 @@ public interface JobQueue {
      * @param newJob To be inserted
      * @param oldJob To be removed
      */
-    void substitute(JobHolder newJob, JobHolder oldJob);
+    void substitute(@NonNull JobHolder newJob, @NonNull JobHolder oldJob);
 
     /**
      * Removes the job from the data store.
@@ -42,7 +44,7 @@ public interface JobQueue {
      *
      * @param jobHolder The JobHolder to be removed
      */
-    void remove(JobHolder jobHolder);
+    void remove(@NonNull JobHolder jobHolder);
 
     /**
      * Returns the # of jobs that are waiting to be run
@@ -60,7 +62,7 @@ public interface JobQueue {
      *
      * @return The number of jobs that are ready to run
      */
-    int countReadyJobs(Constraint constraint);
+    int countReadyJobs(@NonNull Constraint constraint);
 
     /**
      * Returns the next available job in the data set
@@ -68,17 +70,22 @@ public interface JobQueue {
      * It should filter out all running jobs and exclude groups are guaranteed to be ordered in natural order
      *
      * @param constraint The constraint to match the job.
+     * @return The next job to be run that matches the constraint or null if there is no such job
      */
-    JobHolder nextJobAndIncRunCount(Constraint constraint);
+    @Nullable
+    JobHolder nextJobAndIncRunCount(@NonNull Constraint constraint);
 
     /**
-     * returns when the next job should run (in nanoseconds), should return null if there are no
+     * Returns when the next job should run (in nanoseconds), should return null if there are no
      * jobs to run.
      * <p>
      * This method should check both delayed jobs and jobs that require network with a timeout.
      * @param constraint The constraint to match the job.
+     * @return The time until next job is ready or null if there aren't any jobs matching the
+     * constraint
      */
-    Long getNextJobDelayUntilNs(Constraint constraint);
+    @Nullable
+    Long getNextJobDelayUntilNs(@NonNull Constraint constraint);
 
     /**
      * clear all jobs in the queue. should probably be called when user logs out.
@@ -88,20 +95,24 @@ public interface JobQueue {
     /**
      * returns the job with the given id if it exists in the queue
      * @param id id of the job
+     *
      * @return JobHolder with the given id or null if it does not exists
      */
-    JobHolder findJobById(String id);
+    @Nullable
+    JobHolder findJobById(@NonNull String id);
 
     /**
-     * Returns jobs that has the given tags.
+     * Returns jobs that matches the given constraints
      *
      * @param constraint The constraint to match the job.
+     * @return The set of jobs that matches the given constraint
      */
-    Set<JobHolder> findJobs(Constraint constraint);
+    @NonNull
+    Set<JobHolder> findJobs(@NonNull Constraint constraint);
 
     /**
      * Called when a job is cancelled by the user.
-     * <p/>
+     * <p>
      * It is important to not return this job from queries anymore.
      *
      * @param holder The JobHolder that is being cancelled

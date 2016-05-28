@@ -1,5 +1,8 @@
 package com.birbit.android.jobqueue.cachedQueue;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.Constraint;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.JobQueue;
@@ -13,7 +16,7 @@ import java.util.Set;
  * element
  */
 public class CachedJobQueue implements JobQueue {
-    JobQueue delegate;
+    private JobQueue delegate;
     private Integer cachedCount;
 
     public CachedJobQueue(JobQueue delegate) {
@@ -21,7 +24,7 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public boolean insert(JobHolder jobHolder) {
+    public boolean insert(@NonNull JobHolder jobHolder) {
         invalidateCache();
         return delegate.insert(jobHolder);
     }
@@ -31,19 +34,19 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public boolean insertOrReplace(JobHolder jobHolder) {
+    public boolean insertOrReplace(@NonNull JobHolder jobHolder) {
         invalidateCache();
         return delegate.insertOrReplace(jobHolder);
     }
 
     @Override
-    public void substitute(JobHolder newJob, JobHolder oldJob) {
+    public void substitute(@NonNull JobHolder newJob, @NonNull JobHolder oldJob) {
         invalidateCache();
         delegate.substitute(newJob, oldJob);
     }
 
     @Override
-    public void remove(JobHolder jobHolder) {
+    public void remove(@NonNull JobHolder jobHolder) {
         invalidateCache();
         delegate.remove(jobHolder);
     }
@@ -61,7 +64,7 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public int countReadyJobs(Constraint constraint) {
+    public int countReadyJobs(@NonNull Constraint constraint) {
         if (isEmpty()) {
             return 0;
         }
@@ -69,7 +72,7 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+    public JobHolder nextJobAndIncRunCount(@NonNull Constraint constraint) {
         if(isEmpty()) {
             return null;//we know we are empty, no need for querying
         }
@@ -81,7 +84,7 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public Long getNextJobDelayUntilNs(Constraint constraint) {
+    public Long getNextJobDelayUntilNs(@NonNull Constraint constraint) {
         return delegate.getNextJobDelayUntilNs(constraint);
     }
 
@@ -92,18 +95,20 @@ public class CachedJobQueue implements JobQueue {
     }
 
     @Override
-    public Set<JobHolder> findJobs(Constraint constraint) {
+    @NonNull
+    public Set<JobHolder> findJobs(@NonNull Constraint constraint) {
         return delegate.findJobs(constraint);
     }
 
     @Override
-    public void onJobCancelled(JobHolder holder) {
+    public void onJobCancelled(@NonNull JobHolder holder) {
         invalidateCache();
         delegate.onJobCancelled(holder);
     }
 
     @Override
-    public JobHolder findJobById(String id) {
+    @Nullable
+    public JobHolder findJobById(@NonNull String id) {
         return delegate.findJobById(id);
     }
 }

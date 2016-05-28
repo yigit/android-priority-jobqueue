@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("deprecation")
 abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
+    @SuppressWarnings("WeakerAccess")
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
     private String id = UUID.randomUUID().toString();
@@ -93,8 +94,10 @@ abstract public class Job implements Serializable {
 
     /**
      * Returns a readonly set of tags attached to this Job.
+     *
      * @return Set of Tags. If tags do not exists, returns null.
      */
+    @Nullable
     public final Set<String> getTags() {
         return readonlyTags;
     }
@@ -136,7 +139,9 @@ abstract public class Job implements Serializable {
     }
 
     /**
-     * defines if we should add this job to disk or non-persistent queue
+     * Whether we should add this job to disk or non-persistent queue
+     *
+     * @return True if this job should be persistent between app restarts
      */
     public final boolean isPersistent() {
         return persistent;
@@ -160,7 +165,8 @@ abstract public class Job implements Serializable {
      * It should finish w/o any exception. If it throws any exception,
      * {@link #shouldReRunOnThrowable(Throwable, int, int)} will be called to
      * decide either to dismiss the job or re-run it.
-     * @throws Throwable
+     *
+     * @throws Throwable Can throw and exception which will mark job run as failed
      */
     abstract public void onRun() throws Throwable;
 
@@ -195,16 +201,18 @@ abstract public class Job implements Serializable {
      * @param throwable The exception that was thrown from {@link #onRun()}
      * @param runCount The number of times this job run. Starts from 1.
      * @param maxRunCount The max number of times this job can run. Decided by {@link #getRetryLimit()}
+     *
      * @return A {@link RetryConstraint} to decide whether this Job should be tried again or not and
      * if yes, whether we should add a delay or alter its priority. Returning null from this method
-     * is equal to returning {@link RetryConstraint#RETRY}. Default implementation calls
-     * {@link #shouldReRunOnThrowable(Throwable, int, int)}}.
+     * is equal to returning {@link RetryConstraint#RETRY}.
      */
     abstract protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount);
 
     /**
      * Runs the job and catches any exception
-     * @param currentRunCount
+     *
+     * @param currentRunCount The current run count of the job
+     *
      * @return one of the RUN_RESULT ints
      */
     final int safeRun(JobHolder holder, int currentRunCount) {
@@ -262,8 +270,11 @@ abstract public class Job implements Serializable {
     }
 
     /**
-     * before each run, JobManager sets this number. Might be useful for the {@link com.birbit.android.jobqueue.Job#onRun()}
-     * method
+     * Before each run, JobManager sets this number.
+     * <p>
+     * Might be useful for the {@link com.birbit.android.jobqueue.Job#onRun()} method
+     *
+     * @return The current retry count of the Job
      */
     protected int getCurrentRunCount() {
         return currentRunCount;
@@ -278,8 +289,10 @@ abstract public class Job implements Serializable {
      * @param timer The timer used by the JobManager. Should be the timer that was used while
      *                configuring the JobManager ({@link Configuration#getTimer()},
      *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
+     *
+     * @return true if the Job should not be run if there is no active network connection
      */
-    public final boolean requiresNetwork(Timer timer) {
+    public final boolean requiresNetwork(@NonNull Timer timer) {
         return sealed ? requiresNetworkUntilNs > timer.nanoTime()
                 : requiresNetworkTimeoutMs != Params.NEVER;
     }
@@ -293,8 +306,10 @@ abstract public class Job implements Serializable {
      * @param timer The timer used by the JobManager. Should be the timer that was used while
      *                configuring the JobManager ({@link Configuration#getTimer()},
      *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
+     *
+     * @return true if the job should not be run until an unmetered network (e.g. WIFI) is detected
      */
-    public final boolean requiresUnmeteredNetwork(Timer timer) {
+    public final boolean requiresUnmeteredNetwork(@NonNull Timer timer) {
         return sealed ? requiresUnmeteredNetworkUntilNs > timer.nanoTime()
                 : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
     }
@@ -306,6 +321,7 @@ abstract public class Job implements Serializable {
      *
      * @return True if job requires a network to be run, false otherwise.
      */
+    @SuppressWarnings("unused")
     public final boolean requiresNetworkIgnoreTimeout() {
         return sealed ? requiresNetworkUntilNs > 0
                 : requiresNetworkTimeoutMs > 0;
@@ -318,6 +334,7 @@ abstract public class Job implements Serializable {
      *
      * @return True if job requires a unmetered network to be run, false otherwise.
      */
+    @SuppressWarnings("unused")
     public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
         return sealed ? requiresUnmeteredNetworkUntilNs > 0
                 : requiresUnmeteredNetworkTimeoutMs > 0;
@@ -414,6 +431,8 @@ abstract public class Job implements Serializable {
      * <p>
      * Calling this method outside {@link #onRun()} method has no meaning since {@link #onRun()} will not
      * be called if the job is cancelled before it is called.
+     *
+     * @return true if the Job is cancelled
      */
     public boolean isCancelled() {
         return cancelled;
@@ -423,6 +442,7 @@ abstract public class Job implements Serializable {
      * Convenience method that checks if job is cancelled and throws a RuntimeException if it is
      * cancelled.
      */
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public void assertNotCancelled() {
         if (cancelled) {
             throw new RuntimeException("job is cancelled");
@@ -447,8 +467,10 @@ abstract public class Job implements Serializable {
     /**
      * Internal method used by the JobManager when it is added. After this point, you cannot make
      * any changes to this job.
+     *
+     * @param timer The timer used by the JobManager
      */
-    public void seal(Timer timer) {
+    public void seal(@NonNull Timer timer) {
         if (sealed) {
             throw new IllegalStateException("Cannot add the same job twice");
         }

@@ -30,7 +30,7 @@ public enum JobStatus {
      *     <li>Job has failed</li>
      *     <li>Job has just been added, about to be delivered into a queue</li>
      * </ul>
-     * </p>
+     *
      */
     UNKNOWN
 }

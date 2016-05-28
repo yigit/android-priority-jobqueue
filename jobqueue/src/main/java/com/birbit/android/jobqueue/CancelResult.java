@@ -15,8 +15,8 @@ import java.util.HashSet;
  * method.
  */
 public class CancelResult {
-    Collection<Job> cancelledJobs;
-    Collection<Job> failedToCancel;
+    private Collection<Job> cancelledJobs;
+    private Collection<Job> failedToCancel;
 
     public CancelResult() {
         this.cancelledJobs = new HashSet<>();
@@ -47,6 +47,8 @@ public class CancelResult {
 
         /**
          * When job cancellation is complete, this method is called by the JobManager.
+         *
+         * @param cancelResult The result of the cancel request
          */
         void onCancelled(CancelResult cancelResult);
     }
