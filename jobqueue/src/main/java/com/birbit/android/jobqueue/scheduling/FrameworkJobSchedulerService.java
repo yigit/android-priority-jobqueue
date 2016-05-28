@@ -4,21 +4,17 @@ import android.annotation.TargetApi;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.log.JqLog;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The service implementation for the framework job scheduler
  */
 @TargetApi(21)
 abstract public class FrameworkJobSchedulerService extends JobService {
-    private static final Map<Class<? extends FrameworkJobSchedulerService>, FrameworkScheduler>
-            schedulerMap = new HashMap<>();
-
     /**
      * Creates a scheduler for the given service.
      * Keep in mind that there is a strict 1-1 mapping between the created scheduler and the
@@ -29,6 +25,7 @@ abstract public class FrameworkJobSchedulerService extends JobService {
      *
      * @return A scheduler that is associated with the given service class.
      */
+    @SuppressWarnings("unused")
     public static FrameworkScheduler createSchedulerFor(
             @SuppressWarnings("UnusedParameters") Context appContext,
             Class<? extends FrameworkJobSchedulerService> klass) {
@@ -36,15 +33,7 @@ abstract public class FrameworkJobSchedulerService extends JobService {
             throw new IllegalArgumentException("You must create a service that extends" +
                     " FrameworkJobSchedulerService");
         }
-        synchronized (schedulerMap) {
-            if (schedulerMap.get(klass) != null) {
-                throw new IllegalStateException("You can create 1 scheduler per" +
-                        " FrameworkJobService. " + klass.getCanonicalName() + " already has one.");
-            }
-            FrameworkScheduler scheduler = new FrameworkScheduler(klass);
-            schedulerMap.put(klass, scheduler);
-            return scheduler;
-        }
+        return new FrameworkScheduler(klass);
     }
 
     @Override
@@ -73,15 +62,42 @@ abstract public class FrameworkJobSchedulerService extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        return getScheduler().onStartJob(params);
+        FrameworkScheduler scheduler = getScheduler();
+        if (scheduler != null) {
+            return scheduler.onStartJob(params);
+        }
+        JqLog.e("FrameworkJobSchedulerService has been triggered but it does not have a" +
+                " scheduler. You must initialize JobManager before the service is created.");
+        return false;
     }
 
     @Override
     public boolean onStopJob(JobParameters params) {
-        return getScheduler().onStopJob(params);
+        FrameworkScheduler scheduler = getScheduler();
+        if (scheduler != null) {
+            return scheduler.onStopJob(params);
+        }
+        JqLog.e("FrameworkJobSchedulerService has been stopped but it does not have a" +
+                " scheduler. You must initialize JobManager before the service is created.");
+        return false;
     }
 
-    protected FrameworkScheduler getScheduler() {
-        return schedulerMap.get(getClass());
+    @Nullable
+    private FrameworkScheduler getScheduler() {
+        Scheduler scheduler = getJobManager().getScheduler();
+        if (scheduler instanceof FrameworkScheduler) {
+            return (FrameworkScheduler) scheduler;
+        }
+        JqLog.e("FrameworkJobSchedulerService has been created but the JobManager does not" +
+                " have a scheduler created by FrameworkJobSchedulerService.");
+        return null;
     }
+
+    /**
+     * Return the JobManager that is associated with this service
+     *
+     * @return The JobManager that is associated with this service
+     */
+    @NonNull
+    protected abstract JobManager getJobManager();
 }

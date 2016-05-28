@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue.examples.twitter.jobs;
 
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.Params;
@@ -46,7 +48,7 @@ public class FetchTweetsJob extends Job {
     }
 
     @Override
-    protected void onCancel(@CancelReason int cancelReason) {
+    protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
 
     }
 

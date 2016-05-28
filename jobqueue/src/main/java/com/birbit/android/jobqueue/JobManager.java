@@ -2,6 +2,7 @@ package com.birbit.android.jobqueue;
 
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
@@ -42,6 +43,10 @@ public class JobManager {
     private final MessageFactory messageFactory;
     @SuppressWarnings("FieldCanBeLocal")
     private Thread chefThread;
+    @Nullable
+    // this is the scheduler that was given in the configuration, not necessarily the scheduler
+    // used by the JobManagerThread.
+    private Scheduler scheduler;
 
     /**
      * Creates a JobManager with the given configuration
@@ -56,10 +61,23 @@ public class JobManager {
         jobManagerThread = new JobManagerThread(configuration, messageQueue, messageFactory);
         chefThread = new Thread(jobManagerThread, "job-manager");
         if (configuration.getScheduler() != null) {
+            scheduler = configuration.getScheduler();
             Scheduler.Callback callback = createSchedulerCallback();
             configuration.getScheduler().init(configuration.getAppContext(), callback);
         }
         chefThread.start();
+    }
+
+    /**
+     * The scheduler that was given to this JobManager when it was initialized.
+     * <p>
+     * The scheduler is used by the JobService to communicate with the JobManager.
+     *
+     * @return The scheduler that was given to this JobManager or null if it does not exist
+     */
+    @Nullable
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 
     private Scheduler.Callback createSchedulerCallback() {
@@ -446,6 +464,7 @@ public class JobManager {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     static class IntQueryFuture<T extends Message & IntCallback.MessageWithCallback>
             implements Future<Integer>,IntCallback {
         final MessageQueue messageQueue;
@@ -453,7 +472,7 @@ public class JobManager {
         final CountDownLatch latch = new CountDownLatch(1);
         final T message;
 
-        public IntQueryFuture(MessageQueue messageQueue, T message) {
+        IntQueryFuture(MessageQueue messageQueue, T message) {
             this.messageQueue = messageQueue;
             this.message = message;
             message.setCallback(this);
@@ -474,7 +493,7 @@ public class JobManager {
             return latch.getCount() == 0;
         }
 
-        public Integer getSafe() {
+        Integer getSafe() {
             try {
                 return get();
             } catch (Throwable t) {

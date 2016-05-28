@@ -6,13 +6,11 @@ import android.util.Log;
 
 import com.birbit.android.jobqueue.examples.twitter.services.MyGcmJobService;
 import com.birbit.android.jobqueue.scheduling.FrameworkJobSchedulerService;
-import com.birbit.android.jobqueue.scheduling.FrameworkScheduler;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.examples.twitter.services.MyJobService;
 import com.birbit.android.jobqueue.log.CustomLogger;
 import com.birbit.android.jobqueue.scheduling.GcmJobSchedulerService;
-import com.birbit.android.jobqueue.scheduling.GcmScheduler;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
@@ -28,7 +26,6 @@ public class TwitterApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        configureJobManager();
     }
 
     private void configureJobManager() {
@@ -66,18 +63,21 @@ public class TwitterApplication extends Application {
         .consumerKeepAlive(120);//wait 2 minute
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             builder.scheduler(FrameworkJobSchedulerService.createSchedulerFor(this,
-                    MyJobService.class), false);
+                    MyJobService.class), true);
         } else {
             int enableGcm = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
             if (enableGcm == ConnectionResult.SUCCESS) {
                 builder.scheduler(GcmJobSchedulerService.createSchedulerFor(this,
-                        MyGcmJobService.class), false);
+                        MyGcmJobService.class), true);
             }
         }
         jobManager = new JobManager(builder.build());
     }
 
-    public JobManager getJobManager() {
+    public synchronized JobManager getJobManager() {
+        if (jobManager == null) {
+            configureJobManager();
+        }
         return jobManager;
     }
 

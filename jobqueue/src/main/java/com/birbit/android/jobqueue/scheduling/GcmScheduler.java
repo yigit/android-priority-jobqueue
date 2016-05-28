@@ -9,7 +9,6 @@ import com.birbit.android.jobqueue.BatchingScheduler;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.google.android.gms.gcm.GcmNetworkManager;
-import com.google.android.gms.gcm.GcmTaskService;
 import com.google.android.gms.gcm.OneoffTask;
 import com.google.android.gms.gcm.Task;
 import com.google.android.gms.gcm.TaskParams;
@@ -18,7 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class GcmScheduler extends Scheduler {
+class GcmScheduler extends Scheduler {
     private static final String KEY_UUID = "uuid";
     private static final String KEY_ID = "id";
     private static final String KEY_DELAY = "delay";
@@ -27,7 +26,7 @@ public class GcmScheduler extends Scheduler {
     private final GcmNetworkManager gcmNetworkManager;
     private final Class<? extends GcmJobSchedulerService> serviceClass;
 
-    public GcmScheduler(Context context, Class<? extends GcmJobSchedulerService> serviceClass) {
+    GcmScheduler(Context context, Class<? extends GcmJobSchedulerService> serviceClass) {
         this.serviceClass = serviceClass;
         gcmNetworkManager = GcmNetworkManager.getInstance(context.getApplicationContext());
     }
@@ -49,7 +48,7 @@ public class GcmScheduler extends Scheduler {
      * @return A unique integer id for the next Job request to be sent to system scheduler
      */
     @SuppressLint("CommitPrefEdits")
-    public int createId() {
+    private int createId() {
         synchronized (GcmScheduler.class) {
             final SharedPreferences preferences = getPreferences(getApplicationContext());
             final int id = preferences.getInt(KEY_ID, 0) + 1;
@@ -83,7 +82,7 @@ public class GcmScheduler extends Scheduler {
      *
      * @return The execution window time for the Job request
      */
-    public long getExecutionWindowSizeInSeconds() {
+    private long getExecutionWindowSizeInSeconds() {
         return TimeUnit.MILLISECONDS.toSeconds(BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);
     }
 
@@ -125,7 +124,7 @@ public class GcmScheduler extends Scheduler {
         return constraint;
     }
 
-    public int onStartJob(TaskParams taskParams) {
+    int onStartJob(TaskParams taskParams) {
         SchedulerConstraint constraint = fromBundle(taskParams.getExtras());
         if (JqLog.isDebugEnabled()) {
             JqLog.d("starting job %s", constraint);
@@ -153,7 +152,7 @@ public class GcmScheduler extends Scheduler {
         volatile boolean reschedule;
         CountDownLatch latch;
 
-        public ResultCallback() {
+        ResultCallback() {
             latch = new CountDownLatch(1);
             reschedule = false;
         }
@@ -167,7 +166,7 @@ public class GcmScheduler extends Scheduler {
             return reschedule;
         }
 
-        public void onDone(boolean reschedule) {
+        void onDone(boolean reschedule) {
             this.reschedule = reschedule;
             latch.countDown();
         }
