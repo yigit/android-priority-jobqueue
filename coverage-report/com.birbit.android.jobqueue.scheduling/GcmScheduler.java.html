@@ -9,7 +9,6 @@ import com.birbit.android.jobqueue.BatchingScheduler;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.google.android.gms.gcm.GcmNetworkManager;
-import com.google.android.gms.gcm.GcmTaskService;
 import com.google.android.gms.gcm.OneoffTask;
 import com.google.android.gms.gcm.Task;
 import com.google.android.gms.gcm.TaskParams;
@@ -18,7 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class GcmScheduler extends Scheduler {
+class GcmScheduler extends Scheduler {
     private static final String KEY_UUID = &quot;uuid&quot;;
     private static final String KEY_ID = &quot;id&quot;;
     private static final String KEY_DELAY = &quot;delay&quot;;
@@ -27,19 +26,19 @@ public class GcmScheduler extends Scheduler {
     private final GcmNetworkManager gcmNetworkManager;
     private final Class&lt;? extends GcmJobSchedulerService&gt; serviceClass;
 
-<span class="nc" id="L30">    public GcmScheduler(Context context, Class&lt;? extends GcmJobSchedulerService&gt; serviceClass) {</span>
-<span class="nc" id="L31">        this.serviceClass = serviceClass;</span>
-<span class="nc" id="L32">        gcmNetworkManager = GcmNetworkManager.getInstance(context.getApplicationContext());</span>
-<span class="nc" id="L33">    }</span>
+<span class="nc" id="L29">    GcmScheduler(Context context, Class&lt;? extends GcmJobSchedulerService&gt; serviceClass) {</span>
+<span class="nc" id="L30">        this.serviceClass = serviceClass;</span>
+<span class="nc" id="L31">        gcmNetworkManager = GcmNetworkManager.getInstance(context.getApplicationContext());</span>
+<span class="nc" id="L32">    }</span>
 
     private static SharedPreferences getPreferences(Context context) {
-<span class="nc" id="L36">        synchronized (GcmScheduler.class) {</span>
-<span class="nc bnc" id="L37" title="All 2 branches missed.">            if (preferences == null) {</span>
-<span class="nc" id="L38">                preferences = context.getSharedPreferences(&quot;jobqueue_gcm_scheduler&quot;,</span>
+<span class="nc" id="L35">        synchronized (GcmScheduler.class) {</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">            if (preferences == null) {</span>
+<span class="nc" id="L37">                preferences = context.getSharedPreferences(&quot;jobqueue_gcm_scheduler&quot;,</span>
                         Context.MODE_PRIVATE);
             }
-<span class="nc" id="L41">            return preferences;</span>
-<span class="nc" id="L42">        }</span>
+<span class="nc" id="L40">            return preferences;</span>
+<span class="nc" id="L41">        }</span>
     }
 
     /**
@@ -49,31 +48,31 @@ public class GcmScheduler extends Scheduler {
      * @return A unique integer id for the next Job request to be sent to system scheduler
      */
     @SuppressLint(&quot;CommitPrefEdits&quot;)
-    public int createId() {
-<span class="nc" id="L53">        synchronized (GcmScheduler.class) {</span>
-<span class="nc" id="L54">            final SharedPreferences preferences = getPreferences(getApplicationContext());</span>
-<span class="nc" id="L55">            final int id = preferences.getInt(KEY_ID, 0) + 1;</span>
-<span class="nc" id="L56">            preferences.edit().putInt(KEY_ID, id).commit();</span>
-<span class="nc" id="L57">            return id;</span>
-<span class="nc" id="L58">        }</span>
+    private int createId() {
+<span class="nc" id="L52">        synchronized (GcmScheduler.class) {</span>
+<span class="nc" id="L53">            final SharedPreferences preferences = getPreferences(getApplicationContext());</span>
+<span class="nc" id="L54">            final int id = preferences.getInt(KEY_ID, 0) + 1;</span>
+<span class="nc" id="L55">            preferences.edit().putInt(KEY_ID, id).commit();</span>
+<span class="nc" id="L56">            return id;</span>
+<span class="nc" id="L57">        }</span>
     }
 
     @Override
     public void request(SchedulerConstraint constraint) {
-<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L64">            JqLog.d(&quot;creating gcm wake up request for %s&quot;, constraint);</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L63">            JqLog.d(&quot;creating gcm wake up request for %s&quot;, constraint);</span>
         }
-<span class="nc" id="L66">        OneoffTask oneoffTask = new OneoffTask.Builder()</span>
-                .setExecutionWindow(constraint.getDelayInMs(), constraint.getDelayInMs()
-                        + getExecutionWindowSizeInSeconds())
-                .setRequiredNetwork(toNetworkState(constraint.getNetworkStatus()))
-                .setPersisted(true)
-                .setService(serviceClass)
-                .setTag(&quot;jobmanager-&quot; + createId())
-                .setExtras(toBundle(constraint))
-                .build();
-<span class="nc" id="L75">        gcmNetworkManager.schedule(oneoffTask);</span>
-<span class="nc" id="L76">    }</span>
+<span class="nc" id="L65">        OneoffTask oneoffTask = new OneoffTask.Builder()</span>
+<span class="nc" id="L66">                .setExecutionWindow(constraint.getDelayInMs(), constraint.getDelayInMs()</span>
+<span class="nc" id="L67">                        + getExecutionWindowSizeInSeconds())</span>
+<span class="nc" id="L68">                .setRequiredNetwork(toNetworkState(constraint.getNetworkStatus()))</span>
+<span class="nc" id="L69">                .setPersisted(true)</span>
+<span class="nc" id="L70">                .setService(serviceClass)</span>
+<span class="nc" id="L71">                .setTag(&quot;jobmanager-&quot; + createId())</span>
+<span class="nc" id="L72">                .setExtras(toBundle(constraint))</span>
+<span class="nc" id="L73">                .build();</span>
+<span class="nc" id="L74">        gcmNetworkManager.schedule(oneoffTask);</span>
+<span class="nc" id="L75">    }</span>
 
     /**
      * GCMNetworkManager accepts an execution window for jobs so that it can batch them together for
@@ -83,94 +82,94 @@ public class GcmScheduler extends Scheduler {
      *
      * @return The execution window time for the Job request
      */
-    public long getExecutionWindowSizeInSeconds() {
-<span class="nc" id="L87">        return TimeUnit.MILLISECONDS.toSeconds(BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);</span>
+    private long getExecutionWindowSizeInSeconds() {
+<span class="nc" id="L86">        return TimeUnit.MILLISECONDS.toSeconds(BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);</span>
     }
 
     @Override
     public void cancelAll() {
-<span class="nc" id="L92">        gcmNetworkManager.cancelAllTasks(serviceClass);</span>
-<span class="nc" id="L93">    }</span>
+<span class="nc" id="L91">        gcmNetworkManager.cancelAllTasks(serviceClass);</span>
+<span class="nc" id="L92">    }</span>
 
     private static int toNetworkState(@NetworkUtil.NetworkStatus int networkStatus) {
-<span class="nc bnc" id="L96" title="All 4 branches missed.">        switch (networkStatus) {</span>
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        switch (networkStatus) {</span>
             case NetworkUtil.DISCONNECTED:
-<span class="nc" id="L98">                return Task.NETWORK_STATE_ANY;</span>
+<span class="nc" id="L97">                return Task.NETWORK_STATE_ANY;</span>
             case NetworkUtil.METERED:
-<span class="nc" id="L100">                return Task.NETWORK_STATE_CONNECTED;</span>
+<span class="nc" id="L99">                return Task.NETWORK_STATE_CONNECTED;</span>
             case NetworkUtil.UNMETERED:
-<span class="nc" id="L102">                return Task.NETWORK_STATE_UNMETERED;</span>
+<span class="nc" id="L101">                return Task.NETWORK_STATE_UNMETERED;</span>
         }
-<span class="nc" id="L104">        JqLog.e(&quot;unknown network status %d. Defaulting to CONNECTED&quot;, networkStatus);</span>
-<span class="nc" id="L105">        return Task.NETWORK_STATE_CONNECTED;</span>
+<span class="nc" id="L103">        JqLog.e(&quot;unknown network status %d. Defaulting to CONNECTED&quot;, networkStatus);</span>
+<span class="nc" id="L104">        return Task.NETWORK_STATE_CONNECTED;</span>
     }
 
     private static Bundle toBundle(SchedulerConstraint constraint) {
-<span class="nc" id="L109">        Bundle bundle = new Bundle();</span>
+<span class="nc" id="L108">        Bundle bundle = new Bundle();</span>
         // put boolean is api 22
-<span class="nc" id="L111">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
-<span class="nc" id="L112">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
-<span class="nc" id="L113">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
-<span class="nc" id="L114">        return bundle;</span>
+<span class="nc" id="L110">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
+<span class="nc" id="L111">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
+<span class="nc" id="L112">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
+<span class="nc" id="L113">        return bundle;</span>
     }
 
     private static SchedulerConstraint fromBundle(Bundle bundle) {
-<span class="nc" id="L118">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
-<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
+<span class="nc" id="L117">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
             // backward compatibility
-<span class="nc" id="L121">            constraint.setUuid(UUID.randomUUID().toString());</span>
+<span class="nc" id="L120">            constraint.setUuid(UUID.randomUUID().toString());</span>
         }
-<span class="nc" id="L123">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
-<span class="nc" id="L124">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
-<span class="nc" id="L125">        return constraint;</span>
+<span class="nc" id="L122">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
+<span class="nc" id="L123">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
+<span class="nc" id="L124">        return constraint;</span>
     }
 
-    public int onStartJob(TaskParams taskParams) {
-<span class="nc" id="L129">        SchedulerConstraint constraint = fromBundle(taskParams.getExtras());</span>
-<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L131">            JqLog.d(&quot;starting job %s&quot;, constraint);</span>
+    int onStartJob(TaskParams taskParams) {
+<span class="nc" id="L128">        SchedulerConstraint constraint = fromBundle(taskParams.getExtras());</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L130">            JqLog.d(&quot;starting job %s&quot;, constraint);</span>
         }
 
-<span class="nc" id="L134">        ResultCallback callback = new ResultCallback();</span>
-<span class="nc" id="L135">        constraint.setData(callback);</span>
-<span class="nc" id="L136">        start(constraint);</span>
-<span class="nc bnc" id="L137" title="All 2 branches missed.">        return callback.get() ? GcmNetworkManager.RESULT_RESCHEDULE : GcmNetworkManager.RESULT_SUCCESS;</span>
+<span class="nc" id="L133">        ResultCallback callback = new ResultCallback();</span>
+<span class="nc" id="L134">        constraint.setData(callback);</span>
+<span class="nc" id="L135">        start(constraint);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        return callback.get() ? GcmNetworkManager.RESULT_RESCHEDULE : GcmNetworkManager.RESULT_SUCCESS;</span>
     }
 
     @Override
     public void onFinished(SchedulerConstraint constraint, boolean reschedule) {
-<span class="nc" id="L142">        Object data = constraint.getData();</span>
-<span class="nc bnc" id="L143" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L144">            JqLog.d(&quot;finished job %s&quot;, constraint);</span>
+<span class="nc" id="L141">        Object data = constraint.getData();</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L143">            JqLog.d(&quot;finished job %s&quot;, constraint);</span>
         }
-<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (data instanceof ResultCallback) {</span>
-<span class="nc" id="L147">            ResultCallback callback = (ResultCallback) data;</span>
-<span class="nc" id="L148">            callback.onDone(reschedule);</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">        if (data instanceof ResultCallback) {</span>
+<span class="nc" id="L146">            ResultCallback callback = (ResultCallback) data;</span>
+<span class="nc" id="L147">            callback.onDone(reschedule);</span>
         }
-<span class="nc" id="L150">    }</span>
+<span class="nc" id="L149">    }</span>
 
     private static class ResultCallback {
         volatile boolean reschedule;
         CountDownLatch latch;
 
-<span class="nc" id="L156">        public ResultCallback() {</span>
-<span class="nc" id="L157">            latch = new CountDownLatch(1);</span>
-<span class="nc" id="L158">            reschedule = false;</span>
-<span class="nc" id="L159">        }</span>
+<span class="nc" id="L155">        ResultCallback() {</span>
+<span class="nc" id="L156">            latch = new CountDownLatch(1);</span>
+<span class="nc" id="L157">            reschedule = false;</span>
+<span class="nc" id="L158">        }</span>
 
         public boolean get() {
             try {
-<span class="nc" id="L163">                latch.await(10 * 60, TimeUnit.SECONDS);</span>
-<span class="nc" id="L164">            } catch (InterruptedException e) {</span>
-<span class="nc" id="L165">                JqLog.e(&quot;job did not finish in 10 minutes :/&quot;);</span>
-<span class="nc" id="L166">            }</span>
-<span class="nc" id="L167">            return reschedule;</span>
+<span class="nc" id="L162">                latch.await(10 * 60, TimeUnit.SECONDS);</span>
+<span class="nc" id="L163">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L164">                JqLog.e(&quot;job did not finish in 10 minutes :/&quot;);</span>
+<span class="nc" id="L165">            }</span>
+<span class="nc" id="L166">            return reschedule;</span>
         }
 
-        public void onDone(boolean reschedule) {
-<span class="nc" id="L171">            this.reschedule = reschedule;</span>
-<span class="nc" id="L172">            latch.countDown();</span>
-<span class="nc" id="L173">        }</span>
+        void onDone(boolean reschedule) {
+<span class="nc" id="L170">            this.reschedule = reschedule;</span>
+<span class="nc" id="L171">            latch.countDown();</span>
+<span class="nc" id="L172">        }</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

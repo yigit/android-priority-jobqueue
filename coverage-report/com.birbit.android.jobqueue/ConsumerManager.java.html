@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>ConsumerManager.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">ConsumerManager.java</span></div><h1>ConsumerManager.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
 
+import android.support.annotation.NonNull;
+
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessagePredicate;
@@ -11,14 +15,8 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
-import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.birbit.android.jobqueue.JobHolder;
-import com.birbit.android.jobqueue.RetryConstraint;
-import com.birbit.android.jobqueue.RunningJobSet;
-import com.birbit.android.jobqueue.TagConstraint;
-import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
@@ -29,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * This class is responsible to communicate with the Workers(consumers) that run the jobs.
@@ -37,9 +36,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 class ConsumerManager {
 
-<span class="fc" id="L40">    private List&lt;Consumer&gt; waitingConsumers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L39">    private List&lt;Consumer&gt; waitingConsumers = new ArrayList&lt;&gt;();</span>
 
-<span class="fc" id="L42">    private final List&lt;Consumer&gt; consumers = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L41">    private final List&lt;Consumer&gt; consumers = new ArrayList&lt;&gt;();</span>
 
     private final int maxConsumerCount;
 
@@ -63,170 +62,178 @@ class ConsumerManager {
 
     final RunningJobSet runningJobGroups;
 
-<span class="fc" id="L66">    private CopyOnWriteArrayList&lt;Runnable&gt; internalZeroConsumersListeners</span>
+    private final ThreadFactory threadFactory;
+
+<span class="fc" id="L67">    private final CopyOnWriteArrayList&lt;Runnable&gt; internalZeroConsumersListeners</span>
             = new CopyOnWriteArrayList&lt;&gt;();
 
     ConsumerManager(JobManagerThread jobManagerThread, Timer timer, MessageFactory factory,
-<span class="fc" id="L70">            Configuration configuration) {</span>
-<span class="fc" id="L71">        this.jobManagerThread = jobManagerThread;</span>
-<span class="fc" id="L72">        this.timer = timer;</span>
-<span class="fc" id="L73">        this.factory = factory;</span>
-<span class="fc" id="L74">        this.loadFactor = configuration.getLoadFactor();</span>
-<span class="fc" id="L75">        this.minConsumerCount = configuration.getMinConsumerCount();</span>
-<span class="fc" id="L76">        this.maxConsumerCount = configuration.getMaxConsumerCount();</span>
-<span class="fc" id="L77">        this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000</span>
+<span class="fc" id="L71">            Configuration configuration) {</span>
+<span class="fc" id="L72">        this.jobManagerThread = jobManagerThread;</span>
+<span class="fc" id="L73">        this.timer = timer;</span>
+<span class="fc" id="L74">        this.factory = factory;</span>
+<span class="fc" id="L75">        this.loadFactor = configuration.getLoadFactor();</span>
+<span class="fc" id="L76">        this.minConsumerCount = configuration.getMinConsumerCount();</span>
+<span class="fc" id="L77">        this.maxConsumerCount = configuration.getMaxConsumerCount();</span>
+<span class="fc" id="L78">        this.consumerKeepAliveNs = configuration.getConsumerKeepAlive() * 1000</span>
                 * JobManagerThread.NS_PER_MS;
-<span class="fc" id="L79">        this.threadPriority = configuration.getThreadPriority();</span>
-<span class="fc" id="L80">        runningJobHolders = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L81">        runningJobGroups = new RunningJobSet(timer);</span>
-<span class="fc" id="L82">        threadGroup = new ThreadGroup(&quot;JobConsumers&quot;);</span>
-<span class="fc" id="L83">    }</span>
+<span class="fc" id="L80">        this.threadPriority = configuration.getThreadPriority();</span>
+<span class="fc" id="L81">        this.threadFactory = configuration.getThreadFactory();</span>
+<span class="fc" id="L82">        runningJobHolders = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L83">        runningJobGroups = new RunningJobSet(timer);</span>
+<span class="fc" id="L84">        threadGroup = new ThreadGroup(&quot;JobConsumers&quot;);</span>
+<span class="fc" id="L85">    }</span>
 
     void addNoConsumersListener(Runnable runnable) {
-<span class="fc" id="L86">        internalZeroConsumersListeners.add(runnable);</span>
-<span class="fc" id="L87">    }</span>
+<span class="fc" id="L88">        internalZeroConsumersListeners.add(runnable);</span>
+<span class="fc" id="L89">    }</span>
 
     boolean removeNoConsumersListener(Runnable runnable) {
-<span class="fc" id="L90">        return internalZeroConsumersListeners.remove(runnable);</span>
+<span class="fc" id="L92">        return internalZeroConsumersListeners.remove(runnable);</span>
     }
 
     void onJobAdded() {
-<span class="fc" id="L94">        considerAddingConsumers(false);</span>
-<span class="fc" id="L95">    }</span>
+<span class="fc" id="L96">        considerAddingConsumers(false);</span>
+<span class="fc" id="L97">    }</span>
 
     void handleConstraintChange() {
-<span class="fc" id="L98">        considerAddingConsumers(true);</span>
-<span class="fc" id="L99">    }</span>
+<span class="fc" id="L100">        considerAddingConsumers(true);</span>
+<span class="fc" id="L101">    }</span>
 
     void handleStop() {
         // poke everybody so we can kill them
-<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (Consumer consumer : consumers) {</span>
-<span class="fc" id="L104">            SafeMessageQueue mq = consumer.messageQueue;</span>
-<span class="fc" id="L105">            CommandMessage command = factory.obtain(CommandMessage.class);</span>
-<span class="fc" id="L106">            command.set(CommandMessage.POKE);</span>
-<span class="fc" id="L107">            mq.post(command);</span>
-<span class="fc" id="L108">        }</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">        if (consumers.isEmpty()) {</span>
-<span class="fc bfc" id="L110" title="All 2 branches covered.">            for (Runnable runnable : internalZeroConsumersListeners) {</span>
-<span class="fc" id="L111">                runnable.run();</span>
-<span class="fc" id="L112">            }</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        for (Consumer consumer : consumers) {</span>
+<span class="fc" id="L106">            SafeMessageQueue mq = consumer.messageQueue;</span>
+<span class="fc" id="L107">            CommandMessage command = factory.obtain(CommandMessage.class);</span>
+<span class="fc" id="L108">            command.set(CommandMessage.POKE);</span>
+<span class="fc" id="L109">            mq.post(command);</span>
+<span class="fc" id="L110">        }</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (consumers.isEmpty()) {</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">            for (Runnable runnable : internalZeroConsumersListeners) {</span>
+<span class="fc" id="L113">                runnable.run();</span>
+<span class="fc" id="L114">            }</span>
         }
-<span class="fc" id="L114">    }</span>
+<span class="fc" id="L116">    }</span>
 
     private void considerAddingConsumers(boolean pokeAllWaiting) {
-<span class="fc" id="L117">        JqLog.d(&quot;considering adding a new consumer. Should poke all waiting? %s isRunning? %s&quot;</span>
+<span class="fc" id="L119">        JqLog.d(&quot;considering adding a new consumer. Should poke all waiting? %s isRunning? %s&quot;</span>
                         + &quot; waiting workers? %d&quot;
-                , pokeAllWaiting, jobManagerThread.isRunning(), waitingConsumers.size());
-<span class="fc bfc" id="L120" title="All 2 branches covered.">        if (!jobManagerThread.isRunning()) {</span>
-<span class="fc" id="L121">            JqLog.d(&quot;jobqueue is not running, no consumers will be added&quot;);</span>
-<span class="fc" id="L122">            return;</span>
+<span class="fc" id="L121">                , pokeAllWaiting, jobManagerThread.isRunning(), waitingConsumers.size());</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (!jobManagerThread.isRunning()) {</span>
+<span class="fc" id="L123">            JqLog.d(&quot;jobqueue is not running, no consumers will be added&quot;);</span>
+<span class="fc" id="L124">            return;</span>
         }
-<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (waitingConsumers.size() &gt; 0) {</span>
-<span class="fc" id="L125">            JqLog.d(&quot;there are waiting workers, will poke them instead&quot;);</span>
-<span class="fc bfc" id="L126" title="All 2 branches covered.">            for (int i = waitingConsumers.size() - 1; i &gt;= 0; i--) {</span>
-<span class="fc" id="L127">                Consumer consumer = waitingConsumers.remove(i);</span>
-<span class="fc" id="L128">                CommandMessage command = factory.obtain(CommandMessage.class);</span>
-<span class="fc" id="L129">                command.set(CommandMessage.POKE);</span>
-<span class="fc" id="L130">                consumer.messageQueue.post(command);</span>
-<span class="fc bfc" id="L131" title="All 2 branches covered.">                if (!pokeAllWaiting) {</span>
-<span class="fc" id="L132">                    break;</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (waitingConsumers.size() &gt; 0) {</span>
+<span class="fc" id="L127">            JqLog.d(&quot;there are waiting workers, will poke them instead&quot;);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">            for (int i = waitingConsumers.size() - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L129">                Consumer consumer = waitingConsumers.remove(i);</span>
+<span class="fc" id="L130">                CommandMessage command = factory.obtain(CommandMessage.class);</span>
+<span class="fc" id="L131">                command.set(CommandMessage.POKE);</span>
+<span class="fc" id="L132">                consumer.messageQueue.post(command);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">                if (!pokeAllWaiting) {</span>
+<span class="fc" id="L134">                    break;</span>
                 }
             }
-<span class="fc" id="L135">            JqLog.d(&quot;there were waiting workers, poked them and I'm done&quot;);</span>
-<span class="fc" id="L136">            return;</span>
+<span class="fc" id="L137">            JqLog.d(&quot;there were waiting workers, poked them and I'm done&quot;);</span>
+<span class="fc" id="L138">            return;</span>
         }
-<span class="fc" id="L138">        boolean isAboveLoadFactor = isAboveLoadFactor();</span>
-<span class="fc" id="L139">        JqLog.d(&quot;nothing has been poked. are we above load factor? %s&quot;, isAboveLoadFactor);</span>
-<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (isAboveLoadFactor) {</span>
-<span class="fc" id="L141">            addWorker();</span>
+<span class="fc" id="L140">        boolean isAboveLoadFactor = isAboveLoadFactor();</span>
+<span class="fc" id="L141">        JqLog.d(&quot;nothing has been poked. are we above load factor? %s&quot;, isAboveLoadFactor);</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (isAboveLoadFactor) {</span>
+<span class="fc" id="L143">            addWorker();</span>
         }
-<span class="fc" id="L143">    }</span>
+<span class="fc" id="L145">    }</span>
 
     private void addWorker() {
-<span class="fc" id="L146">        JqLog.d(&quot;adding another consumer&quot;);</span>
-<span class="fc" id="L147">        Consumer consumer = new Consumer(jobManagerThread.messageQueue,</span>
+<span class="fc" id="L148">        JqLog.d(&quot;adding another consumer&quot;);</span>
+<span class="fc" id="L149">        Consumer consumer = new Consumer(jobManagerThread.messageQueue,</span>
                 new SafeMessageQueue(timer, factory, &quot;consumer&quot;), factory, timer);
-<span class="fc" id="L149">        Thread thread = new Thread(threadGroup, consumer, &quot;job-queue-worker-&quot; + UUID.randomUUID());</span>
-<span class="fc" id="L150">        thread.setPriority(threadPriority);</span>
-<span class="fc" id="L151">        consumers.add(consumer);</span>
-<span class="fc" id="L152">        thread.start();</span>
-<span class="fc" id="L153">    }</span>
+        final Thread thread;
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (threadFactory != null) {</span>
+<span class="fc" id="L153">            thread = threadFactory.newThread(consumer);</span>
+        } else {
+<span class="fc" id="L155">            thread = new Thread(threadGroup, consumer, &quot;job-queue-worker-&quot; + UUID.randomUUID());</span>
+<span class="fc" id="L156">            thread.setPriority(threadPriority);</span>
+        }
+<span class="fc" id="L158">        consumers.add(consumer);</span>
+<span class="fc" id="L159">        thread.start();</span>
+<span class="fc" id="L160">    }</span>
 
     private boolean isAboveLoadFactor() {
-<span class="fc" id="L156">        final int workerCount = consumers.size();</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (workerCount &gt;= maxConsumerCount) {</span>
-<span class="fc" id="L158">            JqLog.d(&quot;too many consumers, clearly above load factor %s&quot;, workerCount);</span>
-<span class="fc" id="L159">            return false;</span>
+<span class="fc" id="L163">        final int workerCount = consumers.size();</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (workerCount &gt;= maxConsumerCount) {</span>
+<span class="fc" id="L165">            JqLog.d(&quot;too many consumers, clearly above load factor %s&quot;, workerCount);</span>
+<span class="fc" id="L166">            return false;</span>
         }
-<span class="fc" id="L161">        final int remainingJobs = jobManagerThread.countRemainingReadyJobs();</span>
-<span class="fc" id="L162">        final int runningHolders = runningJobHolders.size();</span>
+<span class="fc" id="L168">        final int remainingJobs = jobManagerThread.countRemainingReadyJobs();</span>
+<span class="fc" id="L169">        final int runningHolders = runningJobHolders.size();</span>
 
-<span class="fc bfc" id="L164" title="All 6 branches covered.">        boolean aboveLoadFactor = (workerCount * loadFactor &lt; remainingJobs + runningHolders) ||</span>
+<span class="fc bfc" id="L171" title="All 6 branches covered.">        boolean aboveLoadFactor = (workerCount * loadFactor &lt; remainingJobs + runningHolders) ||</span>
                 (workerCount &lt; minConsumerCount &amp;&amp; workerCount &lt; remainingJobs + runningHolders);
-<span class="fc" id="L166">        JqLog.d(&quot;check above load factor: totalCons:%s minCons:%s maxConsCount: %s, loadFactor %s&quot;</span>
-                        + &quot; remainingJobs: %s runningsHolders: %s. isAbove:%s&quot;, workerCount,
-                minConsumerCount, maxConsumerCount, loadFactor, remainingJobs, runningHolders,
-                aboveLoadFactor);
-<span class="fc" id="L170">        return aboveLoadFactor;</span>
+<span class="fc" id="L173">        JqLog.d(&quot;check above load factor: totalCons:%s minCons:%s maxConsCount: %s, loadFactor %s&quot;</span>
+<span class="fc" id="L174">                        + &quot; remainingJobs: %s runningsHolders: %s. isAbove:%s&quot;, workerCount,</span>
+<span class="fc" id="L175">                minConsumerCount, maxConsumerCount, loadFactor, remainingJobs, runningHolders,</span>
+<span class="fc" id="L176">                aboveLoadFactor);</span>
+<span class="fc" id="L177">        return aboveLoadFactor;</span>
     }
 
     /**
      * @return true if consumer received a job or busy, false otherwise
      */
-    boolean handleIdle(JobConsumerIdleMessage message) {
-<span class="fc" id="L177">        Consumer consumer = (Consumer) message.getWorker();</span>
-<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (consumer.hasJob) {</span>
-<span class="fc" id="L179">            return true;// ignore, it has a job to process.</span>
+    boolean handleIdle(@NonNull JobConsumerIdleMessage message) {
+<span class="fc" id="L184">        Consumer consumer = (Consumer) message.getWorker();</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (consumer.hasJob) {</span>
+<span class="fc" id="L186">            return true;// ignore, it has a job to process.</span>
         }
-<span class="fc" id="L181">        JobHolder nextJob = null;</span>
-<span class="fc" id="L182">        final boolean running = jobManagerThread.isRunning();</span>
-<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (running) {</span>
-<span class="fc" id="L184">            nextJob = jobManagerThread.getNextJob(runningJobGroups.getSafe());</span>
+<span class="fc" id="L188">        JobHolder nextJob = null;</span>
+<span class="fc" id="L189">        final boolean running = jobManagerThread.isRunning();</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (running) {</span>
+<span class="fc" id="L191">            nextJob = jobManagerThread.getNextJob(runningJobGroups.getSafe());</span>
         }
-<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (nextJob != null) {</span>
-<span class="fc" id="L187">            consumer.hasJob = true;</span>
-<span class="fc" id="L188">            runningJobGroups.add(nextJob.getGroupId());</span>
-<span class="fc" id="L189">            RunJobMessage runJobMessage = factory.obtain(RunJobMessage.class);</span>
-<span class="fc" id="L190">            runJobMessage.setJobHolder(nextJob);</span>
-<span class="fc" id="L191">            runningJobHolders.put(nextJob.getJob().getId(), nextJob);</span>
-<span class="fc bfc" id="L192" title="All 2 branches covered.">            if (nextJob.getGroupId() != null) {</span>
-<span class="fc" id="L193">                runningJobGroups.add(nextJob.getGroupId());</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        if (nextJob != null) {</span>
+<span class="fc" id="L194">            consumer.hasJob = true;</span>
+<span class="fc" id="L195">            runningJobGroups.add(nextJob.getGroupId());</span>
+<span class="fc" id="L196">            RunJobMessage runJobMessage = factory.obtain(RunJobMessage.class);</span>
+<span class="fc" id="L197">            runJobMessage.setJobHolder(nextJob);</span>
+<span class="fc" id="L198">            runningJobHolders.put(nextJob.getJob().getId(), nextJob);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">            if (nextJob.getGroupId() != null) {</span>
+<span class="fc" id="L200">                runningJobGroups.add(nextJob.getGroupId());</span>
             }
-<span class="fc" id="L195">            consumer.messageQueue.post(runJobMessage);</span>
-<span class="fc" id="L196">            return true;</span>
+<span class="fc" id="L202">            consumer.messageQueue.post(runJobMessage);</span>
+<span class="fc" id="L203">            return true;</span>
         } else {
-<span class="fc" id="L198">            long keepAliveTimeout = message.getLastJobCompleted() + consumerKeepAliveNs;</span>
-<span class="fc" id="L199">            JqLog.d(&quot;keep alive: %s&quot;, keepAliveTimeout);</span>
-<span class="fc bfc" id="L200" title="All 2 branches covered.">            final boolean tooMany = consumers.size() &gt; minConsumerCount;</span>
-<span class="fc bfc" id="L201" title="All 6 branches covered.">            boolean kill = !running || (tooMany &amp;&amp; keepAliveTimeout &lt; timer.nanoTime());</span>
-<span class="fc" id="L202">            JqLog.d(&quot;Consumer idle, will kill? %s . isRunning: %s&quot;, kill, running);</span>
-<span class="fc bfc" id="L203" title="All 2 branches covered.">            if (kill) {</span>
-<span class="fc" id="L204">                CommandMessage command = factory.obtain(CommandMessage.class);</span>
-<span class="fc" id="L205">                command.set(CommandMessage.QUIT);</span>
-<span class="fc" id="L206">                consumer.messageQueue.post(command);</span>
-<span class="fc" id="L207">                waitingConsumers.remove(consumer);</span>
-<span class="fc" id="L208">                consumers.remove(consumer);</span>
-<span class="fc" id="L209">                JqLog.d(&quot;killed consumers. remaining consumers %d&quot;, consumers.size());</span>
-<span class="pc bpc" id="L210" title="1 of 4 branches missed.">                if (consumers.isEmpty() &amp;&amp; internalZeroConsumersListeners != null) {</span>
-<span class="fc bfc" id="L211" title="All 2 branches covered.">                    for (Runnable runnable : internalZeroConsumersListeners) {</span>
-<span class="fc" id="L212">                        runnable.run();</span>
-<span class="fc" id="L213">                    }</span>
+<span class="fc" id="L205">            long keepAliveTimeout = message.getLastJobCompleted() + consumerKeepAliveNs;</span>
+<span class="fc" id="L206">            JqLog.d(&quot;keep alive: %s&quot;, keepAliveTimeout);</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">            final boolean tooMany = consumers.size() &gt; minConsumerCount;</span>
+<span class="fc bfc" id="L208" title="All 6 branches covered.">            boolean kill = !running || (tooMany &amp;&amp; keepAliveTimeout &lt; timer.nanoTime());</span>
+<span class="fc" id="L209">            JqLog.d(&quot;Consumer idle, will kill? %s . isRunning: %s&quot;, kill, running);</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">            if (kill) {</span>
+<span class="fc" id="L211">                CommandMessage command = factory.obtain(CommandMessage.class);</span>
+<span class="fc" id="L212">                command.set(CommandMessage.QUIT);</span>
+<span class="fc" id="L213">                consumer.messageQueue.post(command);</span>
+<span class="fc" id="L214">                waitingConsumers.remove(consumer);</span>
+<span class="fc" id="L215">                consumers.remove(consumer);</span>
+<span class="fc" id="L216">                JqLog.d(&quot;killed consumers. remaining consumers %d&quot;, consumers.size());</span>
+<span class="pc bpc" id="L217" title="1 of 4 branches missed.">                if (consumers.isEmpty() &amp;&amp; internalZeroConsumersListeners != null) {</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">                    for (Runnable runnable : internalZeroConsumersListeners) {</span>
+<span class="fc" id="L219">                        runnable.run();</span>
+<span class="fc" id="L220">                    }</span>
                 }
-<span class="fc" id="L215">            } else {</span>
-<span class="pc bpc" id="L216" title="1 of 2 branches missed.">                if (!waitingConsumers.contains(consumer)) {</span>
-<span class="fc" id="L217">                    waitingConsumers.add(consumer);</span>
+<span class="fc" id="L222">            } else {</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">                if (!waitingConsumers.contains(consumer)) {</span>
+<span class="fc" id="L224">                    waitingConsumers.add(consumer);</span>
                 }
-<span class="pc bpc" id="L219" title="1 of 4 branches missed.">                if (tooMany || !jobManagerThread.canListenToNetwork()) {</span>
-<span class="fc" id="L220">                    CommandMessage cm = factory.obtain(CommandMessage.class);</span>
-<span class="fc" id="L221">                    cm.set(CommandMessage.POKE);</span>
-<span class="pc bpc" id="L222" title="1 of 2 branches missed.">                    if (!tooMany) {</span>
-<span class="nc" id="L223">                        keepAliveTimeout = timer.nanoTime() + consumerKeepAliveNs;</span>
+<span class="pc bpc" id="L226" title="1 of 4 branches missed.">                if (tooMany || !jobManagerThread.canListenToNetwork()) {</span>
+<span class="fc" id="L227">                    CommandMessage cm = factory.obtain(CommandMessage.class);</span>
+<span class="fc" id="L228">                    cm.set(CommandMessage.POKE);</span>
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">                    if (!tooMany) {</span>
+<span class="nc" id="L230">                        keepAliveTimeout = timer.nanoTime() + consumerKeepAliveNs;</span>
                     }
-<span class="fc" id="L225">                    consumer.messageQueue.postAt(cm, keepAliveTimeout);</span>
-<span class="fc" id="L226">                    JqLog.d(&quot;poke consumer manager at %s&quot;, keepAliveTimeout);</span>
+<span class="fc" id="L232">                    consumer.messageQueue.postAt(cm, keepAliveTimeout);</span>
+<span class="fc" id="L233">                    JqLog.d(&quot;poke consumer manager at %s&quot;, keepAliveTimeout);</span>
                 }
             }
-<span class="fc" id="L229">            return false;</span>
+<span class="fc" id="L236">            return false;</span>
         }
     }
 
@@ -234,85 +241,85 @@ class ConsumerManager {
      * Excludes cancelled jobs
      */
     Set&lt;String&gt; markJobsCancelled(TagConstraint constraint, String[] tags) {
-<span class="fc" id="L237">        return markJobsCancelled(constraint, tags, false);</span>
+<span class="fc" id="L244">        return markJobsCancelled(constraint, tags, false);</span>
     }
 
     Set&lt;String&gt; markJobsCancelledSingleId(TagConstraint constraint, String[] tags) {
-<span class="fc" id="L241">        return markJobsCancelled(constraint, tags, true);</span>
+<span class="fc" id="L248">        return markJobsCancelled(constraint, tags, true);</span>
     }
 
     private Set&lt;String&gt; markJobsCancelled(TagConstraint constraint, String[] tags, boolean singleId) {
-<span class="fc" id="L245">        Set&lt;String&gt; result = new HashSet&lt;&gt;();</span>
-<span class="fc bfc" id="L246" title="All 2 branches covered.">        for (JobHolder holder : runningJobHolders.values()) {</span>
-<span class="fc" id="L247">            JqLog.d(&quot;checking job tag %s. tags of job: %s&quot;, holder.getJob(),</span>
-                    holder.getJob().getTags());
-<span class="fc bfc" id="L249" title="All 2 branches covered.">            if (!holder.hasTags()) {</span>
-<span class="fc" id="L250">                continue;</span>
+<span class="fc" id="L252">        Set&lt;String&gt; result = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">        for (JobHolder holder : runningJobHolders.values()) {</span>
+<span class="fc" id="L254">            JqLog.d(&quot;checking job tag %s. tags of job: %s&quot;, holder.getJob(),</span>
+<span class="fc" id="L255">                    holder.getJob().getTags());</span>
+<span class="fc bfc" id="L256" title="All 2 branches covered.">            if (!holder.hasTags()) {</span>
+<span class="fc" id="L257">                continue;</span>
             }
-<span class="fc bfc" id="L252" title="All 2 branches covered.">            if (holder.isCancelled()) {</span>
-<span class="fc" id="L253">                continue;</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">            if (holder.isCancelled()) {</span>
+<span class="fc" id="L260">                continue;</span>
             }
 
-<span class="pc bpc" id="L256" title="1 of 2 branches missed.">            if (constraint.matches(tags, holder.getTags())) {</span>
-<span class="fc" id="L257">                result.add(holder.getId());</span>
-<span class="fc bfc" id="L258" title="All 2 branches covered.">                if (singleId) {</span>
-<span class="fc" id="L259">                    holder.markAsCancelledSingleId();</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">            if (constraint.matches(tags, holder.getTags())) {</span>
+<span class="fc" id="L264">                result.add(holder.getId());</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">                if (singleId) {</span>
+<span class="fc" id="L266">                    holder.markAsCancelledSingleId();</span>
                 } else {
-<span class="fc" id="L261">                    holder.markAsCancelled();</span>
+<span class="fc" id="L268">                    holder.markAsCancelled();</span>
                 }
             }
-<span class="fc" id="L264">        }</span>
-<span class="fc" id="L265">        return result;</span>
+<span class="fc" id="L271">        }</span>
+<span class="fc" id="L272">        return result;</span>
     }
 
     void handleRunJobResult(RunJobResultMessage message, JobHolder jobHolder,
             RetryConstraint retryConstraint) {
-<span class="fc" id="L270">        Consumer consumer = (Consumer) message.getWorker();</span>
-<span class="pc bpc" id="L271" title="1 of 2 branches missed.">        if (!consumer.hasJob) {</span>
-<span class="nc" id="L272">            throw new IllegalStateException(&quot;this worker should not have a job&quot;);</span>
+<span class="fc" id="L277">        Consumer consumer = (Consumer) message.getWorker();</span>
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">        if (!consumer.hasJob) {</span>
+<span class="nc" id="L279">            throw new IllegalStateException(&quot;this worker should not have a job&quot;);</span>
         }
-<span class="fc" id="L274">        consumer.hasJob = false;</span>
-<span class="fc" id="L275">        runningJobHolders.remove(jobHolder.getJob().getId());</span>
-<span class="fc bfc" id="L276" title="All 2 branches covered.">        if (jobHolder.getGroupId() != null) {</span>
-<span class="fc" id="L277">            runningJobGroups.remove(jobHolder.getGroupId());</span>
-<span class="pc bpc" id="L278" title="1 of 6 branches missed.">            if (retryConstraint != null &amp;&amp; retryConstraint.willApplyNewDelayToGroup()</span>
-                    &amp;&amp; retryConstraint.getNewDelayInMs() &gt; 0) {
-<span class="fc" id="L280">                runningJobGroups.addGroupUntil(jobHolder.getGroupId(),</span>
-                        timer.nanoTime()
-                                + retryConstraint.getNewDelayInMs() * JobManagerThread.NS_PER_MS);
+<span class="fc" id="L281">        consumer.hasJob = false;</span>
+<span class="fc" id="L282">        runningJobHolders.remove(jobHolder.getJob().getId());</span>
+<span class="fc bfc" id="L283" title="All 2 branches covered.">        if (jobHolder.getGroupId() != null) {</span>
+<span class="fc" id="L284">            runningJobGroups.remove(jobHolder.getGroupId());</span>
+<span class="fc bfc" id="L285" title="All 4 branches covered.">            if (retryConstraint != null &amp;&amp; retryConstraint.willApplyNewDelayToGroup()</span>
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">                    &amp;&amp; retryConstraint.getNewDelayInMs() &gt; 0) {</span>
+<span class="fc" id="L287">                runningJobGroups.addGroupUntil(jobHolder.getGroupId(),</span>
+<span class="fc" id="L288">                        timer.nanoTime()</span>
+<span class="fc" id="L289">                                + retryConstraint.getNewDelayInMs() * JobManagerThread.NS_PER_MS);</span>
             }
         }
-<span class="fc" id="L285">    }</span>
+<span class="fc" id="L292">    }</span>
 
     boolean isJobRunning(String id) {
-<span class="fc bfc" id="L288" title="All 2 branches covered.">        return runningJobHolders.get(id) != null;</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">        return runningJobHolders.get(id) != null;</span>
     }
 
     public int getWorkerCount() {
-<span class="fc" id="L292">        return consumers.size();</span>
+<span class="fc" id="L299">        return consumers.size();</span>
     }
 
     public boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint, long nowInNs) {
-<span class="nc bnc" id="L296" title="All 2 branches missed.">        for (JobHolder jobHolder : runningJobHolders.values()) {</span>
-<span class="nc bnc" id="L297" title="All 2 branches missed.">            if (!jobHolder.getJob().isPersistent()) {</span>
-<span class="nc" id="L298">                continue;</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">        for (JobHolder jobHolder : runningJobHolders.values()) {</span>
+<span class="nc bnc" id="L304" title="All 2 branches missed.">            if (!jobHolder.getJob().isPersistent()) {</span>
+<span class="nc" id="L305">                continue;</span>
             }
-<span class="nc bnc" id="L300" title="All 4 branches missed.">            if(constraint.getNetworkStatus() == NetworkUtil.METERED</span>
-                    &amp;&amp; jobHolder.requiresNetwork(nowInNs)) {
+<span class="nc bnc" id="L307" title="All 2 branches missed.">            if(constraint.getNetworkStatus() == NetworkUtil.METERED</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">                    &amp;&amp; jobHolder.requiresNetwork(nowInNs)) {</span>
                 // this will conver any unmeted job :/
-<span class="nc" id="L303">                return true;</span>
+<span class="nc" id="L310">                return true;</span>
             }
-<span class="nc bnc" id="L305" title="All 4 branches missed.">            if (constraint.getNetworkStatus() == NetworkUtil.UNMETERED</span>
-                    &amp;&amp; jobHolder.requiresUnmeteredNetwork(nowInNs)) {
-<span class="nc" id="L307">                return true;</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">            if (constraint.getNetworkStatus() == NetworkUtil.UNMETERED</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">                    &amp;&amp; jobHolder.requiresUnmeteredNetwork(nowInNs)) {</span>
+<span class="nc" id="L314">                return true;</span>
             }
             // TODO we are missing delayed jobs here because we don't trigger based on it.
-<span class="nc" id="L310">        }</span>
-<span class="nc" id="L311">        return false;</span>
+<span class="nc" id="L317">        }</span>
+<span class="nc" id="L318">        return false;</span>
     }
 
     public boolean areAllConsumersIdle() {
-<span class="nc bnc" id="L315" title="All 2 branches missed.">        return waitingConsumers.size() == consumers.size();</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">        return waitingConsumers.size() == consumers.size();</span>
     }
 
     static class Consumer implements Runnable {
@@ -329,80 +336,80 @@ class ConsumerManager {
 
         long lastJobCompleted;
 
-<span class="fc" id="L332">        static final MessagePredicate pokeMessagePredicate =</span>
-<span class="fc" id="L333">                new MessagePredicate() {</span>
+<span class="fc" id="L339">        static final MessagePredicate pokeMessagePredicate =</span>
+<span class="fc" id="L340">                new MessagePredicate() {</span>
                     @Override
                     public boolean onMessage(Message message) {
-<span class="fc bfc" id="L336" title="All 4 branches covered.">                        return message.type == Type.COMMAND &amp;&amp;</span>
-                                ((CommandMessage) message).getWhat() == CommandMessage.POKE;
+<span class="fc bfc" id="L343" title="All 2 branches covered.">                        return message.type == Type.COMMAND &amp;&amp;</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">                                ((CommandMessage) message).getWhat() == CommandMessage.POKE;</span>
                     }
                 };
 
-<span class="fc" id="L341">        final MessageQueueConsumer queueConsumer = new MessageQueueConsumer() {</span>
+<span class="fc" id="L348">        final MessageQueueConsumer queueConsumer = new MessageQueueConsumer() {</span>
             @Override
             public void handleMessage(Message message) {
-<span class="pc bpc" id="L344" title="1 of 3 branches missed.">                switch (message.type) {</span>
+<span class="pc bpc" id="L351" title="1 of 3 branches missed.">                switch (message.type) {</span>
                     case RUN_JOB:
-<span class="fc" id="L346">                        handleRunJob((RunJobMessage) message);</span>
-<span class="fc" id="L347">                        lastJobCompleted = timer.nanoTime();</span>
-<span class="fc" id="L348">                        removePokeMessages();</span>
-<span class="fc" id="L349">                        break;</span>
+<span class="fc" id="L353">                        handleRunJob((RunJobMessage) message);</span>
+<span class="fc" id="L354">                        lastJobCompleted = timer.nanoTime();</span>
+<span class="fc" id="L355">                        removePokeMessages();</span>
+<span class="fc" id="L356">                        break;</span>
                     case COMMAND:
-<span class="fc" id="L351">                        handleCommand((CommandMessage) message);</span>
+<span class="fc" id="L358">                        handleCommand((CommandMessage) message);</span>
                         break;
                 }
-<span class="fc" id="L354">            }</span>
+<span class="fc" id="L361">            }</span>
 
             @Override
             public void onIdle() {
-<span class="fc" id="L358">                JqLog.d(&quot;consumer manager on idle&quot;);</span>
-<span class="fc" id="L359">                JobConsumerIdleMessage idle = factory.obtain(JobConsumerIdleMessage.class);</span>
-<span class="fc" id="L360">                idle.setWorker(Consumer.this);</span>
-<span class="fc" id="L361">                idle.setLastJobCompleted(lastJobCompleted);</span>
-<span class="fc" id="L362">                parentMessageQueue.post(idle);</span>
-<span class="fc" id="L363">            }</span>
+<span class="fc" id="L365">                JqLog.d(&quot;consumer manager on idle&quot;);</span>
+<span class="fc" id="L366">                JobConsumerIdleMessage idle = factory.obtain(JobConsumerIdleMessage.class);</span>
+<span class="fc" id="L367">                idle.setWorker(Consumer.this);</span>
+<span class="fc" id="L368">                idle.setLastJobCompleted(lastJobCompleted);</span>
+<span class="fc" id="L369">                parentMessageQueue.post(idle);</span>
+<span class="fc" id="L370">            }</span>
         };
 
         private void removePokeMessages() {
-<span class="fc" id="L367">            messageQueue.cancelMessages(pokeMessagePredicate);</span>
-<span class="fc" id="L368">        }</span>
+<span class="fc" id="L374">            messageQueue.cancelMessages(pokeMessagePredicate);</span>
+<span class="fc" id="L375">        }</span>
 
         public Consumer(MessageQueue parentMessageQueue, SafeMessageQueue messageQueue,
-<span class="fc" id="L371">                MessageFactory factory, Timer timer) {</span>
-<span class="fc" id="L372">            this.messageQueue = messageQueue;</span>
-<span class="fc" id="L373">            this.factory = factory;</span>
-<span class="fc" id="L374">            this.parentMessageQueue = parentMessageQueue;</span>
-<span class="fc" id="L375">            this.timer = timer;</span>
-<span class="fc" id="L376">            this.lastJobCompleted = timer.nanoTime();</span>
-<span class="fc" id="L377">        }</span>
+<span class="fc" id="L378">                MessageFactory factory, Timer timer) {</span>
+<span class="fc" id="L379">            this.messageQueue = messageQueue;</span>
+<span class="fc" id="L380">            this.factory = factory;</span>
+<span class="fc" id="L381">            this.parentMessageQueue = parentMessageQueue;</span>
+<span class="fc" id="L382">            this.timer = timer;</span>
+<span class="fc" id="L383">            this.lastJobCompleted = timer.nanoTime();</span>
+<span class="fc" id="L384">        }</span>
 
         @Override
         public void run() {
-<span class="fc" id="L381">            messageQueue.consume(queueConsumer);</span>
-<span class="fc" id="L382">        }</span>
+<span class="fc" id="L388">            messageQueue.consume(queueConsumer);</span>
+<span class="fc" id="L389">        }</span>
 
         private void handleCommand(CommandMessage message) {
-<span class="pc bpc" id="L385" title="1 of 3 branches missed.">            switch (message.getWhat()) {</span>
+<span class="pc bpc" id="L392" title="1 of 3 branches missed.">            switch (message.getWhat()) {</span>
                 case CommandMessage.QUIT:
-<span class="fc" id="L387">                    messageQueue.stop();</span>
-<span class="fc" id="L388">                    break;</span>
+<span class="fc" id="L394">                    messageQueue.stop();</span>
+<span class="fc" id="L395">                    break;</span>
                 case CommandMessage.POKE:
                     // just woke me up, let idle handle
-<span class="fc" id="L391">                    JqLog.d(&quot;Consumer has been poked.&quot;);</span>
+<span class="fc" id="L398">                    JqLog.d(&quot;Consumer has been poked.&quot;);</span>
                     break;
             }
-<span class="fc" id="L394">        }</span>
+<span class="fc" id="L401">        }</span>
 
         private void handleRunJob(RunJobMessage message) {
-<span class="fc" id="L397">            JqLog.d(&quot;running job %s&quot;, message.getJobHolder().getClass().getSimpleName());</span>
-<span class="fc" id="L398">            JobHolder jobHolder = message.getJobHolder();</span>
-<span class="fc" id="L399">            int result = jobHolder.safeRun(jobHolder.getRunCount());</span>
-<span class="fc" id="L400">            RunJobResultMessage resultMessage = factory.obtain(RunJobResultMessage.class);</span>
-<span class="fc" id="L401">            resultMessage.setJobHolder(jobHolder);</span>
-<span class="fc" id="L402">            resultMessage.setResult(result);</span>
-<span class="fc" id="L403">            resultMessage.setWorker(this);</span>
-<span class="fc" id="L404">            parentMessageQueue.post(resultMessage);</span>
-<span class="fc" id="L405">        }</span>
+<span class="fc" id="L404">            JqLog.d(&quot;running job %s&quot;, message.getJobHolder().getClass().getSimpleName());</span>
+<span class="fc" id="L405">            JobHolder jobHolder = message.getJobHolder();</span>
+<span class="fc" id="L406">            int result = jobHolder.safeRun(jobHolder.getRunCount());</span>
+<span class="fc" id="L407">            RunJobResultMessage resultMessage = factory.obtain(RunJobResultMessage.class);</span>
+<span class="fc" id="L408">            resultMessage.setJobHolder(jobHolder);</span>
+<span class="fc" id="L409">            resultMessage.setResult(result);</span>
+<span class="fc" id="L410">            resultMessage.setWorker(this);</span>
+<span class="fc" id="L411">            parentMessageQueue.post(resultMessage);</span>
+<span class="fc" id="L412">        }</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

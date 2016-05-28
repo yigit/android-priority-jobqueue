@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Job.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">Job.java</span></div><h1>Job.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
 
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.timer.Timer;
-
-import android.content.Context;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -22,13 +24,14 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings(&quot;deprecation&quot;)
 abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
+    @SuppressWarnings(&quot;WeakerAccess&quot;)
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private static final String SINGLE_ID_TAG_PREFIX = &quot;job-single-id:&quot;;
-<span class="fc" id="L27">    private String id = UUID.randomUUID().toString();</span>
-<span class="fc" id="L28">    private long requiresNetworkUntilNs = Params.NEVER;</span>
-<span class="fc" id="L29">    transient private long requiresNetworkTimeoutMs = 0;</span>
-<span class="fc" id="L30">    private long requiresUnmeteredNetworkUntilNs = Params.NEVER;</span>
-<span class="fc" id="L31">    transient private long requiresUnmeteredNetworkTimeoutMs = 0;</span>
+<span class="fc" id="L30">    private String id = UUID.randomUUID().toString();</span>
+<span class="fc" id="L31">    private long requiresNetworkUntilNs = Params.NEVER;</span>
+<span class="fc" id="L32">    transient private long requiresNetworkTimeoutMs = 0;</span>
+<span class="fc" id="L33">    private long requiresUnmeteredNetworkUntilNs = Params.NEVER;</span>
+<span class="fc" id="L34">    transient private long requiresUnmeteredNetworkTimeoutMs = 0;</span>
     private String groupId;
     private boolean persistent;
     private Set&lt;String&gt; readonlyTags;
@@ -47,29 +50,29 @@ abstract public class Job implements Serializable {
     private transient boolean sealed;
 
 
-<span class="fc" id="L50">    protected Job(Params params) {</span>
-<span class="fc" id="L51">        this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();</span>
-<span class="fc" id="L52">        this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();</span>
-<span class="fc" id="L53">        this.persistent = params.isPersistent();</span>
-<span class="fc" id="L54">        this.groupId = params.getGroupId();</span>
-<span class="fc" id="L55">        this.priority = params.getPriority();</span>
-<span class="fc" id="L56">        this.delayInMs = params.getDelayMs();</span>
-<span class="fc" id="L57">        final String singleId = params.getSingleId();</span>
-<span class="fc bfc" id="L58" title="All 4 branches covered.">        if (params.getTags() != null || singleId != null) {</span>
-<span class="fc bfc" id="L59" title="All 2 branches covered.">            final Set&lt;String&gt; tags = params.getTags() != null ? params.getTags() : new HashSet&lt;String&gt;();</span>
-<span class="fc bfc" id="L60" title="All 2 branches covered.">            if (singleId != null) {</span>
-<span class="fc" id="L61">                final String tagForSingleId = createTagForSingleId(singleId);</span>
-<span class="fc" id="L62">                tags.add(tagForSingleId);</span>
-<span class="fc bfc" id="L63" title="All 2 branches covered.">                if (this.groupId == null) {</span>
-<span class="fc" id="L64">                    this.groupId = tagForSingleId;</span>
+<span class="fc" id="L53">    protected Job(Params params) {</span>
+<span class="fc" id="L54">        this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();</span>
+<span class="fc" id="L55">        this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();</span>
+<span class="fc" id="L56">        this.persistent = params.isPersistent();</span>
+<span class="fc" id="L57">        this.groupId = params.getGroupId();</span>
+<span class="fc" id="L58">        this.priority = params.getPriority();</span>
+<span class="fc" id="L59">        this.delayInMs = params.getDelayMs();</span>
+<span class="fc" id="L60">        final String singleId = params.getSingleId();</span>
+<span class="fc bfc" id="L61" title="All 4 branches covered.">        if (params.getTags() != null || singleId != null) {</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            final Set&lt;String&gt; tags = params.getTags() != null ? params.getTags() : new HashSet&lt;String&gt;();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            if (singleId != null) {</span>
+<span class="fc" id="L64">                final String tagForSingleId = createTagForSingleId(singleId);</span>
+<span class="fc" id="L65">                tags.add(tagForSingleId);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">                if (this.groupId == null) {</span>
+<span class="fc" id="L67">                    this.groupId = tagForSingleId;</span>
                 }
             }
-<span class="fc" id="L67">            this.readonlyTags = Collections.unmodifiableSet(tags);</span>
+<span class="fc" id="L70">            this.readonlyTags = Collections.unmodifiableSet(tags);</span>
         }
-<span class="fc" id="L69">    }</span>
+<span class="fc" id="L72">    }</span>
 
     public String getId() {
-<span class="fc" id="L72">        return id;</span>
+<span class="fc" id="L75">        return id;</span>
     }
 
     /**
@@ -77,7 +80,7 @@ abstract public class Job implements Serializable {
      * @return priority (higher = better)
      */
     public final int getPriority() {
-<span class="fc" id="L80">        return priority;</span>
+<span class="fc" id="L83">        return priority;</span>
     }
 
     /**
@@ -86,58 +89,62 @@ abstract public class Job implements Serializable {
      * @return delay in ms
      */
     public final long getDelayInMs() {
-<span class="fc" id="L89">        return delayInMs;</span>
+<span class="fc" id="L92">        return delayInMs;</span>
     }
 
     /**
      * Returns a readonly set of tags attached to this Job.
+     *
      * @return Set of Tags. If tags do not exists, returns null.
      */
+    @Nullable
     public final Set&lt;String&gt; getTags() {
-<span class="fc" id="L97">        return readonlyTags;</span>
+<span class="fc" id="L102">        return readonlyTags;</span>
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (!sealed) {</span>
-<span class="nc" id="L102">            throw new IllegalStateException(&quot;A job cannot be serialized w/o first being added into&quot;</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (!sealed) {</span>
+<span class="nc" id="L107">            throw new IllegalStateException(&quot;A job cannot be serialized w/o first being added into&quot;</span>
                     + &quot; a job manager.&quot;);
         }
-<span class="fc" id="L105">        oos.writeLong(requiresNetworkUntilNs);</span>
-<span class="fc" id="L106">        oos.writeLong(requiresUnmeteredNetworkUntilNs);</span>
-<span class="fc" id="L107">        oos.writeObject(groupId);</span>
-<span class="fc" id="L108">        oos.writeBoolean(persistent);</span>
-<span class="fc bfc" id="L109" title="All 2 branches covered.">        final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();</span>
-<span class="fc" id="L110">        oos.writeInt(tagCount);</span>
-<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (tagCount &gt; 0) {</span>
-<span class="fc bfc" id="L112" title="All 2 branches covered.">            for (String tag : readonlyTags) {</span>
-<span class="fc" id="L113">                oos.writeUTF(tag);</span>
-<span class="fc" id="L114">            }</span>
+<span class="fc" id="L110">        oos.writeLong(requiresNetworkUntilNs);</span>
+<span class="fc" id="L111">        oos.writeLong(requiresUnmeteredNetworkUntilNs);</span>
+<span class="fc" id="L112">        oos.writeObject(groupId);</span>
+<span class="fc" id="L113">        oos.writeBoolean(persistent);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();</span>
+<span class="fc" id="L115">        oos.writeInt(tagCount);</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (tagCount &gt; 0) {</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            for (String tag : readonlyTags) {</span>
+<span class="fc" id="L118">                oos.writeUTF(tag);</span>
+<span class="fc" id="L119">            }</span>
         }
-<span class="fc" id="L116">        oos.writeUTF(id);</span>
-<span class="fc" id="L117">    }</span>
+<span class="fc" id="L121">        oos.writeUTF(id);</span>
+<span class="fc" id="L122">    }</span>
 
 
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
-<span class="fc" id="L121">        requiresNetworkUntilNs = ois.readLong();</span>
-<span class="fc" id="L122">        requiresUnmeteredNetworkUntilNs = ois.readLong();</span>
-<span class="fc" id="L123">        groupId = (String) ois.readObject();</span>
-<span class="fc" id="L124">        persistent = ois.readBoolean();</span>
-<span class="fc" id="L125">        final int tagCount = ois.readInt();</span>
-<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (tagCount &gt; 0) {</span>
-<span class="fc" id="L127">            readonlyTags = new HashSet&lt;&gt;(tagCount);</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">            for (int i = 0; i &lt; tagCount; i ++) {</span>
-<span class="fc" id="L129">                readonlyTags.add(ois.readUTF());</span>
+<span class="fc" id="L126">        requiresNetworkUntilNs = ois.readLong();</span>
+<span class="fc" id="L127">        requiresUnmeteredNetworkUntilNs = ois.readLong();</span>
+<span class="fc" id="L128">        groupId = (String) ois.readObject();</span>
+<span class="fc" id="L129">        persistent = ois.readBoolean();</span>
+<span class="fc" id="L130">        final int tagCount = ois.readInt();</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (tagCount &gt; 0) {</span>
+<span class="fc" id="L132">            readonlyTags = new HashSet&lt;&gt;(tagCount);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">            for (int i = 0; i &lt; tagCount; i ++) {</span>
+<span class="fc" id="L134">                readonlyTags.add(ois.readUTF());</span>
             }
         }
-<span class="fc" id="L132">        id = ois.readUTF();</span>
-<span class="fc" id="L133">        sealed = true; //  deserialized jobs are sealed</span>
-<span class="fc" id="L134">    }</span>
+<span class="fc" id="L137">        id = ois.readUTF();</span>
+<span class="fc" id="L138">        sealed = true; //  deserialized jobs are sealed</span>
+<span class="fc" id="L139">    }</span>
 
     /**
-     * defines if we should add this job to disk or non-persistent queue
+     * Whether we should add this job to disk or non-persistent queue
+     *
+     * @return True if this job should be persistent between app restarts
      */
     public final boolean isPersistent() {
-<span class="fc" id="L140">        return persistent;</span>
+<span class="fc" id="L147">        return persistent;</span>
     }
 
     /**
@@ -158,13 +165,14 @@ abstract public class Job implements Serializable {
      * It should finish w/o any exception. If it throws any exception,
      * {@link #shouldReRunOnThrowable(Throwable, int, int)} will be called to
      * decide either to dismiss the job or re-run it.
-     * @throws Throwable
+     *
+     * @throws Throwable Can throw and exception which will mark job run as failed
      */
     abstract public void onRun() throws Throwable;
 
     /**
      * Called when a job is cancelled.
-     * * @param cancelReason It is one of:
+     * @param cancelReason It is one of:
      *                   &lt;ul&gt;
      *                   &lt;li&gt;{@link CancelReason#REACHED_RETRY_LIMIT}&lt;/li&gt;
      *                   &lt;li&gt;{@link CancelReason#CANCELLED_VIA_SHOULD_RE_RUN}&lt;/li&gt;
@@ -172,8 +180,9 @@ abstract public class Job implements Serializable {
      *                   &lt;li&gt;{@link CancelReason#SINGLE_INSTANCE_WHILE_RUNNING}&lt;/li&gt;
      *                   &lt;li&gt;{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}&lt;/li&gt;
      *                   &lt;/ul&gt;
+     * @param throwable The exception that was thrown from the last execution of {@link #onRun()}
      */
-    abstract protected void onCancel(@CancelReason int cancelReason);
+    abstract protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable);
 
     /**
      * If {@code onRun} method throws an exception, this method is called.
@@ -192,74 +201,83 @@ abstract public class Job implements Serializable {
      * @param throwable The exception that was thrown from {@link #onRun()}
      * @param runCount The number of times this job run. Starts from 1.
      * @param maxRunCount The max number of times this job can run. Decided by {@link #getRetryLimit()}
+     *
      * @return A {@link RetryConstraint} to decide whether this Job should be tried again or not and
      * if yes, whether we should add a delay or alter its priority. Returning null from this method
-     * is equal to returning {@link RetryConstraint#RETRY}. Default implementation calls
-     * {@link #shouldReRunOnThrowable(Throwable, int, int)}}.
+     * is equal to returning {@link RetryConstraint#RETRY}.
      */
-    abstract protected RetryConstraint shouldReRunOnThrowable(Throwable throwable, int runCount, int maxRunCount);
+    abstract protected RetryConstraint shouldReRunOnThrowable(@NonNull Throwable throwable, int runCount, int maxRunCount);
 
     /**
      * Runs the job and catches any exception
-     * @param currentRunCount
+     *
+     * @param currentRunCount The current run count of the job
+     *
      * @return one of the RUN_RESULT ints
      */
     final int safeRun(JobHolder holder, int currentRunCount) {
-<span class="fc" id="L208">        this.currentRunCount = currentRunCount;</span>
-<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="fc" id="L210">            JqLog.d(&quot;running job %s&quot;, this.getClass().getSimpleName());</span>
+<span class="fc" id="L219">        this.currentRunCount = currentRunCount;</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="fc" id="L221">            JqLog.d(&quot;running job %s&quot;, this.getClass().getSimpleName());</span>
         }
-<span class="fc" id="L212">        boolean reRun = false;</span>
-<span class="fc" id="L213">        boolean failed = false;</span>
+<span class="fc" id="L223">        boolean reRun = false;</span>
+<span class="fc" id="L224">        boolean failed = false;</span>
+<span class="fc" id="L225">        Throwable throwable = null;</span>
         try {
-<span class="fc" id="L215">            onRun();</span>
-<span class="fc bfc" id="L216" title="All 2 branches covered.">            if (JqLog.isDebugEnabled()) {</span>
-<span class="fc" id="L217">                JqLog.d(&quot;finished job %s&quot;, this);</span>
+<span class="fc" id="L227">            onRun();</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">            if (JqLog.isDebugEnabled()) {</span>
+<span class="fc" id="L229">                JqLog.d(&quot;finished job %s&quot;, this);</span>
             }
-<span class="fc" id="L219">        } catch (Throwable t) {</span>
-<span class="fc" id="L220">            failed = true;</span>
-<span class="fc" id="L221">            JqLog.e(t, &quot;error while executing job %s&quot;, this);</span>
-<span class="fc bfc" id="L222" title="All 2 branches covered.">            reRun = currentRunCount &lt; getRetryLimit();</span>
-<span class="fc bfc" id="L223" title="All 4 branches covered.">            if(reRun &amp;&amp; !cancelled) {</span>
+<span class="fc" id="L231">        } catch (Throwable t) {</span>
+<span class="fc" id="L232">            failed = true;</span>
+<span class="fc" id="L233">            throwable = t;</span>
+<span class="fc" id="L234">            JqLog.e(t, &quot;error while executing job %s&quot;, this);</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">            reRun = currentRunCount &lt; getRetryLimit();</span>
+<span class="fc bfc" id="L236" title="All 4 branches covered.">            if(reRun &amp;&amp; !cancelled) {</span>
                 try {
-<span class="fc" id="L225">                    RetryConstraint retryConstraint = shouldReRunOnThrowable(t, currentRunCount,</span>
-                            getRetryLimit());
-<span class="fc bfc" id="L227" title="All 2 branches covered.">                    if (retryConstraint == null) {</span>
-<span class="fc" id="L228">                        retryConstraint = RetryConstraint.RETRY;</span>
+<span class="fc" id="L238">                    RetryConstraint retryConstraint = shouldReRunOnThrowable(t, currentRunCount,</span>
+<span class="fc" id="L239">                            getRetryLimit());</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">                    if (retryConstraint == null) {</span>
+<span class="fc" id="L241">                        retryConstraint = RetryConstraint.RETRY;</span>
                     }
-<span class="fc" id="L230">                    this.retryConstraint = retryConstraint;</span>
-<span class="fc" id="L231">                    reRun = retryConstraint.shouldRetry();</span>
-<span class="nc" id="L232">                } catch (Throwable t2) {</span>
-<span class="nc" id="L233">                    JqLog.e(t2, &quot;shouldReRunOnThrowable did throw an exception&quot;);</span>
-<span class="fc" id="L234">                }</span>
+<span class="fc" id="L243">                    this.retryConstraint = retryConstraint;</span>
+<span class="fc" id="L244">                    reRun = retryConstraint.shouldRetry();</span>
+<span class="nc" id="L245">                } catch (Throwable t2) {</span>
+<span class="nc" id="L246">                    JqLog.e(t2, &quot;shouldReRunOnThrowable did throw an exception&quot;);</span>
+<span class="fc" id="L247">                }</span>
             }
-<span class="fc" id="L236">        }</span>
-<span class="fc bfc" id="L237" title="All 2 branches covered.">        JqLog.d(&quot;safeRunResult for %s : %s. re run:%s. cancelled: %s&quot;, this, !failed, reRun, cancelled);</span>
-<span class="fc bfc" id="L238" title="All 2 branches covered.">        if (!failed) {</span>
-<span class="fc" id="L239">            return JobHolder.RUN_RESULT_SUCCESS;</span>
+<span class="fc" id="L249">        }</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">        JqLog.d(&quot;safeRunResult for %s : %s. re run:%s. cancelled: %s&quot;, this, !failed, reRun, cancelled);</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        if (!failed) {</span>
+<span class="fc" id="L252">            return JobHolder.RUN_RESULT_SUCCESS;</span>
         }
-<span class="pc bpc" id="L241" title="1 of 2 branches missed.">        if (holder.isCancelledSingleId()) {</span>
-<span class="nc" id="L242">            return JobHolder.RUN_RESULT_FAIL_SINGLE_ID;</span>
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">        if (holder.isCancelledSingleId()) {</span>
+<span class="nc" id="L255">            return JobHolder.RUN_RESULT_FAIL_SINGLE_ID;</span>
         }
-<span class="fc bfc" id="L244" title="All 2 branches covered.">        if (holder.isCancelled()) {</span>
-<span class="fc" id="L245">            return JobHolder.RUN_RESULT_FAIL_FOR_CANCEL;</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">        if (holder.isCancelled()) {</span>
+<span class="fc" id="L258">            return JobHolder.RUN_RESULT_FAIL_FOR_CANCEL;</span>
         }
-<span class="fc bfc" id="L247" title="All 2 branches covered.">        if (reRun) {</span>
-<span class="fc" id="L248">            return JobHolder.RUN_RESULT_TRY_AGAIN;</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">        if (reRun) {</span>
+<span class="fc" id="L261">            return JobHolder.RUN_RESULT_TRY_AGAIN;</span>
         }
-<span class="fc bfc" id="L250" title="All 2 branches covered.">        if (currentRunCount &lt; getRetryLimit()) {</span>
-<span class="fc" id="L251">            return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">        if (currentRunCount &lt; getRetryLimit()) {</span>
+<span class="fc" id="L264">            return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;</span>
         } else {
-<span class="fc" id="L253">            return JobHolder.RUN_RESULT_FAIL_RUN_LIMIT;</span>
+            // only set the Throwable if we are sure the Job is not gonna run again
+<span class="fc" id="L267">            holder.setThrowable(throwable);</span>
+<span class="fc" id="L268">            return JobHolder.RUN_RESULT_FAIL_RUN_LIMIT;</span>
         }
     }
 
     /**
-     * before each run, JobManager sets this number. Might be useful for the {@link com.birbit.android.jobqueue.Job#onRun()}
-     * method
+     * Before each run, JobManager sets this number.
+     * &lt;p&gt;
+     * Might be useful for the {@link com.birbit.android.jobqueue.Job#onRun()} method
+     *
+     * @return The current retry count of the Job
      */
     protected int getCurrentRunCount() {
-<span class="fc" id="L262">        return currentRunCount;</span>
+<span class="fc" id="L280">        return currentRunCount;</span>
     }
 
     /**
@@ -271,9 +289,11 @@ abstract public class Job implements Serializable {
      * @param timer The timer used by the JobManager. Should be the timer that was used while
      *                configuring the JobManager ({@link Configuration#getTimer()},
      *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
+     *
+     * @return true if the Job should not be run if there is no active network connection
      */
-    public final boolean requiresNetwork(Timer timer) {
-<span class="fc bfc" id="L276" title="All 6 branches covered.">        return sealed ? requiresNetworkUntilNs &gt; timer.nanoTime()</span>
+    public final boolean requiresNetwork(@NonNull Timer timer) {
+<span class="fc bfc" id="L296" title="All 6 branches covered.">        return sealed ? requiresNetworkUntilNs &gt; timer.nanoTime()</span>
                 : requiresNetworkTimeoutMs != Params.NEVER;
     }
 
@@ -286,9 +306,11 @@ abstract public class Job implements Serializable {
      * @param timer The timer used by the JobManager. Should be the timer that was used while
      *                configuring the JobManager ({@link Configuration#getTimer()},
      *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
+     *
+     * @return true if the job should not be run until an unmetered network (e.g. WIFI) is detected
      */
-    public final boolean requiresUnmeteredNetwork(Timer timer) {
-<span class="pc bpc" id="L291" title="1 of 6 branches missed.">        return sealed ? requiresUnmeteredNetworkUntilNs &gt; timer.nanoTime()</span>
+    public final boolean requiresUnmeteredNetwork(@NonNull Timer timer) {
+<span class="pc bpc" id="L313" title="1 of 6 branches missed.">        return sealed ? requiresUnmeteredNetworkUntilNs &gt; timer.nanoTime()</span>
                 : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
     }
 
@@ -299,8 +321,9 @@ abstract public class Job implements Serializable {
      *
      * @return True if job requires a network to be run, false otherwise.
      */
+    @SuppressWarnings(&quot;unused&quot;)
     public final boolean requiresNetworkIgnoreTimeout() {
-<span class="nc bnc" id="L303" title="All 6 branches missed.">        return sealed ? requiresNetworkUntilNs &gt; 0</span>
+<span class="nc bnc" id="L326" title="All 6 branches missed.">        return sealed ? requiresNetworkUntilNs &gt; 0</span>
                 : requiresNetworkTimeoutMs &gt; 0;
     }
 
@@ -311,8 +334,9 @@ abstract public class Job implements Serializable {
      *
      * @return True if job requires a unmetered network to be run, false otherwise.
      */
+    @SuppressWarnings(&quot;unused&quot;)
     public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
-<span class="nc bnc" id="L315" title="All 6 branches missed.">        return sealed ? requiresUnmeteredNetworkUntilNs &gt; 0</span>
+<span class="nc bnc" id="L339" title="All 6 branches missed.">        return sealed ? requiresUnmeteredNetworkUntilNs &gt; 0</span>
                 : requiresUnmeteredNetworkTimeoutMs &gt; 0;
     }
 
@@ -330,7 +354,7 @@ abstract public class Job implements Serializable {
      * run.
      */
     public long getRequiresUnmeteredNetworkUntilNs() {
-<span class="fc" id="L333">        return requiresUnmeteredNetworkUntilNs;</span>
+<span class="fc" id="L357">        return requiresUnmeteredNetworkUntilNs;</span>
     }
 
     /**
@@ -347,7 +371,7 @@ abstract public class Job implements Serializable {
      * run.
      */
     public long getRequiresNetworkUntilNs() {
-<span class="fc" id="L350">        return requiresNetworkUntilNs;</span>
+<span class="fc" id="L374">        return requiresNetworkUntilNs;</span>
     }
 
     /**
@@ -359,7 +383,7 @@ abstract public class Job implements Serializable {
      * @return The groupId of the job or null if it is not grouped
      */
     public final String getRunGroupId() {
-<span class="fc" id="L362">        return groupId;</span>
+<span class="fc" id="L386">        return groupId;</span>
     }
 
     /**
@@ -370,18 +394,18 @@ abstract public class Job implements Serializable {
      * @return The single instance id of the job or null if it is not a single instance job
      */
     public final String getSingleInstanceId() {
-<span class="fc bfc" id="L373" title="All 2 branches covered.">        if (readonlyTags != null) {</span>
-<span class="fc bfc" id="L374" title="All 2 branches covered.">            for (String tag : readonlyTags) {</span>
-<span class="fc bfc" id="L375" title="All 2 branches covered.">                if (tag.startsWith(SINGLE_ID_TAG_PREFIX)) {</span>
-<span class="fc" id="L376">                    return tag;</span>
+<span class="fc bfc" id="L397" title="All 2 branches covered.">        if (readonlyTags != null) {</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">            for (String tag : readonlyTags) {</span>
+<span class="fc bfc" id="L399" title="All 2 branches covered.">                if (tag.startsWith(SINGLE_ID_TAG_PREFIX)) {</span>
+<span class="fc" id="L400">                    return tag;</span>
                 }
-<span class="fc" id="L378">            }</span>
+<span class="fc" id="L402">            }</span>
         }
-<span class="fc" id="L380">        return null;</span>
+<span class="fc" id="L404">        return null;</span>
     }
 
     private String createTagForSingleId(String singleId) {
-<span class="fc" id="L384">        return SINGLE_ID_TAG_PREFIX + singleId;</span>
+<span class="fc" id="L408">        return SINGLE_ID_TAG_PREFIX + singleId;</span>
     }
 
     /**
@@ -391,7 +415,7 @@ abstract public class Job implements Serializable {
      * @return The number of times the job should be re-tried before being cancelled automatically
      */
     protected int getRetryLimit() {
-<span class="fc" id="L394">        return DEFAULT_RETRY_LIMIT;</span>
+<span class="fc" id="L418">        return DEFAULT_RETRY_LIMIT;</span>
     }
 
     /**
@@ -407,24 +431,27 @@ abstract public class Job implements Serializable {
      * &lt;p&gt;
      * Calling this method outside {@link #onRun()} method has no meaning since {@link #onRun()} will not
      * be called if the job is cancelled before it is called.
+     *
+     * @return true if the Job is cancelled
      */
     public boolean isCancelled() {
-<span class="fc" id="L412">        return cancelled;</span>
+<span class="fc" id="L438">        return cancelled;</span>
     }
 
     /**
      * Convenience method that checks if job is cancelled and throws a RuntimeException if it is
      * cancelled.
      */
+    @SuppressWarnings({&quot;WeakerAccess&quot;, &quot;unused&quot;})
     public void assertNotCancelled() {
-<span class="nc bnc" id="L420" title="All 2 branches missed.">        if (cancelled) {</span>
-<span class="nc" id="L421">            throw new RuntimeException(&quot;job is cancelled&quot;);</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">        if (cancelled) {</span>
+<span class="nc" id="L448">            throw new RuntimeException(&quot;job is cancelled&quot;);</span>
         }
-<span class="nc" id="L423">    }</span>
+<span class="nc" id="L450">    }</span>
 
     /*package*/ void setApplicationContext(Context context) {
-<span class="fc" id="L426">        this.applicationContext = context;</span>
-<span class="fc" id="L427">    }</span>
+<span class="fc" id="L453">        this.applicationContext = context;</span>
+<span class="fc" id="L454">    }</span>
 
     /**
      * Convenience method to get the application context in a Job.
@@ -434,40 +461,42 @@ abstract public class Job implements Serializable {
      * @return The application context
      */
     public Context getApplicationContext() {
-<span class="fc" id="L437">        return applicationContext;</span>
+<span class="fc" id="L464">        return applicationContext;</span>
     }
 
     /**
      * Internal method used by the JobManager when it is added. After this point, you cannot make
      * any changes to this job.
+     *
+     * @param timer The timer used by the JobManager
      */
-    public void seal(Timer timer) {
-<span class="pc bpc" id="L445" title="1 of 2 branches missed.">        if (sealed) {</span>
-<span class="nc" id="L446">            throw new IllegalStateException(&quot;Cannot add the same job twice&quot;);</span>
+    public void seal(@NonNull Timer timer) {
+<span class="pc bpc" id="L474" title="1 of 2 branches missed.">        if (sealed) {</span>
+<span class="nc" id="L475">            throw new IllegalStateException(&quot;Cannot add the same job twice&quot;);</span>
         }
-<span class="fc bfc" id="L448" title="All 2 branches covered.">        if (requiresNetworkTimeoutMs == Params.NEVER) {</span>
+<span class="fc bfc" id="L477" title="All 2 branches covered.">        if (requiresNetworkTimeoutMs == Params.NEVER) {</span>
             // convert it from nano
-<span class="fc" id="L450">            requiresNetworkUntilNs = Params.NEVER;</span>
-<span class="fc bfc" id="L451" title="All 2 branches covered.">        } else if (requiresNetworkTimeoutMs == Params.FOREVER) {</span>
-<span class="fc" id="L452">            requiresNetworkUntilNs = Params.FOREVER;</span>
+<span class="fc" id="L479">            requiresNetworkUntilNs = Params.NEVER;</span>
+<span class="fc bfc" id="L480" title="All 2 branches covered.">        } else if (requiresNetworkTimeoutMs == Params.FOREVER) {</span>
+<span class="fc" id="L481">            requiresNetworkUntilNs = Params.FOREVER;</span>
         } else {
-<span class="fc" id="L454">            requiresNetworkUntilNs = timer.nanoTime()</span>
-                    + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);
+<span class="fc" id="L483">            requiresNetworkUntilNs = timer.nanoTime()</span>
+<span class="fc" id="L484">                    + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);</span>
         }
 
-<span class="fc bfc" id="L458" title="All 2 branches covered.">        if (requiresUnmeteredNetworkTimeoutMs == Params.NEVER) {</span>
+<span class="fc bfc" id="L487" title="All 2 branches covered.">        if (requiresUnmeteredNetworkTimeoutMs == Params.NEVER) {</span>
             // convert it from nano
-<span class="fc" id="L460">            requiresUnmeteredNetworkUntilNs = Params.NEVER;</span>
-<span class="fc bfc" id="L461" title="All 2 branches covered.">        } else if (requiresUnmeteredNetworkTimeoutMs == Params.FOREVER) {</span>
-<span class="fc" id="L462">            requiresUnmeteredNetworkUntilNs = Params.FOREVER;</span>
+<span class="fc" id="L489">            requiresUnmeteredNetworkUntilNs = Params.NEVER;</span>
+<span class="fc bfc" id="L490" title="All 2 branches covered.">        } else if (requiresUnmeteredNetworkTimeoutMs == Params.FOREVER) {</span>
+<span class="fc" id="L491">            requiresUnmeteredNetworkUntilNs = Params.FOREVER;</span>
         } else {
-<span class="fc" id="L464">            requiresUnmeteredNetworkUntilNs = timer.nanoTime()</span>
-                    + TimeUnit.MILLISECONDS.toNanos(requiresUnmeteredNetworkTimeoutMs);
+<span class="fc" id="L493">            requiresUnmeteredNetworkUntilNs = timer.nanoTime()</span>
+<span class="fc" id="L494">                    + TimeUnit.MILLISECONDS.toNanos(requiresUnmeteredNetworkTimeoutMs);</span>
         }
-<span class="fc bfc" id="L467" title="All 2 branches covered.">        if (requiresNetworkUntilNs &lt; requiresUnmeteredNetworkUntilNs) {</span>
-<span class="fc" id="L468">            requiresNetworkUntilNs = requiresUnmeteredNetworkUntilNs;</span>
+<span class="fc bfc" id="L496" title="All 2 branches covered.">        if (requiresNetworkUntilNs &lt; requiresUnmeteredNetworkUntilNs) {</span>
+<span class="fc" id="L497">            requiresNetworkUntilNs = requiresUnmeteredNetworkUntilNs;</span>
         }
-<span class="fc" id="L470">        sealed = true;</span>
-<span class="fc" id="L471">    }</span>
+<span class="fc" id="L499">        sealed = true;</span>
+<span class="fc" id="L500">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

@@ -36,17 +36,17 @@ public class Where {
 <span class="fc bfc" id="L36" title="All 2 branches covered.">        if (countReadyStmt == null) {</span>
 <span class="fc" id="L37">            stringBuilder.setLength(0);</span>
 <span class="fc" id="L38">            stringBuilder.append(&quot;SELECT SUM(case WHEN &quot;)</span>
-                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
-                    .append(&quot; is null then group_cnt else 1 end) from (&quot;)
-                        .append(&quot;SELECT count(*) group_cnt, &quot;)
-                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
-                        .append(&quot; FROM &quot;)
-                        .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
-                        .append(&quot; WHERE &quot;)
-                        .append(query)
-                        .append(&quot; GROUP BY &quot;)
-                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
-                    .append(&quot;)&quot;);
+<span class="fc" id="L39">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L40">                    .append(&quot; is null then group_cnt else 1 end) from (&quot;)</span>
+<span class="fc" id="L41">                        .append(&quot;SELECT count(*) group_cnt, &quot;)</span>
+<span class="fc" id="L42">                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L43">                        .append(&quot; FROM &quot;)</span>
+<span class="fc" id="L44">                        .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)</span>
+<span class="fc" id="L45">                        .append(&quot; WHERE &quot;)</span>
+<span class="fc" id="L46">                        .append(query)</span>
+<span class="fc" id="L47">                        .append(&quot; GROUP BY &quot;)</span>
+<span class="fc" id="L48">                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L49">                    .append(&quot;)&quot;);</span>
 <span class="fc" id="L50">            countReadyStmt = database.compileStatement(stringBuilder.toString());</span>
         } else {
 <span class="fc" id="L52">            countReadyStmt.clearBindings();</span>
@@ -62,30 +62,30 @@ public class Where {
 <span class="fc" id="L62">            StringBuilder sb = sqlHelper.reusedStringBuilder;</span>
 <span class="fc" id="L63">            sb.setLength(0);</span>
 <span class="fc" id="L64">            sb.append(&quot;SELECT max(&quot;)</span>
-                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);
+<span class="fc" id="L65">                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);</span>
 <span class="fc bfc" id="L66" title="All 2 branches covered.">            if (networkTimeoutArgIndex != -1) {</span>
 <span class="fc" id="L67">                sb.append(&quot;,&quot;)</span>
-                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);
+<span class="fc" id="L68">                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);</span>
             }
 <span class="fc bfc" id="L70" title="All 2 branches covered.">            if (unmeteredNetworkTimeoutArgIndex != -1) {</span>
 <span class="fc" id="L71">                sb.append(&quot;,&quot;)</span>
-                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName);
+<span class="fc" id="L72">                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName);</span>
             }
 <span class="fc" id="L74">            sb.append(&quot;) FROM &quot;)</span>
-                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
-                    .append(&quot; WHERE &quot;)
-                    .append(query);
+<span class="fc" id="L75">                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)</span>
+<span class="fc" id="L76">                    .append(&quot; WHERE &quot;)</span>
+<span class="fc" id="L77">                    .append(query);</span>
             // below NOT constraints are safe to add because this query will only be accessed if
             // they are set to be excluded.
 <span class="fc bfc" id="L80" title="All 2 branches covered.">            if (networkTimeoutArgIndex != -1) {</span>
 <span class="fc" id="L81">                sb.append(&quot; AND &quot;)</span>
-                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
-                        .append(&quot; != &quot;).append(Params.FOREVER);
+<span class="fc" id="L82">                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)</span>
+<span class="fc" id="L83">                        .append(&quot; != &quot;).append(Params.FOREVER);</span>
             }
 <span class="fc bfc" id="L85" title="All 2 branches covered.">            if (unmeteredNetworkTimeoutArgIndex != -1) {</span>
 <span class="fc" id="L86">                sb.append(&quot; AND &quot;)</span>
-                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)
-                        .append(&quot; != &quot;).append(Params.FOREVER);
+<span class="fc" id="L87">                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)</span>
+<span class="fc" id="L88">                        .append(&quot; != &quot;).append(Params.FOREVER);</span>
             }
 <span class="fc" id="L90">            sb.append(&quot; ORDER BY 1 ASC&quot;).append(&quot; limit 1&quot;);</span>
 <span class="fc" id="L91">            String selectQuery = sb.toString();</span>
@@ -98,11 +98,11 @@ public class Where {
         }
 <span class="fc bfc" id="L99" title="All 2 branches covered.">        if (networkTimeoutArgIndex != -1) {</span>
 <span class="fc" id="L100">            nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,</span>
-                    Long.toString(Params.FOREVER));
+<span class="fc" id="L101">                    Long.toString(Params.FOREVER));</span>
         }
 <span class="fc bfc" id="L103" title="All 2 branches covered.">        if (unmeteredNetworkTimeoutArgIndex != -1) {</span>
 <span class="fc" id="L104">            nextJobDelayUntilViaNetworkStmt.bindString(unmeteredNetworkTimeoutArgIndex + 1,</span>
-                    Long.toString(Params.FOREVER));
+<span class="fc" id="L105">                    Long.toString(Params.FOREVER));</span>
         }
 
 <span class="fc" id="L108">        return nextJobDelayUntilViaNetworkStmt;</span>
@@ -113,7 +113,7 @@ public class Where {
 <span class="fc" id="L113">            String selectQuery = sqlHelper.createSelectOneField(</span>
                     DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
                     query,
-                    1,
+<span class="fc" id="L116">                    1,</span>
                     new SqlHelper.Order(DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
                             SqlHelper.Order.Type.ASC)
             );
@@ -131,7 +131,7 @@ public class Where {
 <span class="fc bfc" id="L131" title="All 2 branches covered.">        if (nextJobQuery == null) {</span>
 <span class="fc" id="L132">            nextJobQuery = sqlHelper.createSelect(</span>
                     query,
-                    1,
+<span class="fc" id="L134">                    1,</span>
                     new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
                             SqlHelper.Order.Type.DESC),
                     new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,

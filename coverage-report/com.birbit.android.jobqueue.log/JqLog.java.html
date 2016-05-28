@@ -30,27 +30,36 @@
             public void e(String text, Object... args) {
                 //void
 <span class="nc" id="L32">            }</span>
+
+            @Override
+            public void v(String text, Object... args) {
+                //void
+<span class="fc" id="L37">            }</span>
         });
-<span class="fc" id="L34">    }</span>
+<span class="fc" id="L39">    }</span>
 
     public static void setCustomLogger(CustomLogger customLogger) {
-<span class="fc" id="L37">        JqLog.customLogger = customLogger;</span>
-<span class="fc" id="L38">    }</span>
+<span class="fc" id="L42">        JqLog.customLogger = customLogger;</span>
+<span class="fc" id="L43">    }</span>
 
     public static boolean isDebugEnabled() {
-<span class="fc" id="L41">        return customLogger.isDebugEnabled();</span>
+<span class="fc" id="L46">        return customLogger.isDebugEnabled();</span>
     }
 
     public static void d(String text, Object... args) {
-<span class="fc" id="L45">        customLogger.d(text, args);</span>
-<span class="fc" id="L46">    }</span>
+<span class="fc" id="L50">        customLogger.d(text, args);</span>
+<span class="fc" id="L51">    }</span>
 
     public static void e(Throwable t, String text, Object... args) {
-<span class="fc" id="L49">        customLogger.e(t, text, args);</span>
-<span class="fc" id="L50">    }</span>
+<span class="fc" id="L54">        customLogger.e(t, text, args);</span>
+<span class="fc" id="L55">    }</span>
 
     public static void e(String text, Object... args) {
-<span class="nc" id="L53">        customLogger.e(text, args);</span>
-<span class="nc" id="L54">    }</span>
+<span class="nc" id="L58">        customLogger.e(text, args);</span>
+<span class="nc" id="L59">    }</span>
+
+    public static void v(String text, Object... args) {
+<span class="fc" id="L62">        customLogger.v(text, args);</span>
+<span class="fc" id="L63">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

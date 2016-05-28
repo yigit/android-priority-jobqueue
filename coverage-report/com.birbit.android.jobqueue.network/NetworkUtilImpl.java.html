@@ -24,25 +24,25 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
 <span class="pc bpc" id="L24" title="1 of 2 branches missed.">            if (VERSION.SDK_INT &gt;= Build.VERSION_CODES.M) {</span>
 <span class="nc" id="L25">                listenForIdle(context);</span>
             }
-<span class="fc" id="L27">            listeNetworkViaConnectivityManager(context);</span>
+<span class="fc" id="L27">            listenNetworkViaConnectivityManager(context);</span>
         } else {
 <span class="nc" id="L29">            context.getApplicationContext().registerReceiver(new BroadcastReceiver() {</span>
                 @Override
                 public void onReceive(Context context, Intent intent) {
 <span class="nc" id="L32">                    dispatchNetworkChange(context);</span>
 <span class="nc" id="L33">                }</span>
-            }, getNetworkIntentFilter());
+<span class="nc" id="L34">            }, getNetworkIntentFilter());</span>
         }
 <span class="fc" id="L36">    }</span>
 
     @TargetApi(23)
-    private void listeNetworkViaConnectivityManager(final Context context) {
+    private void listenNetworkViaConnectivityManager(final Context context) {
 <span class="fc" id="L40">        ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext()</span>
-                .getSystemService(Context.CONNECTIVITY_SERVICE);
+<span class="fc" id="L41">                .getSystemService(Context.CONNECTIVITY_SERVICE);</span>
 <span class="fc" id="L42">        NetworkRequest request = new NetworkRequest.Builder()</span>
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
-                .build();
+<span class="fc" id="L43">                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)</span>
+<span class="fc" id="L44">                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)</span>
+<span class="fc" id="L45">                .build();</span>
 <span class="fc" id="L46">        cm.registerNetworkCallback(request, new ConnectivityManager.NetworkCallback() {</span>
             @Override
             public void onAvailable(Network network) {
@@ -81,8 +81,8 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
 <span class="pc bpc" id="L81" title="1 of 2 branches missed.">        if (netInfo == null) {</span>
 <span class="nc" id="L82">            return NetworkUtil.DISCONNECTED;</span>
         }
-<span class="pc bpc" id="L84" title="2 of 4 branches missed.">        if (netInfo.getType() == ConnectivityManager.TYPE_WIFI ||</span>
-                netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (netInfo.getType() == ConnectivityManager.TYPE_WIFI ||</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">                netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {</span>
 <span class="nc" id="L86">            return NetworkUtil.UNMETERED;</span>
         }
 <span class="fc" id="L88">        return NetworkUtil.METERED;</span>
@@ -105,8 +105,8 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     private static boolean isDozing(Context context) {
 <span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (VERSION.SDK_INT &gt;= 23) {</span>
 <span class="nc" id="L107">            PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);</span>
-<span class="nc bnc" id="L108" title="All 4 branches missed.">            return powerManager.isDeviceIdleMode() &amp;&amp;</span>
-                    !powerManager.isIgnoringBatteryOptimizations(context.getPackageName());
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            return powerManager.isDeviceIdleMode() &amp;&amp;</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                    !powerManager.isIgnoringBatteryOptimizations(context.getPackageName());</span>
         } else {
 <span class="fc" id="L111">            return false;</span>
         }

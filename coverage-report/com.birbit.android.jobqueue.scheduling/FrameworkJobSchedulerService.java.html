@@ -4,21 +4,17 @@ import android.annotation.TargetApi;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.log.JqLog;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The service implementation for the framework job scheduler
  */
 @TargetApi(21)
-<span class="nc" id="L18">abstract public class FrameworkJobSchedulerService extends JobService {</span>
-    private static final Map&lt;Class&lt;? extends FrameworkJobSchedulerService&gt;, FrameworkScheduler&gt;
-<span class="nc" id="L20">            schedulerMap = new HashMap&lt;&gt;();</span>
-
+<span class="nc" id="L17">abstract public class FrameworkJobSchedulerService extends JobService {</span>
     /**
      * Creates a scheduler for the given service.
      * Keep in mind that there is a strict 1-1 mapping between the created scheduler and the
@@ -29,60 +25,80 @@ import java.util.concurrent.ConcurrentHashMap;
      *
      * @return A scheduler that is associated with the given service class.
      */
+    @SuppressWarnings(&quot;unused&quot;)
     public static FrameworkScheduler createSchedulerFor(
             @SuppressWarnings(&quot;UnusedParameters&quot;) Context appContext,
             Class&lt;? extends FrameworkJobSchedulerService&gt; klass) {
-<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (FrameworkJobSchedulerService.class == klass) {</span>
-<span class="nc" id="L36">            throw new IllegalArgumentException(&quot;You must create a service that extends&quot; +</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (FrameworkJobSchedulerService.class == klass) {</span>
+<span class="nc" id="L33">            throw new IllegalArgumentException(&quot;You must create a service that extends&quot; +</span>
                     &quot; FrameworkJobSchedulerService&quot;);
         }
-<span class="nc" id="L39">        synchronized (schedulerMap) {</span>
-<span class="nc bnc" id="L40" title="All 2 branches missed.">            if (schedulerMap.get(klass) != null) {</span>
-<span class="nc" id="L41">                throw new IllegalStateException(&quot;You can create 1 scheduler per&quot; +</span>
-                        &quot; FrameworkJobService. &quot; + klass.getCanonicalName() + &quot; already has one.&quot;);
-            }
-<span class="nc" id="L44">            FrameworkScheduler scheduler = new FrameworkScheduler(klass);</span>
-<span class="nc" id="L45">            schedulerMap.put(klass, scheduler);</span>
-<span class="nc" id="L46">            return scheduler;</span>
-<span class="nc" id="L47">        }</span>
+<span class="nc" id="L36">        return new FrameworkScheduler(klass);</span>
     }
 
     @Override
     public void onCreate() {
-<span class="nc" id="L52">        super.onCreate();</span>
-<span class="nc" id="L53">        FrameworkScheduler scheduler = getScheduler();</span>
-<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (scheduler != null) {</span>
-<span class="nc" id="L55">            scheduler.setJobService(this);</span>
+<span class="nc" id="L41">        super.onCreate();</span>
+<span class="nc" id="L42">        FrameworkScheduler scheduler = getScheduler();</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (scheduler != null) {</span>
+<span class="nc" id="L44">            scheduler.setJobService(this);</span>
         } else {
-<span class="nc" id="L57">            JqLog.e(&quot;FrameworkJobSchedulerService has been created but it does not have a&quot; +</span>
+<span class="nc" id="L46">            JqLog.e(&quot;FrameworkJobSchedulerService has been created but it does not have a&quot; +</span>
                     &quot; scheduler. You must initialize JobManager before the service is created.&quot;);
         }
-<span class="nc" id="L60">    }</span>
+<span class="nc" id="L49">    }</span>
 
     @Override
     public void onDestroy() {
-<span class="nc" id="L64">        super.onDestroy();</span>
-<span class="nc" id="L65">        FrameworkScheduler scheduler = getScheduler();</span>
-<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (scheduler != null) {</span>
-<span class="nc" id="L67">            scheduler.setJobService(null);</span>
+<span class="nc" id="L53">        super.onDestroy();</span>
+<span class="nc" id="L54">        FrameworkScheduler scheduler = getScheduler();</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (scheduler != null) {</span>
+<span class="nc" id="L56">            scheduler.setJobService(null);</span>
         } else {
-<span class="nc" id="L69">            JqLog.e(&quot;FrameworkJobSchedulerService is being destroyed but it does not have a &quot; +</span>
+<span class="nc" id="L58">            JqLog.e(&quot;FrameworkJobSchedulerService is being destroyed but it does not have a &quot; +</span>
                     &quot;scheduler :/. You must initialize JobManager before the service is created.&quot;);
         }
-<span class="nc" id="L72">    }</span>
+<span class="nc" id="L61">    }</span>
 
     @Override
     public boolean onStartJob(JobParameters params) {
-<span class="nc" id="L76">        return getScheduler().onStartJob(params);</span>
+<span class="nc" id="L65">        FrameworkScheduler scheduler = getScheduler();</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (scheduler != null) {</span>
+<span class="nc" id="L67">            return scheduler.onStartJob(params);</span>
+        }
+<span class="nc" id="L69">        JqLog.e(&quot;FrameworkJobSchedulerService has been triggered but it does not have a&quot; +</span>
+                &quot; scheduler. You must initialize JobManager before the service is created.&quot;);
+<span class="nc" id="L71">        return false;</span>
     }
 
     @Override
     public boolean onStopJob(JobParameters params) {
-<span class="nc" id="L81">        return getScheduler().onStopJob(params);</span>
+<span class="nc" id="L76">        FrameworkScheduler scheduler = getScheduler();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (scheduler != null) {</span>
+<span class="nc" id="L78">            return scheduler.onStopJob(params);</span>
+        }
+<span class="nc" id="L80">        JqLog.e(&quot;FrameworkJobSchedulerService has been stopped but it does not have a&quot; +</span>
+                &quot; scheduler. You must initialize JobManager before the service is created.&quot;);
+<span class="nc" id="L82">        return false;</span>
     }
 
-    protected FrameworkScheduler getScheduler() {
-<span class="nc" id="L85">        return schedulerMap.get(getClass());</span>
+    @Nullable
+    private FrameworkScheduler getScheduler() {
+<span class="nc" id="L87">        Scheduler scheduler = getJobManager().getScheduler();</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (scheduler instanceof FrameworkScheduler) {</span>
+<span class="nc" id="L89">            return (FrameworkScheduler) scheduler;</span>
+        }
+<span class="nc" id="L91">        JqLog.e(&quot;FrameworkJobSchedulerService has been created but the JobManager does not&quot; +</span>
+                &quot; have a scheduler created by FrameworkJobSchedulerService.&quot;);
+<span class="nc" id="L93">        return null;</span>
     }
+
+    /**
+     * Return the JobManager that is associated with this service
+     *
+     * @return The JobManager that is associated with this service
+     */
+    @NonNull
+    protected abstract JobManager getJobManager();
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

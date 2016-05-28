@@ -75,7 +75,7 @@ public class RunningJobSet {
     private long calculateNextDelayForGroups() {
 <span class="fc" id="L76">        long result = Long.MAX_VALUE;</span>
 <span class="fc bfc" id="L77" title="All 2 branches covered.">        for (Long value : groupDelays.values()) {</span>
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">            if (value &lt; result) {</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">            if (value &lt; result) {</span>
 <span class="fc" id="L79">                result = value;</span>
             }
 <span class="fc" id="L81">        }</span>

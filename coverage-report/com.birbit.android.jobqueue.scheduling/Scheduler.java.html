@@ -3,7 +3,7 @@
 import android.content.Context;
 
 /**
- * This class handles communication &amp; tracking with a scheduler that can wake up the app / job
+ * This class handles communication and tracking with a scheduler that can wake up the app / job
  * manager based on external events.
  * &lt;p&gt;
  * JobManager will call attached scheduler every time it thinks that the app should be waken up for
@@ -23,7 +23,7 @@ abstract public class Scheduler {
 <span class="fc" id="L23">        this.callback = callback;</span>
 <span class="fc" id="L24">    }</span>
 
-    public Context getApplicationContext() {
+    Context getApplicationContext() {
 <span class="nc" id="L27">        return context;</span>
     }
 
@@ -34,19 +34,20 @@ abstract public class Scheduler {
      * {@link #onFinished(SchedulerConstraint, boolean)} with an async callback.
      *
      * @param constraint The constraint
+     * @return true if there is work to do be done, false otherwise
      */
     public final boolean start(SchedulerConstraint constraint) {
-<span class="nc bnc" id="L39" title="All 2 branches missed.">        if (callback == null) {</span>
-<span class="nc" id="L40">            throw new IllegalStateException(&quot;JobManager callback is not configured&quot;);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (callback == null) {</span>
+<span class="nc" id="L41">            throw new IllegalStateException(&quot;JobManager callback is not configured&quot;);</span>
         }
-<span class="nc" id="L42">        return callback.start(constraint);</span>
+<span class="nc" id="L43">        return callback.start(constraint);</span>
     }
 
     public final boolean stop(SchedulerConstraint constraint) {
-<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (callback == null) {</span>
-<span class="nc" id="L47">            throw new IllegalStateException(&quot;JobManager callback is not configured&quot;);</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (callback == null) {</span>
+<span class="nc" id="L48">            throw new IllegalStateException(&quot;JobManager callback is not configured&quot;);</span>
         }
-<span class="nc" id="L49">        return callback.stop(constraint);</span>
+<span class="nc" id="L50">        return callback.stop(constraint);</span>
     }
 
     /**
@@ -67,13 +68,13 @@ abstract public class Scheduler {
      */
     public interface Callback {
         /**
-         * @param constraint
-         * @return True if no jobs to run, false otherwise
+         * @param constraint The constraint for the jobs to be run
+         * @return True if there are jobs to run, false otherwise
          */
         boolean start(SchedulerConstraint constraint);
 
         /**
-         * @param constraint
+         * @param constraint The constraint for the jobs to be run
          * @return True if job should be rescheduled, false otherwise
          */
         boolean stop(SchedulerConstraint constraint);

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>CallbackMessage.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.messaging.message</a> &gt; <span class="el_source">CallbackMessage.java</span></div><h1>CallbackMessage.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.messaging.message;
 
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
-import com.birbit.android.jobqueue.Job;
 
 /**
  * Used for external callbacks to user code
@@ -18,46 +20,55 @@ public class CallbackMessage extends Message {
     private int resultCode;
     private boolean byUserRequest;
     private Job job;
+    @Nullable private Throwable throwable;
+
     public CallbackMessage() {
-<span class="fc" id="L22">        super(Type.CALLBACK);</span>
-<span class="fc" id="L23">    }</span>
+<span class="fc" id="L26">        super(Type.CALLBACK);</span>
+<span class="fc" id="L27">    }</span>
 
     @Override
     protected void onRecycled() {
-<span class="fc" id="L27">        job = null;</span>
-<span class="fc" id="L28">    }</span>
-
-    public void set(Job job, int what) {
-<span class="fc" id="L31">        this.what = what;</span>
-<span class="fc" id="L32">        this.job = job;</span>
+<span class="fc" id="L31">        job = null;</span>
+<span class="fc" id="L32">        throwable = null;</span>
 <span class="fc" id="L33">    }</span>
 
-    public void set(Job job, int what, int resultCode) {
+    public void set(Job job, int what) {
 <span class="fc" id="L36">        this.what = what;</span>
-<span class="fc" id="L37">        this.resultCode = resultCode;</span>
-<span class="fc" id="L38">        this.job = job;</span>
-<span class="fc" id="L39">    }</span>
+<span class="fc" id="L37">        this.job = job;</span>
+<span class="fc" id="L38">    }</span>
 
-    public void set(Job job, int what, boolean byUserRequest) {
-<span class="fc" id="L42">        this.what = what;</span>
-<span class="fc" id="L43">        this.byUserRequest = byUserRequest;</span>
-<span class="fc" id="L44">        this.job = job;</span>
-<span class="fc" id="L45">    }</span>
+    public void set(Job job, int what, int resultCode) {
+<span class="fc" id="L41">        this.what = what;</span>
+<span class="fc" id="L42">        this.resultCode = resultCode;</span>
+<span class="fc" id="L43">        this.job = job;</span>
+<span class="fc" id="L44">    }</span>
+
+    public void set(Job job, int what, boolean byUserRequest, @Nullable Throwable throwable) {
+<span class="fc" id="L47">        this.what = what;</span>
+<span class="fc" id="L48">        this.byUserRequest = byUserRequest;</span>
+<span class="fc" id="L49">        this.job = job;</span>
+<span class="fc" id="L50">        this.throwable = throwable;</span>
+<span class="fc" id="L51">    }</span>
 
     public int getWhat() {
-<span class="fc" id="L48">        return what;</span>
+<span class="fc" id="L54">        return what;</span>
     }
 
     public int getResultCode() {
-<span class="fc" id="L52">        return resultCode;</span>
+<span class="fc" id="L58">        return resultCode;</span>
     }
 
     public boolean isByUserRequest() {
-<span class="fc" id="L56">        return byUserRequest;</span>
+<span class="fc" id="L62">        return byUserRequest;</span>
     }
 
     public Job getJob() {
-<span class="fc" id="L60">        return job;</span>
+<span class="fc" id="L66">        return job;</span>
+    }
+
+    @Nullable
+    public Throwable getThrowable() {
+<span class="fc" id="L71">        return throwable;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

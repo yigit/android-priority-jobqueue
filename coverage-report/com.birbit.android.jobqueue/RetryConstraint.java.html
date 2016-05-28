@@ -11,53 +11,57 @@
  * A common use case is exponentially backing off a Job and you can use
  * {@link #createExponentialBackoff(int, long)} method to do that.
  */
+@SuppressWarnings(&quot;WeakerAccess&quot;)
 public class RetryConstraint {
-<span class="fc" id="L15">    public static final RetryConstraint RETRY = new ImmutableRetryConstraint(true);</span>
-<span class="fc" id="L16">    public static final RetryConstraint CANCEL = new ImmutableRetryConstraint(false);</span>
+<span class="fc" id="L16">    public static final RetryConstraint RETRY = new ImmutableRetryConstraint(true);</span>
+<span class="fc" id="L17">    public static final RetryConstraint CANCEL = new ImmutableRetryConstraint(false);</span>
     private boolean retry;
     private Long newDelayInMs;
     private Integer newPriority;
-<span class="fc" id="L20">    private boolean applyNewDelayToGroup = false;</span>
+<span class="fc" id="L21">    private boolean applyNewDelayToGroup = false;</span>
 
-<span class="fc" id="L22">    public RetryConstraint(boolean retry) {</span>
-<span class="fc" id="L23">        this.retry = retry;</span>
-<span class="fc" id="L24">    }</span>
+<span class="fc" id="L23">    public RetryConstraint(boolean retry) {</span>
+<span class="fc" id="L24">        this.retry = retry;</span>
+<span class="fc" id="L25">    }</span>
 
     public boolean shouldRetry() {
-<span class="fc" id="L27">        return retry;</span>
+<span class="fc" id="L28">        return retry;</span>
     }
 
     /**
      * Set whether the Job should be run again or cancelled.
-     * @param retry
+     *
+     * @param retry True if job should be retried, false if it should be cancelled
      */
     public void setRetry(boolean retry) {
-<span class="nc" id="L35">        this.retry = retry;</span>
-<span class="nc" id="L36">    }</span>
+<span class="nc" id="L37">        this.retry = retry;</span>
+<span class="nc" id="L38">    }</span>
 
     public Long getNewDelayInMs() {
-<span class="fc" id="L39">        return newDelayInMs;</span>
+<span class="fc" id="L41">        return newDelayInMs;</span>
     }
 
     /**
      * Sets a timeout until the Job is tried again.
-     * @param newDelayInMs
+     *
+     * @param newDelayInMs The new delay in Ms from now before retrying the job
      */
     public void setNewDelayInMs(Long newDelayInMs) {
-<span class="fc" id="L47">        this.newDelayInMs = newDelayInMs;</span>
-<span class="fc" id="L48">    }</span>
+<span class="fc" id="L50">        this.newDelayInMs = newDelayInMs;</span>
+<span class="fc" id="L51">    }</span>
 
     public Integer getNewPriority() {
-<span class="fc" id="L51">        return newPriority;</span>
+<span class="fc" id="L54">        return newPriority;</span>
     }
 
     /**
-     * Updates the Job's prioritiy.
-     * @param newPriority
+     * Updates the Job's priority.
+     *
+     * @param newPriority Gives a new priority to the job
      */
     public void setNewPriority(Integer newPriority) {
-<span class="fc" id="L59">        this.newPriority = newPriority;</span>
-<span class="fc" id="L60">    }</span>
+<span class="fc" id="L63">        this.newPriority = newPriority;</span>
+<span class="fc" id="L64">    }</span>
 
     /**
      * Creates a response that will exponentially back off the job.
@@ -70,10 +74,10 @@ public class RetryConstraint {
      * @return A RetryContraint that will report exponential back off.
      */
     public static RetryConstraint createExponentialBackoff(int runCount, long initialBackOffInMs) {
-<span class="fc" id="L73">        RetryConstraint constraint = new RetryConstraint(true);</span>
-<span class="fc" id="L74">        constraint.setNewDelayInMs(initialBackOffInMs *</span>
-                (long) Math.pow(2, Math.max(0, runCount - 1)));
-<span class="fc" id="L76">        return constraint;</span>
+<span class="fc" id="L77">        RetryConstraint constraint = new RetryConstraint(true);</span>
+<span class="fc" id="L78">        constraint.setNewDelayInMs(initialBackOffInMs *</span>
+<span class="fc" id="L79">                (long) Math.pow(2, Math.max(0, runCount - 1)));</span>
+<span class="fc" id="L80">        return constraint;</span>
     }
 
     /**
@@ -92,8 +96,8 @@ public class RetryConstraint {
      *
      */
     public void setApplyNewDelayToGroup(boolean applyDelayToGroup) {
-<span class="fc" id="L95">        this.applyNewDelayToGroup = applyDelayToGroup;</span>
-<span class="fc" id="L96">    }</span>
+<span class="fc" id="L99">        this.applyNewDelayToGroup = applyDelayToGroup;</span>
+<span class="fc" id="L100">    }</span>
 
     /**
      * Returns whether the delay in this retry constraint will be applied to all jobs in this group.
@@ -101,30 +105,31 @@ public class RetryConstraint {
      * @return Whether the delay will be applied to all jobs in this group or not. Defaults to
      * false.
      */
+    @SuppressWarnings(&quot;WeakerAccess&quot;)
     public boolean willApplyNewDelayToGroup() {
-<span class="fc" id="L105">        return applyNewDelayToGroup;</span>
+<span class="fc" id="L110">        return applyNewDelayToGroup;</span>
     }
 
-    private static class ImmutableRetryConstraint extends RetryConstraint {
+    static class ImmutableRetryConstraint extends RetryConstraint {
         private static final String MESSAGE = &quot;This object is immutable. Create a new one using the&quot;
                 + &quot; constructor.&quot;;
         public ImmutableRetryConstraint(boolean retry) {
-<span class="fc" id="L112">            super(retry);</span>
-<span class="fc" id="L113">        }</span>
+<span class="fc" id="L117">            super(retry);</span>
+<span class="fc" id="L118">        }</span>
 
         @Override
         public void setRetry(boolean retry) {
-<span class="nc" id="L117">            throw new IllegalStateException(MESSAGE);</span>
-        }
-
-        @Override
-        public void setNewDelayInMs(Long newDelayInMs) {
 <span class="nc" id="L122">            throw new IllegalStateException(MESSAGE);</span>
         }
 
         @Override
-        public void setNewPriority(Integer newPriority) {
+        public void setNewDelayInMs(Long newDelayInMs) {
 <span class="nc" id="L127">            throw new IllegalStateException(MESSAGE);</span>
+        }
+
+        @Override
+        public void setNewPriority(Integer newPriority) {
+<span class="nc" id="L132">            throw new IllegalStateException(MESSAGE);</span>
         }
     }
 }

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>CallbackManager.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">CallbackManager.java</span></div><h1>CallbackManager.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
@@ -9,9 +13,6 @@ import com.birbit.android.jobqueue.messaging.message.CallbackMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
-import com.birbit.android.jobqueue.CancelResult;
-import com.birbit.android.jobqueue.Job;
-import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -27,195 +28,195 @@ public class CallbackManager {
     final SafeMessageQueue messageQueue;
     private final CopyOnWriteArrayList&lt;JobManagerCallback&gt; callbacks;
     private final MessageFactory factory;
-<span class="fc" id="L30">    private final AtomicInteger callbacksSize = new AtomicInteger(0);</span>
+<span class="fc" id="L31">    private final AtomicInteger callbacksSize = new AtomicInteger(0);</span>
     private final Timer timer;
-<span class="fc" id="L32">    private final AtomicBoolean started = new AtomicBoolean(false);</span>
-<span class="fc" id="L33">    public CallbackManager(MessageFactory factory, Timer timer) {</span>
-<span class="fc" id="L34">        this.timer = timer;</span>
-<span class="fc" id="L35">        this.messageQueue = new SafeMessageQueue(timer, factory, &quot;jq_callback&quot;);</span>
-<span class="fc" id="L36">        callbacks = new CopyOnWriteArrayList&lt;&gt;();</span>
-<span class="fc" id="L37">        this.factory = factory;</span>
-<span class="fc" id="L38">    }</span>
+<span class="fc" id="L33">    private final AtomicBoolean started = new AtomicBoolean(false);</span>
+<span class="fc" id="L34">    public CallbackManager(MessageFactory factory, Timer timer) {</span>
+<span class="fc" id="L35">        this.timer = timer;</span>
+<span class="fc" id="L36">        this.messageQueue = new SafeMessageQueue(timer, factory, &quot;jq_callback&quot;);</span>
+<span class="fc" id="L37">        callbacks = new CopyOnWriteArrayList&lt;&gt;();</span>
+<span class="fc" id="L38">        this.factory = factory;</span>
+<span class="fc" id="L39">    }</span>
 
-    void addCallback(JobManagerCallback callback) {
-<span class="fc" id="L41">        callbacks.add(callback);</span>
-<span class="fc" id="L42">        callbacksSize.incrementAndGet();</span>
-<span class="fc" id="L43">        startIfNeeded();</span>
-<span class="fc" id="L44">    }</span>
+    void addCallback(@NonNull JobManagerCallback callback) {
+<span class="fc" id="L42">        callbacks.add(callback);</span>
+<span class="fc" id="L43">        callbacksSize.incrementAndGet();</span>
+<span class="fc" id="L44">        startIfNeeded();</span>
+<span class="fc" id="L45">    }</span>
 
     private void startIfNeeded() {
-<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (!started.getAndSet(true)) {</span>
-<span class="fc" id="L48">            start();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (!started.getAndSet(true)) {</span>
+<span class="fc" id="L49">            start();</span>
         }
-<span class="fc" id="L50">    }</span>
+<span class="fc" id="L51">    }</span>
 
-    boolean removeCallback(JobManagerCallback callback) {
-<span class="fc" id="L53">        boolean removed = callbacks.remove(callback);</span>
-<span class="pc bpc" id="L54" title="1 of 2 branches missed.">        if (removed) {</span>
-<span class="fc" id="L55">            callbacksSize.decrementAndGet();</span>
+    boolean removeCallback(@NonNull JobManagerCallback callback) {
+<span class="fc" id="L54">        boolean removed = callbacks.remove(callback);</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        if (removed) {</span>
+<span class="fc" id="L56">            callbacksSize.decrementAndGet();</span>
         }
-<span class="fc" id="L57">        return removed;</span>
+<span class="fc" id="L58">        return removed;</span>
     }
 
     private void start() {
-<span class="fc" id="L61">        new Thread(new Runnable() {</span>
+<span class="fc" id="L62">        new Thread(new Runnable() {</span>
             @Override
             public void run() {
 
-<span class="fc" id="L65">                messageQueue.consume(new MessageQueueConsumer() {</span>
-<span class="fc" id="L66">                    long lastDelivery = Long.MIN_VALUE;</span>
+<span class="fc" id="L66">                messageQueue.consume(new MessageQueueConsumer() {</span>
+<span class="fc" id="L67">                    long lastDelivery = Long.MIN_VALUE;</span>
 
                     @Override
                     public void onStart() {
-<span class="fc" id="L70">                    }</span>
+<span class="fc" id="L71">                    }</span>
 
                     @Override
                     public void handleMessage(Message message) {
-<span class="fc bfc" id="L74" title="All 2 branches covered.">                        if (message.type == Type.CALLBACK) {</span>
-<span class="fc" id="L75">                            CallbackMessage cm = (CallbackMessage) message;</span>
-<span class="fc" id="L76">                            deliverMessage(cm);</span>
-<span class="fc" id="L77">                            lastDelivery = timer.nanoTime();</span>
-<span class="fc bfc" id="L78" title="All 2 branches covered.">                        } else if (message.type == Type.CANCEL_RESULT_CALLBACK) {</span>
-<span class="fc" id="L79">                            deliverCancelResult((CancelResultMessage) message);</span>
-<span class="fc" id="L80">                            lastDelivery = timer.nanoTime();</span>
-<span class="fc bfc" id="L81" title="All 2 branches covered.">                        } else if (message.type == Type.COMMAND) {</span>
-<span class="fc" id="L82">                            CommandMessage command = (CommandMessage) message;</span>
-<span class="pc bpc" id="L83" title="1 of 2 branches missed.">                            if (command.getWhat() == CommandMessage.QUIT) {</span>
-<span class="fc" id="L84">                                messageQueue.stop();</span>
-<span class="fc" id="L85">                                started.set(false);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">                        if (message.type == Type.CALLBACK) {</span>
+<span class="fc" id="L76">                            CallbackMessage cm = (CallbackMessage) message;</span>
+<span class="fc" id="L77">                            deliverMessage(cm);</span>
+<span class="fc" id="L78">                            lastDelivery = timer.nanoTime();</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">                        } else if (message.type == Type.CANCEL_RESULT_CALLBACK) {</span>
+<span class="fc" id="L80">                            deliverCancelResult((CancelResultMessage) message);</span>
+<span class="fc" id="L81">                            lastDelivery = timer.nanoTime();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">                        } else if (message.type == Type.COMMAND) {</span>
+<span class="fc" id="L83">                            CommandMessage command = (CommandMessage) message;</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">                            if (command.getWhat() == CommandMessage.QUIT) {</span>
+<span class="fc" id="L85">                                messageQueue.stop();</span>
+<span class="fc" id="L86">                                started.set(false);</span>
                             }
-<span class="pc bpc" id="L87" title="1 of 2 branches missed.">                        } else if (message.type == Type.PUBLIC_QUERY) {</span>
-<span class="fc" id="L88">                            ((PublicQueryMessage) message).getCallback().onResult(0);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">                        } else if (message.type == Type.PUBLIC_QUERY) {</span>
+<span class="fc" id="L89">                            ((PublicQueryMessage) message).getCallback().onResult(0);</span>
                         }
-<span class="fc" id="L90">                    }</span>
+<span class="fc" id="L91">                    }</span>
 
                     @Override
                     public void onIdle() {
 
-<span class="fc" id="L95">                    }</span>
+<span class="fc" id="L96">                    }</span>
                 });
-<span class="fc" id="L97">            }</span>
-        }, &quot;job-manager-callbacks&quot;).start();
-<span class="fc" id="L99">    }</span>
+<span class="fc" id="L98">            }</span>
+<span class="fc" id="L99">        }, &quot;job-manager-callbacks&quot;).start();</span>
+<span class="fc" id="L100">    }</span>
 
-    private void deliverCancelResult(CancelResultMessage message) {
-<span class="fc" id="L102">        message.getCallback().onCancelled(message.getResult());</span>
-<span class="fc" id="L103">        startIfNeeded();</span>
-<span class="fc" id="L104">    }</span>
+    private void deliverCancelResult(@NonNull CancelResultMessage message) {
+<span class="fc" id="L103">        message.getCallback().onCancelled(message.getResult());</span>
+<span class="fc" id="L104">        startIfNeeded();</span>
+<span class="fc" id="L105">    }</span>
 
-    private void deliverMessage(CallbackMessage cm) {
-<span class="pc bpc" id="L107" title="1 of 6 branches missed.">        switch (cm.getWhat()) {</span>
+    private void deliverMessage(@NonNull CallbackMessage cm) {
+<span class="pc bpc" id="L108" title="1 of 6 branches missed.">        switch (cm.getWhat()) {</span>
             case CallbackMessage.ON_ADDED:
-<span class="fc" id="L109">                notifyOnAddedListeners(cm.getJob());</span>
-<span class="fc" id="L110">                break;</span>
+<span class="fc" id="L110">                notifyOnAddedListeners(cm.getJob());</span>
+<span class="fc" id="L111">                break;</span>
             case CallbackMessage.ON_AFTER_RUN:
-<span class="fc" id="L112">                notifyAfterRunListeners(cm.getJob(), cm.getResultCode());</span>
-<span class="fc" id="L113">                break;</span>
+<span class="fc" id="L113">                notifyAfterRunListeners(cm.getJob(), cm.getResultCode());</span>
+<span class="fc" id="L114">                break;</span>
             case CallbackMessage.ON_CANCEL:
-<span class="fc" id="L115">                notifyOnCancelListeners(cm.getJob(), cm.isByUserRequest());</span>
-<span class="fc" id="L116">                break;</span>
+<span class="fc" id="L116">                notifyOnCancelListeners(cm.getJob(), cm.isByUserRequest(), cm.getThrowable());</span>
+<span class="fc" id="L117">                break;</span>
             case CallbackMessage.ON_DONE:
-<span class="fc" id="L118">                notifyOnDoneListeners(cm.getJob());</span>
-<span class="fc" id="L119">                break;</span>
+<span class="fc" id="L119">                notifyOnDoneListeners(cm.getJob());</span>
+<span class="fc" id="L120">                break;</span>
             case CallbackMessage.ON_RUN:
-<span class="fc" id="L121">                notifyOnRunListeners(cm.getJob(), cm.getResultCode());</span>
+<span class="fc" id="L122">                notifyOnRunListeners(cm.getJob(), cm.getResultCode());</span>
                 break;
         }
-<span class="fc" id="L124">    }</span>
+<span class="fc" id="L125">    }</span>
 
-    private void notifyOnCancelListeners(Job job, boolean byCancelRequest) {
-<span class="fc bfc" id="L127" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
-<span class="fc" id="L128">            callback.onJobCancelled(job, byCancelRequest);</span>
-<span class="fc" id="L129">        }</span>
-<span class="fc" id="L130">    }</span>
+    private void notifyOnCancelListeners(@NonNull Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
+<span class="fc" id="L129">            callback.onJobCancelled(job, byCancelRequest, throwable);</span>
+<span class="fc" id="L130">        }</span>
+<span class="fc" id="L131">    }</span>
 
-    private void notifyOnRunListeners(Job job, int resultCode) {
-<span class="fc bfc" id="L133" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
-<span class="fc" id="L134">            callback.onJobRun(job, resultCode);</span>
-<span class="fc" id="L135">        }</span>
-<span class="fc" id="L136">    }</span>
+    private void notifyOnRunListeners(@NonNull Job job, int resultCode) {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
+<span class="fc" id="L135">            callback.onJobRun(job, resultCode);</span>
+<span class="fc" id="L136">        }</span>
+<span class="fc" id="L137">    }</span>
 
-    private void notifyAfterRunListeners(Job job, int resultCode) {
-<span class="fc bfc" id="L139" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
-<span class="fc" id="L140">            callback.onAfterJobRun(job, resultCode);</span>
-<span class="fc" id="L141">        }</span>
-<span class="fc" id="L142">    }</span>
+    private void notifyAfterRunListeners(@NonNull Job job, int resultCode) {
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
+<span class="fc" id="L141">            callback.onAfterJobRun(job, resultCode);</span>
+<span class="fc" id="L142">        }</span>
+<span class="fc" id="L143">    }</span>
 
-    private void notifyOnDoneListeners(Job job) {
-<span class="fc bfc" id="L145" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
-<span class="fc" id="L146">            callback.onDone(job);</span>
-<span class="fc" id="L147">        }</span>
-<span class="fc" id="L148">    }</span>
+    private void notifyOnDoneListeners(@NonNull Job job) {
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
+<span class="fc" id="L147">            callback.onDone(job);</span>
+<span class="fc" id="L148">        }</span>
+<span class="fc" id="L149">    }</span>
 
-    private void notifyOnAddedListeners(Job job) {
-<span class="fc bfc" id="L151" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
-<span class="fc" id="L152">            callback.onJobAdded(job);</span>
-<span class="fc" id="L153">        }</span>
-<span class="fc" id="L154">    }</span>
+    private void notifyOnAddedListeners(@NonNull Job job) {
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        for (JobManagerCallback callback : callbacks) {</span>
+<span class="fc" id="L153">            callback.onJobAdded(job);</span>
+<span class="fc" id="L154">        }</span>
+<span class="fc" id="L155">    }</span>
 
-    public void notifyOnRun(Job job, int result) {
-<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
-<span class="fc" id="L158">            return;</span>
+    public void notifyOnRun(@NonNull Job job, int result) {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
+<span class="fc" id="L159">            return;</span>
         }
-<span class="fc" id="L160">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
-<span class="fc" id="L161">        callback.set(job, CallbackMessage.ON_RUN, result);</span>
-<span class="fc" id="L162">        messageQueue.post(callback);</span>
-<span class="fc" id="L163">    }</span>
+<span class="fc" id="L161">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
+<span class="fc" id="L162">        callback.set(job, CallbackMessage.ON_RUN, result);</span>
+<span class="fc" id="L163">        messageQueue.post(callback);</span>
+<span class="fc" id="L164">    }</span>
 
     private boolean hasAnyCallbacks() {
-<span class="fc bfc" id="L166" title="All 2 branches covered.">        return callbacksSize.get() &gt; 0;</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        return callbacksSize.get() &gt; 0;</span>
     }
 
-    public void notifyAfterRun(Job job, int result) {
-<span class="fc bfc" id="L170" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
-<span class="fc" id="L171">            return;</span>
+    public void notifyAfterRun(@NonNull Job job, int result) {
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
+<span class="fc" id="L172">            return;</span>
         }
-<span class="fc" id="L173">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
-<span class="fc" id="L174">        callback.set(job, CallbackMessage.ON_AFTER_RUN, result);</span>
-<span class="fc" id="L175">        messageQueue.post(callback);</span>
-<span class="fc" id="L176">    }</span>
+<span class="fc" id="L174">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
+<span class="fc" id="L175">        callback.set(job, CallbackMessage.ON_AFTER_RUN, result);</span>
+<span class="fc" id="L176">        messageQueue.post(callback);</span>
+<span class="fc" id="L177">    }</span>
 
-    public void notifyOnCancel(Job job, boolean byCancelRequest) {
-<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
-<span class="fc" id="L180">            return;</span>
+    public void notifyOnCancel(@NonNull Job job, boolean byCancelRequest, @Nullable Throwable throwable) {
+<span class="fc bfc" id="L180" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
+<span class="fc" id="L181">            return;</span>
         }
-<span class="fc" id="L182">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
-<span class="fc" id="L183">        callback.set(job, CallbackMessage.ON_CANCEL, byCancelRequest);</span>
-<span class="fc" id="L184">        messageQueue.post(callback);</span>
-<span class="fc" id="L185">    }</span>
+<span class="fc" id="L183">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
+<span class="fc" id="L184">        callback.set(job, CallbackMessage.ON_CANCEL, byCancelRequest, throwable);</span>
+<span class="fc" id="L185">        messageQueue.post(callback);</span>
+<span class="fc" id="L186">    }</span>
 
-    public void notifyOnAdded(Job job) {
-<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
-<span class="fc" id="L189">            return;</span>
+    public void notifyOnAdded(@NonNull Job job) {
+<span class="fc bfc" id="L189" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
+<span class="fc" id="L190">            return;</span>
         }
-<span class="fc" id="L191">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
-<span class="fc" id="L192">        callback.set(job, CallbackMessage.ON_ADDED);</span>
-<span class="fc" id="L193">        messageQueue.post(callback);</span>
-<span class="fc" id="L194">    }</span>
+<span class="fc" id="L192">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
+<span class="fc" id="L193">        callback.set(job, CallbackMessage.ON_ADDED);</span>
+<span class="fc" id="L194">        messageQueue.post(callback);</span>
+<span class="fc" id="L195">    }</span>
 
-    public void notifyOnDone(Job job) {
-<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
-<span class="fc" id="L198">            return;</span>
+    public void notifyOnDone(@NonNull Job job) {
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (!hasAnyCallbacks()) {</span>
+<span class="fc" id="L199">            return;</span>
         }
-<span class="fc" id="L200">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
-<span class="fc" id="L201">        callback.set(job, CallbackMessage.ON_DONE);</span>
-<span class="fc" id="L202">        messageQueue.post(callback);</span>
-<span class="fc" id="L203">    }</span>
+<span class="fc" id="L201">        CallbackMessage callback = factory.obtain(CallbackMessage.class);</span>
+<span class="fc" id="L202">        callback.set(job, CallbackMessage.ON_DONE);</span>
+<span class="fc" id="L203">        messageQueue.post(callback);</span>
+<span class="fc" id="L204">    }</span>
 
-    public void notifyCancelResult(CancelResult result, CancelResult.AsyncCancelCallback callback) {
-<span class="fc" id="L206">        CancelResultMessage message = factory.obtain(CancelResultMessage.class);</span>
-<span class="fc" id="L207">        message.set(callback, result);</span>
-<span class="fc" id="L208">        messageQueue.post(message);</span>
-<span class="fc" id="L209">        startIfNeeded();</span>
-<span class="fc" id="L210">    }</span>
+    public void notifyCancelResult(@NonNull CancelResult result, @NonNull CancelResult.AsyncCancelCallback callback) {
+<span class="fc" id="L207">        CancelResultMessage message = factory.obtain(CancelResultMessage.class);</span>
+<span class="fc" id="L208">        message.set(callback, result);</span>
+<span class="fc" id="L209">        messageQueue.post(message);</span>
+<span class="fc" id="L210">        startIfNeeded();</span>
+<span class="fc" id="L211">    }</span>
 
     public void destroy() {
-<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (!started.get()) {</span>
-<span class="fc" id="L214">            return;</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        if (!started.get()) {</span>
+<span class="fc" id="L215">            return;</span>
         }
-<span class="fc" id="L216">        CommandMessage message = factory.obtain(CommandMessage.class);</span>
-<span class="fc" id="L217">        message.set(CommandMessage.QUIT);</span>
-<span class="fc" id="L218">        messageQueue.post(message);</span>
-<span class="fc" id="L219">    }</span>
+<span class="fc" id="L217">        CommandMessage message = factory.obtain(CommandMessage.class);</span>
+<span class="fc" id="L218">        message.set(CommandMessage.QUIT);</span>
+<span class="fc" id="L219">        messageQueue.post(message);</span>
+<span class="fc" id="L220">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

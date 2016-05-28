@@ -3,6 +3,10 @@
 import android.content.Context;
 import android.support.annotation.Nullable;
 
+import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.di.DependencyInjector;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
@@ -11,25 +15,21 @@ import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
-import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
+import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
-import com.birbit.android.jobqueue.scheduling.Scheduler;
-import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
-import com.birbit.android.jobqueue.callback.JobManagerCallback;
-import com.birbit.android.jobqueue.config.Configuration;
-import com.birbit.android.jobqueue.di.DependencyInjector;
-import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkEventProvider;
 import com.birbit.android.jobqueue.network.NetworkUtil;
+import com.birbit.android.jobqueue.scheduling.Scheduler;
+import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
 import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
@@ -84,9 +84,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="nc" id="L84">            scheduler = new BatchingScheduler(scheduler, timer);</span>
         }
 <span class="fc" id="L86">        this.persistentJobQueue = config.getQueueFactory()</span>
-                .createPersistentQueue(config, sessionId);
+<span class="fc" id="L87">                .createPersistentQueue(config, sessionId);</span>
 <span class="fc" id="L88">        this.nonPersistentJobQueue = config.getQueueFactory()</span>
-                .createNonPersistent(config, sessionId);
+<span class="fc" id="L89">                .createNonPersistent(config, sessionId);</span>
 <span class="fc" id="L90">        networkUtil = config.getNetworkUtil();</span>
 <span class="fc" id="L91">        dependencyInjector = config.getDependencyInjector();</span>
 <span class="fc bfc" id="L92" title="All 2 branches covered.">        if(networkUtil instanceof NetworkEventProvider) {</span>
@@ -112,16 +112,16 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L112">        Job job = message.getJob();</span>
         //noinspection deprecation
 <span class="fc bfc" id="L114" title="All 2 branches covered.">        long delayUntilNs = job.getDelayInMs() &gt; 0</span>
-                ? timer.nanoTime() + job.getDelayInMs() * NS_PER_MS
+<span class="fc" id="L115">                ? timer.nanoTime() + job.getDelayInMs() * NS_PER_MS</span>
                 : NOT_DELAYED_JOB_DELAY;
 <span class="fc" id="L117">        job.seal(timer);</span>
 <span class="fc" id="L118">        JobHolder jobHolder = new JobHolder.Builder()</span>
-                .priority(job.getPriority())
-                .job(job)
-                .groupId(job.getRunGroupId())
-                .createdNs(timer.nanoTime())
-                .delayUntilNs(delayUntilNs)
-                .runningSessionId(NOT_RUNNING_SESSION_ID).build();
+<span class="fc" id="L119">                .priority(job.getPriority())</span>
+<span class="fc" id="L120">                .job(job)</span>
+<span class="fc" id="L121">                .groupId(job.getRunGroupId())</span>
+<span class="fc" id="L122">                .createdNs(timer.nanoTime())</span>
+<span class="fc" id="L123">                .delayUntilNs(delayUntilNs)</span>
+<span class="fc" id="L124">                .runningSessionId(NOT_RUNNING_SESSION_ID).build();</span>
 
 <span class="fc" id="L126">        JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());</span>
 <span class="fc bfc" id="L127" title="All 4 branches covered.">        final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());</span>
@@ -135,8 +135,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             }
 <span class="fc bfc" id="L136" title="All 2 branches covered.">            if (JqLog.isDebugEnabled()) {</span>
 <span class="fc" id="L137">                JqLog.d(&quot;added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s&quot;</span>
-                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
-                        , job.isPersistent(), job.requiresNetwork(timer));
+<span class="fc" id="L138">                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()</span>
+<span class="fc" id="L139">                        , job.isPersistent(), job.requiresNetwork(timer));</span>
             }
 <span class="fc" id="L141">        } else {</span>
 <span class="fc" id="L142">            JqLog.d(&quot;another job with same singleId: %s was already queued&quot;, job.getSingleInstanceId());</span>
@@ -255,7 +255,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L255">                JqLog.d(&quot;Job queue idle. next job at: %s&quot;, nextJobTimeNs);</span>
 <span class="fc bfc" id="L256" title="All 2 branches covered.">                if (nextJobTimeNs != null) {</span>
 <span class="fc" id="L257">                    ConstraintChangeMessage constraintMessage =</span>
-                            messageFactory.obtain(ConstraintChangeMessage.class);
+<span class="fc" id="L258">                            messageFactory.obtain(ConstraintChangeMessage.class);</span>
 <span class="fc" id="L259">                    messageQueue.postAt(constraintMessage, nextJobTimeNs);</span>
 <span class="fc bfc" id="L260" title="All 2 branches covered.">                } else if (scheduler != null) {</span>
                     // if we have a scheduler but the queue is empty, just clean them all.
@@ -269,8 +269,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L269">    }</span>
 
     private void invokeSchedulersIfIdle() {
-<span class="pc bpc" id="L272" title="5 of 8 branches missed.">        if (scheduler == null || pendingSchedulerCallbacks == null</span>
-                || pendingSchedulerCallbacks.isEmpty() || !consumerManager.areAllConsumersIdle()) {
+<span class="pc bpc" id="L272" title="1 of 4 branches missed.">        if (scheduler == null || pendingSchedulerCallbacks == null</span>
+<span class="nc bnc" id="L273" title="All 4 branches missed.">                || pendingSchedulerCallbacks.isEmpty() || !consumerManager.areAllConsumersIdle()) {</span>
 <span class="fc" id="L274">            return;</span>
         }
 <span class="nc bnc" id="L276" title="All 2 branches missed.">        for (int i = pendingSchedulerCallbacks.size() - 1; i &gt;= 0; i--) {</span>
@@ -395,7 +395,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L395">                break;</span>
             default:
 <span class="nc" id="L397">                throw new IllegalArgumentException(&quot;cannot handle public query with type &quot; +</span>
-                message.getWhat());
+<span class="nc" id="L398">                message.getWhat());</span>
         }
 <span class="fc" id="L400">    }</span>
 
@@ -432,7 +432,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
     private void handleCancel(CancelMessage message) {
 <span class="fc" id="L434">        CancelHandler handler = new CancelHandler(message.getConstraint(), message.getTags(),</span>
-                message.getCallback());
+<span class="fc" id="L435">                message.getCallback());</span>
 <span class="fc" id="L436">        handler.query(this, consumerManager);</span>
 <span class="fc bfc" id="L437" title="All 2 branches covered.">        if (handler.isDone()) {</span>
 <span class="fc" id="L438">            handler.commit(this);</span>
@@ -501,7 +501,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="nc" id="L501">        } catch (Throwable t) {</span>
 <span class="nc" id="L502">            JqLog.e(t, &quot;job's onCancel did throw an exception, ignoring...&quot;);</span>
 <span class="fc" id="L503">        }</span>
-<span class="fc" id="L504">        callbackManager.notifyOnCancel(jobHolder.getJob(), false);</span>
+<span class="fc" id="L504">        callbackManager.notifyOnCancel(jobHolder.getJob(), false, jobHolder.getThrowable());</span>
 <span class="fc" id="L505">    }</span>
 
     private void insertOrReplace(JobHolder jobHolder) {
@@ -518,7 +518,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L518">            delay = retryConstraint.getNewDelayInMs();</span>
         }
 <span class="fc bfc" id="L520" title="All 2 branches covered.">        jobHolder.setDelayUntilNs(</span>
-                delay &gt; 0 ? timer.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY
+<span class="fc" id="L521">                delay &gt; 0 ? timer.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY</span>
         );
 <span class="fc" id="L523">        reAddJob(jobHolder);</span>
 <span class="fc" id="L524">    }</span>
@@ -628,7 +628,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L628">        final int networkStatus = getNetworkStatus();</span>
         JobHolder jobHolder;
 <span class="fc" id="L630">        boolean persistent = false;</span>
-<span class="fc" id="L631">        JqLog.d(&quot;looking for next job&quot;);</span>
+<span class="fc" id="L631">        JqLog.v(&quot;looking for next job&quot;);</span>
 <span class="fc" id="L632">        queryConstraint.clear();</span>
 <span class="fc" id="L633">        queryConstraint.setNowInNs(timer.nanoTime());</span>
 <span class="fc" id="L634">        queryConstraint.setNetworkStatus(networkStatus);</span>
@@ -636,12 +636,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 <span class="fc" id="L636">        queryConstraint.setExcludeRunning(true);</span>
 <span class="fc" id="L637">        queryConstraint.setTimeLimit(timer.nanoTime());</span>
 <span class="fc" id="L638">        jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);</span>
-<span class="fc" id="L639">        JqLog.d(&quot;non persistent result %s&quot;, jobHolder);</span>
+<span class="fc" id="L639">        JqLog.v(&quot;non persistent result %s&quot;, jobHolder);</span>
 <span class="fc bfc" id="L640" title="All 2 branches covered.">        if (jobHolder == null) {</span>
             //go to disk, there aren't any non-persistent jobs
 <span class="fc" id="L642">            jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);</span>
 <span class="fc" id="L643">            persistent = true;</span>
-<span class="fc" id="L644">            JqLog.d(&quot;persistent result %s&quot;, jobHolder);</span>
+<span class="fc" id="L644">            JqLog.v(&quot;persistent result %s&quot;, jobHolder);</span>
         }
 <span class="fc bfc" id="L646" title="All 2 branches covered.">        if(jobHolder == null) {</span>
 <span class="fc" id="L647">            return null;</span>
