@@ -12,6 +12,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
+import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.ByteArrayInputStream;
@@ -62,7 +63,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public boolean insert(JobHolder jobHolder) {
+    public boolean insert(@NonNull JobHolder jobHolder) {
         if (jobHolder.hasTags()) {
             return insertWithTags(jobHolder);
         }
@@ -76,7 +77,7 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public void substitute(JobHolder newJob, JobHolder oldJob) {
+    public void substitute(@NonNull JobHolder newJob, @NonNull JobHolder oldJob) {
         db.beginTransaction();
         try {
             remove(oldJob);
@@ -147,7 +148,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public boolean insertOrReplace(JobHolder jobHolder) {
+    public boolean insertOrReplace(@NonNull JobHolder jobHolder) {
         if (jobHolder.getInsertionOrder() == null) {
             return insert(jobHolder);
         }
@@ -162,7 +163,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public void remove(JobHolder jobHolder) {
+    public void remove(@NonNull JobHolder jobHolder) {
         if (jobHolder.getId() == null) {
             JqLog.e("called remove with null job id.");
             return;
@@ -199,7 +200,7 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public int countReadyJobs(Constraint constraint) {
+    public int countReadyJobs(@NonNull Constraint constraint) {
         final Where where = createWhere(constraint);
         final long result = where.countReady(db, reusedStringBuilder).simpleQueryForLong();
         return (int) result;
@@ -209,7 +210,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder findJobById(String id) {
+    public JobHolder findJobById(@NonNull String id) {
         Cursor cursor = db.rawQuery(sqlHelper.FIND_BY_ID_QUERY, new String[]{id});
         try {
             if(!cursor.moveToFirst()) {
@@ -224,8 +225,9 @@ public class SqliteJobQueue implements JobQueue {
         }
     }
 
+    @NonNull
     @Override
-    public Set<JobHolder> findJobs(Constraint constraint) {
+    public Set<JobHolder> findJobs(@NonNull Constraint constraint) {
         final Where where = createWhere(constraint);
         String selectQuery = where.findJobs(sqlHelper);
         Cursor cursor = db.rawQuery(selectQuery, where.args);
@@ -253,7 +255,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+    public JobHolder nextJobAndIncRunCount(@NonNull Constraint constraint) {
         final Where where = createWhere(constraint);
         //we can even keep these prepared but not sure the cost of them in db layer
         final String selectQuery = where.nextJob(sqlHelper);
@@ -288,7 +290,7 @@ public class SqliteJobQueue implements JobQueue {
      * {@inheritDoc}
      */
     @Override
-    public Long getNextJobDelayUntilNs(Constraint constraint) {
+    public Long getNextJobDelayUntilNs(@NonNull Constraint constraint) {
         final Where where = createWhere(constraint);
         try {
             if (constraint.shouldNotRequireNetwork() || constraint.shouldNotRequireUnmeteredNetwork()) {

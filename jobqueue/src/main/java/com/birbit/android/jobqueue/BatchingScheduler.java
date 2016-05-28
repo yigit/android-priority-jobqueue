@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * JobManager calls scheduler every time it receives some job that can use the Scheduler APIs.
- * This may get too noisy & unnecessary.
+ * This may get too noisy and unnecessary.
  * <p>
  * This BatchingScheduler wraps a generic scheduler and avoid calling the system service if a
  * request is made that has the same criteria as the previous one.
@@ -58,7 +58,7 @@ public class BatchingScheduler extends Scheduler {
         }
     }
 
-    protected boolean addToConstraints(SchedulerConstraint constraint) {
+    private boolean addToConstraints(SchedulerConstraint constraint) {
         final long now = timer.nanoTime();
         long expectedRunTime = TimeUnit.MILLISECONDS.toNanos(constraint.getDelayInMs()) + now;
         synchronized (constraints) {

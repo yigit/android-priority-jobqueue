@@ -3,7 +3,7 @@ package com.birbit.android.jobqueue.scheduling;
 import android.content.Context;
 
 /**
- * This class handles communication & tracking with a scheduler that can wake up the app / job
+ * This class handles communication and tracking with a scheduler that can wake up the app / job
  * manager based on external events.
  * <p>
  * JobManager will call attached scheduler every time it thinks that the app should be waken up for

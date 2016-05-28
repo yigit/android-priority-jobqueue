@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadFactory;
 /**
  * {@link com.birbit.android.jobqueue.JobManager} configuration object
  */
+@SuppressWarnings("WeakerAccess")
 public class Configuration {
     /**
      * The default id for a Job. If you have multiple JobManagers, you should set this value via
@@ -148,6 +149,7 @@ public class Configuration {
         return threadFactory;
     }
 
+    @SuppressWarnings("unused")
     public static final class Builder {
         private Configuration configuration;
 
@@ -161,6 +163,7 @@ public class Configuration {
          * create multiple instances of it.
          * default id is {@link #DEFAULT_ID}
          * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder id(@NonNull String id) {
@@ -172,6 +175,7 @@ public class Configuration {
          * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration.
          * It defaults to {@link #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
          * @param keepAlive in seconds
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder consumerKeepAlive(int keepAlive) {
@@ -195,7 +199,7 @@ public class Configuration {
          * which require network with a timeout. Their timeouts will be triggered on restart if you
          * call this method.
          *
-         * @return The builder
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder resetDelaysOnRestart() {
@@ -210,6 +214,8 @@ public class Configuration {
          * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
          * {@code JobQueueTestBase} to ensure it will work fine.
          * @param queueFactory your custom queue factory.
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder queueFactory(@Nullable QueueFactory queueFactory) {
@@ -228,7 +234,7 @@ public class Configuration {
          * which will use default Java serialization.
          * @param jobSerializer The serializer to be used to persist jobs.
          *
-         * @return The builder
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder jobSerializer(@NonNull SqliteJobQueue.JobSerializer jobSerializer) {
@@ -240,6 +246,10 @@ public class Configuration {
          * By default, Job Manager comes with a simple {@link NetworkUtilImpl} that queries {@link ConnectivityManager}
          * to check if network connection exists. You can provide your own if you need a custom logic (e.g. check your
          * server health etc).
+         *
+         * @param networkUtil The NetworkUtil to be used by the JobManager. If it is null, JobManager
+         *                    will use {@link NetworkUtilImpl}
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder networkUtil(@Nullable NetworkUtil networkUtil) {
@@ -251,8 +261,10 @@ public class Configuration {
          * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
          * before {Job#onAdded} method is called.
          * if job is persistent, it will also be called before run method.
+         * 
          * @param injector your dependency injector interface, if using one
-         * @return The builder
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder injector(@Nullable DependencyInjector injector) {
@@ -263,6 +275,8 @@ public class Configuration {
         /**
          * # of max consumers to run concurrently. defaults to {@link #MAX_CONSUMER_COUNT}
          * @param count The max number of threads that JobManager can create to run jobs
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder maxConsumerCount(int count) {
@@ -275,6 +289,8 @@ public class Configuration {
          * {@link #MIN_CONSUMER_COUNT}
          *
          * @param count The min of of threads that JobManager will keep alive even if they are idle.
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder minConsumerCount(int count) {
@@ -286,6 +302,8 @@ public class Configuration {
          * You can specify a custom timer to control task execution. Useful for testing.
          *
          * @param timer The timer to use
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder timer(@Nullable Timer timer) {
@@ -297,6 +315,8 @@ public class Configuration {
          * you can provide a custom logger to get logs from JobManager.
          * by default, logs will go no-where.
          * @param logger The logger to be used by the JobManager.
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder customLogger(@Nullable CustomLogger logger) {
@@ -311,6 +331,8 @@ public class Configuration {
          * defaults to {@link #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
          *
          * @param loadFactor Number of available jobs per thread
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder loadFactor(int loadFactor) {
@@ -322,6 +344,8 @@ public class Configuration {
          * Sets the JobManager in test mode. This information is passed to JobQueue's.
          * If you are using default JobQueues, calling this method will cause {@link SqliteJobQueue}
          * to use an in-memory database.
+         *
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder inTestMode() {
@@ -335,7 +359,7 @@ public class Configuration {
          * {@link android.app.job.JobScheduler}.
          * <p>
          * <b>Batching</b>
-         * <br/>
+         * <p>
          * By default, JobManager batches scheduling requests so that it will not call JobScheduler
          * too many times. For instance, if a persistent job that requires network is added, when
          * batching is enabled, JobManager creates the JobScheduler request with
@@ -349,7 +373,7 @@ public class Configuration {
          * @param scheduler The scheduler to be used
          * @param batch     Defines whether the scheduling requests should be batched or not.
          *
-         * @return The builder
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder scheduler(@Nullable Scheduler scheduler, boolean batch) {
@@ -360,12 +384,13 @@ public class Configuration {
 
         /**
          * Sets the priority for the threads of this manager. By default it is
-         * {@link #DEFAULT_THREAD_PRIORITY}.<br />
+         * {@link #DEFAULT_THREAD_PRIORITY}.
+         * <p>
          * If a {@link ThreadFactory} is provided, this value is ignored.
          *
          * @param threadPriority The thread priority to be used for new jobs
          *
-         * @return The builder
+         * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder consumerThreadPriority(int threadPriority) {
@@ -379,7 +404,7 @@ public class Configuration {
          * {@link android.app.job.JobScheduler}.
          * <p>
          * <b>Batching</b>
-         * <br/>
+         * <p>
          * By default, JobManager batches scheduling requests so that it will not call JobScheduler
          * too many times. For instance, if a persistent job that requires network is added, when
          * batching is enabled, JobManager creates the JobScheduler request with
@@ -392,7 +417,7 @@ public class Configuration {
          *
          * @param scheduler The scheduler to be used
          *
-         * @return The builder
+         * @return This Configuration.Builder for easy chaining
          */
         @NonNull
         public Builder scheduler(@Nullable Scheduler scheduler) {
@@ -400,14 +425,15 @@ public class Configuration {
         }
 
         /**
-         * Provide a factory class to create new worker instances when JobManager needs them.<br />
-         * When a factory is installed, it becomes its responsability to configure
+         * Provide a factory class to create new worker instances when JobManager needs them.
+         * <p>
+         * When a factory is installed, it becomes its responsibility to configure
          * the {@link Thread} with proper group and priority. JobManager will use the {@link Thread}
          * as is.
          *
          * @param threadFactory The factory to be used
          *
-         * @return The builder
+         * @return This Configuration.Builder for easy chaining
          */
         @NonNull
         public Builder threadFactory(@Nullable final ThreadFactory threadFactory) {

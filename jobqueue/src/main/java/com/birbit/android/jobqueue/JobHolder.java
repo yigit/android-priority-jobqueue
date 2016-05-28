@@ -97,8 +97,9 @@ public class JobHolder {
 
     /**
      * runs the job w/o throwing any exceptions
-     * @param currentRunCount
-     * @return RUN_RESULT*
+     * @param currentRunCount The current run count of the job
+     *
+     * @return RUN_RESULT
      */
     public int safeRun(int currentRunCount) {
         return job.safeRun(this, currentRunCount);

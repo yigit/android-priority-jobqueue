@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue.inMemoryQueue;
 
+import android.support.annotation.NonNull;
+
 import com.birbit.android.jobqueue.Constraint;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.JobQueue;
@@ -70,7 +72,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         this.sessionId = sessionId;
     }
     @Override
-    public boolean insert(JobHolder jobHolder) {
+    public boolean insert(@NonNull JobHolder jobHolder) {
         jobHolder.setInsertionOrder(insertionOrderCounter.incrementAndGet());
         JobHolder existing = idCache.get(jobHolder.getId());
         if (existing != null) {
@@ -82,7 +84,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
-    public boolean insertOrReplace(JobHolder jobHolder) {
+    public boolean insertOrReplace(@NonNull JobHolder jobHolder) {
         if (jobHolder.getInsertionOrder() == null) {
             return insert(jobHolder);
         }
@@ -96,13 +98,13 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
-    public void substitute(JobHolder newJob, JobHolder oldJob) {
+    public void substitute(@NonNull JobHolder newJob, @NonNull JobHolder oldJob) {
         remove(oldJob);
         insert(newJob);
     }
 
     @Override
-    public void remove(JobHolder jobHolder) {
+    public void remove(@NonNull JobHolder jobHolder) {
         idCache.remove(jobHolder.getId());
         jobs.remove(jobHolder);
     }
@@ -113,7 +115,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
-    public int countReadyJobs(Constraint constraint) {
+    public int countReadyJobs(@NonNull Constraint constraint) {
         int count = 0;
         reusedList.clear();
         for (JobHolder holder : jobs) {
@@ -130,7 +132,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
-    public JobHolder nextJobAndIncRunCount(Constraint constraint) {
+    public JobHolder nextJobAndIncRunCount(@NonNull Constraint constraint) {
         for (JobHolder holder : jobs) {
             if (matches(holder, constraint)) {
                 remove(holder);
@@ -163,7 +165,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
-    public Long getNextJobDelayUntilNs(Constraint constraint) {
+    public Long getNextJobDelayUntilNs(@NonNull Constraint constraint) {
         Long minDelay = null;
         boolean hasNetwork = !constraint.shouldNotRequireNetwork();
         boolean hasUnmetered = !constraint.shouldNotRequireUnmeteredNetwork();
@@ -199,12 +201,13 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
 
     @Override
-    public JobHolder findJobById(String id) {
+    public JobHolder findJobById(@NonNull String id) {
         return idCache.get(id);
     }
 
+    @NonNull
     @Override
-    public Set<JobHolder> findJobs(Constraint constraint) {
+    public Set<JobHolder> findJobs(@NonNull Constraint constraint) {
         Set<JobHolder> result = new HashSet<>();
         for (JobHolder holder : jobs) {
             if (matches(holder, constraint)) {

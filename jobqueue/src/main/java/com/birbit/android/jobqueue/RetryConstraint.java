@@ -11,6 +11,7 @@ package com.birbit.android.jobqueue;
  * A common use case is exponentially backing off a Job and you can use
  * {@link #createExponentialBackoff(int, long)} method to do that.
  */
+@SuppressWarnings("WeakerAccess")
 public class RetryConstraint {
     public static final RetryConstraint RETRY = new ImmutableRetryConstraint(true);
     public static final RetryConstraint CANCEL = new ImmutableRetryConstraint(false);
@@ -29,7 +30,8 @@ public class RetryConstraint {
 
     /**
      * Set whether the Job should be run again or cancelled.
-     * @param retry
+     *
+     * @param retry True if job should be retried, false if it should be cancelled
      */
     public void setRetry(boolean retry) {
         this.retry = retry;
@@ -41,7 +43,8 @@ public class RetryConstraint {
 
     /**
      * Sets a timeout until the Job is tried again.
-     * @param newDelayInMs
+     *
+     * @param newDelayInMs The new delay in Ms from now before retrying the job
      */
     public void setNewDelayInMs(Long newDelayInMs) {
         this.newDelayInMs = newDelayInMs;
@@ -52,8 +55,9 @@ public class RetryConstraint {
     }
 
     /**
-     * Updates the Job's prioritiy.
-     * @param newPriority
+     * Updates the Job's priority.
+     *
+     * @param newPriority Gives a new priority to the job
      */
     public void setNewPriority(Integer newPriority) {
         this.newPriority = newPriority;
@@ -101,11 +105,12 @@ public class RetryConstraint {
      * @return Whether the delay will be applied to all jobs in this group or not. Defaults to
      * false.
      */
+    @SuppressWarnings("WeakerAccess")
     public boolean willApplyNewDelayToGroup() {
         return applyNewDelayToGroup;
     }
 
-    private static class ImmutableRetryConstraint extends RetryConstraint {
+    static class ImmutableRetryConstraint extends RetryConstraint {
         private static final String MESSAGE = "This object is immutable. Create a new one using the"
                 + " constructor.";
         public ImmutableRetryConstraint(boolean retry) {
