@@ -10,6 +10,7 @@ import com.birbit.android.jobqueue.JobQueue;
 import com.birbit.android.jobqueue.QueueFactory;
 import com.birbit.android.jobqueue.di.DependencyInjector;
 import com.birbit.android.jobqueue.log.CustomLogger;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.network.NetworkUtilImpl;
 import com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
@@ -58,7 +59,7 @@ public class Configuration {
     QueueFactory queueFactory;
     DependencyInjector dependencyInjector;
     NetworkUtil networkUtil;
-    CustomLogger customLogger;
+    CustomLogger customLogger = new JqLog.ErrorLogger();
     Timer timer;
     Scheduler scheduler;
     boolean inTestMode = false;
@@ -295,7 +296,8 @@ public class Configuration {
 
         /**
          * you can provide a custom logger to get logs from JobManager.
-         * by default, logs will go no-where.
+         * by default, JobManager only logs error via Android's <code>Log.e</code>.
+         *
          * @param logger The logger to be used by the JobManager.
          */
         @NonNull
