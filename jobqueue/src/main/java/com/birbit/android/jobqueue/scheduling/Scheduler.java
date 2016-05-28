@@ -23,7 +23,7 @@ abstract public class Scheduler {
         this.callback = callback;
     }
 
-    public Context getApplicationContext() {
+    Context getApplicationContext() {
         return context;
     }
 
@@ -34,6 +34,7 @@ abstract public class Scheduler {
      * {@link #onFinished(SchedulerConstraint, boolean)} with an async callback.
      *
      * @param constraint The constraint
+     * @return true if there is work to do be done, false otherwise
      */
     public final boolean start(SchedulerConstraint constraint) {
         if (callback == null) {
@@ -67,13 +68,13 @@ abstract public class Scheduler {
      */
     public interface Callback {
         /**
-         * @param constraint
-         * @return True if no jobs to run, false otherwise
+         * @param constraint The constraint for the jobs to be run
+         * @return True if there are jobs to run, false otherwise
          */
         boolean start(SchedulerConstraint constraint);
 
         /**
-         * @param constraint
+         * @param constraint The constraint for the jobs to be run
          * @return True if job should be rescheduled, false otherwise
          */
         boolean stop(SchedulerConstraint constraint);

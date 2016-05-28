@@ -20,7 +20,7 @@ import java.util.UUID;
  * Scheduler implementation that uses the frameworks' scheduler API.
  */
 @TargetApi(21)
-public class FrameworkScheduler extends Scheduler {
+class FrameworkScheduler extends Scheduler {
     private static final String KEY_UUID = "uuid";
     private static final String KEY_ID = "id";
     private static final String KEY_DELAY = "delay";
@@ -33,11 +33,11 @@ public class FrameworkScheduler extends Scheduler {
     @Nullable private JobService jobService;
     private final Class<? extends FrameworkJobSchedulerService> serviceImpl;
 
-    public FrameworkScheduler(Class< ? extends FrameworkJobSchedulerService> serviceImpl) {
+    FrameworkScheduler(Class<? extends FrameworkJobSchedulerService> serviceImpl) {
         this.serviceImpl = serviceImpl;
     }
 
-    public void setJobService(@Nullable JobService jobService) {
+    void setJobService(@Nullable JobService jobService) {
         this.jobService = jobService;
     }
 
@@ -65,7 +65,7 @@ public class FrameworkScheduler extends Scheduler {
      *
      * @return A unique integer id for the next Job request to be sent to system scheduler
      */
-    public int createId() {
+    private int createId() {
         synchronized (FrameworkScheduler.class) {
             final SharedPreferences preferences = getPreferences(getApplicationContext());
             final int id = preferences.getInt(KEY_ID, 0) + 1;
@@ -154,7 +154,7 @@ public class FrameworkScheduler extends Scheduler {
         return constraint;
     }
 
-    public boolean onStartJob(JobParameters params) {
+    boolean onStartJob(JobParameters params) {
         SchedulerConstraint constraint = fromBundle(params.getExtras());
         if (JqLog.isDebugEnabled()) {
             JqLog.d("[FW Scheduler] start job %s %d", constraint, params.getJobId());
@@ -163,7 +163,7 @@ public class FrameworkScheduler extends Scheduler {
         return start(constraint);
     }
 
-    public boolean onStopJob(JobParameters params) {
+    boolean onStopJob(JobParameters params) {
         SchedulerConstraint constraint = fromBundle(params.getExtras());
         return stop(constraint);
     }
