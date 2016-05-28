@@ -165,6 +165,10 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.0-alpha3 (May 28, 2016)
+   - New onCancel API receives the exception
+   - Changed how schedulers are constructed to avoid NPE issues
+   - New ThreadPool configuration to allow custom thread creation for consumers
   - 2.0.0-alpha1 (March 26, 2016)
    - A major rewrite with 70+ commits
    - [Migration guide][13]
