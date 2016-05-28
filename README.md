@@ -1,10 +1,11 @@
 ### V2 is on the way!
-There is a major internal rewrite of this project for more stability and new features. Although API is not final, I highly suggest using 2.0..
+There is a major internal rewrite of this project for more stability and new features. Although API is not final, I highly suggest using 2.0.
+It is still called alpha **not because** it is unstable but because the API is not final.
 See the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
 dependedencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha2'
+    compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha3'
 }
 ```
 Android Priority Job Queue (Job Manager)
