@@ -82,8 +82,8 @@ public class PostTweetJob extends Job {
         return RetryConstraint.createExponentialBackoff(runCount, 1000);
     }
     @Override
-    protected void onCancel() {
-        // Job has exceeded retry attempts or shouldReRunOnThrowable() has returned false.
+    protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
+        // Job has exceeded retry attempts or shouldReRunOnThrowable() has decided to cancel.
     }
 }
 
@@ -115,7 +115,9 @@ That's it. :) Job Manager allows you to enjoy:
 It runs on a background thread because Job Queue will make a disk access to persist the job.
 
 * Right after `PostTweetJob` is synchronized to disk, Job Queue calls `DependencyInjector` (if provided) which will [inject fields](http://en.wikipedia.org/wiki/Dependency_injection) into our job instance.
-At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fracions of a second. This allows the implementation of `onAdded()` to inform UI to display the newly sent tweet almost instantly, creating a "fast" user experience. Beware, `onAdded()` is called on the thread job was added.
+At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fracions of a second. This allows the implementation of `onAdded()` to inform UI to display the newly sent tweet almost instantly, creating a "fast" user experience.
+In V1, `onAdded()` is called on the thread job was added.
+In V2, `onAdded()` is called in JobManager's own thread.
 
 * When it's time for `PostTweetJob` to run, Job Queue will call `onRun()` (and it will only be called if there is an active network connection, as dictated at the job's constructor).
 By default, Job Queue uses a simple connection utility that checks `ConnectivityManager` (ensure you have `ACCESS_NETWORK_STATE` permission in your manifest). You can provide a [custom implementation][1] which can
