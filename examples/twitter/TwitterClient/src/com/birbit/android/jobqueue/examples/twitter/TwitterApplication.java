@@ -26,6 +26,7 @@ public class TwitterApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        getJobManager();// ensure it is created
     }
 
     private void configureJobManager() {
