@@ -39,7 +39,7 @@ abstract public class Job implements Serializable {
     private transient int currentRunCount;
     transient int priority;
     private transient long delayInMs;
-    transient boolean cancelled;
+    transient volatile boolean cancelled;
 
     private transient Context applicationContext;
 
@@ -47,7 +47,7 @@ abstract public class Job implements Serializable {
      * Only set if a job fails. Will be cleared by JobManager after it is handled
      */
     transient RetryConstraint retryConstraint;
-    private transient boolean sealed;
+    private transient volatile boolean sealed;
 
 
     protected Job(Params params) {

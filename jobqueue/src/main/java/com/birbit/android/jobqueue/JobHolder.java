@@ -62,9 +62,9 @@ public class JobHolder {
     protected long requiresUnmeteredNetworkUntilNs;
     transient Job job;
     protected final Set<String> tags;
-    private boolean cancelled;
-    private boolean cancelledSingleId;
-    private boolean successful;
+    private volatile boolean cancelled;
+    private volatile boolean cancelledSingleId;
+    private volatile boolean successful;
     /**
      * Eventual exception thrown from the last execution of {@link Job#onRun}
      */
