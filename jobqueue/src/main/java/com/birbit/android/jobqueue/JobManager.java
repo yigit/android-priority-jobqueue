@@ -3,6 +3,7 @@ package com.birbit.android.jobqueue;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
@@ -66,6 +67,18 @@ public class JobManager {
             configuration.getScheduler().init(configuration.getAppContext(), callback);
         }
         chefThread.start();
+    }
+
+    /**
+     * Returns the main thread of the JobManager.
+     * <p>
+     * This is the thread where the Jobs' onAdded methods are run.
+     *
+     * @return The thread used by the JobManager for its own logic.
+     */
+    @VisibleForTesting
+    public Thread getJobManagerExecutionThread() {
+        return chefThread;
     }
 
     /**
