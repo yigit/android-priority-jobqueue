@@ -131,7 +131,13 @@ public class SqliteJobQueue implements JobQueue {
             stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
         }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
-        byte[] job = getSerializeJob(jobHolder);
+        final byte[] job;
+        try {
+            job = jobSerializer.serialize(jobHolder.getJob());
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot serialize the job. Make sure all of its fields are" +
+                    " serializable if you are using the default serializer", e);
+        }
         if (job != null) {
             stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, job);
         }
@@ -401,19 +407,6 @@ public class SqliteJobQueue implements JobQueue {
             return jobSerializer.deserialize(bytes);
         } catch (Throwable t) {
             JqLog.e(t, "error while deserializing job");
-        }
-        return null;
-    }
-
-    private byte[] getSerializeJob(JobHolder jobHolder) {
-        return safeSerialize(jobHolder.getJob());
-    }
-
-    private byte[] safeSerialize(Object object) {
-        try {
-            return jobSerializer.serialize(object);
-        } catch (Throwable t) {
-            JqLog.e(t, "error while serializing object %s", object.getClass().getSimpleName());
         }
         return null;
     }
