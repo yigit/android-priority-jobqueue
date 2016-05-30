@@ -142,6 +142,7 @@ public class JobManager {
      */
     public int getActiveConsumerCount() {
         assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call sync methods in JobManager's callback thread.");
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.ACTIVE_CONSUMER_COUNT, null);
         return new IntQueryFuture<>(messageQueue, message).getSafe();
@@ -286,6 +287,8 @@ public class JobManager {
     public void addJob(Job job) {
         assertNotInMainThread("Cannot call this method on main thread. Use addJobInBackground "
                 + "instead.");
+        assertNotInJobManagerThread("Cannot call sync methods in JobManager's callback thread." +
+                "Use addJobInBackground instead");
         final CountDownLatch latch = new CountDownLatch(1);
         final String uuid = job.getId();
         addCallback(new JobManagerCallbackAdapter() {
@@ -352,6 +355,8 @@ public class JobManager {
     public CancelResult cancelJobs(TagConstraint constraint, String... tags) {
         assertNotInMainThread("Cannot call this method on main thread. Use cancelJobsInBackground"
                 + " instead");
+        assertNotInJobManagerThread("Cannot call this method on JobManager's thread. Use" +
+                "cancelJobsInBackground instead");
         if (constraint == null) {
             throw new IllegalArgumentException("must provide a TagConstraint");
         }
@@ -387,6 +392,7 @@ public class JobManager {
      */
     public int count() {
         assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call count sync method in JobManager's thread");
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.COUNT, null);
         return new IntQueryFuture<>(messageQueue, message).getSafe();
@@ -401,6 +407,7 @@ public class JobManager {
      */
     public int countReadyJobs() {
         assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call countReadyJobs sync method on JobManager's thread");
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.COUNT_READY, null);
         return new IntQueryFuture<>(messageQueue, message).getSafe();
@@ -416,6 +423,8 @@ public class JobManager {
      * @return The current status of the Job
      */
     public JobStatus getJobStatus(String id) {
+        assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call getJobStatus on JobManager's thread");
         PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.JOB_STATUS, id, null);
         Integer status = new IntQueryFuture<>(messageQueue, message).getSafe();
@@ -430,6 +439,8 @@ public class JobManager {
      * time.
      */
     public void clear() {
+        assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call clear on JobManager's thread");
         final PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
         message.set(PublicQueryMessage.CLEAR, null);
         new IntQueryFuture<>(messageQueue, message).getSafe();
@@ -458,9 +469,16 @@ public class JobManager {
     private void assertNotInMainThread() {
         assertNotInMainThread("Cannot call this method on main thread.");
     }
+
     private void assertNotInMainThread(String message) {
         if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
-            throw new IllegalStateException(message);
+            throw new WrongThreadException(message);
+        }
+    }
+
+    private void assertNotInJobManagerThread(String message) {
+        if (Thread.currentThread() == chefThread) {
+            throw new WrongThreadException(message);
         }
     }
 

@@ -146,11 +146,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             dependencyInjector.inject(job);
         }
         jobHolder.setApplicationContext(appContext);
-        try {
-            jobHolder.getJob().onAdded();
-        } catch (Throwable t) {
-            JqLog.e(t, "job's onAdded did throw an exception, ignoring...");
-        }
+        jobHolder.getJob().onAdded();
         callbackManager.notifyOnAdded(jobHolder.getJob());
         if (insert) {
             consumerManager.onJobAdded();
