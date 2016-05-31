@@ -4,7 +4,7 @@ It is still called alpha **not because** it is unstable but because the API is n
 See the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
-dependedencies {
+dependencies {
     compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha3'
 }
 ```
@@ -115,7 +115,7 @@ That's it. :) Job Manager allows you to enjoy:
 It runs on a background thread because Job Queue will make a disk access to persist the job.
 
 * Right after `PostTweetJob` is synchronized to disk, Job Queue calls `DependencyInjector` (if provided) which will [inject fields](http://en.wikipedia.org/wiki/Dependency_injection) into our job instance.
-At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fracions of a second. This allows the implementation of `onAdded()` to inform UI to display the newly sent tweet almost instantly, creating a "fast" user experience.
+At `PostTweetJob.onAdded()` callback, we saved `PostTweetJob` to disk. Since there has been no network access up to this point, the time between clicking the send button and reaching `onAdded()` is within fractions of a second. This allows the implementation of `onAdded()` to inform UI to display the newly sent tweet almost instantly, creating a "fast" user experience.
 In V1, `onAdded()` is called on the thread job was added.
 In V2, `onAdded()` is called in JobManager's own thread.
 
@@ -131,7 +131,7 @@ Job Queue will call `shouldReRunOnThrowable()` to allow you to handle the except
 your database, inform the user, etc.
 
 ### Advantages
-* It is very easy to de-couple application logic from your activites, making your code more robust, easy to refactor, and easy to **test**.
+* It is very easy to de-couple application logic from your activities, making your code more robust, easy to refactor, and easy to **test**.
 * You don't have to deal with `AsyncTask` lifecycles. This is true assuming you use an event bus to update your UI (you should).
 At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus); however, you can also go with your favorite. (e.g. [Square's Otto] (https://github.com/square/otto))
 * Job Queue takes care of prioritizing jobs, checking network connection, running them in parallel, etc. Job prioritization is especially indispensable when you have a resource-heavy app like ours.
@@ -156,7 +156,7 @@ Maven:
 </dependency>
 ```
 
-You can also [download][5] library jar, sources and javadoc from Maven Central.
+You can also [download][5] library jar, sources and Javadoc from Maven Central.
 
 We highly recommend checking how you can configure job manager and individual jobs.
 * [Configure job manager][10]
