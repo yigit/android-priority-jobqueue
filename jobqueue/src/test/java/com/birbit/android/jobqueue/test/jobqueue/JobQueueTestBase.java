@@ -1050,8 +1050,12 @@ public abstract class JobQueueTestBase extends TestBase {
                 .groupId(getGroupIdField(params).get())
                 .runCount(0)
                 .job(job)
+                .id(job.getId())
+                .tags(job.getTags())
                 .createdNs(mockTimer.nanoTime())
                 .delayUntilNs(delay > 0 ? mockTimer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)
+                .requiresNetworkUntilNs(job.getRequiresNetworkUntilNs())
+                .requiresUnmeteredNetworkUntil(job.getRequiresUnmeteredNetworkUntilNs())
                 .runningSessionId(JobManager.NOT_RUNNING_SESSION_ID).build();
     }
 

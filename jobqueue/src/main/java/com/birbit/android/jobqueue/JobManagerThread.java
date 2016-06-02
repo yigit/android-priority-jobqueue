@@ -121,6 +121,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 .groupId(job.getRunGroupId())
                 .createdNs(timer.nanoTime())
                 .delayUntilNs(delayUntilNs)
+                .id(job.getId())
+                .tags(job.getTags())
+                .requiresNetworkUntilNs(job.getRequiresNetworkUntilNs())
+                .requiresUnmeteredNetworkUntil(job.getRequiresUnmeteredNetworkUntilNs())
                 .runningSessionId(NOT_RUNNING_SESSION_ID).build();
 
         JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());
