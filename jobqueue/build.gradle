@@ -52,12 +52,13 @@ dependencies {
     testCompile 'org.easytesting:fest-reflect:1.4.1'
     testCompile 'org.mockito:mockito-core:2.0.2-beta'
 
+    compile 'com.squareup.okio:okio:1.8.0'
+
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
     compile 'com.android.support:support-v4:21.0.3'
     // build tools does not allow makingt this provided so we make it optional when pom is created
     compile 'com.google.android.gms:play-services-gcm:8.4.0'
-
 }
 
 android {
@@ -73,7 +74,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 7
+        minSdkVersion 9
         targetSdkVersion 23
     }
 
@@ -82,6 +83,10 @@ android {
             // All the usual Gradle options.
             jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
         }
+    }
+
+    lintOptions {
+        warning 'InvalidPackage'
     }
 }
 
@@ -207,11 +212,11 @@ afterEvaluate { project ->
         sign configurations.archives
     }
 }
+
 task testLint(type : Exec) {
     workingDir project.projectDir
     // SET ANDROID_LINT_JARS ENV VARIABLE
     commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
-
 }
 
 task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
