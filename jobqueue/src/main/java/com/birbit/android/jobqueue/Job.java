@@ -27,19 +27,20 @@ abstract public class Job implements Serializable {
     @SuppressWarnings("WeakerAccess")
     public static final int DEFAULT_RETRY_LIMIT = 20;
     private static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
-    private String id = UUID.randomUUID().toString();
-    private long requiresNetworkUntilNs = Params.NEVER;
-    transient private long requiresNetworkTimeoutMs = 0;
-    private long requiresUnmeteredNetworkUntilNs = Params.NEVER;
-    transient private long requiresUnmeteredNetworkTimeoutMs = 0;
-    private String groupId;
-    private boolean persistent;
-    private Set<String> readonlyTags;
+    // set either in constructor or by the JobHolder
+    /**package**/ private transient String id;
+    private transient long requiresNetworkUntilNs = Params.NEVER;
+    private transient long requiresNetworkTimeoutMs = 0;
+    private transient long requiresUnmeteredNetworkUntilNs = Params.NEVER;
+    private transient long requiresUnmeteredNetworkTimeoutMs = 0;
+    private transient String groupId;
+    private transient boolean persistent;
+    private transient Set<String> readonlyTags;
 
     private transient int currentRunCount;
-    transient int priority;
+    /**package**/ transient int priority;
     private transient long delayInMs;
-    transient volatile boolean cancelled;
+    /*package*/ transient volatile boolean cancelled;
 
     private transient Context applicationContext;
 
@@ -51,6 +52,7 @@ abstract public class Job implements Serializable {
 
 
     protected Job(Params params) {
+        this.id = UUID.randomUUID().toString();
         this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
         this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();
         this.persistent = params.isPersistent();
@@ -107,34 +109,28 @@ abstract public class Job implements Serializable {
             throw new IllegalStateException("A job cannot be serialized w/o first being added into"
                     + " a job manager.");
         }
-        oos.writeLong(requiresNetworkUntilNs);
-        oos.writeLong(requiresUnmeteredNetworkUntilNs);
-        oos.writeObject(groupId);
-        oos.writeBoolean(persistent);
-        final int tagCount = readonlyTags == null ? 0 : readonlyTags.size();
-        oos.writeInt(tagCount);
-        if (tagCount > 0) {
-            for (String tag : readonlyTags) {
-                oos.writeUTF(tag);
-            }
-        }
-        oos.writeUTF(id);
     }
 
-
-    private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
-        requiresNetworkUntilNs = ois.readLong();
-        requiresUnmeteredNetworkUntilNs = ois.readLong();
-        groupId = (String) ois.readObject();
-        persistent = ois.readBoolean();
-        final int tagCount = ois.readInt();
-        if (tagCount > 0) {
-            readonlyTags = new HashSet<>(tagCount);
-            for (int i = 0; i < tagCount; i ++) {
-                readonlyTags.add(ois.readUTF());
-            }
+    /**
+     * Job class keeps some data within itself which is later moved to the JobHolder.
+     * <p>
+     * When a Job is saved to disk, this information might be lost. This method is provided as a
+     * convenience to the custom queues to put this data back into the Job when it is re-created.
+     *
+     * @param holder The JobHolder which holds this job.
+     * @param persistent Whether the Job is persistent or not.
+     */
+    public void updateFromJobHolder(JobHolder holder, boolean persistent) {
+        if (sealed) {
+            throw new IllegalStateException("Cannot set a Job from JobHolder after it is sealed.");
         }
-        id = ois.readUTF();
+        id = holder.id;
+        requiresNetworkUntilNs = holder.requiresNetworkUntilNs;
+        requiresUnmeteredNetworkUntilNs = holder.requiresUnmeteredNetworkUntilNs;
+        groupId = holder.groupId;
+        priority = holder.priority;
+        this.persistent = persistent;
+        readonlyTags = holder.tags;
         sealed = true; //  deserialized jobs are sealed
     }
 

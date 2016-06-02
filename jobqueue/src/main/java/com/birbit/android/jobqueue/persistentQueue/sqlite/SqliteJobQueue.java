@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -178,7 +179,9 @@ public class SqliteJobQueue implements JobQueue {
         SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();
         stmt.clearBindings();
         bindValues(stmt, jobHolder);
-        return stmt.executeInsert() != -1;
+        boolean result = stmt.executeInsert() != -1;
+        JqLog.d("reinsert job result %s", result);
+        return result;
     }
 
     /**
@@ -403,27 +406,51 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidJobException {
-        String id = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
+        String jobId = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
         Job job = null;
         try {
-            job = safeDeserialize(jobStorage.load(id));
+            job = safeDeserialize(jobStorage.load(jobId));
         } catch (IOException e) {
             throw new InvalidJobException("cannot load job from disk", e);
         }
         if (job == null) {
             throw new InvalidJobException("null job");
         }
-        return new JobHolder.Builder()
+        // load tags
+        Set<String> tags = loadTags(jobId);
+        JobHolder holder = new JobHolder.Builder()
                 .insertionOrder(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
                 .priority(cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex))
                 .groupId(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
                 .runCount(cursor.getInt(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex))
                 .job(job)
+                .id(jobId)
+                .tags(tags)
                 .createdNs(cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex))
                 .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                 .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
+                .requiresNetworkUntilNs(cursor.getLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex))
+                .requiresUnmeteredNetworkUntil(cursor.getLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex))
                 .build();
+        job.updateFromJobHolder(holder, true);
+        return holder;
+    }
 
+    private Set<String> loadTags(String jobId) {
+        Cursor cursor = db.rawQuery(sqlHelper.LOAD_TAGS_QUERY, new String[]{jobId});
+        if (cursor.getCount() == 0) {
+            //noinspection unchecked
+            return Collections.EMPTY_SET;
+        }
+        final Set<String> tags = new HashSet<>();
+        try {
+            while (cursor.moveToNext()) {
+                tags.add(cursor.getString(0));
+            }
+        } finally {
+            cursor.close();
+        }
+        return tags;
     }
 
     private Job safeDeserialize(byte[] bytes) {

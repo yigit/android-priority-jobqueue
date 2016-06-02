@@ -71,28 +71,32 @@ public class JobHolder {
     @Nullable private Throwable throwable;
 
     /**
+     * @param id               The ID of the Job
      * @param priority         Higher is better
      * @param groupId          which group does this job belong to? default null
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
      * @param job              Actual job to run
      * @param createdNs        System.nanotime
      * @param delayUntilNs     System.nanotime value where job can be run the very first time
-     * @param runningSessionId
+     * @param runningSessionId The running session id for the job
+     * @param tags             The tags of the Job
+     * @param requiresNetworkUntilNs Until when this job requires network
+     * @param requiresUnmeteredNetworkUntilNs Until when this job requires unmetered network
      */
-    private JobHolder(int priority, String groupId, int runCount, Job job, long createdNs,
-            long delayUntilNs, long runningSessionId) {
-        this.id = job.getId();
+    private JobHolder(String id, int priority, String groupId, int runCount, Job job, long createdNs,
+                      long delayUntilNs, long runningSessionId, Set<String> tags,
+                      long requiresNetworkUntilNs, long requiresUnmeteredNetworkUntilNs) {
+        this.id = id;
         this.priority = priority;
         this.groupId = groupId;
         this.runCount = runCount;
         this.createdNs = createdNs;
         this.delayUntilNs = delayUntilNs;
         this.job = job;
-        job.priority = priority;
         this.runningSessionId = runningSessionId;
-        this.requiresNetworkUntilNs = job.getRequiresNetworkUntilNs();
-        this.requiresUnmeteredNetworkUntilNs = job.getRequiresUnmeteredNetworkUntilNs();
-        this.tags = job.getTags() == null ? null : Collections.unmodifiableSet(job.getTags());
+        this.requiresNetworkUntilNs = requiresNetworkUntilNs;
+        this.requiresUnmeteredNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
+        this.tags = tags;
     }
 
     /**
@@ -273,6 +277,7 @@ public class JobHolder {
 
     public static class Builder {
         private int priority;
+        private String id;
         private String groupId;
         private int runCount;
         private Job job;
@@ -281,9 +286,17 @@ public class JobHolder {
         private Long insertionOrder;
         private long runningSessionId;
         private int providedFlags = 0;
+        private Set<String> tags;
+        private long requiresNetworkUntilNs;
+        private long requiresUnmeteredNetworkUntilNs;
+
         private static final int FLAG_SESSION_ID = 1;
         private static final int FLAG_PRIORITY = 1 << 1;
         private static final int FLAG_CREATED_AT = 1 << 2;
+        private static final int FLAG_ID = 1 << 3;
+        private static final int FLAG_TAGS = 1 << 4;
+        private static final int FLAG_REQ_NETWORK_UNTIL = 1 << 5;
+        private static final int FLAG_REQ_UNMETERED_NETWORK_UNTIL = 1 << 6;
 
         public Builder priority(int priority) {
             this.priority = priority;
@@ -294,14 +307,41 @@ public class JobHolder {
             this.groupId = groupId;
             return this;
         }
+
+        public Builder tags(Set<String> tags) {
+            this.tags = tags;
+            providedFlags |= FLAG_TAGS;
+            return this;
+        }
+
         public Builder runCount(int runCount) {
             this.runCount = runCount;
             return this;
         }
+
         public Builder job(Job job) {
             this.job = job;
             return this;
         }
+
+        public Builder id(String id) {
+            this.id = id;
+            providedFlags |= FLAG_ID;
+            return this;
+        }
+
+        public Builder requiresNetworkUntilNs(long requiresNetworkUntilNs) {
+            this.requiresNetworkUntilNs = requiresNetworkUntilNs;
+            providedFlags |= FLAG_REQ_NETWORK_UNTIL;
+            return this;
+        }
+
+        public Builder requiresUnmeteredNetworkUntil(long requiresUnmeteredNetworkUntilNs) {
+            this.requiresUnmeteredNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
+            providedFlags |= FLAG_REQ_UNMETERED_NETWORK_UNTIL;
+            return this;
+        }
+
         public Builder createdNs(long createdNs) {
             this.createdNs = createdNs;
             providedFlags |= FLAG_CREATED_AT;
@@ -333,8 +373,21 @@ public class JobHolder {
             if ((providedFlags & FLAG_CREATED_AT) == 0) {
                 throw new IllegalArgumentException("must provide a created timestamp");
             }
-            JobHolder jobHolder = new JobHolder(priority, groupId, runCount, job, createdNs,
-                    delayUntilNs, runningSessionId);
+            if ((providedFlags & FLAG_ID) == 0) {
+                throw new IllegalArgumentException("must provide the JobId");
+            }
+            if ((providedFlags & FLAG_TAGS) == 0) {
+                throw new IllegalArgumentException("must provide tags");
+            }
+            if ((providedFlags & FLAG_REQ_NETWORK_UNTIL) == 0) {
+                throw new IllegalArgumentException("must provide requires network until");
+            }
+            if ((providedFlags & FLAG_REQ_NETWORK_UNTIL) == 0) {
+                throw new IllegalArgumentException("must provide requires unmetered network until");
+            }
+            JobHolder jobHolder = new JobHolder(id, priority, groupId, runCount, job, createdNs,
+                    delayUntilNs, runningSessionId, tags, requiresNetworkUntilNs,
+                    requiresUnmeteredNetworkUntilNs);
             if (insertionOrder != null) {
                 jobHolder.setInsertionOrder(insertionOrder);
             }
