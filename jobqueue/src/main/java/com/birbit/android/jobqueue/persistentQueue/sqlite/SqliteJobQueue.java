@@ -427,13 +427,13 @@ public class SqliteJobQueue implements JobQueue {
                 .job(job)
                 .id(jobId)
                 .tags(tags)
+                .persistent(true)
                 .createdNs(cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex))
                 .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                 .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
                 .requiresNetworkUntilNs(cursor.getLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex))
                 .requiresUnmeteredNetworkUntil(cursor.getLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex))
                 .build();
-        job.updateFromJobHolder(holder, true);
         return holder;
     }
 
