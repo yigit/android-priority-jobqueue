@@ -544,11 +544,6 @@ public class RetryLogicTest extends JobManagerTestBase {
             }
             return RetryConstraint.createExponentialBackoff(runCount, 1000);
         }
-
-        @Override
-        public int getCurrentRunCount() {
-            return super.getCurrentRunCount();
-        }
     }
 
     private static class PersistableDummyJob extends DummyJob {

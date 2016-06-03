@@ -26,13 +26,15 @@ abstract public class Job implements Serializable {
     private static final long serialVersionUID = 3L;
     @SuppressWarnings("WeakerAccess")
     public static final int DEFAULT_RETRY_LIMIT = 20;
-    private static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
+    static final String SINGLE_ID_TAG_PREFIX = "job-single-id:";
     // set either in constructor or by the JobHolder
     /**package**/ private transient String id;
-    private transient long requiresNetworkUntilNs = Params.NEVER;
-    private transient long requiresNetworkTimeoutMs = 0;
-    private transient long requiresUnmeteredNetworkUntilNs = Params.NEVER;
-    private transient long requiresUnmeteredNetworkTimeoutMs = 0;
+    // values set from params
+    transient long requiresNetworkTimeoutMs = 0;
+    transient long requiresUnmeteredNetworkTimeoutMs = 0;
+    // values set after job is covered by a JobHolder
+    private transient long requiresNetworkUntilNs;
+    private transient long requiresUnmeteredNetworkUntilNs;
     private transient String groupId;
     private transient boolean persistent;
     private transient Set<String> readonlyTags;
@@ -44,10 +46,6 @@ abstract public class Job implements Serializable {
 
     private transient Context applicationContext;
 
-    /**
-     * Only set if a job fails. Will be cleared by JobManager after it is handled
-     */
-    transient RetryConstraint retryConstraint;
     private transient volatile boolean sealed;
 
 
@@ -73,7 +71,7 @@ abstract public class Job implements Serializable {
         }
     }
 
-    public String getId() {
+    public final String getId() {
         return id;
     }
 
@@ -118,19 +116,18 @@ abstract public class Job implements Serializable {
      * convenience to the custom queues to put this data back into the Job when it is re-created.
      *
      * @param holder The JobHolder which holds this job.
-     * @param persistent Whether the Job is persistent or not.
      */
-    public void updateFromJobHolder(JobHolder holder, boolean persistent) {
+    final void updateFromJobHolder(JobHolder holder) {
         if (sealed) {
             throw new IllegalStateException("Cannot set a Job from JobHolder after it is sealed.");
         }
         id = holder.id;
-        requiresNetworkUntilNs = holder.requiresNetworkUntilNs;
-        requiresUnmeteredNetworkUntilNs = holder.requiresUnmeteredNetworkUntilNs;
         groupId = holder.groupId;
-        priority = holder.priority;
-        this.persistent = persistent;
+        priority = holder.getPriority();
+        this.persistent = holder.persistent;
         readonlyTags = holder.tags;
+        requiresNetworkUntilNs = holder.getRequiresNetworkUntilNs();
+        requiresUnmeteredNetworkUntilNs = holder.getRequiresUnmeteredNetworkUntilNs();
         sealed = true; //  deserialized jobs are sealed
     }
 
@@ -236,7 +233,7 @@ abstract public class Job implements Serializable {
                     if (retryConstraint == null) {
                         retryConstraint = RetryConstraint.RETRY;
                     }
-                    this.retryConstraint = retryConstraint;
+                    holder.retryConstraint = retryConstraint;
                     reRun = retryConstraint.shouldRetry();
                 } catch (Throwable t2) {
                     JqLog.e(t2, "shouldReRunOnThrowable did throw an exception");
@@ -272,102 +269,8 @@ abstract public class Job implements Serializable {
      *
      * @return The current retry count of the Job
      */
-    protected int getCurrentRunCount() {
+    public final int getCurrentRunCount() {
         return currentRunCount;
-    }
-
-    /**
-     * if job is set to require network, it will not be called unless
-     * {@link com.birbit.android.jobqueue.network.NetworkUtil} reports that there is a network
-     * connection or the wait times out if a timeout was provided in
-     * {@link Params#requireNetworkWithTimeout(long)}.
-     *
-     * @param timer The timer used by the JobManager. Should be the timer that was used while
-     *                configuring the JobManager ({@link Configuration#getTimer()},
-     *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
-     *
-     * @return true if the Job should not be run if there is no active network connection
-     */
-    public final boolean requiresNetwork(@NonNull Timer timer) {
-        return sealed ? requiresNetworkUntilNs > timer.nanoTime()
-                : requiresNetworkTimeoutMs != Params.NEVER;
-    }
-
-    /**
-     * if job is set to require a UNMETERED network, it will not be run unless
-     * {@link com.birbit.android.jobqueue.network.NetworkUtil} reports that there is a UNMETERED network
-     * connection or the wait times out if a timeout was provided in
-     * {@link Params#requireUnmeteredNetworkWithTimeout(long)}.
-     *
-     * @param timer The timer used by the JobManager. Should be the timer that was used while
-     *                configuring the JobManager ({@link Configuration#getTimer()},
-     *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
-     *
-     * @return true if the job should not be run until an unmetered network (e.g. WIFI) is detected
-     */
-    public final boolean requiresUnmeteredNetwork(@NonNull Timer timer) {
-        return sealed ? requiresUnmeteredNetworkUntilNs > timer.nanoTime()
-                : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
-    }
-
-    /**
-     * Returns whether job requires a network connection to be run or not, without checking the
-     * timeout. This is convenient since it does not require a reference to the Timer if you are
-     * not using Jobs with requireNetwork with a timeout.
-     *
-     * @return True if job requires a network to be run, false otherwise.
-     */
-    @SuppressWarnings("unused")
-    public final boolean requiresNetworkIgnoreTimeout() {
-        return sealed ? requiresNetworkUntilNs > 0
-                : requiresNetworkTimeoutMs > 0;
-    }
-
-    /**
-     * Returns whether job requires a unmetered network connection to be run or not, without
-     * checking the timeout. This is convenient since it does not require a reference to the Timer
-     * if you are not using Jobs with requireUnmeteredNetwork with a timeout.
-     *
-     * @return True if job requires a unmetered network to be run, false otherwise.
-     */
-    @SuppressWarnings("unused")
-    public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
-        return sealed ? requiresUnmeteredNetworkUntilNs > 0
-                : requiresUnmeteredNetworkTimeoutMs > 0;
-    }
-
-    /**
-     * Returns until which timestamp this Job will require a UNMETERED network connection to be run.
-     * <p>
-     * This value can be queried only after {@link Job#onAdded()} method is called.
-     * <ul>
-     * <li>If the job does not require a UNMETERED network, it will return {@link Params#NEVER}.</li>
-     * <li>If the job should never be run without a UNMETERED network, it will return {@link Params#FOREVER}.</li>
-     * <li>Otherwise, it will return the time in ns until which the job should require a UNMETERED network
-     * to be run and after that timeout it will be run regardless of the network requirements.</li>
-     * </ul>
-     * @return The timestamp (in ns) until which the job will require a network connection to be
-     * run.
-     */
-    public long getRequiresUnmeteredNetworkUntilNs() {
-        return requiresUnmeteredNetworkUntilNs;
-    }
-
-    /**
-     * Returns until which timestamp this Job will require a network connection to be run.
-     * <p>
-     * This value can be queried only after {@link Job#onAdded()} method is called.
-     * <ul>
-     * <li>If the job does not require network, it will return {@link Params#NEVER}.</li>
-     * <li>If the job should never be run without network, it will return {@link Params#FOREVER}.</li>
-     * <li>Otherwise, it will return the time in ns until which the job should require network
-     * to be run and after that timeout it will be run regardless of the network requirements.</li>
-     * </ul>
-     * @return The timestamp (in ns) until which the job will require a network connection to be
-     * run.
-     */
-    public long getRequiresNetworkUntilNs() {
-        return requiresNetworkUntilNs;
     }
 
     /**
@@ -430,7 +333,7 @@ abstract public class Job implements Serializable {
      *
      * @return true if the Job is cancelled
      */
-    public boolean isCancelled() {
+    public final boolean isCancelled() {
         return cancelled;
     }
 
@@ -466,32 +369,70 @@ abstract public class Job implements Serializable {
      *
      * @param timer The timer used by the JobManager
      */
-    public void seal(@NonNull Timer timer) {
+    public final void seal(@NonNull Timer timer) {
         if (sealed) {
             throw new IllegalStateException("Cannot add the same job twice");
         }
-        if (requiresNetworkTimeoutMs == Params.NEVER) {
-            // convert it from nano
-            requiresNetworkUntilNs = Params.NEVER;
-        } else if (requiresNetworkTimeoutMs == Params.FOREVER) {
-            requiresNetworkUntilNs = Params.FOREVER;
-        } else {
-            requiresNetworkUntilNs = timer.nanoTime()
-                    + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);
-        }
-
-        if (requiresUnmeteredNetworkTimeoutMs == Params.NEVER) {
-            // convert it from nano
-            requiresUnmeteredNetworkUntilNs = Params.NEVER;
-        } else if (requiresUnmeteredNetworkTimeoutMs == Params.FOREVER) {
-            requiresUnmeteredNetworkUntilNs = Params.FOREVER;
-        } else {
-            requiresUnmeteredNetworkUntilNs = timer.nanoTime()
-                    + TimeUnit.MILLISECONDS.toNanos(requiresUnmeteredNetworkTimeoutMs);
-        }
-        if (requiresNetworkUntilNs < requiresUnmeteredNetworkUntilNs) {
-            requiresNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
-        }
         sealed = true;
+    }
+
+    /**
+     * if job is set to require network, it will not be called unless
+     * {@link com.birbit.android.jobqueue.network.NetworkUtil} reports that there is a network
+     * connection or the wait times out if a timeout was provided in
+     * {@link Params#requireNetworkWithTimeout(long)}.
+     *
+     * @param timer The timer used by the JobManager. Should be the timer that was used while
+     *                configuring the JobManager ({@link Configuration#getTimer()},
+     *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
+     *
+     * @return true if the Job should not be run if there is no active network connection
+     */
+    public final boolean requiresNetwork(@NonNull Timer timer) {
+        return sealed ? requiresNetworkUntilNs > timer.nanoTime()
+                : requiresNetworkTimeoutMs != Params.NEVER;
+    }
+
+    /**
+     * if job is set to require a UNMETERED network, it will not be run unless
+     * {@link com.birbit.android.jobqueue.network.NetworkUtil} reports that there is a UNMETERED network
+     * connection or the wait times out if a timeout was provided in
+     * {@link Params#requireUnmeteredNetworkWithTimeout(long)}.
+     *
+     * @param timer The timer used by the JobManager. Should be the timer that was used while
+     *                configuring the JobManager ({@link Configuration#getTimer()},
+     *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
+     *
+     * @return true if the job should not be run until an unmetered network (e.g. WIFI) is detected
+     */
+    public final boolean requiresUnmeteredNetwork(@NonNull Timer timer) {
+        return sealed ? requiresUnmeteredNetworkUntilNs > timer.nanoTime()
+                : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
+    }
+
+    /**
+     * Returns whether job requires a network connection to be run or not, without checking the
+     * timeout. This is convenient since it does not require a reference to the Timer if you are
+     * not using Jobs with requireNetwork with a timeout.
+     *
+     * @return True if job requires a network to be run, false otherwise.
+     */
+    @SuppressWarnings("unused")
+    public final boolean requiresNetworkIgnoreTimeout() {
+        return sealed ? requiresNetworkUntilNs > 0
+                : requiresNetworkTimeoutMs > 0;
+    }
+
+    /**
+     * Returns whether job requires a unmetered network connection to be run or not, without
+     * checking the timeout. This is convenient since it does not require a reference to the Timer
+     * if you are not using Jobs with requireUnmeteredNetwork with a timeout.
+     *
+     * @return True if job requires a unmetered network to be run, false otherwise.
+     */
+    @SuppressWarnings("unused")
+    public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
+        return sealed ? requiresUnmeteredNetworkUntilNs > 0
+                : requiresUnmeteredNetworkTimeoutMs > 0;
     }
 }
