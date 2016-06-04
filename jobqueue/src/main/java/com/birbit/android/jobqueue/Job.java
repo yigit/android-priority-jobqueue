@@ -40,6 +40,8 @@ abstract public class Job implements Serializable {
     private transient int currentRunCount;
     /**package**/ transient int priority;
     private transient long delayInMs;
+    private transient long deadlineInMs;
+    private transient boolean cancelOnDeadline;
     /*package*/ transient volatile boolean cancelled;
 
     private transient Context applicationContext;
@@ -55,6 +57,8 @@ abstract public class Job implements Serializable {
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
         this.delayInMs = params.getDelayMs();
+        this.deadlineInMs = params.getDeadlineMs();
+        this.cancelOnDeadline = params.shouldCancelOnDeadline();
         final String singleId = params.getSingleId();
         if (params.getTags() != null || singleId != null) {
             final Set<String> tags = params.getTags() != null ? params.getTags() : new HashSet<String>();
@@ -421,5 +425,13 @@ abstract public class Job implements Serializable {
     public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
         return sealed ? requiresUnmeteredNetworkUntilNs > 0
                 : requiresUnmeteredNetworkTimeoutMs > 0;
+    }
+
+    /**package**/ long getDeadlineInMs() {
+        return deadlineInMs;
+    }
+
+    /**package**/ boolean shouldCancelOnDeadline() {
+        return cancelOnDeadline;
     }
 }

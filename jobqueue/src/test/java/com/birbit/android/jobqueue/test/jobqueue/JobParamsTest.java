@@ -3,7 +3,6 @@ package com.birbit.android.jobqueue.test.jobqueue;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.test.TestBase;
-import com.birbit.android.jobqueue.test.jobmanager.JobManagerTestBase;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
 import com.birbit.android.jobqueue.test.timer.MockTimer;
 
@@ -79,5 +78,18 @@ public class JobParamsTest extends TestBase {
         DummyJob j10 = new DummyJob(new Params(1).singleInstanceBy("bloop"));
         assertThat("single param should be understood properly", j10.getSingleInstanceId(), endsWith("bloop"));
         assertThat("group param should be automatically set if single instance", j10.getRunGroupId(), notNullValue());
+
+        mockTimer.setNow(150);
+
+        JobHolder j11 = JobQueueTestBase.createNewJobHolder(new Params(1), mockTimer);
+        assertThat("no deadline", j11.getDeadlineNs(), is(Params.FOREVER));
+
+        JobHolder j12 = JobQueueTestBase.createNewJobHolder(new Params(1).overrideDeadlineToCancelInMs(100), mockTimer);
+        assertThat("100 ms deadline", j12.getDeadlineNs(), is(100000150L));
+        assertThat("100 ms deadline", j12.shouldCancelOnDeadline(), is(true));
+
+        JobHolder j13 = JobQueueTestBase.createNewJobHolder(new Params(1).overrideDeadlineToCancelInMs(200), mockTimer);
+        assertThat("100 ms deadline", j13.getDeadlineNs(), is(200000150L));
+        assertThat("100 ms deadline", j12.shouldCancelOnDeadline(), is(true));
     }
 }

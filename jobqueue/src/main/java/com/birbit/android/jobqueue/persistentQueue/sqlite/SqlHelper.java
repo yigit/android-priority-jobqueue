@@ -191,12 +191,12 @@ public class SqlHelper {
         return reusedStringBuilder.toString();
     }
 
-    public String createSelectOneField(Property property, String where, Integer limit,
+    public String createSelectOneField(String selectArg, String where, Integer limit,
             Order... orders) {
         reusedStringBuilder.setLength(0);
 
         reusedStringBuilder.append("SELECT ")
-                .append(property.columnName).append(" FROM ")
+                .append(selectArg).append(" FROM ")
                 .append(tableName);
         if (where != null) {
             reusedStringBuilder.append(" WHERE ").append(where);

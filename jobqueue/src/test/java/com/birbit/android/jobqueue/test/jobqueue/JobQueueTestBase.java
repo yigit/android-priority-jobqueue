@@ -109,7 +109,54 @@ public abstract class JobQueueTestBase extends TestBase {
         assertThat("when asked, if lower priority job has less delay until, we should return it",
                 jobQueue.getNextJobDelayUntilNs(new TestConstraint(mockTimer)), equalTo(
                 lowPriorityHolder.getDelayUntilNs()));
+    }
 
+    @Test
+    public void testNoDeadline() throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder requireNetwork = createNewJobHolder(new Params(0).requireNetwork());
+        jobQueue.insert(requireNetwork);
+        TestConstraint testConstraint = new TestConstraint(mockTimer);
+        testConstraint.setShouldNotRequireNetwork(true);
+        assertThat("when a job w/o a deadline is given, it should not be returned if not ready",
+                jobQueue.nextJobAndIncRunCount(testConstraint), is(nullValue()));
+        assertThat("when a job w/o a deadline is given, it should not be returned in next ready",
+                jobQueue.getNextJobDelayUntilNs(testConstraint), is(nullValue()));
+    }
+
+    @Test
+    public void testDeadlineWithRun() throws Exception {
+        testDeadline(false);
+    }
+
+    @Test
+    public void testDeadlineWithCancel() throws Exception {
+        testDeadline(true);
+    }
+
+    private void testDeadline(boolean cancel) throws Exception {
+        JobQueue jobQueue = createNewJobQueue();
+        Params params = new Params(0).requireNetwork();
+        if (cancel) {
+            params.overrideDeadlineToCancelInMs(100);
+        } else {
+            params.overrideDeadlineToRunInMs(100);
+        }
+        JobHolder requireNetwork = createNewJobHolder(params);
+        jobQueue.insert(requireNetwork);
+        TestConstraint testConstraint = new TestConstraint(mockTimer);
+        testConstraint.setShouldNotRequireNetwork(true);
+        assertThat("when a job w/ a deadline is given, it should not be returned if not ready",
+                jobQueue.nextJobAndIncRunCount(testConstraint), is(nullValue()));
+        assertThat("when a job w/ a deadline is given, it should show up in next job ready query",
+                jobQueue.getNextJobDelayUntilNs(testConstraint), is(100 * JobManager.NS_PER_MS));
+        mockTimer.incrementMs(100);
+        JobHolder nextJob = jobQueue.nextJobAndIncRunCount(testConstraint);
+        assertThat("when a job reaches deadline, it should be returned",
+                nextJob, is(notNullValue()));
+        assertThat("when a job reaches deadline, it should be returned",
+                nextJob.getId(), is(requireNetwork.getId()));
+        assertThat(nextJob.shouldCancelOnDeadline(), is(cancel));
     }
 
     @Test
@@ -337,6 +384,14 @@ public abstract class JobQueueTestBase extends TestBase {
 
     private static org.fest.reflect.field.Invoker<Long> getDelayMsField(Params params) {
         return Reflection.field("delayMs").ofType(long.class).in(params);
+    }
+
+    private static org.fest.reflect.field.Invoker<Long> getDeadlineMsField(Params params) {
+        return Reflection.field("deadlineMs").ofType(long.class).in(params);
+    }
+
+    private static org.fest.reflect.field.Invoker<Boolean> getCancelOnDeadlineDeadlineField(Params params) {
+        return Reflection.field("cancelOnDeadline").ofType(Boolean.class).in(params);
     }
 
     private static org.fest.reflect.field.Invoker<String> getGroupIdField(Params params) {
@@ -1042,6 +1097,8 @@ public abstract class JobQueueTestBase extends TestBase {
 
     public static JobHolder createNewJobHolder(Params params, Timer timer) {
         long delay = getDelayMsField(params).get();
+        long deadline = getDeadlineMsField(params).get();
+        boolean cancelOnDeadline = Boolean.TRUE.equals(getCancelOnDeadlineDeadlineField(params).get());
         DummyJob job = new DummyJob(params);
         return new JobHolder.Builder()
                 .priority(getPriorityField(params).get())
@@ -1051,6 +1108,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 .persistent(params.isPersistent())
                 .tags(job.getTags())
                 .createdNs(timer.nanoTime())
+                .deadline(deadline > 0 ? timer.nanoTime() + deadline * JobManager.NS_PER_MS : Params.FOREVER, cancelOnDeadline)
                 .delayUntilNs(delay > 0 ? timer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)
                 .sealTimes(timer, params.getRequiresNetworkTimeoutMs(), params.getRequiresUnmeteredNetworkTimeoutMs())
                 .runningSessionId(JobManager.NOT_RUNNING_SESSION_ID).build();

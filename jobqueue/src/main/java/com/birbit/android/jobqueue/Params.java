@@ -28,6 +28,8 @@ public class Params {
     private int priority;
     private long delayMs;
     private HashSet<String> tags;
+    private long deadlineMs = 0;
+    private Boolean cancelOnDeadline; // this also serve as a field set check
 
     /**
      *
@@ -310,6 +312,26 @@ public class Params {
         return this;
     }
 
+    public Params overrideDeadlineToRunInMs(long deadlineInMs) {
+        if (Boolean.TRUE.equals(cancelOnDeadline)) {
+            throw new IllegalArgumentException("cannot set deadline to cancel and run. You need" +
+                    " to pick one");
+        }
+        deadlineMs = deadlineInMs;
+        cancelOnDeadline = false;
+        return this;
+    }
+
+    public Params overrideDeadlineToCancelInMs(long deadlineInMs) {
+        if (Boolean.FALSE.equals(cancelOnDeadline)) {
+            throw new IllegalArgumentException("cannot set deadline to cancel and run. You need" +
+                    " to pick one");
+        }
+        deadlineMs = deadlineInMs;
+        cancelOnDeadline = true;
+        return this;
+    }
+
     public String getGroupId() {
         return groupId;
     }
@@ -330,7 +352,19 @@ public class Params {
         return delayMs;
     }
 
+    public long getDeadlineMs() {
+        return deadlineMs;
+    }
+
+    public Boolean getCancelOnDeadline() {
+        return cancelOnDeadline;
+    }
+
     public HashSet<String> getTags() {
         return tags;
+    }
+
+    public boolean shouldCancelOnDeadline() {
+        return Boolean.TRUE.equals(cancelOnDeadline);
     }
 }

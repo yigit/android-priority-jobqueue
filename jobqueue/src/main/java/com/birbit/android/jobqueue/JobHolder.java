@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.config.Configuration;
@@ -44,6 +45,12 @@ public class JobHolder {
      */
     public static final int RUN_RESULT_FAIL_SINGLE_ID = 6;
 
+    /**
+     * Internal constant. Used when job's onRun method has thrown an exception and it hit its
+     * cancel deadline.
+     */
+    public static final int RUN_RESULT_HIT_DEADLINE = 7;
+
     private Long insertionOrder;
     public final String id;
     public final boolean persistent;
@@ -62,6 +69,14 @@ public class JobHolder {
     private long runningSessionId;
     private long requiresNetworkUntilNs;
     private long requiresUnmeteredNetworkUntilNs;
+    /**
+     * When we should ignore the constraints
+     */
+    private long deadlineNs;
+    /**
+     * What to do when deadline is reached
+     */
+    private boolean cancelOnDeadline;
     transient final Job job;
     protected final Set<String> tags;
     private volatile boolean cancelled;
@@ -90,10 +105,13 @@ public class JobHolder {
      * @param tags             The tags of the Job
      * @param requiresNetworkUntilNs Until when this job requires network
      * @param requiresUnmeteredNetworkUntilNs Until when this job requires unmetered network
+     * @param deadlineNs       System.nanotime value where the job will ignore its constraints
+     * @param cancelOnDeadline true if job should be cancelled when deadline is reached, false otherwise
      */
     private JobHolder(String id, boolean persistent, int priority, String groupId, int runCount, Job job, long createdNs,
                       long delayUntilNs, long runningSessionId, Set<String> tags,
-                      long requiresNetworkUntilNs, long requiresUnmeteredNetworkUntilNs) {
+                      long requiresNetworkUntilNs, long requiresUnmeteredNetworkUntilNs,
+                      long deadlineNs, boolean cancelOnDeadline) {
         this.id = id;
         this.persistent = persistent;
         this.priority = priority;
@@ -106,6 +124,8 @@ public class JobHolder {
         this.requiresNetworkUntilNs = requiresNetworkUntilNs;
         this.requiresUnmeteredNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
         this.tags = tags;
+        this.deadlineNs = deadlineNs;
+        this.cancelOnDeadline = cancelOnDeadline;
     }
 
     /**
@@ -118,7 +138,7 @@ public class JobHolder {
         return job.safeRun(this, currentRunCount);
     }
 
-    public String getId() {
+    @NonNull public String getId() {
         return id;
     }
 
@@ -206,6 +226,14 @@ public class JobHolder {
 
     public void setRunningSessionId(long runningSessionId) {
         this.runningSessionId = runningSessionId;
+    }
+
+    public long getDeadlineNs() {
+        return deadlineNs;
+    }
+
+    public boolean shouldCancelOnDeadline() {
+        return cancelOnDeadline;
     }
 
     public long getDelayUntilNs() {
@@ -312,7 +340,10 @@ public class JobHolder {
         private static final int FLAG_DELAY_UNTIL = FLAG_CREATED_NS << 1;
         private Long insertionOrder;
         private long runningSessionId;
-        private static final int FLAG_RUNNING_SESSION_ID = FLAG_DELAY_UNTIL << 1;
+        private long deadlineNs = Params.FOREVER;
+        private boolean cancelOnDeadline = false;
+        private static final int FLAG_DEADLINE = FLAG_DELAY_UNTIL << 1;
+        private static final int FLAG_RUNNING_SESSION_ID = FLAG_DEADLINE << 1;
         private int providedFlags = 0;
         private Set<String> tags;
         private static final int FLAG_TAGS = FLAG_RUNNING_SESSION_ID << 1;
@@ -395,6 +426,13 @@ public class JobHolder {
             return this;
         }
 
+        public Builder deadline(long deadlineNs, boolean cancelOnDeadline) {
+            this.deadlineNs = deadlineNs;
+            this.cancelOnDeadline = cancelOnDeadline;
+            providedFlags |= FLAG_DEADLINE;
+            return this;
+        }
+
         public Builder sealTimes(Timer timer, long requiresNetworkTimeoutMs,
                                 long requiresUnmeteredNetworkTimeoutMs) {
             if (requiresNetworkTimeoutMs == Params.NEVER) {
@@ -434,7 +472,7 @@ public class JobHolder {
 
             JobHolder jobHolder = new JobHolder(id, persistent, priority, groupId, runCount, job, createdNs,
                     delayUntilNs, runningSessionId, tags, requiresNetworkUntilNs,
-                    requiresUnmeteredNetworkUntilNs);
+                    requiresUnmeteredNetworkUntilNs, deadlineNs, cancelOnDeadline);
             if (insertionOrder != null) {
                 jobHolder.setInsertionOrder(insertionOrder);
             }

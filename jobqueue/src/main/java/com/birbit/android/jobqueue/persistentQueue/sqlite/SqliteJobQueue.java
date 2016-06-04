@@ -165,6 +165,10 @@ public class SqliteJobQueue implements JobQueue {
                 jobHolder.getRequiresNetworkUntilNs());
         stmt.bindLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex + 1,
                 jobHolder.getRequiresUnmeteredNetworkUntilNs());
+        stmt.bindLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex + 1,
+                jobHolder.getDeadlineNs());
+        stmt.bindLong(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex + 1,
+                jobHolder.shouldCancelOnDeadline() ? 1 : 0);
     }
 
     /**
@@ -379,6 +383,8 @@ public class SqliteJobQueue implements JobQueue {
                         .append(" ")
                         .append(id).append(" id:")
                         .append(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
+                        .append(" deadline:")
+                        .append(cursor.getLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex))
                         .append(" delay until:")
                         .append(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                         .append(" sessionId:")
@@ -428,6 +434,8 @@ public class SqliteJobQueue implements JobQueue {
                 .id(jobId)
                 .tags(tags)
                 .persistent(true)
+                .deadline(cursor.getLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex),
+                        cursor.getInt(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex) == 1)
                 .createdNs(cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex))
                 .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                 .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))

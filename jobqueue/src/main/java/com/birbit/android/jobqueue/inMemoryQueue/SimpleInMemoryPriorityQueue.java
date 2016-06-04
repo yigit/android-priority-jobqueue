@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 
 import com.birbit.android.jobqueue.Constraint;
 import com.birbit.android.jobqueue.JobHolder;
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobQueue;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.config.Configuration;
@@ -148,7 +149,6 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         final long networkTimeout = holder.getRequiresNetworkUntilNs();
         final long unmeteredTimeout = holder.getRequiresUnmeteredNetworkUntilNs();
         long delay = holder.getDelayUntilNs();
-
         if (!hasNetwork) {
             if (networkTimeout == Params.FOREVER) {
                 return null; // ineligible
@@ -171,21 +171,43 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         boolean hasUnmetered = !constraint.shouldNotRequireUnmeteredNetwork();
         if (!hasNetwork || !hasUnmetered) {
             for (JobHolder holder : jobs) {
+                if (holder.getDeadlineNs() <= constraint.getNowInNs()) {
+                    return holder.getDeadlineNs();
+                }
                 if (matches(holder, constraint, true)) {
-                    final Long delay = getDelayUntil(holder, hasNetwork, hasUnmetered);
+                    Long delay = getDelayUntil(holder, hasNetwork, hasUnmetered);
+                    if (holder.getDeadlineNs() != Params.FOREVER) {
+                        delay = delay == null
+                                ? holder.getDeadlineNs()
+                                : Math.min(holder.getDeadlineNs(), holder.getDelayUntilNs());
+                    }
                     if (delay == null) {
                         continue;// ineligible
                     }
                     if (minDelay == null || delay < minDelay) {
                         minDelay = delay;
                     }
+                } else if (holder.getDeadlineNs() != Params.FOREVER) {
+                    if (minDelay == null || holder.getDeadlineNs() < minDelay) {
+                        minDelay = holder.getDeadlineNs();
+                    }
                 }
             }
         } else {
             for (JobHolder holder : jobs) {
+                if (holder.getDeadlineNs() <= constraint.getNowInNs()) {
+                    return holder.getDeadlineNs();
+                }
                 if (matches(holder, constraint)) {
-                    if (minDelay == null || holder.getDelayUntilNs() < minDelay) {
+                    final long delay = holder.getDeadlineNs() != Params.FOREVER
+                            ? Math.min(holder.getDeadlineNs(), holder.getDelayUntilNs())
+                            : holder.getDelayUntilNs();
+                    if (minDelay == null || delay < minDelay) {
                         minDelay = holder.getDelayUntilNs();
+                    }
+                } else if (holder.getDeadlineNs() != Params.FOREVER) {
+                    if (minDelay == null || holder.getDeadlineNs() < minDelay) {
+                        minDelay = holder.getDeadlineNs();
                     }
                 }
             }
@@ -227,6 +249,9 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     }
     @SuppressWarnings("RedundantIfStatement")
     private static boolean matches(JobHolder holder, Constraint constraint, boolean ignoreNetwork) {
+        if (constraint.getNowInNs() >= holder.getDeadlineNs()) {
+            return true;
+        }
         if (!ignoreNetwork) {
             if (constraint.shouldNotRequireNetwork()
                     && holder.requiresNetwork(constraint.getNowInNs())) {

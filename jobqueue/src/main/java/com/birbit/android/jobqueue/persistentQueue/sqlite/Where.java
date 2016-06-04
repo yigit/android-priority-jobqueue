@@ -17,6 +17,7 @@ public class Where {
     private String nextJobQuery;
     private int networkTimeoutArgIndex = -1;
     private int unmeteredNetworkTimeoutArgIndex = -1;
+    static final String FOREVER = String.valueOf(Params.FOREVER);
 
     public Where(long cacheKey, String query, String[] args) {
         this.cacheKey = cacheKey;
@@ -61,8 +62,12 @@ public class Where {
         if (nextJobDelayUntilViaNetworkStmt == null) {
             StringBuilder sb = sqlHelper.reusedStringBuilder;
             sb.setLength(0);
-            sb.append("SELECT max(")
-                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);
+            sb
+                    .append("SELECT MIN(")
+                    .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
+                    .append(", ")
+                    .append("max(")
+                    .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);
             if (networkTimeoutArgIndex != -1) {
                 sb.append(",")
                         .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);
@@ -71,7 +76,7 @@ public class Where {
                 sb.append(",")
                         .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName);
             }
-            sb.append(") FROM ")
+            sb.append(")) FROM ")
                     .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
                     .append(" WHERE ")
                     .append(query);
@@ -104,6 +109,7 @@ public class Where {
             nextJobDelayUntilViaNetworkStmt.bindString(unmeteredNetworkTimeoutArgIndex + 1,
                     Long.toString(Params.FOREVER));
         }
+        nextJobDelayUntilViaNetworkStmt.bindString(1, FOREVER);
 
         return nextJobDelayUntilViaNetworkStmt;
     }
@@ -111,7 +117,8 @@ public class Where {
     public SQLiteStatement nextJobDelayUntil(SQLiteDatabase database, SqlHelper sqlHelper) {
         if (nextJobDelayUntilStmt == null) {
             String selectQuery = sqlHelper.createSelectOneField(
-                    DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
+                    "MIN(" + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + ", " +
+                    DbOpenHelper.DEADLINE_COLUMN.columnName + ")",
                     query,
                     1,
                     new SqlHelper.Order(DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
@@ -124,6 +131,7 @@ public class Where {
         for (int i = 1; i <= args.length; i ++) {
             nextJobDelayUntilStmt.bindString(i, args[i - 1]);
         }
+        nextJobDelayUntilStmt.bindString(1, FOREVER);
         return nextJobDelayUntilStmt;
     }
 
