@@ -631,31 +631,39 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (!running && !ignoreRunning) {
             return null;
         }
-        final int networkStatus = getNetworkStatus();
-        JobHolder jobHolder;
-        boolean persistent = false;
-        JqLog.v("looking for next job");
-        queryConstraint.clear();
-        queryConstraint.setNowInNs(timer.nanoTime());
-        queryConstraint.setNetworkStatus(networkStatus);
-        queryConstraint.setExcludeGroups(runningJobGroups);
-        queryConstraint.setExcludeRunning(true);
-        queryConstraint.setTimeLimit(timer.nanoTime());
-        jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);
-        JqLog.v("non persistent result %s", jobHolder);
-        if (jobHolder == null) {
-            //go to disk, there aren't any non-persistent jobs
-            jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);
-            persistent = true;
-            JqLog.v("persistent result %s", jobHolder);
+        JobHolder jobHolder = null;
+        while (jobHolder == null) {
+            final int networkStatus = getNetworkStatus();
+            boolean persistent = false;
+            JqLog.v("looking for next job");
+            queryConstraint.clear();
+            queryConstraint.setNowInNs(timer.nanoTime());
+            queryConstraint.setNetworkStatus(networkStatus);
+            queryConstraint.setExcludeGroups(runningJobGroups);
+            queryConstraint.setExcludeRunning(true);
+            queryConstraint.setTimeLimit(timer.nanoTime());
+            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);
+            JqLog.v("non persistent result %s", jobHolder);
+            if (jobHolder == null) {
+                //go to disk, there aren't any non-persistent jobs
+                jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);
+                persistent = true;
+                JqLog.v("persistent result %s", jobHolder);
+            }
+            if (jobHolder == null) {
+                return null;
+            }
+            if (persistent && dependencyInjector != null) {
+                dependencyInjector.inject(jobHolder.getJob());
+            }
+            jobHolder.setApplicationContext(appContext);
+            if (jobHolder.getDeadlineNs() <= timer.nanoTime()
+                    && jobHolder.shouldCancelOnDeadline()) {
+                cancelSafely(jobHolder, CancelReason.REACHED_DEADLINE);
+                removeJob(jobHolder);
+                jobHolder = null;
+            }
         }
-        if(jobHolder == null) {
-            return null;
-        }
-        if(persistent && dependencyInjector != null) {
-            dependencyInjector.inject(jobHolder.getJob());
-        }
-        jobHolder.setApplicationContext(appContext);
         return jobHolder;
     }
 }
