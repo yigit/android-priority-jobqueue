@@ -340,6 +340,9 @@ public class Params {
      * Set a deadline on the job's constraints. After this deadline is reached, the job will be
      * cancelled regardless of its constraints with {@link CancelReason#REACHED_DEADLINE}.
      * <p>
+     * For instance, if you have a job that requires network and if network becomes available at the
+     * time deadline is reached, the job will still be cancelled without being run.
+     * <p>
      * You can check if a job reached its deadline or not via {@link Job#isDeadlineReached()}.
      * <p>
      * If you call this method, you cannot call {@link #overrideDeadlineToRunInMs(long)}.
