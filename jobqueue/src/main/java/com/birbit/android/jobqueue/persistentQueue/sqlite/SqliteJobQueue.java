@@ -28,15 +28,16 @@ import java.util.Set;
  * Persistent Job Queue that keeps its data in an sqlite database.
  */
 public class SqliteJobQueue implements JobQueue {
-    DbOpenHelper dbOpenHelper;
+    @SuppressWarnings("FieldCanBeLocal")
+    private DbOpenHelper dbOpenHelper;
     private final long sessionId;
-    SQLiteDatabase db;
-    SqlHelper sqlHelper;
-    JobSerializer jobSerializer;
+    private SQLiteDatabase db;
+    private SqlHelper sqlHelper;
+    private JobSerializer jobSerializer;
     // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
     // queries. Set is cleaned when item is removed
-    Set<String> pendingCancelations = new HashSet<>();
-    FileStorage jobStorage;
+    private Set<String> pendingCancelations = new HashSet<>();
+    private FileStorage jobStorage;
     private final StringBuilder reusedStringBuilder = new StringBuilder();
     private final WhereQueryCache whereQueryCache;
 
@@ -404,7 +405,7 @@ public class SqliteJobQueue implements JobQueue {
 
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidJobException {
         String id = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
-        Job job = null;
+        Job job;
         try {
             job = safeDeserialize(jobStorage.load(id));
         } catch (IOException e) {
@@ -435,12 +436,13 @@ public class SqliteJobQueue implements JobQueue {
         return null;
     }
 
-    private static class InvalidJobException extends Exception {
-        public InvalidJobException(String detailMessage) {
+    @SuppressWarnings("WeakerAccess")
+    static class InvalidJobException extends Exception {
+        InvalidJobException(String detailMessage) {
             super(detailMessage);
         }
 
-        public InvalidJobException(String detailMessage, Throwable throwable) {
+        InvalidJobException(String detailMessage, Throwable throwable) {
             super(detailMessage, throwable);
         }
     }
