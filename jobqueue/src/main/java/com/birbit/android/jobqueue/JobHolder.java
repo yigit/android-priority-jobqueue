@@ -79,7 +79,7 @@ public class JobHolder {
 
     /**
      * @param id               The ID of the Job
-     * @param priority         Is the job persistent
+     * @param persistent       Is the job persistent
      * @param priority         Higher is better
      * @param groupId          which group does this job belong to? default null
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
