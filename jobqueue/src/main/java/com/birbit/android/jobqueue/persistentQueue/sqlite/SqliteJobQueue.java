@@ -28,19 +28,22 @@ import java.util.Set;
  * Persistent Job Queue that keeps its data in an sqlite database.
  */
 public class SqliteJobQueue implements JobQueue {
-    DbOpenHelper dbOpenHelper;
+    @SuppressWarnings("FieldCanBeLocal")
+    private DbOpenHelper dbOpenHelper;
     private final long sessionId;
-    SQLiteDatabase db;
-    SqlHelper sqlHelper;
-    JobSerializer jobSerializer;
+    private SQLiteDatabase db;
+    private SqlHelper sqlHelper;
+    private JobSerializer jobSerializer;
     // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
     // queries. Set is cleaned when item is removed
-    Set<String> pendingCancelations = new HashSet<>();
+    private Set<String> pendingCancelations = new HashSet<>();
+    private FileStorage jobStorage;
     private final StringBuilder reusedStringBuilder = new StringBuilder();
     private final WhereQueryCache whereQueryCache;
 
     public SqliteJobQueue(Configuration configuration, long sessionId, JobSerializer serializer) {
         this.sessionId = sessionId;
+        jobStorage = new FileStorage(configuration.getAppContext(), "jobs_" + configuration.getId());
         whereQueryCache = new WhereQueryCache(sessionId);
         dbOpenHelper = new DbOpenHelper(configuration.getAppContext(),
                 configuration.isInTestMode() ? null : ("db_" + configuration.getId()));
@@ -52,6 +55,20 @@ public class SqliteJobQueue implements JobQueue {
         if (configuration.resetDelaysOnRestart()) {
             sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
         }
+        cleanupFiles();
+    }
+
+    private void cleanupFiles() {
+        Cursor cursor = db.rawQuery(sqlHelper.LOAD_ALL_IDS_QUERY, null);
+        Set<String> jobIds = new HashSet<>();
+        try {
+            while (cursor.moveToNext()) {
+                jobIds.add(cursor.getString(0));
+            }
+        } finally {
+            cursor.close();
+        }
+        jobStorage.truncateExcept(jobIds);
     }
 
     @VisibleForTesting
@@ -64,6 +81,7 @@ public class SqliteJobQueue implements JobQueue {
      */
     @Override
     public boolean insert(@NonNull JobHolder jobHolder) {
+        persistJobToDisk(jobHolder);
         if (jobHolder.hasTags()) {
             return insertWithTags(jobHolder);
         }
@@ -74,6 +92,14 @@ public class SqliteJobQueue implements JobQueue {
         // insert id is a alias to row_id
         jobHolder.setInsertionOrder(insertId);
         return insertId != -1;
+    }
+
+    private void persistJobToDisk(@NonNull JobHolder jobHolder) {
+        try {
+            jobStorage.save(jobHolder.getId(), jobSerializer.serialize(jobHolder.getJob()));
+        } catch (IOException e) {
+            throw new RuntimeException("cannot save job to disk", e);
+        }
     }
 
     @Override
@@ -131,16 +157,6 @@ public class SqliteJobQueue implements JobQueue {
             stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
         }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
-        final byte[] job;
-        try {
-            job = jobSerializer.serialize(jobHolder.getJob());
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot serialize the job. Make sure all of its fields are" +
-                    " serializable if you are using the default serializer", e);
-        }
-        if (job != null) {
-            stmt.bindBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex + 1, job);
-        }
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
@@ -158,6 +174,7 @@ public class SqliteJobQueue implements JobQueue {
         if (jobHolder.getInsertionOrder() == null) {
             return insert(jobHolder);
         }
+        persistJobToDisk(jobHolder);
         jobHolder.setRunningSessionId(JobManager.NOT_RUNNING_SESSION_ID);
         SQLiteStatement stmt = sqlHelper.getInsertOrReplaceStatement();
         stmt.clearBindings();
@@ -189,6 +206,7 @@ public class SqliteJobQueue implements JobQueue {
             deleteTagsStmt.bindString(1, id);
             deleteTagsStmt.execute();
             db.setTransactionSuccessful();
+            jobStorage.delete(id);
         } finally {
             db.endTransaction();
         }
@@ -316,6 +334,7 @@ public class SqliteJobQueue implements JobQueue {
     @Override
     public void clear() {
         sqlHelper.truncate();
+        cleanupFiles();
     }
 
     /**
@@ -385,9 +404,15 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private JobHolder createJobHolderFromCursor(Cursor cursor) throws InvalidJobException {
-        Job job = safeDeserialize(cursor.getBlob(DbOpenHelper.BASE_JOB_COLUMN.columnIndex));
+        String id = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
+        Job job;
+        try {
+            job = safeDeserialize(jobStorage.load(id));
+        } catch (IOException e) {
+            throw new InvalidJobException("cannot load job from disk", e);
+        }
         if (job == null) {
-            throw new InvalidJobException();
+            throw new InvalidJobException("null job");
         }
         return new JobHolder.Builder()
                 .insertionOrder(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
@@ -411,8 +436,15 @@ public class SqliteJobQueue implements JobQueue {
         return null;
     }
 
-    private static class InvalidJobException extends Exception {
+    @SuppressWarnings("WeakerAccess")
+    static class InvalidJobException extends Exception {
+        InvalidJobException(String detailMessage) {
+            super(detailMessage);
+        }
 
+        InvalidJobException(String detailMessage, Throwable throwable) {
+            super(detailMessage, throwable);
+        }
     }
 
     public static class JavaSerializer implements JobSerializer {

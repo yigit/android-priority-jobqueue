@@ -12,6 +12,7 @@ public class SqlHelper {
 
     /**package**/ String FIND_BY_ID_QUERY;
     /**package**/ String FIND_BY_TAG_QUERY;
+    /**package**/ String LOAD_ALL_IDS_QUERY;
 
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertTagsStatement;
@@ -44,6 +45,7 @@ public class SqlHelper {
         FIND_BY_TAG_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName
                 + " IN ( SELECT " + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " FROM " + tagsTableName
                 + " WHERE " + DbOpenHelper.TAGS_NAME_COLUMN.columnName + " = ?)";
+        LOAD_ALL_IDS_QUERY = "SELECT " + DbOpenHelper.ID_COLUMN.columnName + " FROM " + tableName;
     }
 
     public static String create(String tableName, Property primaryKey, Property... properties) {
