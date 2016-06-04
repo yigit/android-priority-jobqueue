@@ -19,6 +19,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.robolectric.ParameterizedRobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
@@ -26,6 +28,8 @@ import org.robolectric.annotation.Config;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(ParameterizedRobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
@@ -87,6 +91,14 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
         params.setRequiresUnmeteredNetwork(requireUnmeteredNetwork);
         params.setDelayMs(delayInMs);
         final SchedulerJob job = new SchedulerJob(params);
+        final CountDownLatch cancelLatch = new CountDownLatch(1);
+        Mockito.doAnswer(new Answer() {
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                cancelLatch.countDown();
+                return null;
+            }
+        }).when(scheduler).cancelAll();
         waitUntilJobsAreDone(jobManager, Collections.singletonList(job), new Runnable() {
             @Override
             public void run() {
@@ -102,6 +114,9 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
                     CoreMatchers.is(requireUnmeteredNetwork ? NetworkUtil.UNMETERED :
                     requireNetwork ? NetworkUtil.METERED : NetworkUtil.DISCONNECTED));
             MatcherAssert.assertThat(constraint.getDelayInMs(), CoreMatchers.is(delayInMs));
+            // wait until cancel is called because it is called when JQ is idle.
+            // for more clear reporting, let mockito handle the check
+            cancelLatch.await(30, TimeUnit.SECONDS);
             Mockito.verify(scheduler).cancelAll();
         } else {
             Mockito.verify(scheduler, Mockito.never())
@@ -111,7 +126,8 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
 
     public static class SchedulerJob extends Job {
 
-        protected SchedulerJob(Params params) {
+        @SuppressWarnings("WeakerAccess")
+        public SchedulerJob(Params params) {
             super(params);
         }
 
