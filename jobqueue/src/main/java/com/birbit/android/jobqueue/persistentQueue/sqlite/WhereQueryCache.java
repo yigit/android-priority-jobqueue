@@ -57,6 +57,7 @@ class WhereQueryCache {
     private void fillWhere(Constraint constraint, Where where,
             Collection<String> pendingCancellations) {
         int count = 0;
+        where.args[count ++] = Long.toString(constraint.getNowInNs());
         if (constraint.shouldNotRequireNetwork()) {
             where.args[count++] = Long.toString(constraint.getNowInNs());
         }
@@ -93,6 +94,16 @@ class WhereQueryCache {
             Collection<String> pendingCancellations, StringBuilder reusedStringBuilder) {
         reusedStringBuilder.setLength(0);
         int argCount = 0;
+
+        reusedStringBuilder
+                .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
+                .append(" != ")
+                .append(Where.FOREVER)
+                .append(" AND ")
+                .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
+                .append(" <= ? OR ( ");
+        argCount ++;
+
         reusedStringBuilder.append("1");
         int networkTimeoutArgIndex = -1;
         int unmeteredTimeoutArgIndex = -1;
@@ -185,6 +196,8 @@ class WhereQueryCache {
                     .append(" != ?");
             argCount++;
         }
+        // close OR from deadline
+        reusedStringBuilder.append(" )");
         String[] args = new String[argCount];
         Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);
         where.setNetworkTimeoutArgIndex(networkTimeoutArgIndex);

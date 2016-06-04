@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Helper class for {@link SqliteJobQueue} to handle database connection
  */
 public class DbOpenHelper extends SQLiteOpenHelper {
-    private static final int DB_VERSION = 9;
+    private static final int DB_VERSION = 10;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
     /*package*/ static final String JOB_TAGS_TABLE_NAME = "job_holder_tags";
     /*package*/ static final SqlHelper.Property INSERTION_ORDER_COLUMN = new SqlHelper.Property("insertionOrder", "integer", 0);
@@ -21,6 +21,8 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long", 7);
     /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_UNTIL_COLUMN = new SqlHelper.Property("requires_network_until", "integer", 8);
     /*package*/ static final SqlHelper.Property REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN = new SqlHelper.Property("requires_unmetered_network_until", "integer", 9);
+    /*package*/ static final SqlHelper.Property DEADLINE_COLUMN = new SqlHelper.Property("deadline", "integer", 10);
+    /*package*/ static final SqlHelper.Property CANCEL_ON_DEADLINE_COLUMN = new SqlHelper.Property("cancel_on_deadline", "integer", 11);
 
     /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
     /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
@@ -28,7 +30,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
 
 
 
-    /*package*/ static final int COLUMN_COUNT = 10;
+    /*package*/ static final int COLUMN_COUNT = 12;
     /*package*/ static final int TAGS_COLUMN_COUNT = 3;
 
     static final String TAG_INDEX_NAME = "TAG_NAME_INDEX";
@@ -49,7 +51,9 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 DELAY_UNTIL_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN,
                 REQUIRES_NETWORK_UNTIL_COLUMN,
-                REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN
+                REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN,
+                DEADLINE_COLUMN,
+                CANCEL_ON_DEADLINE_COLUMN
         );
         sqLiteDatabase.execSQL(createQuery);
 

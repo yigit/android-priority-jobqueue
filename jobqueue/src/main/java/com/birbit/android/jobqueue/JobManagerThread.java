@@ -116,6 +116,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         long delayUntilNs = job.getDelayInMs() > 0
                 ? now + job.getDelayInMs() * NS_PER_MS
                 : NOT_DELAYED_JOB_DELAY;
+        long deadline = job.getDeadlineInMs() > 0
+                ? now + job.getDeadlineInMs() * NS_PER_MS
+                : Params.FOREVER;
         JobHolder jobHolder = new JobHolder.Builder()
                 .priority(job.getPriority())
                 .job(job)
@@ -126,6 +129,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 .tags(job.getTags())
                 .persistent(job.isPersistent())
                 .runCount(0)
+                .deadline(deadline, job.shouldCancelOnDeadline())
                 .sealTimes(timer, job.requiresNetworkTimeoutMs, job.requiresUnmeteredNetworkTimeoutMs)
                 .runningSessionId(NOT_RUNNING_SESSION_ID).build();
 

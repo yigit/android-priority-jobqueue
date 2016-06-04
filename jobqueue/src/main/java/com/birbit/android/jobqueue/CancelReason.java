@@ -13,9 +13,14 @@ import java.lang.annotation.RetentionPolicy;
         CancelReason.CANCELLED_WHILE_RUNNING,
         CancelReason.SINGLE_INSTANCE_WHILE_RUNNING,
         CancelReason.CANCELLED_VIA_SHOULD_RE_RUN,
-        CancelReason.SINGLE_INSTANCE_ID_QUEUED})
+        CancelReason.SINGLE_INSTANCE_ID_QUEUED,
+        CancelReason.REACHED_DEADLINE})
 public @interface CancelReason {
-
+    /**
+     * Used when a job was added while another job with the same single instance ID was already
+     * queued and not running. This job got cancelled immediately after being added and will not run.
+     */
+    int SINGLE_INSTANCE_ID_QUEUED = 1;
     /**
      * Used when job throws an exception in {@link Job#onRun()}
      * and will be cancelled because it has reached its retry limit.
@@ -50,10 +55,13 @@ public @interface CancelReason {
      */
     int CANCELLED_VIA_SHOULD_RE_RUN = JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
 
+
     /**
-     * Used when a job was added while another job with the same single instance ID was already
-     * queued and not running. This job got cancelled immediately after being added and will not run.
+     * Used when a Job is cancelled for hitting its deadline.
+     * <p>
+     * This means the job's params were constructed using
+     * {@link Params#overrideDeadlineToCancelInMs(long)}.
      */
-    int SINGLE_INSTANCE_ID_QUEUED = 1;
+    int REACHED_DEADLINE = JobHolder.RUN_RESULT_HIT_DEADLINE;
 
 }
