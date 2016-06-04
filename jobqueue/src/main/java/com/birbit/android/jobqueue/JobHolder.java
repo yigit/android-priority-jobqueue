@@ -153,7 +153,7 @@ public class JobHolder {
      *
      * @param timeInNs The current time in ns. This should be the time used by the JobManager.
      *
-     * @return True if the job requires a UNMETERED network to be run right now, false otherwise.
+     * @return True if the job requires an UNMETERED network to be run right now, false otherwise.
      */
     public boolean requiresUnmeteredNetwork(long timeInNs) {
         return requiresUnmeteredNetworkUntilNs > timeInNs;
@@ -430,27 +430,6 @@ public class JobHolder {
             int flagCheck = REQUIRED_FLAGS & providedFlags;
             if (flagCheck != REQUIRED_FLAGS) {
                 throw new IllegalArgumentException("must provide all required fields. your result:" + Long.toBinaryString(flagCheck));
-                /*if ((providedFlags & FLAG_PRIORITY) == 0) {
-                    throw new IllegalArgumentException("must provide a priority");
-                }
-                if ((providedFlags & FLAG_SESSION_ID) == 0) {
-                    throw new IllegalArgumentException("must provide a session id");
-                }
-                if ((providedFlags & FLAG_CREATED_AT) == 0) {
-                    throw new IllegalArgumentException("must provide a created timestamp");
-                }
-                if ((providedFlags & FLAG_ID) == 0) {
-                    throw new IllegalArgumentException("must provide the JobId");
-                }
-                if ((providedFlags & FLAG_TAGS) == 0) {
-                    throw new IllegalArgumentException("must provide tags");
-                }
-                if ((providedFlags & FLAG_REQ_NETWORK_UNTIL) == 0) {
-                    throw new IllegalArgumentException("must provide requires network until");
-                }
-                if ((providedFlags & FLAG_REQ_NETWORK_UNTIL) == 0) {
-                    throw new IllegalArgumentException("must provide requires unmetered network until");
-                }*/
             }
 
             JobHolder jobHolder = new JobHolder(id, persistent, priority, groupId, runCount, job, createdNs,

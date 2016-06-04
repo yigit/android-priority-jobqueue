@@ -9,14 +9,12 @@ import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for all of your jobs.
@@ -359,21 +357,9 @@ abstract public class Job implements Serializable {
      *
      * @return The application context
      */
+    @SuppressWarnings("WeakerAccess")
     public Context getApplicationContext() {
         return applicationContext;
-    }
-
-    /**
-     * Internal method used by the JobManager when it is added. After this point, you cannot make
-     * any changes to this job.
-     *
-     * @param timer The timer used by the JobManager
-     */
-    public final void seal(@NonNull Timer timer) {
-        if (sealed) {
-            throw new IllegalStateException("Cannot add the same job twice");
-        }
-        sealed = true;
     }
 
     /**
@@ -405,6 +391,7 @@ abstract public class Job implements Serializable {
      *
      * @return true if the job should not be run until an unmetered network (e.g. WIFI) is detected
      */
+    @SuppressWarnings("unused")
     public final boolean requiresUnmeteredNetwork(@NonNull Timer timer) {
         return sealed ? requiresUnmeteredNetworkUntilNs > timer.nanoTime()
                 : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
