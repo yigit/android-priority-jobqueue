@@ -637,11 +637,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             boolean persistent = false;
             JqLog.v("looking for next job");
             queryConstraint.clear();
-            queryConstraint.setNowInNs(timer.nanoTime());
+            long now = timer.nanoTime();
+            queryConstraint.setNowInNs(now);
             queryConstraint.setNetworkStatus(networkStatus);
             queryConstraint.setExcludeGroups(runningJobGroups);
             queryConstraint.setExcludeRunning(true);
-            queryConstraint.setTimeLimit(timer.nanoTime());
+            queryConstraint.setTimeLimit(now);
             jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);
             JqLog.v("non persistent result %s", jobHolder);
             if (jobHolder == null) {
@@ -657,7 +658,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 dependencyInjector.inject(jobHolder.getJob());
             }
             jobHolder.setApplicationContext(appContext);
-            if (jobHolder.getDeadlineNs() <= timer.nanoTime()
+            jobHolder.setDeadlineIsReached(jobHolder.getDeadlineNs() <= now);
+            if (jobHolder.getDeadlineNs() <= now
                     && jobHolder.shouldCancelOnDeadline()) {
                 cancelSafely(jobHolder, CancelReason.REACHED_DEADLINE);
                 removeJob(jobHolder);

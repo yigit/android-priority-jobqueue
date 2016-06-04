@@ -44,9 +44,13 @@ abstract public class Job implements Serializable {
     private transient boolean cancelOnDeadline;
     /*package*/ transient volatile boolean cancelled;
 
+    // set when job is loaded
     private transient Context applicationContext;
 
     private transient volatile boolean sealed;
+
+    // set when job is loaded
+    private transient boolean isDeadlineReached;
 
 
     protected Job(Params params) {
@@ -354,6 +358,10 @@ abstract public class Job implements Serializable {
         this.applicationContext = context;
     }
 
+    /*package*/ void setDeadlineReached(boolean deadlineReached) {
+        isDeadlineReached = deadlineReached;
+    }
+
     /**
      * Convenience method to get the application context in a Job.
      * <p>
@@ -364,6 +372,18 @@ abstract public class Job implements Serializable {
     @SuppressWarnings("WeakerAccess")
     public Context getApplicationContext() {
         return applicationContext;
+    }
+
+    /**
+     * Returns true if the job's deadline is reached.
+     * <p>
+     * Note that this method is safe to access only when it is running. Value is undefined
+     * if it is called outside the {@link #onRun()} method.
+     *
+     * @return true if job reached its deadline, false otherwise
+     */
+    public boolean isDeadlineReached() {
+        return isDeadlineReached;
     }
 
     /**

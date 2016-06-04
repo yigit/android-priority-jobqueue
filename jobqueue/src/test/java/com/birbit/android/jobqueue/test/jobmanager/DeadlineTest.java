@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.ParameterizedRobolectricTestRunner;
-import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
@@ -51,10 +50,6 @@ public class DeadlineTest extends JobManagerTestBase {
         List<Object[]> params = new ArrayList<>();
         for (long delay : new long[]{0, 10}) {
             for (int i = 0; i < 16; i++) {
-                // need a network requirement
-                if ((i & 4) != 4 && (i & 2) != 2) {
-                    continue;
-                }
                 params.add(new Object[] {
                         (i & 1) == 1, // persistent
                         (i & 2) == 2, // reqNetwork
@@ -90,6 +85,18 @@ public class DeadlineTest extends JobManagerTestBase {
         }
         DeadlineJob job = new DeadlineJob(params);
         jobManager.addJob(job);
+        if (!reqNetwork && !reqUnmeteredNetwork) {
+            if (delay > 0) {
+                assertThat(DeadlineJob.runLatch.await(3, TimeUnit.SECONDS), is(false));
+                assertThat(DeadlineJob.cancelLatch.await(3, TimeUnit.SECONDS), is(false));
+                mockTimer.incrementMs(delay);
+            }
+            // no network is required, it should run
+            assertThat(DeadlineJob.runLatch.await(3, TimeUnit.SECONDS), is(true));
+            assertThat(DeadlineJob.cancelLatch.await(3, TimeUnit.SECONDS), is(false));
+            assertThat(DeadlineJob.wasDeadlineReached, is(false));
+            return;
+        }
         assertThat(DeadlineJob.runLatch.await(3, TimeUnit.SECONDS), is(false));
         assertThat(DeadlineJob.cancelLatch.await(1, TimeUnit.MILLISECONDS), is(false));
         mockTimer.incrementMs(200);
@@ -102,11 +109,13 @@ public class DeadlineTest extends JobManagerTestBase {
             assertThat(DeadlineJob.cancelLatch.await(1, TimeUnit.SECONDS), is(false));
             assertThat(DeadlineJob.cancelReason, is(-1));
         }
+        assertThat(DeadlineJob.wasDeadlineReached, is(true));
     }
 
     public static class DeadlineJob extends Job {
         static CountDownLatch runLatch;
         static CountDownLatch cancelLatch;
+        static boolean wasDeadlineReached;
         static int cancelReason;
         static {
             clear();
@@ -115,6 +124,7 @@ public class DeadlineTest extends JobManagerTestBase {
             runLatch = new CountDownLatch(1);
             cancelLatch = new CountDownLatch(1);
             cancelReason = -1; // just a dummy one
+            wasDeadlineReached = false;
         }
         protected DeadlineJob(Params params) {
             super(params);
@@ -127,12 +137,14 @@ public class DeadlineTest extends JobManagerTestBase {
 
         @Override
         public void onRun() throws Throwable {
+            wasDeadlineReached = isDeadlineReached();
             runLatch.countDown();
         }
 
         @Override
         protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
             DeadlineJob.cancelReason = cancelReason;
+            wasDeadlineReached = isDeadlineReached();
             cancelLatch.countDown();
         }
 

@@ -301,6 +301,10 @@ public class JobHolder {
         this.job.setApplicationContext(applicationContext);
     }
 
+    public void setDeadlineIsReached(boolean didReachDeadline) {
+        this.job.setDeadlineReached(didReachDeadline);
+    }
+
     public void onCancel(@CancelReason int cancelReason) {
         job.onCancel(cancelReason, throwable);
     }

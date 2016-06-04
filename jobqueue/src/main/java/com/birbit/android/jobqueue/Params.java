@@ -312,6 +312,20 @@ public class Params {
         return this;
     }
 
+    /**
+     * Set a deadline on the job's constraints. After this deadline is reached, the job is run
+     * regardless of its constraints.
+     * <p>
+     * You can check if a job reached its deadline or not via {@link Job#isDeadlineReached()}.
+     * <p>
+     * If you call this method, you cannot call {@link #overrideDeadlineToCancelInMs(long)}.
+     *
+     * @param deadlineInMs The deadline in milliseconds for the constraints.
+     *
+     * @return this
+     *
+     * @see #overrideDeadlineToCancelInMs(long)
+     */
     public Params overrideDeadlineToRunInMs(long deadlineInMs) {
         if (Boolean.TRUE.equals(cancelOnDeadline)) {
             throw new IllegalArgumentException("cannot set deadline to cancel and run. You need" +
@@ -322,6 +336,20 @@ public class Params {
         return this;
     }
 
+    /**
+     * Set a deadline on the job's constraints. After this deadline is reached, the job will be
+     * cancelled regardless of its constraints with {@link CancelReason#REACHED_DEADLINE}.
+     * <p>
+     * You can check if a job reached its deadline or not via {@link Job#isDeadlineReached()}.
+     * <p>
+     * If you call this method, you cannot call {@link #overrideDeadlineToRunInMs(long)}.
+     *
+     * @param deadlineInMs The deadline in milliseconds for the constraints.
+     *
+     * @return this
+     *
+     * @see #overrideDeadlineToRunInMs(long)
+     */
     public Params overrideDeadlineToCancelInMs(long deadlineInMs) {
         if (Boolean.FALSE.equals(cancelOnDeadline)) {
             throw new IllegalArgumentException("cannot set deadline to cancel and run. You need" +
