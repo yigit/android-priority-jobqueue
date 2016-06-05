@@ -11,6 +11,7 @@ import com.birbit.android.jobqueue.test.TestBase;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
 import com.birbit.android.jobqueue.test.timer.MockTimer;
 import com.birbit.android.jobqueue.test.util.JobQueueFactory;
+import com.birbit.android.jobqueue.timer.Timer;
 
 import org.fest.reflect.core.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -326,19 +327,19 @@ public abstract class JobQueueTestBase extends TestBase {
 
     }
 
-    private org.fest.reflect.field.Invoker<Long> getDelayUntilNsField(JobHolder jobHolder) {
+    private static org.fest.reflect.field.Invoker<Long> getDelayUntilNsField(JobHolder jobHolder) {
         return Reflection.field("delayUntilNs").ofType(long.class).in(jobHolder);
     }
 
-    private org.fest.reflect.field.Invoker<Integer> getPriorityField(Params params) {
+    private static org.fest.reflect.field.Invoker<Integer> getPriorityField(Params params) {
         return Reflection.field("priority").ofType(int.class).in(params);
     }
 
-    private org.fest.reflect.field.Invoker<Long> getDelayMsField(Params params) {
+    private static org.fest.reflect.field.Invoker<Long> getDelayMsField(Params params) {
         return Reflection.field("delayMs").ofType(long.class).in(params);
     }
 
-    private org.fest.reflect.field.Invoker<String> getGroupIdField(Params params) {
+    private static org.fest.reflect.field.Invoker<String> getGroupIdField(Params params) {
         return Reflection.field("groupId").ofType(String.class).in(params);
     }
 
@@ -524,14 +525,8 @@ public abstract class JobQueueTestBase extends TestBase {
     public void testJobFields() throws Exception {
         long sessionId = (long) (Math.random() * 1000);
         JobQueue jobQueue = createNewJobQueueWithSessionId(sessionId);
-        JobHolder jobHolder = createNewJobHolder();
-
-
         int priority = (int) (Math.random() * 1000);
-        jobHolder.setPriority(priority);
-        DummyJob dummyJob = new DummyJob(new Params(0));
-        dummyJob.seal(mockTimer);
-        jobHolder.setJob(dummyJob);
+        JobHolder jobHolder = createNewJobHolder(new Params(priority));
         int runCount = (int) (Math.random() * 10);
         jobHolder.setRunCount(runCount);
 
@@ -1042,16 +1037,22 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     protected JobHolder createNewJobHolder(Params params) {
+        return createNewJobHolder(params, mockTimer);
+    }
+
+    public static JobHolder createNewJobHolder(Params params, Timer timer) {
         long delay = getDelayMsField(params).get();
         DummyJob job = new DummyJob(params);
-        job.seal(mockTimer);
         return new JobHolder.Builder()
                 .priority(getPriorityField(params).get())
                 .groupId(getGroupIdField(params).get())
-                .runCount(0)
                 .job(job)
-                .createdNs(mockTimer.nanoTime())
-                .delayUntilNs(delay > 0 ? mockTimer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)
+                .id(job.getId())
+                .persistent(params.isPersistent())
+                .tags(job.getTags())
+                .createdNs(timer.nanoTime())
+                .delayUntilNs(delay > 0 ? timer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)
+                .sealTimes(timer, params.getRequiresNetworkTimeoutMs(), params.getRequiresUnmeteredNetworkTimeoutMs())
                 .runningSessionId(JobManager.NOT_RUNNING_SESSION_ID).build();
     }
 

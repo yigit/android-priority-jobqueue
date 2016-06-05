@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
 import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
@@ -111,16 +112,21 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private void handleAddJob(AddJobMessage message) {
         Job job = message.getJob();
         //noinspection deprecation
+        long now = timer.nanoTime();
         long delayUntilNs = job.getDelayInMs() > 0
-                ? timer.nanoTime() + job.getDelayInMs() * NS_PER_MS
+                ? now + job.getDelayInMs() * NS_PER_MS
                 : NOT_DELAYED_JOB_DELAY;
-        job.seal(timer);
         JobHolder jobHolder = new JobHolder.Builder()
                 .priority(job.getPriority())
                 .job(job)
                 .groupId(job.getRunGroupId())
-                .createdNs(timer.nanoTime())
+                .createdNs(now)
                 .delayUntilNs(delayUntilNs)
+                .id(job.getId())
+                .tags(job.getTags())
+                .persistent(job.isPersistent())
+                .runCount(0)
+                .sealTimes(timer, job.requiresNetworkTimeoutMs, job.requiresUnmeteredNetworkTimeoutMs)
                 .runningSessionId(NOT_RUNNING_SESSION_ID).build();
 
         JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());
@@ -134,9 +140,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 queue.insert(jobHolder);
             }
             if (JqLog.isDebugEnabled()) {
-                JqLog.d("added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s"
-                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()
-                        , job.isPersistent(), job.requiresNetwork(timer));
+                JqLog.d("added job class: %s priority: %d delay: %d group : %s persistent: %s"
+                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs()
+                        , job.getRunGroupId(), job.isPersistent());
             }
         } else {
             JqLog.d("another job with same singleId: %s was already queued", job.getSingleInstanceId());
@@ -151,7 +157,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (insert) {
             consumerManager.onJobAdded();
             if (job.isPersistent()) {
-                scheduleWakeUpFor(job);
+                scheduleWakeUpFor(jobHolder, now);
             }
         } else {
             cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);
@@ -159,16 +165,16 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         }
     }
 
-    private void scheduleWakeUpFor(Job job) {
+    private void scheduleWakeUpFor(JobHolder holder, long now) {
         if (scheduler == null) {
             return;
         }
-        boolean requireNetwork = job.requiresNetwork(timer);
-        boolean requireUnmeteredNetwork = job.requiresUnmeteredNetwork(timer);
-        long delayInMs = job.getDelayInMs();
-        long delay = delayInMs > 0 ? delayInMs : 0;
-        if (!requireNetwork && !requireUnmeteredNetwork
-                && delay < JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS) {
+        boolean requireNetwork = holder.requiresNetwork(now);
+        boolean requireUnmeteredNetwork = holder.requiresUnmeteredNetwork(now);
+        long delayUntilNs = holder.getDelayUntilNs();
+        long delay = delayUntilNs > now ? TimeUnit.NANOSECONDS.toMillis(delayUntilNs - now) : 0;
+        boolean hasLargeDelay = delayUntilNs > now && delay >= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS;
+        if (!requireNetwork && !requireUnmeteredNetwork && !hasLargeDelay) {
             return;
         }
 

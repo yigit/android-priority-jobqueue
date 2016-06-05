@@ -41,8 +41,7 @@ public class CallbackTest extends JobManagerTestBase {
     @Test
     public void successNonPersistent() throws Throwable {
         JobManagerCallback callback = mock(JobManagerCallback.class);
-        final Job job = mock(Job.class);
-        doReturn("a").when(job).getId();
+        final Job job = spy(new PublicJob(new Params(0)));
         doNothing().when(job).onAdded();
         doNothing().when(job).onRun();
         final JobManager jobManager = createJobManager();
@@ -68,9 +67,8 @@ public class CallbackTest extends JobManagerTestBase {
     public void cancelViaRetryLimit() throws Throwable {
         final Throwable error = new Exception();
         JobManagerCallback callback = mock(JobManagerCallback.class);
-        final PublicJob job = mock(PublicJob.class);
+        final PublicJob job = spy(new PublicJob(new Params(0)));
         doNothing().when(job).onAdded();
-        doReturn("a").when(job).getId();
         doThrow(error).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
         doReturn(RetryConstraint.RETRY).when(job)
@@ -99,8 +97,7 @@ public class CallbackTest extends JobManagerTestBase {
     @Test
     public void cancelViaShouldReRun() throws Throwable {
         JobManagerCallback callback = mock(JobManagerCallback.class);
-        final PublicJob job = mock(PublicJob.class);
-        doReturn("a").when(job).getId();
+        final PublicJob job = spy(new PublicJob(new Params(0)));
         doNothing().when(job).onAdded();
         doThrow(new Exception()).when(job).onRun();
         doReturn(3).when(job).getRetryLimit();
@@ -223,11 +220,6 @@ public class CallbackTest extends JobManagerTestBase {
 
         protected PublicJob(Params params) {
             super(params);
-        }
-
-        @Override
-        public int getCurrentRunCount() {
-            return super.getCurrentRunCount();
         }
 
         @Override
