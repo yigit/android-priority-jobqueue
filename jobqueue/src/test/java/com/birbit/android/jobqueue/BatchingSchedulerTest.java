@@ -80,6 +80,75 @@ public class BatchingSchedulerTest {
     }
 
     @Test
+    public void testSecondWithDeadline() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 0, 10L);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(1)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint2.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint2.getOverrideDeadlineInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+    }
+
+    @Test
+    public void testFirstWithDeadline() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0, 10L);
+        bs.request(constraint);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(1)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint.getOverrideDeadlineInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+
+        MatcherAssert.assertThat(constraint2.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint2.getOverrideDeadlineInMs(),
+                CoreMatchers.nullValue());
+    }
+
+    @Test
+    public void testTwoWithDeadlinesAndBatch() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0, 10L);
+        bs.request(constraint);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 0, 20L);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(0)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint.getOverrideDeadlineInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+    }
+
+    @Test
+    public void testAddTwoOfTheSameWithEnoughDeadline() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0, 0L);
+        bs.request(constraint);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 0,
+                BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(1)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint2.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+
+        MatcherAssert.assertThat(constraint.getOverrideDeadlineInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint2.getOverrideDeadlineInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS * 2));
+    }
+
+    @Test
     public void testAddTwoWithDifferentNetwork() {
         SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0);
         bs.request(constraint);
@@ -110,9 +179,13 @@ public class BatchingSchedulerTest {
     }
 
     private static SchedulerConstraint createConstraint(int networkStatus, long delay) {
+        return createConstraint(networkStatus, delay, null);
+    }
+    private static SchedulerConstraint createConstraint(int networkStatus, long delay, Long deadline) {
         SchedulerConstraint constraint = new SchedulerConstraint("abc");
         constraint.setDelayInMs(delay);
         constraint.setNetworkStatus(networkStatus);
+        constraint.setOverrideDeadlineInMs(deadline);
         return constraint;
     }
 }

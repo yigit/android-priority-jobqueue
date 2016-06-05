@@ -176,9 +176,14 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         boolean requireNetwork = holder.requiresNetwork(now);
         boolean requireUnmeteredNetwork = holder.requiresUnmeteredNetwork(now);
         long delayUntilNs = holder.getDelayUntilNs();
+        long deadlineNs = holder.getDeadlineNs();
         long delay = delayUntilNs > now ? TimeUnit.NANOSECONDS.toMillis(delayUntilNs - now) : 0;
+        Long deadline = deadlineNs != Params.FOREVER
+                ? TimeUnit.NANOSECONDS.toMillis(deadlineNs - now)
+                : null;
         boolean hasLargeDelay = delayUntilNs > now && delay >= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS;
-        if (!requireNetwork && !requireUnmeteredNetwork && !hasLargeDelay) {
+        boolean hasLargeDeadline = deadline != null && deadline >= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS;
+        if (!requireNetwork && !requireUnmeteredNetwork && !hasLargeDelay && !hasLargeDeadline) {
             return;
         }
 
@@ -186,6 +191,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         constraint.setNetworkStatus(requireUnmeteredNetwork ? NetworkUtil.UNMETERED :
                 requireNetwork ? NetworkUtil.METERED : NetworkUtil.DISCONNECTED);
         constraint.setDelayInMs(delay);
+        constraint.setOverrideDeadlineInMs(deadline);
         scheduler.request(constraint);
         shouldCancelAllScheduledWhenEmpty = true;
     }

@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue.scheduling;
 
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
 /**
@@ -9,6 +11,7 @@ public class SchedulerConstraint {
     private String uuid;
     private long delayInMs;
     private int networkStatus;
+    private Long overrideDeadlineInMs;
     // arbitrary data that can be used by the scheduler
     private Object data;
 
@@ -62,12 +65,30 @@ public class SchedulerConstraint {
         this.data = data;
     }
 
+    /**
+     * The deadline in ms after which the job should be run even if the constraints are not match.
+     * <p>
+     * If there is no deadline, this will be null.
+     *
+     * @return The time in ms until the constraints timeout
+     */
+    @Nullable
+    public Long getOverrideDeadlineInMs() {
+        return overrideDeadlineInMs;
+    }
+
+    public void setOverrideDeadlineInMs(Long overrideDeadlineInMs) {
+        this.overrideDeadlineInMs = overrideDeadlineInMs;
+    }
+
     @Override
     public String toString() {
         return "SchedulerConstraint{" +
                 "uuid='" + uuid + '\'' +
                 ", delayInMs=" + delayInMs +
                 ", networkStatus=" + networkStatus +
+                ", overrideDeadlineInMs=" + overrideDeadlineInMs +
+                ", data=" + data +
                 '}';
     }
 }

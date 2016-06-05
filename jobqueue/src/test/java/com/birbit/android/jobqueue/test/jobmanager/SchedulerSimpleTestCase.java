@@ -38,27 +38,35 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
     final boolean requireNetwork;
     final boolean requireUnmeteredNetwork;
     final long delayInMs;
+    final Long deadline;
 
     public SchedulerSimpleTestCase(boolean persistent, boolean requireNetwork,
-                                   boolean requireUnmeteredNetwork, long delayInMs) {
+                                   boolean requireUnmeteredNetwork, long delayInMs, Long deadline) {
         this.persistent = persistent;
         this.requireNetwork = requireNetwork;
         this.requireUnmeteredNetwork = requireUnmeteredNetwork;
         this.delayInMs = delayInMs;
+        this.deadline = deadline;
     }
 
     @ParameterizedRobolectricTestRunner.Parameters(name =
-            "persistent: {0} reqNetwork: {1} reqUnmetered: {2} delay: {3}")
+            "persistent: {0} reqNetwork: {1} reqUnmetered: {2} delay: {3} deadline: {4}")
     public static List<Object[]> getParams() {
         List<Object[]> params = new ArrayList<>();
         for (long delay : new long[]{0, 1000, JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS}) {
-            for (int i = 0; i < 8; i++) {
-                params.add(new Object[] {
-                        (i & 1) == 1,
-                        (i & 2) == 2,
-                        (i & 4) == 4,
-                        delay
-                });
+            for (Long deadline : new Long[]{null, 500L, JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS}) {
+                if (deadline != null && deadline < delay) {
+                    continue;
+                }
+                for (int i = 0; i < 8; i++) {
+                    params.add(new Object[] {
+                            (i & 1) == 1,
+                            (i & 2) == 2,
+                            (i & 4) == 4,
+                            delay,
+                            deadline
+                    });
+                }
             }
         }
         return params;
@@ -90,6 +98,9 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
         params.setRequiresNetwork(requireNetwork);
         params.setRequiresUnmeteredNetwork(requireUnmeteredNetwork);
         params.setDelayMs(delayInMs);
+        if (deadline != null) {
+            params.overrideDeadlineToRunInMs(deadline);
+        }
         final SchedulerJob job = new SchedulerJob(params);
         final CountDownLatch cancelLatch = new CountDownLatch(1);
         Mockito.doAnswer(new Answer() {
@@ -107,7 +118,8 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
             }
         });
         if (persistent && (requireNetwork || requireUnmeteredNetwork ||
-                delayInMs >= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS)) {
+                delayInMs >= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS ||
+                (deadline != null && deadline >= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS))) {
             Mockito.verify(scheduler).request(captor.capture());
             SchedulerConstraint constraint = captor.getValue();
             MatcherAssert.assertThat(constraint.getNetworkStatus(),
@@ -116,6 +128,7 @@ public class SchedulerSimpleTestCase extends JobManagerTestBase {
             MatcherAssert.assertThat(constraint.getDelayInMs(), CoreMatchers.is(delayInMs));
             // wait until cancel is called because it is called when JQ is idle.
             // for more clear reporting, let mockito handle the check
+            MatcherAssert.assertThat(constraint.getOverrideDeadlineInMs(), CoreMatchers.is(deadline));
             cancelLatch.await(30, TimeUnit.SECONDS);
             Mockito.verify(scheduler).cancelAll();
         } else {

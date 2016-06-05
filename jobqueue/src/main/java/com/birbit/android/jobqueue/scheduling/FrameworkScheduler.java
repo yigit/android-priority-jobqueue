@@ -102,6 +102,9 @@ class FrameworkScheduler extends Scheduler {
                 builder.setRequiresDeviceIdle(true);
                 break;
         }
+        if (constraint.getOverrideDeadlineInMs() != null) {
+            builder.setOverrideDeadline(constraint.getOverrideDeadlineInMs());
+        }
         int scheduled = jobScheduler.schedule(builder.build());
         JqLog.d("[FW Scheduler] scheduled a framework job. Success? %s id: %d" +
                 " created id: %d", scheduled > 0, scheduled, id);
