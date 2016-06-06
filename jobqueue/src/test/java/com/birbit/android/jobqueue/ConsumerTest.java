@@ -87,7 +87,7 @@ public class ConsumerTest {
         Consumer consumer = new Consumer(pmq, mq, factory, timer);
         RunJobMessage rjm = factory.obtain(RunJobMessage.class);
         JobHolder mockHolder = mock(JobHolder.class);
-        when(mockHolder.safeRun(0)).thenReturn(JobHolder.RUN_RESULT_SUCCESS);
+        when(mockHolder.safeRun(0, timer)).thenReturn(JobHolder.RUN_RESULT_SUCCESS);
         rjm.setJobHolder(mockHolder);
         timer.setNow(3001);
         consumer.queueConsumer.handleMessage(rjm);
@@ -111,7 +111,7 @@ public class ConsumerTest {
         Consumer consumer = new Consumer(pmq, mq, factory, timer);
         RunJobMessage rjm = factory.obtain(RunJobMessage.class);
         JobHolder mockHolder = mock(JobHolder.class);
-        when(mockHolder.safeRun(0)).thenReturn(JobHolder.RUN_RESULT_SUCCESS);
+        when(mockHolder.safeRun(0, new MockTimer())).thenReturn(JobHolder.RUN_RESULT_SUCCESS);
         rjm.setJobHolder(mockHolder);
         timer.setNow(3001);
         verify(mq, times(0)).cancelMessages(Consumer.pokeMessagePredicate);

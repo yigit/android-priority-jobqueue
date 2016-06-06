@@ -179,7 +179,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
                     if (holder.getDeadlineNs() != Params.FOREVER) {
                         delay = delay == null
                                 ? holder.getDeadlineNs()
-                                : Math.min(holder.getDeadlineNs(), holder.getDelayUntilNs());
+                                : Math.min(holder.getDeadlineNs(), delay);
                     }
                     if (delay == null) {
                         continue;// ineligible

@@ -403,7 +403,7 @@ class ConsumerManager {
         private void handleRunJob(RunJobMessage message) {
             JqLog.d("running job %s", message.getJobHolder().getClass().getSimpleName());
             JobHolder jobHolder = message.getJobHolder();
-            int result = jobHolder.safeRun(jobHolder.getRunCount());
+            int result = jobHolder.safeRun(jobHolder.getRunCount(), timer);
             RunJobResultMessage resultMessage = factory.obtain(RunJobResultMessage.class);
             resultMessage.setJobHolder(jobHolder);
             resultMessage.setResult(result);

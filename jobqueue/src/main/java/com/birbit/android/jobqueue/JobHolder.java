@@ -100,12 +100,12 @@ public class JobHolder {
      * @param runCount         Incremented each time job is fetched to run, initial value should be 0
      * @param job              Actual job to run
      * @param createdNs        System.nanotime
-     * @param delayUntilNs     System.nanotime value where job can be run the very first time
+     * @param delayUntilNs     System.nanotime value: when job can be run the very first time
      * @param runningSessionId The running session id for the job
      * @param tags             The tags of the Job
      * @param requiresNetworkUntilNs Until when this job requires network
      * @param requiresUnmeteredNetworkUntilNs Until when this job requires unmetered network
-     * @param deadlineNs       System.nanotime value where the job will ignore its constraints
+     * @param deadlineNs       System.nanotime value: when the job will ignore its constraints
      * @param cancelOnDeadline true if job should be cancelled when deadline is reached, false otherwise
      */
     private JobHolder(String id, boolean persistent, int priority, String groupId, int runCount, Job job, long createdNs,
@@ -134,8 +134,8 @@ public class JobHolder {
      *
      * @return RUN_RESULT
      */
-    public int safeRun(int currentRunCount) {
-        return job.safeRun(this, currentRunCount);
+    int safeRun(int currentRunCount, Timer timer) {
+        return job.safeRun(this, currentRunCount, timer);
     }
 
     @NonNull public String getId() {

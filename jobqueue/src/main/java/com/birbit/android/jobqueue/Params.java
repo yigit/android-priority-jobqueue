@@ -387,6 +387,15 @@ public class Params {
         return deadlineMs;
     }
 
+    /**
+     * Returns what JobManager will do if job reaches its deadline.
+     * <p>
+     *
+     * It will be null if Job does not have a deadline.
+     *
+     * @return null if job does not have a deadline, true if it will be cancelled when it hits the
+     * deadline, false if it will be run when it hits the deadline.
+     */
     public Boolean getCancelOnDeadline() {
         return cancelOnDeadline;
     }

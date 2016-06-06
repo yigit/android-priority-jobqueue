@@ -50,18 +50,23 @@ abstract public class Job implements Serializable {
     private transient volatile boolean sealed;
 
     // set when job is loaded
-    private transient boolean isDeadlineReached;
+    private transient volatile boolean isDeadlineReached;
 
 
     protected Job(Params params) {
+        if (params.getDeadlineMs() > 0 && params.getDeadlineMs() <= params.getDelayMs()) {
+            throw new IllegalArgumentException("deadline cannot be less than equal to delay. It" +
+                    " does not make sense. deadline:" + params.getDeadlineMs() + "," +
+                    "delay:" + params.getDelayMs());
+        }
         this.id = UUID.randomUUID().toString();
         this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
         this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();
         this.persistent = params.isPersistent();
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
-        this.delayInMs = params.getDelayMs();
-        this.deadlineInMs = params.getDeadlineMs();
+        this.delayInMs = Math.max(0, params.getDelayMs());
+        this.deadlineInMs = Math.max(0, params.getDeadlineMs());
         this.cancelOnDeadline = params.shouldCancelOnDeadline();
         final String singleId = params.getSingleId();
         if (params.getTags() != null || singleId != null) {
@@ -214,7 +219,7 @@ abstract public class Job implements Serializable {
      *
      * @return one of the RUN_RESULT ints
      */
-    final int safeRun(JobHolder holder, int currentRunCount) {
+    final int safeRun(JobHolder holder, int currentRunCount, Timer timer) {
         this.currentRunCount = currentRunCount;
         if (JqLog.isDebugEnabled()) {
             JqLog.d("running job %s", this.getClass().getSimpleName());
@@ -222,6 +227,7 @@ abstract public class Job implements Serializable {
         boolean reRun = false;
         boolean failed = false;
         Throwable throwable = null;
+        boolean cancelForDeadline = false;
         try {
             onRun();
             if (JqLog.isDebugEnabled()) {
@@ -231,7 +237,9 @@ abstract public class Job implements Serializable {
             failed = true;
             throwable = t;
             JqLog.e(t, "error while executing job %s", this);
-            reRun = currentRunCount < getRetryLimit();
+            cancelForDeadline = holder.shouldCancelOnDeadline()
+                    && holder.getDeadlineNs() <= timer.nanoTime();
+            reRun = currentRunCount < getRetryLimit() && !cancelForDeadline;
             if(reRun && !cancelled) {
                 try {
                     RetryConstraint retryConstraint = shouldReRunOnThrowable(t, currentRunCount,
@@ -258,6 +266,9 @@ abstract public class Job implements Serializable {
         }
         if (reRun) {
             return JobHolder.RUN_RESULT_TRY_AGAIN;
+        }
+        if (cancelForDeadline) {
+            return JobHolder.RUN_RESULT_HIT_DEADLINE;
         }
         if (currentRunCount < getRetryLimit()) {
             return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
@@ -377,7 +388,7 @@ abstract public class Job implements Serializable {
     /**
      * Returns true if the job's deadline is reached.
      * <p>
-     * Note that this method is safe to access only when it is running. Value is undefined
+     * Note that this method is safe to access only when the job is running. Value is undefined
      * if it is called outside the {@link #onRun()} method.
      *
      * @return true if job reached its deadline, false otherwise

@@ -478,6 +478,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_WHILE_RUNNING);
                 removeJob(jobHolder);
                 break;
+            case JobHolder.RUN_RESULT_HIT_DEADLINE:
+                cancelSafely(jobHolder, CancelReason.REACHED_DEADLINE);
+                removeJob(jobHolder);
+                break;
             case JobHolder.RUN_RESULT_TRY_AGAIN:
                 retryConstraint = jobHolder.getRetryConstraint();
                 insertOrReplace(jobHolder);
@@ -488,7 +492,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         + "CancelHandler");
                 break;
             default:
-                JqLog.e("unknown job holder result");
+                throw new IllegalArgumentException("unknown job holder result");
         }
         consumerManager.handleRunJobResult(message, jobHolder, retryConstraint);
         callbackManager.notifyAfterRun(jobHolder.getJob(), result);
