@@ -54,11 +54,6 @@ abstract public class Job implements Serializable {
 
 
     protected Job(Params params) {
-        if (params.getDeadlineMs() > 0 && params.getDeadlineMs() <= params.getDelayMs()) {
-            throw new IllegalArgumentException("deadline cannot be less than equal to delay. It" +
-                    " does not make sense. deadline:" + params.getDeadlineMs() + "," +
-                    "delay:" + params.getDelayMs());
-        }
         this.id = UUID.randomUUID().toString();
         this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
         this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();
@@ -80,6 +75,12 @@ abstract public class Job implements Serializable {
             }
             this.readonlyTags = Collections.unmodifiableSet(tags);
         }
+        if (deadlineInMs > 0 && deadlineInMs < delayInMs) {
+            throw new IllegalArgumentException("deadline cannot be less than the delay. It" +
+                    " does not make sense. deadline:" + deadlineInMs + "," +
+                    "delay:" + delayInMs);
+        }
+
     }
 
     public final String getId() {
