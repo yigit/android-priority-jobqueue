@@ -2,6 +2,7 @@ package com.birbit.android.jobqueue;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.messaging.Message;
@@ -15,7 +16,12 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.timer.Timer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,6 +56,28 @@ public class CallbackManager {
         }
     }
 
+    /**
+     * convenience method to wait for existing callbacks to be consumed
+     */
+    @VisibleForTesting
+    public boolean waitUntilAllMessagesAreConsumed(int seconds) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        CommandMessage poke = factory.obtain(CommandMessage.class);
+        poke.set(CommandMessage.RUNNABLE);
+        poke.setRunnable(new Runnable() {
+            @Override
+            public void run() {
+                latch.countDown();
+            }
+        });
+        messageQueue.post(poke);
+        try {
+            return latch.await(seconds, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            return false;
+        }
+    }
+
     boolean removeCallback(@NonNull JobManagerCallback callback) {
         boolean removed = callbacks.remove(callback);
         if (removed) {
@@ -81,13 +109,17 @@ public class CallbackManager {
                             lastDelivery = timer.nanoTime();
                         } else if (message.type == Type.COMMAND) {
                             CommandMessage command = (CommandMessage) message;
-                            if (command.getWhat() == CommandMessage.QUIT) {
+                            final int what = command.getWhat();
+                            if (what == CommandMessage.QUIT) {
                                 messageQueue.stop();
                                 started.set(false);
+                            } else if (what == CommandMessage.RUNNABLE) {
+                                command.getRunnable().run();
                             }
                         } else if (message.type == Type.PUBLIC_QUERY) {
                             ((PublicQueryMessage) message).getCallback().onResult(0);
                         }
+
                     }
 
                     @Override
