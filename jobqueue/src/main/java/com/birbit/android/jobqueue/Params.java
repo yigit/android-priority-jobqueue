@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue;
 
+import android.support.annotation.Nullable;
+
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.Collections;
@@ -41,10 +43,14 @@ public class Params {
 
     /**
      * Sets the Job as requiring network.
+     * <p>
+     * This method has no effect if you've already called {@link #requireUnmeteredNetwork()}.
      * @return this
      */
     public Params requireNetwork() {
-        requiredNetworkType = NetworkUtil.METERED;
+        if (requiredNetworkType != NetworkUtil.UNMETERED) {
+            requiredNetworkType = NetworkUtil.METERED;
+        }
         return this;
     }
 
@@ -102,6 +108,10 @@ public class Params {
 
     /**
      * Convenience method to set network requirement.
+     * <p>
+     * If you call this method with <code>true</code> and you've already called
+     * {@link #requireUnmeteredNetwork()}, this method has no effect.
+     *
      * @param requiresNetwork true|false
      * @return this
      * @see #requireNetwork()
@@ -119,6 +129,10 @@ public class Params {
 
     /**
      * Convenience method to set unmetered network requirement.
+     * <p>
+     * If you call this method with <code>false</code> and you've already called
+     * {@link #requireNetwork()}, this method has no effect.
+     *
      * @param requiresUnmeteredNetwork true|false
      * @return this
      * @see #requireUnmeteredNetwork()
@@ -295,6 +309,7 @@ public class Params {
      * deadline, false if it will be run when it hits the deadline.
      */
     @SuppressWarnings("unused")
+    @Nullable
     public Boolean getCancelOnDeadline() {
         return cancelOnDeadline;
     }

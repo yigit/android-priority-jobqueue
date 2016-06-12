@@ -304,10 +304,8 @@ class ConsumerManager {
                 continue;
             }
             if(constraint.getNetworkStatus() >= jobHolder.requiredNetworkType) {
-                // this will conver any unmeted job :/
                 return true;
             }
-            // TODO we are missing delayed jobs here because we don't trigger based on it.
         }
         return false;
     }

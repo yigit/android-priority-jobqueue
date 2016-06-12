@@ -19,10 +19,11 @@ import static com.birbit.android.jobqueue.BatchingScheduler.DEFAULT_BATCHING_PER
 public class BatchingSchedulerTest {
     BatchingScheduler bs;
     Scheduler scheduler;
+    MockTimer timer;
     @Before
     public void init() {
         scheduler = mock(Scheduler.class);
-        MockTimer timer = new MockTimer();
+        timer = new MockTimer();
         bs = new BatchingScheduler(scheduler, timer);
         Context context = mock(Context.class);
         when(context.getApplicationContext()).thenReturn(mock(Context.class));
@@ -53,9 +54,35 @@ public class BatchingSchedulerTest {
     }
 
     @Test
+    public void testAddTwoOfTheSameWithTimeDiff() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint);
+        timer.incrementMs(DEFAULT_BATCHING_PERIOD_IN_MS - 10);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(0)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+    }
+
+    @Test
     public void testAddTwoOfTheSameWithDelay() {
         SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0);
         bs.request(constraint);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 100);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(0)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+    }
+
+    @Test
+    public void testAddTwoOfTheSameWithDelayWithTimeDiff() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint);
+        timer.incrementMs(DEFAULT_BATCHING_PERIOD_IN_MS - 101);
         SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 100);
         bs.request(constraint2);
         verify(scheduler, times(1)).request(constraint);
@@ -77,6 +104,21 @@ public class BatchingSchedulerTest {
                 CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
         MatcherAssert.assertThat(constraint2.getDelayInMs(),
                 CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS * 2));
+    }
+
+    @Test
+    public void testAddTwoOfTheSameWithEnoughTimeDifference() {
+        SchedulerConstraint constraint = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint);
+        timer.incrementMs(DEFAULT_BATCHING_PERIOD_IN_MS);
+        SchedulerConstraint constraint2 = createConstraint(NetworkUtil.METERED, 0);
+        bs.request(constraint2);
+        verify(scheduler, times(1)).request(constraint);
+        verify(scheduler, times(1)).request(constraint2);
+        MatcherAssert.assertThat(constraint.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
+        MatcherAssert.assertThat(constraint2.getDelayInMs(),
+                CoreMatchers.is(DEFAULT_BATCHING_PERIOD_IN_MS));
     }
 
     @Test
