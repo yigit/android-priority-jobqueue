@@ -6,9 +6,11 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Pair;
 
+import com.birbit.android.jobqueue.CallbackManager;
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.JobManagerTrojan;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
 import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
@@ -147,10 +149,11 @@ public class RetryLogicTest extends JobManagerTestBase {
         final String job1Id = job1.identifier;
         final String job2Id = job2.identifier;
         final PersistableDummyJob postTestJob = new PersistableDummyJob(new Params(1)
-        .groupBy("g1").setPersistent(Boolean.TRUE.equals(persistent)));
+                .groupBy("g1").setPersistent(Boolean.TRUE.equals(persistent)));
         final Semaphore jobsCanRun = new Semaphore(4);
         jobsCanRun.acquire(3);
         final Job[] unexpectedRun = new Job[1];
+        final CallbackManager callbackManager = JobManagerTrojan.getCallbackManager(jobManager);
         retryProvider = new RetryProvider() {
             @Override
             public RetryConstraint build(Job job, Throwable throwable, int runCount,
@@ -168,6 +171,10 @@ public class RetryLogicTest extends JobManagerTestBase {
         onRunCallback = new Callback() {
             @Override
             public void on(Job job) {
+                if (!callbackManager.waitUntilAllMessagesAreConsumed(30)) {
+                    lastJobRunOrder[0] = new RuntimeException("consumers did not finish in 30 seconds");
+                }
+
                 RetryJob retryJob = (RetryJob) job;
                 if (!jobsCanRun.tryAcquire() && unexpectedRun[0] == null) {
                     unexpectedRun[0] = job;
