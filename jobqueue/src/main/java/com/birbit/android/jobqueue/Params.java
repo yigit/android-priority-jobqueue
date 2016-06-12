@@ -1,5 +1,7 @@
 package com.birbit.android.jobqueue;
 
+import com.birbit.android.jobqueue.network.NetworkUtil;
+
 import java.util.Collections;
 import java.util.HashSet;
 
@@ -8,20 +10,18 @@ import java.util.HashSet;
  * Methods can be chained to have more readable code.
  */
 public class Params {
-
     /**
-     * Used in requireNetwork / requireUnmeteredNetwork configuration if the requirement should be
-     * kept forever.
+     * Used in delay / override deadline.
      */
     public static final long FOREVER = Long.MAX_VALUE;
 
     /**
-     * Used in requireNetwork / requireUnmeteredNetwork configuration if the constraint is disabled.
+     * Used in delay / override deadline.
      */
     public static final long NEVER = Long.MIN_VALUE;
 
-    private long requiresNetworkWithTimeout = NEVER;
-    private long requiresUnmeteredNetworkWithTimeout = NEVER;
+    @NetworkUtil.NetworkStatus
+    /* package */int requiredNetworkType = NetworkUtil.DISCONNECTED;
     private String groupId = null;
     private String singleId = null;
     private boolean persistent = false;
@@ -44,7 +44,8 @@ public class Params {
      * @return this
      */
     public Params requireNetwork() {
-        return requireNetworkWithTimeout(FOREVER);
+        requiredNetworkType = NetworkUtil.METERED;
+        return this;
     }
 
     /**
@@ -52,47 +53,7 @@ public class Params {
      * @return this
      */
     public Params requireUnmeteredNetwork() {
-        return requireUnmeteredNetworkWithTimeout(FOREVER);
-    }
-
-    /**
-     * Sets the Job as requiring a unmetered network connection with the given timeoutMs. The Job
-     * will not be run until a network connection is detected. If {@code timeoutMs} is not
-     * {@link #FOREVER}, the Job will be available to run without an unmetered connection if it
-     * cannot be run with unmetered network connection in the given time period.
-     * <p>
-     * If you want the job to require unmetered network for a limited time then fall back to metered
-     * network, you can do so by
-     * {@code requireUnmeteredNetworkWithTimeout(timeout).requireNetwork()}. You can even specify
-     * a timeout for the unmetered connection as well if you wish the job to be run if enough time
-     * passes and no desired network is available.
-     *
-     * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
-     *                no unmetered connection.
-     *
-     * @return The Params
-     */
-    public Params requireUnmeteredNetworkWithTimeout(long timeoutMs) {
-        requiresUnmeteredNetworkWithTimeout = timeoutMs;
-        return this;
-    }
-
-    /**
-     * Sets the Job as requiring a network connection with the given timeoutMs. The Job will not be
-     * run until a network connection is detected. If {@code timeoutMs} is not {@link #FOREVER}, the
-     * Job will available to run without a network connection if it cannot be run in the given time
-     * period.
-     * <p>In case this timeout is set to a value smaller than
-     * {@link #requireUnmeteredNetworkWithTimeout(long)}, the unmetered network timeout will
-     * override this one.
-     *
-     * @param timeoutMs The timeout in milliseconds after which the Job will be run even if there is
-     *                no network connection.
-     *
-     * @return The Params
-     */
-    public Params requireNetworkWithTimeout(long timeoutMs) {
-        requiresNetworkWithTimeout = timeoutMs;
+        requiredNetworkType = NetworkUtil.UNMETERED;
         return this;
     }
 
@@ -143,29 +104,15 @@ public class Params {
      * Convenience method to set network requirement.
      * @param requiresNetwork true|false
      * @return this
-     * @see #setRequiresNetwork(boolean, long)
      * @see #requireNetwork()
      */
     public Params setRequiresNetwork(boolean requiresNetwork) {
-        return setRequiresNetwork(requiresNetwork, FOREVER);
-    }
-
-    /**
-     * Convenience method to set unmetered network requirement.
-     *
-     * @param requiresUnmeteredNetwork true|false
-     * @param timeout The timeout(ms) after which Job should be run without checking unmetered network
-     *                status. If {@code requiresUnmeteredNetwork} is {@code false}, this value is
-     *                ignored.
-     * @return this
-     * @see #setRequiresUnmeteredNetwork(boolean)
-     * @see #requireUnmeteredNetwork()
-     */
-    public Params setRequiresUnmeteredNetwork(boolean requiresUnmeteredNetwork, long timeout) {
-        if (!requiresUnmeteredNetwork) {
-            this.requiresUnmeteredNetworkWithTimeout = NEVER;
+        if (requiresNetwork) {
+            if (requiredNetworkType == NetworkUtil.DISCONNECTED) {
+                requiredNetworkType = NetworkUtil.METERED;
+            }
         } else {
-            this.requiresUnmeteredNetworkWithTimeout = timeout;
+            this.requiredNetworkType = NetworkUtil.DISCONNECTED;
         }
         return this;
     }
@@ -174,64 +121,13 @@ public class Params {
      * Convenience method to set unmetered network requirement.
      * @param requiresUnmeteredNetwork true|false
      * @return this
-     * @see #setRequiresUnmeteredNetwork(boolean, long)
      * @see #requireUnmeteredNetwork()
      */
     public Params setRequiresUnmeteredNetwork(boolean requiresUnmeteredNetwork) {
-        return setRequiresUnmeteredNetwork(requiresUnmeteredNetwork, FOREVER);
-    }
-
-    /**
-     * Returns when the Job's network requirement will timeout.
-     * <ul>
-     * <li>If the job does not require network, it will return {@link #NEVER}.</li>
-     * <li>If the job should never be run without network, it will return {@link #FOREVER}.</li>
-     * <li>Otherwise, it will return the timeout in ms until which the job should require network
-     * to be run and after that timeout it will be run regardless of the network requirements.</li>
-     * </ul>
-     *
-     * @return The network requirement constraint
-     */
-    public long getRequiresNetworkTimeoutMs() {
-        return requiresNetworkWithTimeout;
-    }
-
-    /**
-     * Returns when the Job's UNMETERED network requirement will timeout.
-     * <ul>
-     * <li>If the job does not require UNMETERED network, it will return {@link #NEVER}.</li>
-     * <li>If the job should never be run without UNMETERED network, it will return {@link #FOREVER}.</li>
-     * <li>Otherwise, it will return the timeout in ms until which the job should require network
-     * to be run and after that timeout it will be run regardless of the UNMETERED network requirements.
-     * It may still be requiring a network connection via {@link #requireNetwork()} or
-     * {@link #requireNetworkWithTimeout(long)}</li>
-     * </ul>
-     *
-     * @return The network requirement constraint
-     */
-    public long getRequiresUnmeteredNetworkTimeoutMs() {
-        return requiresUnmeteredNetworkWithTimeout;
-    }
-
-    /**
-     * Convenience method to set network requirement.
-     * <p>In case this timeout is set to a value smaller than
-     * {@link #requireUnmeteredNetworkWithTimeout(long)}, the unmetered network timeout will override
-     * this one.
-     *
-     * @param requiresNetwork True if Job should not be run without a network, false otherwise.
-     * @param timeout The timeout after which Job should be run without checking network status.
-     *                If {@code requiresNetwork} is {@code false}, this value is ignored.
-     *
-     * @return The params
-     * @see #setRequiresNetwork(boolean)
-     * @see #requireNetwork()
-     */
-    public Params setRequiresNetwork(boolean requiresNetwork, long timeout) {
-        if (requiresNetwork) {
-            requiresNetworkWithTimeout = timeout;
-        } else {
-            requiresNetworkWithTimeout = NEVER;
+        if (requiresUnmeteredNetwork) {
+            this.requiredNetworkType = NetworkUtil.UNMETERED;
+        } else if (this.requiredNetworkType != NetworkUtil.METERED){
+            this.requiredNetworkType = NetworkUtil.DISCONNECTED;
         }
         return this;
     }
@@ -297,6 +193,7 @@ public class Params {
      * @param oldTags List of tags to be removed
      * @return this
      */
+    @SuppressWarnings("unused")
     public Params removeTags(String... oldTags) {
         if(tags == null) {
             return this;
@@ -307,6 +204,7 @@ public class Params {
         return this;
     }
 
+    @SuppressWarnings("unused")
     public Params clearTags() {
         tags = null;
         return this;
@@ -396,6 +294,7 @@ public class Params {
      * @return null if job does not have a deadline, true if it will be cancelled when it hits the
      * deadline, false if it will be run when it hits the deadline.
      */
+    @SuppressWarnings("unused")
     public Boolean getCancelOnDeadline() {
         return cancelOnDeadline;
     }
@@ -406,5 +305,13 @@ public class Params {
 
     public boolean shouldCancelOnDeadline() {
         return Boolean.TRUE.equals(cancelOnDeadline);
+    }
+
+    public boolean isNetworkRequired() {
+        return requiredNetworkType >= NetworkUtil.METERED;
+    }
+
+    public boolean isUnmeteredNetworkRequired() {
+        return requiredNetworkType >= NetworkUtil.UNMETERED;
     }
 }

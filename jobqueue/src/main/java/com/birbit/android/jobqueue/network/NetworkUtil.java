@@ -11,12 +11,16 @@ import java.lang.annotation.RetentionPolicy;
  * Make sure you also implement {@link NetworkEventProvider} for best performance.
  */
 public interface NetworkUtil {
+    /**
+     * Order of these constant values matter as they are relied upon to be incrementing in terms
+     * of availability.
+     */
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({DISCONNECTED, METERED, UNMETERED})
     @interface NetworkStatus {}
-    int DISCONNECTED = 1;
-    int METERED = 2;
-    int UNMETERED = 3;
+    int DISCONNECTED = 0;
+    int METERED = 1;
+    int UNMETERED = 2;
 
     /**
      * Returns the current connection status. If you cannot detect granular network type, return

@@ -12,11 +12,6 @@ public class TestConstraint extends Constraint {
     }
 
     @Override
-    public void setShouldNotRequireNetwork(boolean shouldNotRequireNetwork) {
-        super.setShouldNotRequireNetwork(shouldNotRequireNetwork);
-    }
-
-    @Override
     public void setTagConstraint(TagConstraint tagConstraint) {
         super.setTagConstraint(tagConstraint);
     }
@@ -27,8 +22,8 @@ public class TestConstraint extends Constraint {
     }
 
     @Override
-    public void setShouldNotRequireUnmeteredNetwork(boolean shouldNotRequireUnmeteredNetwork) {
-        super.setShouldNotRequireUnmeteredNetwork(shouldNotRequireUnmeteredNetwork);
+    public void setMaxNetworkType(int maxNetworkType) {
+        super.setMaxNetworkType(maxNetworkType);
     }
 
     @Override

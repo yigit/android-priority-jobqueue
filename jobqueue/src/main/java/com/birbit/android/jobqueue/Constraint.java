@@ -1,6 +1,5 @@
 package com.birbit.android.jobqueue;
 
-import com.birbit.android.jobqueue.TagConstraint;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
@@ -10,9 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
-
 /**
  * This class is used when querying JobQueues to fetch particular jobs.
  * <p>
@@ -20,8 +16,7 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
  * re-used by the JobManager.
  */
 public class Constraint {
-    private boolean shouldNotRequireNetwork;
-    private boolean shouldNotRequireUnmeteredNetwork;
+    @NetworkUtil.NetworkStatus private int maxNetworkType;
     private TagConstraint tagConstraint;
     private final Set<String> tags = new HashSet<>();
     private final List<String> excludeGroups = new ArrayList<>();
@@ -29,22 +24,13 @@ public class Constraint {
     private boolean excludeRunning;
     private Long timeLimit;
     private long nowInNs;
-    /**
-     * Returns true if the network is currently not available.
-     *
-     * @return True if network connection is currently unavailable, false otherwise.
-     */
-    public boolean shouldNotRequireNetwork() {
-        return shouldNotRequireNetwork;
-    }
 
     /**
-     * Returns true if the unmetered network is currently not available.
-     *
-     * @return True if the unmetered network connection is currently unavailable, false otherwise.
+     * Returns the max allowed network type
+     * @return The max allowed network type for a job to match
      */
-    public boolean shouldNotRequireUnmeteredNetwork() {
-        return shouldNotRequireUnmeteredNetwork;
+    public int getMaxNetworkType() {
+        return maxNetworkType;
     }
 
     /**
@@ -102,12 +88,8 @@ public class Constraint {
         return excludeJobIds;
     }
 
-    void setShouldNotRequireNetwork(boolean shouldNotRequireNetwork) {
-        this.shouldNotRequireNetwork = shouldNotRequireNetwork;
-    }
-
-    void setShouldNotRequireUnmeteredNetwork(boolean shouldNotRequireUnmeteredNetwork) {
-        this.shouldNotRequireUnmeteredNetwork = shouldNotRequireUnmeteredNetwork;
+    void setMaxNetworkType(int maxNetworkType) {
+        this.maxNetworkType = maxNetworkType;
     }
 
     void setTagConstraint(TagConstraint tagConstraint) {
@@ -152,8 +134,7 @@ public class Constraint {
     }
 
     void clear() {
-        shouldNotRequireNetwork = false;
-        shouldNotRequireUnmeteredNetwork = false;
+        maxNetworkType = NetworkUtil.UNMETERED;
         tagConstraint = null;
         tags.clear();
         excludeGroups.clear();
@@ -161,10 +142,5 @@ public class Constraint {
         excludeRunning = false;
         timeLimit = null;
         nowInNs = Long.MIN_VALUE;
-    }
-
-    void setNetworkStatus(@NetworkUtil.NetworkStatus int connectionStatus) {
-        setShouldNotRequireNetwork(connectionStatus == DISCONNECTED);
-        setShouldNotRequireUnmeteredNetwork(connectionStatus != UNMETERED);
     }
 }

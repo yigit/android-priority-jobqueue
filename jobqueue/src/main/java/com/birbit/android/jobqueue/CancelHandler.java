@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +35,7 @@ class CancelHandler {
         queryConstraint.setExcludeJobIds(running);
         queryConstraint.setTags(tags);
         queryConstraint.setExcludeRunning(true);
+        queryConstraint.setMaxNetworkType(NetworkUtil.UNMETERED);
         Set<JobHolder> nonPersistentInQueue = jobManagerThread.nonPersistentJobQueue
                 .findJobs(queryConstraint);
         Set<JobHolder> persistentInQueue = jobManagerThread.persistentJobQueue

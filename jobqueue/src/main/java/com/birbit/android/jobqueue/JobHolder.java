@@ -4,11 +4,10 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Container class to address Jobs inside job manager.
@@ -67,8 +66,7 @@ public class JobHolder {
      */
     private long createdNs;
     private long runningSessionId;
-    private long requiresNetworkUntilNs;
-    private long requiresUnmeteredNetworkUntilNs;
+    /* package */ int requiredNetworkType;
     /**
      * When we should ignore the constraints
      */
@@ -81,7 +79,6 @@ public class JobHolder {
     protected final Set<String> tags;
     private volatile boolean cancelled;
     private volatile boolean cancelledSingleId;
-    private volatile boolean successful;
 
     /**
      * may be set after a job is run and cleared by the JobManager
@@ -103,15 +100,13 @@ public class JobHolder {
      * @param delayUntilNs     System.nanotime value: when job can be run the very first time
      * @param runningSessionId The running session id for the job
      * @param tags             The tags of the Job
-     * @param requiresNetworkUntilNs Until when this job requires network
-     * @param requiresUnmeteredNetworkUntilNs Until when this job requires unmetered network
+     * @param requiredNetworkType The minimum type of network that is required to run this job
      * @param deadlineNs       System.nanotime value: when the job will ignore its constraints
      * @param cancelOnDeadline true if job should be cancelled when deadline is reached, false otherwise
      */
     private JobHolder(String id, boolean persistent, int priority, String groupId, int runCount, Job job, long createdNs,
                       long delayUntilNs, long runningSessionId, Set<String> tags,
-                      long requiresNetworkUntilNs, long requiresUnmeteredNetworkUntilNs,
-                      long deadlineNs, boolean cancelOnDeadline) {
+                      int requiredNetworkType, long deadlineNs, boolean cancelOnDeadline) {
         this.id = id;
         this.persistent = persistent;
         this.priority = priority;
@@ -121,8 +116,7 @@ public class JobHolder {
         this.delayUntilNs = delayUntilNs;
         this.job = job;
         this.runningSessionId = runningSessionId;
-        this.requiresNetworkUntilNs = requiresNetworkUntilNs;
-        this.requiresUnmeteredNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
+        this.requiredNetworkType = requiredNetworkType;
         this.tags = tags;
         this.deadlineNs = deadlineNs;
         this.cancelOnDeadline = cancelOnDeadline;
@@ -142,17 +136,6 @@ public class JobHolder {
         return id;
     }
 
-    /**
-     * The time should be acquired from {@link Configuration#getTimer()}
-     *
-     * @param timeInNs The current time in ns. This should be the time used by the JobManager.
-     *
-     * @return True if the job requires network to be run right now, false otherwise.
-     */
-    public boolean requiresNetwork(long timeInNs) {
-        return requiresNetworkUntilNs > timeInNs;
-    }
-
     public final String getSingleInstanceId() {
         if (tags != null) {
             for (String tag : tags) {
@@ -162,25 +145,6 @@ public class JobHolder {
             }
         }
         return null;
-    }
-
-    public long getRequiresNetworkUntilNs() {
-        return requiresNetworkUntilNs;
-    }
-
-    /**
-     * The time should be acquired from {@link Configuration#getTimer()}
-     *
-     * @param timeInNs The current time in ns. This should be the time used by the JobManager.
-     *
-     * @return True if the job requires an UNMETERED network to be run right now, false otherwise.
-     */
-    public boolean requiresUnmeteredNetwork(long timeInNs) {
-        return requiresUnmeteredNetworkUntilNs > timeInNs;
-    }
-
-    public long getRequiresUnmeteredNetworkUntilNs() {
-        return requiresUnmeteredNetworkUntilNs;
     }
 
     public int getPriority() {
@@ -214,10 +178,6 @@ public class JobHolder {
 
     public long getCreatedNs() {
         return createdNs;
-    }
-
-    public void setCreatedNs(long createdNs) {
-        this.createdNs = createdNs;
     }
 
     public long getRunningSessionId() {
@@ -289,14 +249,6 @@ public class JobHolder {
         return tags != null && tags.size() > 0;
     }
 
-    public synchronized void markAsSuccessful() {
-        successful = true;
-    }
-
-    public synchronized boolean isSuccessful() {
-        return successful;
-    }
-
     public void setApplicationContext(Context applicationContext) {
         this.job.setApplicationContext(applicationContext);
     }
@@ -313,10 +265,6 @@ public class JobHolder {
         return retryConstraint;
     }
 
-    public void clearRetryConstraint() {
-        retryConstraint = null;
-    }
-
     void setThrowable(@Nullable Throwable throwable) {
         this.throwable = throwable;
     }
@@ -324,6 +272,22 @@ public class JobHolder {
     @Nullable
     Throwable getThrowable() {
         return throwable;
+    }
+
+    /**
+     * Returns the type of network required by this job.
+     * <p>
+     * Note that these network status can be compared to eachother and higher network type is a
+     * larger requirement. For instance, if this method returns
+     * {@link com.birbit.android.jobqueue.network.NetworkUtil.NetworkStatus#DISCONNECTED}, that does
+     * not mean job requires no network to run. Instead, it means it does not require any network
+     * to run.
+     *
+     * @return The minimum type of network connection that is required to run this job.
+     */
+    @NetworkUtil.NetworkStatus
+    public int getRequiredNetworkType() {
+        return requiredNetworkType;
     }
 
     public static class Builder {
@@ -351,12 +315,11 @@ public class JobHolder {
         private int providedFlags = 0;
         private Set<String> tags;
         private static final int FLAG_TAGS = FLAG_RUNNING_SESSION_ID << 1;
-        private long requiresNetworkUntilNs;
-        private static final int FLAG_REQ_NETWORK_UNTIL = FLAG_TAGS << 1;
-        private long requiresUnmeteredNetworkUntilNs;
-        private static final int FLAG_REQ_UNMETERED_NETWORK_UNTIL = FLAG_REQ_NETWORK_UNTIL << 1;
+        @NetworkUtil.NetworkStatus
+        private int requiredNetworkType;
+        private static final int FLAG_REQ_NETWORK = FLAG_TAGS << 1;
 
-        private static final int REQUIRED_FLAGS = (FLAG_REQ_UNMETERED_NETWORK_UNTIL << 1) - 1;
+        private static final int REQUIRED_FLAGS = (FLAG_REQ_NETWORK << 1) - 1;
 
         public Builder priority(int priority) {
             this.priority = priority;
@@ -398,15 +361,9 @@ public class JobHolder {
             return this;
         }
 
-        public Builder requiresNetworkUntilNs(long requiresNetworkUntilNs) {
-            this.requiresNetworkUntilNs = requiresNetworkUntilNs;
-            providedFlags |= FLAG_REQ_NETWORK_UNTIL;
-            return this;
-        }
-
-        public Builder requiresUnmeteredNetworkUntil(long requiresUnmeteredNetworkUntilNs) {
-            this.requiresUnmeteredNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
-            providedFlags |= FLAG_REQ_UNMETERED_NETWORK_UNTIL;
+        public Builder requiredNetworkType(@NetworkUtil.NetworkStatus int requiredNetworkType) {
+            this.requiredNetworkType = requiredNetworkType;
+            providedFlags |= FLAG_REQ_NETWORK;
             return this;
         }
 
@@ -437,34 +394,6 @@ public class JobHolder {
             return this;
         }
 
-        public Builder sealTimes(Timer timer, long requiresNetworkTimeoutMs,
-                                long requiresUnmeteredNetworkTimeoutMs) {
-            if (requiresNetworkTimeoutMs == Params.NEVER) {
-                // convert it from nano
-                requiresNetworkUntilNs = Params.NEVER;
-            } else if (requiresNetworkTimeoutMs == Params.FOREVER) {
-                requiresNetworkUntilNs = Params.FOREVER;
-            } else {
-                requiresNetworkUntilNs = timer.nanoTime()
-                        + TimeUnit.MILLISECONDS.toNanos(requiresNetworkTimeoutMs);
-            }
-
-            if (requiresUnmeteredNetworkTimeoutMs == Params.NEVER) {
-                // convert it from nano
-                requiresUnmeteredNetworkUntilNs = Params.NEVER;
-            } else if (requiresUnmeteredNetworkTimeoutMs == Params.FOREVER) {
-                requiresUnmeteredNetworkUntilNs = Params.FOREVER;
-            } else {
-                requiresUnmeteredNetworkUntilNs = timer.nanoTime()
-                        + TimeUnit.MILLISECONDS.toNanos(requiresUnmeteredNetworkTimeoutMs);
-            }
-            if (requiresNetworkUntilNs < requiresUnmeteredNetworkUntilNs) {
-                requiresNetworkUntilNs = requiresUnmeteredNetworkUntilNs;
-            }
-            providedFlags |= FLAG_REQ_NETWORK_UNTIL | FLAG_REQ_UNMETERED_NETWORK_UNTIL;
-            return this;
-        }
-
         public JobHolder build() {
             if (job == null) {
                 throw new IllegalArgumentException("must provide a job");
@@ -475,8 +404,7 @@ public class JobHolder {
             }
 
             JobHolder jobHolder = new JobHolder(id, persistent, priority, groupId, runCount, job, createdNs,
-                    delayUntilNs, runningSessionId, tags, requiresNetworkUntilNs,
-                    requiresUnmeteredNetworkUntilNs, deadlineNs, cancelOnDeadline);
+                    delayUntilNs, runningSessionId, tags, requiredNetworkType, deadlineNs, cancelOnDeadline);
             if (insertionOrder != null) {
                 jobHolder.setInsertionOrder(insertionOrder);
             }

@@ -15,7 +15,6 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
-import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
@@ -299,18 +298,13 @@ class ConsumerManager {
         return consumers.size();
     }
 
-    public boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint, long nowInNs) {
+    public boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint) {
         for (JobHolder jobHolder : runningJobHolders.values()) {
             if (!jobHolder.getJob().isPersistent()) {
                 continue;
             }
-            if(constraint.getNetworkStatus() == NetworkUtil.METERED
-                    && jobHolder.requiresNetwork(nowInNs)) {
+            if(constraint.getNetworkStatus() >= jobHolder.requiredNetworkType) {
                 // this will conver any unmeted job :/
-                return true;
-            }
-            if (constraint.getNetworkStatus() == NetworkUtil.UNMETERED
-                    && jobHolder.requiresUnmeteredNetwork(nowInNs)) {
                 return true;
             }
             // TODO we are missing delayed jobs here because we don't trigger based on it.
