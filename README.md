@@ -19,7 +19,7 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
    - [The Problem](#the-problem)
    - [Our Solution](#our-solution)
   - [Show me the code](#show-me-the-code)
-  - [Priority Job Queue vs Job Scheduler vs GCMNetworkManager vs ?](#priority-job-queue-vs-job-scheduler-vs-gcmnetworkmanager-vs-?)
+  - [Priority Job Queue vs Job Scheduler vs GCMNetworkManager vs ?](#priority-job-queue-vs-job-scheduler-vs-gcmnetworkmanager-vs-)
   - [What's happening under the hood?](#under-the-hood)
   - [Advantages](#advantages)
   - [Getting Started](#getting-started)
