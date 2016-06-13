@@ -164,6 +164,61 @@ public abstract class JobQueueTestBase extends TestBase {
     }
 
     @Test
+    public void testDeadlineDoesNotAffectTags() {
+        JobQueue jobQueue = createNewJobQueue();
+
+        JobHolder jobHolder = createNewJobHolder(new Params(0).overrideDeadlineToRunInMs(10));
+        jobQueue.insert(jobHolder);
+        mockTimer.incrementMs(100);
+
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setTags(new String[]{"a"});
+        constraint.setTagConstraint(TagConstraint.ANY);
+        assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+    }
+
+    @Test
+    public void testDeadlineDoesNotAffectIdQuery() {
+        JobQueue jobQueue = createNewJobQueue();
+
+        JobHolder jobHolder = createNewJobHolder(new Params(0).overrideDeadlineToRunInMs(10));
+        jobQueue.insert(jobHolder);
+        mockTimer.incrementMs(100);
+
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setExcludeJobIds(Arrays.asList(jobHolder.getId()));
+        assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+    }
+
+    @Test
+    public void testDeadlineDoesNotAffectExcludeGroupQuery() {
+        JobQueue jobQueue = createNewJobQueue();
+
+        JobHolder jobHolder = createNewJobHolder(new Params(0).groupBy("g1")
+                .overrideDeadlineToRunInMs(10));
+        jobQueue.insert(jobHolder);
+        mockTimer.incrementMs(100);
+
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setExcludeGroups(Arrays.asList("g1"));
+        assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+    }
+
+    @Test
+    public void testDeadlineDoesNotAffectExcludeRunning() {
+        JobQueue jobQueue = createNewJobQueue();
+
+        JobHolder jobHolder = createNewJobHolder(new Params(0).overrideDeadlineToRunInMs(10));
+        jobQueue.insert(jobHolder);
+        TestConstraint testConstraint = new TestConstraint(mockTimer);
+        assertThat(jobQueue.nextJobAndIncRunCount(testConstraint).getId(), is(jobHolder.getId()));
+        mockTimer.incrementMs(100);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setExcludeRunning(true);
+        assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+    }
+
+    @Test
     public void testGroupId() throws Exception {
         JobQueue jobQueue = createNewJobQueue();
         JobHolder jobHolder1 = createNewJobHolder(new Params(0).groupBy("group1"));
