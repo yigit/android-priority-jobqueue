@@ -228,6 +228,10 @@ public class Params {
      * Set a deadline on the job's constraints. After this deadline is reached, the job is run
      * regardless of its constraints.
      * <p>
+     * Note that even if a job reaches its deadline, JobManager still respects constraints like
+     * groupId because when multiple jobs use the same groupId, they usually access shared resources
+     * so it is important to respect groupId while running jobs in parallel.
+     * <p>
      * You can check if a job reached its deadline or not via {@link Job#isDeadlineReached()}.
      * <p>
      * If you call this method, you cannot call {@link #overrideDeadlineToCancelInMs(long)}.
@@ -256,6 +260,10 @@ public class Params {
      * time deadline is reached, the job will still be cancelled without being run.
      * <p>
      * You can check if a job reached its deadline or not via {@link Job#isDeadlineReached()}.
+     * <p>
+     * Note that even if a job reaches its deadline, JobManager still respects constraints like
+     * groupId because when multiple jobs use the same groupId, they usually access shared resources
+     * so it is important to respect groupId while running jobs in parallel.
      * <p>
      * If you call this method, you cannot call {@link #overrideDeadlineToRunInMs(long)}.
      *
