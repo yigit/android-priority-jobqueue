@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 public class JobManager {
     public static final long NS_PER_MS = 1000000;
     public static final long NOT_RUNNING_SESSION_ID = Long.MIN_VALUE;
-    public static final long NOT_DELAYED_JOB_DELAY = Long.MIN_VALUE;
+    public static final long NOT_DELAYED_JOB_DELAY = Params.NEVER;
     public static final long NETWORK_CHECK_INTERVAL = TimeUnit.MILLISECONDS.toNanos(10000);
     /**
      * The min delay in MS which will trigger usage of JobScheduler.

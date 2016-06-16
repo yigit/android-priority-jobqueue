@@ -15,7 +15,6 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
-import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
@@ -299,21 +298,14 @@ class ConsumerManager {
         return consumers.size();
     }
 
-    public boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint, long nowInNs) {
+    public boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint) {
         for (JobHolder jobHolder : runningJobHolders.values()) {
             if (!jobHolder.getJob().isPersistent()) {
                 continue;
             }
-            if(constraint.getNetworkStatus() == NetworkUtil.METERED
-                    && jobHolder.requiresNetwork(nowInNs)) {
-                // this will conver any unmeted job :/
+            if(constraint.getNetworkStatus() >= jobHolder.requiredNetworkType) {
                 return true;
             }
-            if (constraint.getNetworkStatus() == NetworkUtil.UNMETERED
-                    && jobHolder.requiresUnmeteredNetwork(nowInNs)) {
-                return true;
-            }
-            // TODO we are missing delayed jobs here because we don't trigger based on it.
         }
         return false;
     }
@@ -403,7 +395,7 @@ class ConsumerManager {
         private void handleRunJob(RunJobMessage message) {
             JqLog.d("running job %s", message.getJobHolder().getClass().getSimpleName());
             JobHolder jobHolder = message.getJobHolder();
-            int result = jobHolder.safeRun(jobHolder.getRunCount());
+            int result = jobHolder.safeRun(jobHolder.getRunCount(), timer);
             RunJobResultMessage resultMessage = factory.obtain(RunJobResultMessage.class);
             resultMessage.setJobHolder(jobHolder);
             resultMessage.setResult(result);

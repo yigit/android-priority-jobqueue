@@ -62,9 +62,12 @@ class GcmScheduler extends Scheduler {
         if (JqLog.isDebugEnabled()) {
             JqLog.d("creating gcm wake up request for %s", constraint);
         }
+        long endTimeMs = constraint.getOverrideDeadlineInMs() == null
+                ? constraint.getDelayInMs() + TimeUnit.SECONDS.toMillis(getExecutionWindowSizeInSeconds())
+                : constraint.getOverrideDeadlineInMs();
         OneoffTask oneoffTask = new OneoffTask.Builder()
-                .setExecutionWindow(constraint.getDelayInMs(), constraint.getDelayInMs()
-                        + getExecutionWindowSizeInSeconds())
+                .setExecutionWindow(TimeUnit.MILLISECONDS.toSeconds(constraint.getDelayInMs()),
+                        TimeUnit.MILLISECONDS.toSeconds(endTimeMs))
                 .setRequiredNetwork(toNetworkState(constraint.getNetworkStatus()))
                 .setPersisted(true)
                 .setService(serviceClass)
@@ -79,6 +82,8 @@ class GcmScheduler extends Scheduler {
      * better battery utilization. You can override this method to provide a different execution
      * window. The default value is {@link BatchingScheduler#DEFAULT_BATCHING_PERIOD_IN_MS} (converted
      * to seconds).
+     * <p>
+     * If this scheduling request is made for a Job with a deadline, this method is NOT called.
      *
      * @return The execution window time for the Job request
      */

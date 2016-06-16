@@ -4,8 +4,8 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.io.IOException;
@@ -28,11 +28,9 @@ abstract public class Job implements Serializable {
     // set either in constructor or by the JobHolder
     /**package**/ private transient String id;
     // values set from params
-    transient long requiresNetworkTimeoutMs = 0;
-    transient long requiresUnmeteredNetworkTimeoutMs = 0;
+    @NetworkUtil.NetworkStatus
+    transient int requiredNetworkType;
     // values set after job is covered by a JobHolder
-    private transient long requiresNetworkUntilNs;
-    private transient long requiresUnmeteredNetworkUntilNs;
     private transient String groupId;
     private transient boolean persistent;
     private transient Set<String> readonlyTags;
@@ -40,21 +38,28 @@ abstract public class Job implements Serializable {
     private transient int currentRunCount;
     /**package**/ transient int priority;
     private transient long delayInMs;
+    private transient long deadlineInMs;
+    private transient boolean cancelOnDeadline;
     /*package*/ transient volatile boolean cancelled;
 
+    // set when job is loaded
     private transient Context applicationContext;
 
     private transient volatile boolean sealed;
 
+    // set when job is loaded
+    private transient volatile boolean isDeadlineReached;
+
 
     protected Job(Params params) {
         this.id = UUID.randomUUID().toString();
-        this.requiresNetworkTimeoutMs = params.getRequiresNetworkTimeoutMs();
-        this.requiresUnmeteredNetworkTimeoutMs = params.getRequiresUnmeteredNetworkTimeoutMs();
+        this.requiredNetworkType = params.requiredNetworkType;
         this.persistent = params.isPersistent();
         this.groupId = params.getGroupId();
         this.priority = params.getPriority();
-        this.delayInMs = params.getDelayMs();
+        this.delayInMs = Math.max(0, params.getDelayMs());
+        this.deadlineInMs = Math.max(0, params.getDeadlineMs());
+        this.cancelOnDeadline = params.shouldCancelOnDeadline();
         final String singleId = params.getSingleId();
         if (params.getTags() != null || singleId != null) {
             final Set<String> tags = params.getTags() != null ? params.getTags() : new HashSet<String>();
@@ -67,6 +72,12 @@ abstract public class Job implements Serializable {
             }
             this.readonlyTags = Collections.unmodifiableSet(tags);
         }
+        if (deadlineInMs > 0 && deadlineInMs < delayInMs) {
+            throw new IllegalArgumentException("deadline cannot be less than the delay. It" +
+                    " does not make sense. deadline:" + deadlineInMs + "," +
+                    "delay:" + delayInMs);
+        }
+
     }
 
     public final String getId() {
@@ -124,8 +135,7 @@ abstract public class Job implements Serializable {
         priority = holder.getPriority();
         this.persistent = holder.persistent;
         readonlyTags = holder.tags;
-        requiresNetworkUntilNs = holder.getRequiresNetworkUntilNs();
-        requiresUnmeteredNetworkUntilNs = holder.getRequiresUnmeteredNetworkUntilNs();
+        requiredNetworkType = holder.requiredNetworkType;
         sealed = true; //  deserialized jobs are sealed
     }
 
@@ -206,7 +216,7 @@ abstract public class Job implements Serializable {
      *
      * @return one of the RUN_RESULT ints
      */
-    final int safeRun(JobHolder holder, int currentRunCount) {
+    final int safeRun(JobHolder holder, int currentRunCount, Timer timer) {
         this.currentRunCount = currentRunCount;
         if (JqLog.isDebugEnabled()) {
             JqLog.d("running job %s", this.getClass().getSimpleName());
@@ -214,6 +224,7 @@ abstract public class Job implements Serializable {
         boolean reRun = false;
         boolean failed = false;
         Throwable throwable = null;
+        boolean cancelForDeadline = false;
         try {
             onRun();
             if (JqLog.isDebugEnabled()) {
@@ -223,7 +234,9 @@ abstract public class Job implements Serializable {
             failed = true;
             throwable = t;
             JqLog.e(t, "error while executing job %s", this);
-            reRun = currentRunCount < getRetryLimit();
+            cancelForDeadline = holder.shouldCancelOnDeadline()
+                    && holder.getDeadlineNs() <= timer.nanoTime();
+            reRun = currentRunCount < getRetryLimit() && !cancelForDeadline;
             if(reRun && !cancelled) {
                 try {
                     RetryConstraint retryConstraint = shouldReRunOnThrowable(t, currentRunCount,
@@ -250,6 +263,9 @@ abstract public class Job implements Serializable {
         }
         if (reRun) {
             return JobHolder.RUN_RESULT_TRY_AGAIN;
+        }
+        if (cancelForDeadline) {
+            return JobHolder.RUN_RESULT_HIT_DEADLINE;
         }
         if (currentRunCount < getRetryLimit()) {
             return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
@@ -350,6 +366,10 @@ abstract public class Job implements Serializable {
         this.applicationContext = context;
     }
 
+    /*package*/ void setDeadlineReached(boolean deadlineReached) {
+        isDeadlineReached = deadlineReached;
+    }
+
     /**
      * Convenience method to get the application context in a Job.
      * <p>
@@ -363,63 +383,42 @@ abstract public class Job implements Serializable {
     }
 
     /**
-     * if job is set to require network, it will not be called unless
-     * {@link com.birbit.android.jobqueue.network.NetworkUtil} reports that there is a network
-     * connection or the wait times out if a timeout was provided in
-     * {@link Params#requireNetworkWithTimeout(long)}.
+     * Returns true if the job's deadline is reached.
+     * <p>
+     * Note that this method is safe to access only when the job is running. Value is undefined
+     * if it is called outside the {@link #onRun()} method.
      *
-     * @param timer The timer used by the JobManager. Should be the timer that was used while
-     *                configuring the JobManager ({@link Configuration#getTimer()},
-     *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
-     *
-     * @return true if the Job should not be run if there is no active network connection
+     * @return true if job reached its deadline, false otherwise
      */
-    public final boolean requiresNetwork(@NonNull Timer timer) {
-        return sealed ? requiresNetworkUntilNs > timer.nanoTime()
-                : requiresNetworkTimeoutMs != Params.NEVER;
+    public boolean isDeadlineReached() {
+        return isDeadlineReached;
     }
 
     /**
-     * if job is set to require a UNMETERED network, it will not be run unless
-     * {@link com.birbit.android.jobqueue.network.NetworkUtil} reports that there is a UNMETERED network
-     * connection or the wait times out if a timeout was provided in
-     * {@link Params#requireUnmeteredNetworkWithTimeout(long)}.
-     *
-     * @param timer The timer used by the JobManager. Should be the timer that was used while
-     *                configuring the JobManager ({@link Configuration#getTimer()},
-     *                {@link com.birbit.android.jobqueue.config.Configuration.Builder#timer}).
-     *
-     * @return true if the job should not be run until an unmetered network (e.g. WIFI) is detected
-     */
-    @SuppressWarnings("unused")
-    public final boolean requiresUnmeteredNetwork(@NonNull Timer timer) {
-        return sealed ? requiresUnmeteredNetworkUntilNs > timer.nanoTime()
-                : requiresUnmeteredNetworkTimeoutMs != Params.NEVER;
-    }
-
-    /**
-     * Returns whether job requires a network connection to be run or not, without checking the
-     * timeout. This is convenient since it does not require a reference to the Timer if you are
-     * not using Jobs with requireNetwork with a timeout.
+     * Returns whether job requires a network connection to be run or not.
      *
      * @return True if job requires a network to be run, false otherwise.
      */
     @SuppressWarnings("unused")
-    public final boolean requiresNetworkIgnoreTimeout() {
-        return sealed ? requiresNetworkUntilNs > 0
-                : requiresNetworkTimeoutMs > 0;
+    public final boolean requiresNetwork() {
+        return requiredNetworkType >= NetworkUtil.METERED;
     }
 
     /**
-     * Returns whether job requires a unmetered network connection to be run or not, without
-     * checking the timeout. This is convenient since it does not require a reference to the Timer
-     * if you are not using Jobs with requireUnmeteredNetwork with a timeout.
+     * Returns whether job requires a unmetered network connection to be run or not.
      *
      * @return True if job requires a unmetered network to be run, false otherwise.
      */
     @SuppressWarnings("unused")
-    public final boolean requiresUnmeteredNetworkIgnoreTimeout() {
-        return sealed ? requiresUnmeteredNetworkUntilNs > 0
-                : requiresUnmeteredNetworkTimeoutMs > 0;
+    public final boolean requiresUnmeteredNetwork() {
+        return requiredNetworkType >= NetworkUtil.UNMETERED;
+    }
+
+    /**package**/ long getDeadlineInMs() {
+        return deadlineInMs;
+    }
+
+    /**package**/ boolean shouldCancelOnDeadline() {
+        return cancelOnDeadline;
     }
 }

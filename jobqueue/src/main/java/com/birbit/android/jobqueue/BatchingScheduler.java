@@ -1,6 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
@@ -61,9 +62,12 @@ public class BatchingScheduler extends Scheduler {
     private boolean addToConstraints(SchedulerConstraint constraint) {
         final long now = timer.nanoTime();
         long expectedRunTime = TimeUnit.MILLISECONDS.toNanos(constraint.getDelayInMs()) + now;
+        Long expectedDeadline = constraint.getOverrideDeadlineInMs() == null
+                ? null
+                : TimeUnit.MILLISECONDS.toNanos(constraint.getOverrideDeadlineInMs()) + now;
         synchronized (constraints) {
             for (ConstraintWrapper existing : constraints) {
-                if (covers(existing, constraint, expectedRunTime)) {
+                if (covers(existing, constraint, expectedRunTime, expectedDeadline)) {
                     return false;
                 }
             }
@@ -71,15 +75,32 @@ public class BatchingScheduler extends Scheduler {
             long group = constraint.getDelayInMs() / batchingDurationInMs;
             long newDelay = (group + 1) * batchingDurationInMs;
             constraint.setDelayInMs(newDelay);
+            Long deadline = null;
+            if (constraint.getOverrideDeadlineInMs() != null) {
+                group = constraint.getOverrideDeadlineInMs() / batchingDurationInMs;
+                deadline = (group + 1) * batchingDurationInMs;
+                constraint.setOverrideDeadlineInMs(deadline);
+            }
             constraints.add(new ConstraintWrapper(now + TimeUnit.MILLISECONDS.toNanos(newDelay),
-                    constraint));
+                    deadline == null ? null : now + TimeUnit.MILLISECONDS.toNanos(deadline), constraint));
             return true;
         }
     }
 
     private boolean covers(ConstraintWrapper existing, SchedulerConstraint constraint,
-                           long expectedRunTime) {
+                           long expectedRunTime, Long expectedDeadline) {
         if (existing.constraint.getNetworkStatus() != constraint.getNetworkStatus()) {
+            return false;
+        }
+        if (expectedDeadline != null) {
+            if (existing.deadlineNs == null) {
+                return false;
+            }
+            long timeDiff = existing.deadlineNs - expectedDeadline;
+            if (timeDiff < 1 || timeDiff > batchingDurationInNs) {
+                return false;
+            }
+        } else if (existing.deadlineNs != null) {
             return false;
         }
         // same network status, check if time matches
@@ -113,10 +134,12 @@ public class BatchingScheduler extends Scheduler {
 
     private static class ConstraintWrapper {
         final long delayUntilNs;
+        @Nullable final Long deadlineNs;
         final SchedulerConstraint constraint;
 
-        public ConstraintWrapper(long delayUntilNs, SchedulerConstraint constraint) {
+        public ConstraintWrapper(long delayUntilNs, Long deadlineNs, SchedulerConstraint constraint) {
             this.delayUntilNs = delayUntilNs;
+            this.deadlineNs = deadlineNs;
             this.constraint = constraint;
         }
     }

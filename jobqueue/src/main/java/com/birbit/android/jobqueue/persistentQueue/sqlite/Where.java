@@ -1,9 +1,11 @@
 package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
-import com.birbit.android.jobqueue.Params;
-
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
+
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.Params;
 
 public class Where {
     public final long cacheKey;
@@ -13,23 +15,14 @@ public class Where {
     private SQLiteStatement countReadyStmt;
     private String findJobsQuery;
     private SQLiteStatement nextJobDelayUntilStmt;
-    private SQLiteStatement nextJobDelayUntilViaNetworkStmt;
     private String nextJobQuery;
-    private int networkTimeoutArgIndex = -1;
-    private int unmeteredNetworkTimeoutArgIndex = -1;
+    static final String NEVER = Long.toString(Params.NEVER);
+    static final String FOREVER = Long.toString(Params.FOREVER);
 
     public Where(long cacheKey, String query, String[] args) {
         this.cacheKey = cacheKey;
         this.query = query;
         this.args = args;
-    }
-
-    public void setNetworkTimeoutArgIndex(int index) {
-        this.networkTimeoutArgIndex = index;
-    }
-
-    public void setUnmeteredNetworkTimeoutArgIndex(int unmeteredNetworkTimeoutArgIndex) {
-        this.unmeteredNetworkTimeoutArgIndex = unmeteredNetworkTimeoutArgIndex;
     }
 
     public SQLiteStatement countReady(SQLiteDatabase database, StringBuilder stringBuilder) {
@@ -56,74 +49,39 @@ public class Where {
         }
         return countReadyStmt;
     }
-    public SQLiteStatement nextJobDelayUntilWithNetworkRequirement(SQLiteDatabase database,
-            SqlHelper sqlHelper) {
-        if (nextJobDelayUntilViaNetworkStmt == null) {
-            StringBuilder sb = sqlHelper.reusedStringBuilder;
-            sb.setLength(0);
-            sb.append("SELECT max(")
-                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);
-            if (networkTimeoutArgIndex != -1) {
-                sb.append(",")
-                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);
-            }
-            if (unmeteredNetworkTimeoutArgIndex != -1) {
-                sb.append(",")
-                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName);
-            }
-            sb.append(") FROM ")
-                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
-                    .append(" WHERE ")
-                    .append(query);
-            // below NOT constraints are safe to add because this query will only be accessed if
-            // they are set to be excluded.
-            if (networkTimeoutArgIndex != -1) {
-                sb.append(" AND ")
-                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
-                        .append(" != ").append(Params.FOREVER);
-            }
-            if (unmeteredNetworkTimeoutArgIndex != -1) {
-                sb.append(" AND ")
-                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)
-                        .append(" != ").append(Params.FOREVER);
-            }
-            sb.append(" ORDER BY 1 ASC").append(" limit 1");
-            String selectQuery = sb.toString();
-            nextJobDelayUntilViaNetworkStmt = database.compileStatement(selectQuery);
-        } else {
-            nextJobDelayUntilViaNetworkStmt.clearBindings();
-        }
-        for (int i = 1; i <= args.length; i ++) {
-            nextJobDelayUntilViaNetworkStmt.bindString(i, args[i - 1]);
-        }
-        if (networkTimeoutArgIndex != -1) {
-            nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,
-                    Long.toString(Params.FOREVER));
-        }
-        if (unmeteredNetworkTimeoutArgIndex != -1) {
-            nextJobDelayUntilViaNetworkStmt.bindString(unmeteredNetworkTimeoutArgIndex + 1,
-                    Long.toString(Params.FOREVER));
-        }
-
-        return nextJobDelayUntilViaNetworkStmt;
-    }
 
     public SQLiteStatement nextJobDelayUntil(SQLiteDatabase database, SqlHelper sqlHelper) {
         if (nextJobDelayUntilStmt == null) {
-            String selectQuery = sqlHelper.createSelectOneField(
-                    DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
+            // cannot use MIN because it always returns a value
+            String deadlineQuery = sqlHelper.createSelectOneField(
+                    DbOpenHelper.DEADLINE_COLUMN.columnName,
                     query,
-                    1,
-                    new SqlHelper.Order(DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
-                            SqlHelper.Order.Type.ASC)
-            );
+                    null);
+            String delayQuery = sqlHelper.createSelectOneField(
+                    DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName,
+                    query,
+                    null);
+            StringBuilder sb = sqlHelper.reusedStringBuilder;
+            sb.setLength(0);
+            sb.append("SELECT * FROM (")
+                    .append(deadlineQuery)
+                    .append(" ORDER BY 1 ASC LIMIT 1")
+                    .append(") UNION SELECT * FROM (")
+                    .append(delayQuery)
+                    .append(" ORDER BY 1 ASC LIMIT 1")
+                    .append(") ORDER BY 1 ASC LIMIT 1");
+            String selectQuery = sb.toString();
             nextJobDelayUntilStmt = database.compileStatement(selectQuery);
         } else {
             nextJobDelayUntilStmt.clearBindings();
         }
         for (int i = 1; i <= args.length; i ++) {
             nextJobDelayUntilStmt.bindString(i, args[i - 1]);
+            nextJobDelayUntilStmt.bindString(i + args.length, args[i - 1]);
         }
+        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX, FOREVER);
+        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX + args.length, NEVER);
+
         return nextJobDelayUntilStmt;
     }
 
@@ -158,10 +116,6 @@ public class Where {
         if (nextJobDelayUntilStmt != null) {
             nextJobDelayUntilStmt.close();
             nextJobDelayUntilStmt = null;
-        }
-        if (nextJobDelayUntilViaNetworkStmt != null) {
-            nextJobDelayUntilViaNetworkStmt.close();
-            nextJobDelayUntilViaNetworkStmt = null;
         }
     }
 }

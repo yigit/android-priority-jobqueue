@@ -5,6 +5,7 @@ import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
 
@@ -161,10 +162,12 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
-        stmt.bindLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex + 1,
-                jobHolder.getRequiresNetworkUntilNs());
-        stmt.bindLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex + 1,
-                jobHolder.getRequiresUnmeteredNetworkUntilNs());
+        stmt.bindLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnIndex + 1,
+                jobHolder.getRequiredNetworkType());
+        stmt.bindLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex + 1,
+                jobHolder.getDeadlineNs());
+        stmt.bindLong(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex + 1,
+                jobHolder.shouldCancelOnDeadline() ? 1 : 0);
     }
 
     /**
@@ -190,10 +193,6 @@ public class SqliteJobQueue implements JobQueue {
      */
     @Override
     public void remove(@NonNull JobHolder jobHolder) {
-        if (jobHolder.getId() == null) {
-            JqLog.e("called remove with null job id.");
-            return;
-        }
         delete(jobHolder.getId());
     }
 
@@ -320,12 +319,8 @@ public class SqliteJobQueue implements JobQueue {
     public Long getNextJobDelayUntilNs(@NonNull Constraint constraint) {
         final Where where = createWhere(constraint);
         try {
-            if (constraint.shouldNotRequireNetwork() || constraint.shouldNotRequireUnmeteredNetwork()) {
-                return where.nextJobDelayUntilWithNetworkRequirement(db, sqlHelper)
-                        .simpleQueryForLong();
-            } else {
-                return where.nextJobDelayUntil(db, sqlHelper).simpleQueryForLong();
-            }
+            long result = where.nextJobDelayUntil(db, sqlHelper).simpleQueryForLong();
+            return result == Params.FOREVER ? null : result;
         } catch (SQLiteDoneException empty) {
             return null;
         }
@@ -379,14 +374,14 @@ public class SqliteJobQueue implements JobQueue {
                         .append(" ")
                         .append(id).append(" id:")
                         .append(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
+                        .append(" deadline:")
+                        .append(cursor.getLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex))
                         .append(" delay until:")
                         .append(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                         .append(" sessionId:")
                         .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
-                        .append(" reqNetworkUntil:")
-                        .append(cursor.getLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex))
-                        .append(" reqUnmeteredNetworkUntil:")
-                        .append(cursor.getLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex));
+                        .append(" reqNetworkType:")
+                        .append(cursor.getLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnIndex));
                 Cursor tags = db.rawQuery("SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName
                         + " FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                         + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?", new String[]{id});
@@ -419,6 +414,7 @@ public class SqliteJobQueue implements JobQueue {
         }
         // load tags
         Set<String> tags = loadTags(jobId);
+        //noinspection WrongConstant,UnnecessaryLocalVariable
         JobHolder holder = new JobHolder.Builder()
                 .insertionOrder(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
                 .priority(cursor.getInt(DbOpenHelper.PRIORITY_COLUMN.columnIndex))
@@ -428,11 +424,12 @@ public class SqliteJobQueue implements JobQueue {
                 .id(jobId)
                 .tags(tags)
                 .persistent(true)
+                .deadline(cursor.getLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex),
+                        cursor.getInt(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex) == 1)
                 .createdNs(cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex))
                 .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                 .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
-                .requiresNetworkUntilNs(cursor.getLong(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnIndex))
-                .requiresUnmeteredNetworkUntil(cursor.getLong(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnIndex))
+                .requiredNetworkType(cursor.getInt(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnIndex))
                 .build();
         return holder;
     }

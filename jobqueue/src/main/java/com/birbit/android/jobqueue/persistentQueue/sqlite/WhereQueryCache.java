@@ -13,9 +13,7 @@ import java.util.Collection;
 class WhereQueryCache {
     private static final int INT_SIZE = 6;
     private static final int BOOL_SIZE = 1;
-    private static final int NETWORK = 0;
-    private static final int UNMETERED_NETWORK = NETWORK + BOOL_SIZE;
-    private static final int TAG_TYPE = UNMETERED_NETWORK + BOOL_SIZE;
+    private static final int TAG_TYPE = 0;
     private static final int TAG_COUNT = TAG_TYPE + BOOL_SIZE + BOOL_SIZE;
     private static final int GROUP_COUNT = TAG_COUNT + INT_SIZE;
     private static final int JOB_COUNT = GROUP_COUNT + INT_SIZE;
@@ -23,6 +21,9 @@ class WhereQueryCache {
     private static final int TIME_LIMIT = EXCLUDE_RUNNING + BOOL_SIZE;
     private static final int PENDING_CANCELLATIONS = TIME_LIMIT + BOOL_SIZE;
     private static final int INT_LIMIT = 1 << INT_SIZE;
+
+    static final int DEADLINE_COLUMN_INDEX = 1;
+    static final int NETWORK_TYPE_COLUMN_INDEX = 2;
 
     // TODO implement some query cacheable check for queries that have way too many parameters
     private final LruCache<Long, Where> queryCache = new LruCache<Long, Where>(15) {
@@ -57,12 +58,8 @@ class WhereQueryCache {
     private void fillWhere(Constraint constraint, Where where,
             Collection<String> pendingCancellations) {
         int count = 0;
-        if (constraint.shouldNotRequireNetwork()) {
-            where.args[count++] = Long.toString(constraint.getNowInNs());
-        }
-        if (constraint.shouldNotRequireUnmeteredNetwork()) {
-            where.args[count++] = Long.toString(constraint.getNowInNs());
-        }
+        where.args[count++] = Long.toString(constraint.getNowInNs());
+        where.args[count++] = Integer.toString(constraint.getMaxNetworkType());
         if (constraint.getTimeLimit() != null) {
             where.args[count++] = Long.toString(constraint.getTimeLimit());
         }
@@ -93,25 +90,21 @@ class WhereQueryCache {
             Collection<String> pendingCancellations, StringBuilder reusedStringBuilder) {
         reusedStringBuilder.setLength(0);
         int argCount = 0;
-        reusedStringBuilder.append("1");
-        int networkTimeoutArgIndex = -1;
-        int unmeteredTimeoutArgIndex = -1;
-        if (constraint.shouldNotRequireNetwork()) {
-            reusedStringBuilder
-                    .append(" AND ")
-                    .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)
-                    .append(" <= ?");
-            networkTimeoutArgIndex = argCount;
-            argCount++;
-        }
-        if (constraint.shouldNotRequireUnmeteredNetwork()) {
-            reusedStringBuilder
-                    .append(" AND ")
-                    .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)
-                    .append(" <= ?");
-            unmeteredTimeoutArgIndex = argCount;
-            argCount++;
-        }
+
+        reusedStringBuilder
+                .append("( (")
+                // deadline 4ever check is necessary to filter these from next job queries
+                .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
+                .append(" != ").append(Where.FOREVER)
+                .append(" AND ")
+                .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
+                .append(" <= ?) OR ");
+        argCount ++;
+
+        reusedStringBuilder
+                .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnName)
+                .append(" <= ?)");
+        argCount++;
         if (constraint.getTimeLimit() != null) {
             reusedStringBuilder
                     .append(" AND ")
@@ -186,9 +179,8 @@ class WhereQueryCache {
             argCount++;
         }
         String[] args = new String[argCount];
+        //noinspection UnnecessaryLocalVariable
         Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);
-        where.setNetworkTimeoutArgIndex(networkTimeoutArgIndex);
-        where.setUnmeteredNetworkTimeoutArgIndex(unmeteredTimeoutArgIndex);
         return where;
     }
 
@@ -202,9 +194,7 @@ class WhereQueryCache {
     private long cacheKey(Constraint constraint, Collection<String> pendingCancelations) {
         long key;
         //noinspection PointlessBitwiseExpression
-        key = (constraint.shouldNotRequireNetwork() ? 1 : 0) << NETWORK
-                | (constraint.shouldNotRequireUnmeteredNetwork() ? 1 : 0) << UNMETERED_NETWORK
-                | (constraint.getTagConstraint() == null ? 2 : constraint.getTagConstraint().ordinal()) << TAG_TYPE
+        key = (constraint.getTagConstraint() == null ? 2 : constraint.getTagConstraint().ordinal()) << TAG_TYPE
                 | constraint.getTags().size() << TAG_COUNT
                 | constraint.getExcludeGroups().size() << GROUP_COUNT
                 | constraint.getExcludeJobIds().size() << JOB_COUNT

@@ -62,10 +62,11 @@ public class NetworkJobTest extends JobManagerTestBase {
 
     private Params addRequirement(Params params, long timeoutMs) {
         if (unmetered) {
-            return params.requireUnmeteredNetworkWithTimeout(timeoutMs);
+            params.requireUnmeteredNetwork();
         } else {
-            return params.requireNetworkWithTimeout(timeoutMs);
+            params.requireNetwork();
         }
+        return params.overrideDeadlineToRunInMs(timeoutMs);
     }
 
     @Test
@@ -142,7 +143,7 @@ public class NetworkJobTest extends JobManagerTestBase {
             @Override
             public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 if (resultCode == JobManagerCallback.RESULT_SUCCEED) {
-                    MatcherAssert.assertThat("should be a no network job", job.requiresNetwork(mockTimer), is(false));
+                    MatcherAssert.assertThat("should be a no network job", job.requiresNetwork(), is(false));
                     noNetworkLatch.countDown();
                     if (noNetworkLatch.getCount() == 0) {
                         jobManager.removeCallback(this);
@@ -158,7 +159,7 @@ public class NetworkJobTest extends JobManagerTestBase {
             @Override
             public void onAfterJobRun(@NonNull Job job, int resultCode) {
                 if (resultCode == JobManagerCallback.RESULT_SUCCEED) {
-                    MatcherAssert.assertThat("should be a network job", job.requiresNetwork(mockTimer), is(true));
+                    MatcherAssert.assertThat("should be a network job", job.requiresNetwork(), is(true));
                     networkLatch.countDown();
                     if (networkLatch.getCount() == 0) {
                         jobManager.removeCallback(this);
