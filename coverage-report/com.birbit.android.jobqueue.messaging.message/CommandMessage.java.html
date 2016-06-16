@@ -6,28 +6,40 @@ import com.birbit.android.jobqueue.messaging.Type;
 public class CommandMessage extends Message {
     public static final int QUIT = 1;
     public static final int POKE = 2; // simple message to wake it up
+    public static final int RUNNABLE = 3; // only used in tests
     private int what;
 
+    private Runnable runnable;
+
     public CommandMessage() {
-<span class="fc" id="L12">        super(Type.COMMAND);</span>
-<span class="fc" id="L13">    }</span>
+<span class="fc" id="L15">        super(Type.COMMAND);</span>
+<span class="fc" id="L16">    }</span>
 
     @Override
     protected void onRecycled() {
-<span class="fc" id="L17">        what = -1;</span>
-<span class="fc" id="L18">    }</span>
+<span class="fc" id="L20">        what = -1;</span>
+<span class="fc" id="L21">        runnable = null;</span>
+<span class="fc" id="L22">    }</span>
 
     public int getWhat() {
-<span class="fc" id="L21">        return what;</span>
+<span class="fc" id="L25">        return what;</span>
     }
 
     public void set(int what) {
-<span class="fc" id="L25">        this.what = what;</span>
-<span class="fc" id="L26">    }</span>
+<span class="fc" id="L29">        this.what = what;</span>
+<span class="fc" id="L30">    }</span>
+
+    public Runnable getRunnable() {
+<span class="fc" id="L33">        return runnable;</span>
+    }
+
+    public void setRunnable(Runnable runnable) {
+<span class="fc" id="L37">        this.runnable = runnable;</span>
+<span class="fc" id="L38">    }</span>
 
     @Override
     public String toString() {
-<span class="fc" id="L30">        return &quot;Command[&quot; + what + &quot;]&quot;;</span>
+<span class="nc" id="L42">        return &quot;Command[&quot; + what + &quot;]&quot;;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>CancelHandler.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">CancelHandler.java</span></div><h1>CancelHandler.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
 
 import com.birbit.android.jobqueue.log.JqLog;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,81 +18,82 @@ class CancelHandler {
     private final Collection&lt;JobHolder&gt; failedToCancel;
     private final CancelResult.AsyncCancelCallback callback;
 
-<span class="fc" id="L20">    CancelHandler(TagConstraint constraint, String[] tags, CancelResult.AsyncCancelCallback callback) {</span>
-<span class="fc" id="L21">        this.tagConstraint = constraint;</span>
-<span class="fc" id="L22">        this.tags = tags;</span>
-<span class="fc" id="L23">        cancelled = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L24">        failedToCancel = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L25">        this.callback = callback;</span>
-<span class="fc" id="L26">    }</span>
+<span class="fc" id="L21">    CancelHandler(TagConstraint constraint, String[] tags, CancelResult.AsyncCancelCallback callback) {</span>
+<span class="fc" id="L22">        this.tagConstraint = constraint;</span>
+<span class="fc" id="L23">        this.tags = tags;</span>
+<span class="fc" id="L24">        cancelled = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L25">        failedToCancel = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L26">        this.callback = callback;</span>
+<span class="fc" id="L27">    }</span>
     
     void query(JobManagerThread jobManagerThread, ConsumerManager consumerManager) {
-<span class="fc" id="L29">        running = consumerManager.markJobsCancelled(tagConstraint, tags);</span>
-<span class="fc" id="L30">        Constraint queryConstraint = jobManagerThread.queryConstraint;</span>
-<span class="fc" id="L31">        queryConstraint.clear();</span>
-<span class="fc" id="L32">        queryConstraint.setNowInNs(jobManagerThread.timer.nanoTime());</span>
-<span class="fc" id="L33">        queryConstraint.setTagConstraint(tagConstraint);</span>
-<span class="fc" id="L34">        queryConstraint.setExcludeJobIds(running);</span>
-<span class="fc" id="L35">        queryConstraint.setTags(tags);</span>
-<span class="fc" id="L36">        queryConstraint.setExcludeRunning(true);</span>
-<span class="fc" id="L37">        Set&lt;JobHolder&gt; nonPersistentInQueue = jobManagerThread.nonPersistentJobQueue</span>
-<span class="fc" id="L38">                .findJobs(queryConstraint);</span>
-<span class="fc" id="L39">        Set&lt;JobHolder&gt; persistentInQueue = jobManagerThread.persistentJobQueue</span>
+<span class="fc" id="L30">        running = consumerManager.markJobsCancelled(tagConstraint, tags);</span>
+<span class="fc" id="L31">        Constraint queryConstraint = jobManagerThread.queryConstraint;</span>
+<span class="fc" id="L32">        queryConstraint.clear();</span>
+<span class="fc" id="L33">        queryConstraint.setNowInNs(jobManagerThread.timer.nanoTime());</span>
+<span class="fc" id="L34">        queryConstraint.setTagConstraint(tagConstraint);</span>
+<span class="fc" id="L35">        queryConstraint.setExcludeJobIds(running);</span>
+<span class="fc" id="L36">        queryConstraint.setTags(tags);</span>
+<span class="fc" id="L37">        queryConstraint.setExcludeRunning(true);</span>
+<span class="fc" id="L38">        queryConstraint.setMaxNetworkType(NetworkUtil.UNMETERED);</span>
+<span class="fc" id="L39">        Set&lt;JobHolder&gt; nonPersistentInQueue = jobManagerThread.nonPersistentJobQueue</span>
 <span class="fc" id="L40">                .findJobs(queryConstraint);</span>
-<span class="fc bfc" id="L41" title="All 2 branches covered.">        for (JobHolder nonPersistent : nonPersistentInQueue) {</span>
-<span class="fc" id="L42">            nonPersistent.markAsCancelled();</span>
-<span class="fc" id="L43">            cancelled.add(nonPersistent);</span>
-<span class="fc" id="L44">            jobManagerThread.nonPersistentJobQueue.onJobCancelled(nonPersistent);</span>
-<span class="fc" id="L45">        }</span>
-<span class="fc bfc" id="L46" title="All 2 branches covered.">        for (JobHolder persistent : persistentInQueue) {</span>
-<span class="fc" id="L47">            persistent.markAsCancelled();</span>
-<span class="fc" id="L48">            cancelled.add(persistent);</span>
-<span class="fc" id="L49">            jobManagerThread.persistentJobQueue.onJobCancelled(persistent);</span>
-<span class="fc" id="L50">        }</span>
-<span class="fc" id="L51">    }</span>
+<span class="fc" id="L41">        Set&lt;JobHolder&gt; persistentInQueue = jobManagerThread.persistentJobQueue</span>
+<span class="fc" id="L42">                .findJobs(queryConstraint);</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        for (JobHolder nonPersistent : nonPersistentInQueue) {</span>
+<span class="fc" id="L44">            nonPersistent.markAsCancelled();</span>
+<span class="fc" id="L45">            cancelled.add(nonPersistent);</span>
+<span class="fc" id="L46">            jobManagerThread.nonPersistentJobQueue.onJobCancelled(nonPersistent);</span>
+<span class="fc" id="L47">        }</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        for (JobHolder persistent : persistentInQueue) {</span>
+<span class="fc" id="L49">            persistent.markAsCancelled();</span>
+<span class="fc" id="L50">            cancelled.add(persistent);</span>
+<span class="fc" id="L51">            jobManagerThread.persistentJobQueue.onJobCancelled(persistent);</span>
+<span class="fc" id="L52">        }</span>
+<span class="fc" id="L53">    }</span>
 
     void commit(JobManagerThread jobManagerThread) {
-<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (JobHolder jobHolder : cancelled) {</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        for (JobHolder jobHolder : cancelled) {</span>
             try {
-<span class="fc" id="L56">                jobHolder.onCancel(CancelReason.CANCELLED_WHILE_RUNNING);</span>
-<span class="nc" id="L57">            } catch (Throwable t) {</span>
-<span class="nc" id="L58">                JqLog.e(t, &quot;job's on cancel has thrown an exception. Ignoring...&quot;);</span>
-<span class="fc" id="L59">            }</span>
-<span class="fc bfc" id="L60" title="All 2 branches covered.">            if (jobHolder.getJob().isPersistent()) {</span>
-<span class="fc" id="L61">                jobManagerThread.nonPersistentJobQueue.remove(jobHolder);</span>
+<span class="fc" id="L58">                jobHolder.onCancel(CancelReason.CANCELLED_WHILE_RUNNING);</span>
+<span class="nc" id="L59">            } catch (Throwable t) {</span>
+<span class="nc" id="L60">                JqLog.e(t, &quot;job's on cancel has thrown an exception. Ignoring...&quot;);</span>
+<span class="fc" id="L61">            }</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (jobHolder.getJob().isPersistent()) {</span>
+<span class="fc" id="L63">                jobManagerThread.nonPersistentJobQueue.remove(jobHolder);</span>
             }
-<span class="fc" id="L63">        }</span>
-<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (callback != null) {</span>
-<span class="fc" id="L65">            Collection&lt;Job&gt; cancelledJobs = new ArrayList&lt;&gt;(cancelled.size());</span>
-<span class="fc" id="L66">            Collection&lt;Job&gt; failedToCancelJobs = new ArrayList&lt;&gt;(failedToCancel.size());</span>
-<span class="fc bfc" id="L67" title="All 2 branches covered.">            for (JobHolder holder : cancelled) {</span>
-<span class="fc" id="L68">                cancelledJobs.add(holder.getJob());</span>
-<span class="fc" id="L69">            }</span>
-<span class="fc bfc" id="L70" title="All 2 branches covered.">            for (JobHolder holder : failedToCancel) {</span>
-<span class="fc" id="L71">                failedToCancelJobs.add(holder.getJob());</span>
-<span class="fc" id="L72">            }</span>
-<span class="fc" id="L73">            CancelResult result = new CancelResult(cancelledJobs, failedToCancelJobs);</span>
-<span class="fc" id="L74">            jobManagerThread.callbackManager.notifyCancelResult(result, callback);</span>
+<span class="fc" id="L65">        }</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (callback != null) {</span>
+<span class="fc" id="L67">            Collection&lt;Job&gt; cancelledJobs = new ArrayList&lt;&gt;(cancelled.size());</span>
+<span class="fc" id="L68">            Collection&lt;Job&gt; failedToCancelJobs = new ArrayList&lt;&gt;(failedToCancel.size());</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            for (JobHolder holder : cancelled) {</span>
+<span class="fc" id="L70">                cancelledJobs.add(holder.getJob());</span>
+<span class="fc" id="L71">            }</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">            for (JobHolder holder : failedToCancel) {</span>
+<span class="fc" id="L73">                failedToCancelJobs.add(holder.getJob());</span>
+<span class="fc" id="L74">            }</span>
+<span class="fc" id="L75">            CancelResult result = new CancelResult(cancelledJobs, failedToCancelJobs);</span>
+<span class="fc" id="L76">            jobManagerThread.callbackManager.notifyCancelResult(result, callback);</span>
         }
-<span class="fc bfc" id="L76" title="All 2 branches covered.">        for (JobHolder jobHolder : cancelled) {</span>
-<span class="fc" id="L77">            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true, jobHolder.getThrowable());</span>
-<span class="fc" id="L78">        }</span>
-<span class="fc" id="L79">    }</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (JobHolder jobHolder : cancelled) {</span>
+<span class="fc" id="L79">            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true, jobHolder.getThrowable());</span>
+<span class="fc" id="L80">        }</span>
+<span class="fc" id="L81">    }</span>
 
     void onJobRun(JobHolder holder, int resultCode) {
         final boolean exists;
-<span class="fc" id="L83">        exists = running.remove(holder.getId());</span>
-<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (exists) {</span>
-<span class="fc bfc" id="L85" title="All 2 branches covered.">            if (resultCode == JobHolder.RUN_RESULT_FAIL_FOR_CANCEL) {</span>
-<span class="fc" id="L86">                cancelled.add(holder);</span>
+<span class="fc" id="L85">        exists = running.remove(holder.getId());</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (exists) {</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            if (resultCode == JobHolder.RUN_RESULT_FAIL_FOR_CANCEL) {</span>
+<span class="fc" id="L88">                cancelled.add(holder);</span>
             } else {
-<span class="fc" id="L88">                failedToCancel.add(holder);</span>
+<span class="fc" id="L90">                failedToCancel.add(holder);</span>
             }
         }
-<span class="fc" id="L91">    }</span>
+<span class="fc" id="L93">    }</span>
 
     boolean isDone() {
-<span class="fc" id="L94">        return running.isEmpty();</span>
+<span class="fc" id="L96">        return running.isEmpty();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

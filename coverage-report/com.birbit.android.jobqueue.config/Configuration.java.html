@@ -10,6 +10,7 @@ import com.birbit.android.jobqueue.JobQueue;
 import com.birbit.android.jobqueue.QueueFactory;
 import com.birbit.android.jobqueue.di.DependencyInjector;
 import com.birbit.android.jobqueue.log.CustomLogger;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.network.NetworkUtilImpl;
 import com.birbit.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
@@ -50,113 +51,113 @@ public class Configuration {
      */
     public static final int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
 
-<span class="fc" id="L53">    String id = DEFAULT_ID;</span>
-<span class="fc" id="L54">    int maxConsumerCount = MAX_CONSUMER_COUNT;</span>
-<span class="fc" id="L55">    int minConsumerCount = MIN_CONSUMER_COUNT;</span>
-<span class="fc" id="L56">    int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;</span>
-<span class="fc" id="L57">    int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;</span>
+<span class="fc" id="L54">    String id = DEFAULT_ID;</span>
+<span class="fc" id="L55">    int maxConsumerCount = MAX_CONSUMER_COUNT;</span>
+<span class="fc" id="L56">    int minConsumerCount = MIN_CONSUMER_COUNT;</span>
+<span class="fc" id="L57">    int consumerKeepAlive = DEFAULT_THREAD_KEEP_ALIVE_SECONDS;</span>
+<span class="fc" id="L58">    int loadFactor = DEFAULT_LOAD_FACTOR_PER_CONSUMER;</span>
     Context appContext;
     QueueFactory queueFactory;
     DependencyInjector dependencyInjector;
     NetworkUtil networkUtil;
-    CustomLogger customLogger;
+<span class="fc" id="L63">    CustomLogger customLogger = new JqLog.ErrorLogger();</span>
     Timer timer;
     Scheduler scheduler;
-<span class="fc" id="L65">    boolean inTestMode = false;</span>
-<span class="fc" id="L66">    boolean resetDelaysOnRestart = false;</span>
-<span class="fc" id="L67">    int threadPriority = DEFAULT_THREAD_PRIORITY;</span>
-<span class="fc" id="L68">    boolean batchSchedulerRequests = true;</span>
-<span class="fc" id="L69">    ThreadFactory threadFactory = null;</span>
+<span class="fc" id="L66">    boolean inTestMode = false;</span>
+<span class="fc" id="L67">    boolean resetDelaysOnRestart = false;</span>
+<span class="fc" id="L68">    int threadPriority = DEFAULT_THREAD_PRIORITY;</span>
+<span class="fc" id="L69">    boolean batchSchedulerRequests = true;</span>
+<span class="fc" id="L70">    ThreadFactory threadFactory = null;</span>
 
-<span class="fc" id="L71">    private Configuration(){</span>
+<span class="fc" id="L72">    private Configuration(){</span>
         //use builder instead
-<span class="fc" id="L73">    }</span>
+<span class="fc" id="L74">    }</span>
 
     @NonNull
     public Context getAppContext() {
-<span class="fc" id="L77">        return appContext;</span>
+<span class="fc" id="L78">        return appContext;</span>
     }
 
     @NonNull
     public String getId() {
-<span class="nc" id="L82">        return id;</span>
+<span class="fc" id="L83">        return id;</span>
     }
 
     public boolean batchSchedulerRequests() {
-<span class="fc" id="L86">        return batchSchedulerRequests;</span>
+<span class="fc" id="L87">        return batchSchedulerRequests;</span>
     }
 
     @NonNull
     public QueueFactory getQueueFactory() {
-<span class="fc" id="L91">        return queueFactory;</span>
+<span class="fc" id="L92">        return queueFactory;</span>
     }
 
     @Nullable
     public DependencyInjector getDependencyInjector() {
-<span class="fc" id="L96">        return dependencyInjector;</span>
+<span class="fc" id="L97">        return dependencyInjector;</span>
     }
 
     public int getConsumerKeepAlive() {
-<span class="fc" id="L100">        return consumerKeepAlive;</span>
+<span class="fc" id="L101">        return consumerKeepAlive;</span>
     }
 
     @NonNull
     public NetworkUtil getNetworkUtil() {
-<span class="fc" id="L105">        return networkUtil;</span>
+<span class="fc" id="L106">        return networkUtil;</span>
     }
 
     public int getMaxConsumerCount() {
-<span class="fc" id="L109">        return maxConsumerCount;</span>
+<span class="fc" id="L110">        return maxConsumerCount;</span>
     }
 
     public int getMinConsumerCount() {
-<span class="fc" id="L113">        return minConsumerCount;</span>
+<span class="fc" id="L114">        return minConsumerCount;</span>
     }
 
     @Nullable
     public CustomLogger getCustomLogger() {
-<span class="fc" id="L118">        return customLogger;</span>
+<span class="fc" id="L119">        return customLogger;</span>
     }
 
     public int getLoadFactor() {
-<span class="fc" id="L122">        return loadFactor;</span>
+<span class="fc" id="L123">        return loadFactor;</span>
     }
 
     public boolean isInTestMode() {
-<span class="fc" id="L126">        return inTestMode;</span>
+<span class="fc" id="L127">        return inTestMode;</span>
     }
 
     @NonNull
     public Timer getTimer() {
-<span class="fc" id="L131">        return timer;</span>
+<span class="fc" id="L132">        return timer;</span>
     }
 
     public boolean resetDelaysOnRestart() {
-<span class="fc" id="L135">        return resetDelaysOnRestart;</span>
+<span class="fc" id="L136">        return resetDelaysOnRestart;</span>
     }
 
     @Nullable
     public Scheduler getScheduler() {
-<span class="fc" id="L140">        return scheduler;</span>
+<span class="fc" id="L141">        return scheduler;</span>
     }
 
     public int getThreadPriority() {
-<span class="fc" id="L144">        return threadPriority;</span>
+<span class="fc" id="L145">        return threadPriority;</span>
     }
 
     @Nullable
     public ThreadFactory getThreadFactory() {
-<span class="fc" id="L149">        return threadFactory;</span>
+<span class="fc" id="L150">        return threadFactory;</span>
     }
 
     @SuppressWarnings(&quot;unused&quot;)
     public static final class Builder {
         private Configuration configuration;
 
-<span class="fc" id="L156">        public Builder(@NonNull Context context) {</span>
-<span class="fc" id="L157">            this.configuration = new Configuration();</span>
-<span class="fc" id="L158">            this.configuration.appContext = context.getApplicationContext();</span>
-<span class="fc" id="L159">        }</span>
+<span class="fc" id="L157">        public Builder(@NonNull Context context) {</span>
+<span class="fc" id="L158">            this.configuration = new Configuration();</span>
+<span class="fc" id="L159">            this.configuration.appContext = context.getApplicationContext();</span>
+<span class="fc" id="L160">        }</span>
 
         /**
          * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
@@ -167,8 +168,8 @@ public class Configuration {
          */
         @NonNull
         public Builder id(@NonNull String id) {
-<span class="fc" id="L170">            configuration.id = id;</span>
-<span class="fc" id="L171">            return this;</span>
+<span class="fc" id="L171">            configuration.id = id;</span>
+<span class="fc" id="L172">            return this;</span>
         }
 
         /**
@@ -179,8 +180,8 @@ public class Configuration {
          */
         @NonNull
         public Builder consumerKeepAlive(int keepAlive) {
-<span class="fc" id="L182">            configuration.consumerKeepAlive = keepAlive;</span>
-<span class="fc" id="L183">            return this;</span>
+<span class="fc" id="L183">            configuration.consumerKeepAlive = keepAlive;</span>
+<span class="fc" id="L184">            return this;</span>
         }
 
         /**
@@ -203,8 +204,8 @@ public class Configuration {
          */
         @NonNull
         public Builder resetDelaysOnRestart() {
-<span class="nc" id="L206">            configuration.resetDelaysOnRestart = true;</span>
-<span class="nc" id="L207">            return this;</span>
+<span class="nc" id="L207">            configuration.resetDelaysOnRestart = true;</span>
+<span class="nc" id="L208">            return this;</span>
         }
 
         /**
@@ -219,12 +220,12 @@ public class Configuration {
          */
         @NonNull
         public Builder queueFactory(@Nullable QueueFactory queueFactory) {
-<span class="nc bnc" id="L222" title="All 4 branches missed.">            if(configuration.queueFactory != null &amp;&amp; queueFactory != null) {</span>
-<span class="nc" id="L223">                throw new RuntimeException(&quot;already set a queue factory. This might happen if&quot;</span>
+<span class="nc bnc" id="L223" title="All 4 branches missed.">            if(configuration.queueFactory != null &amp;&amp; queueFactory != null) {</span>
+<span class="nc" id="L224">                throw new RuntimeException(&quot;already set a queue factory. This might happen if&quot;</span>
                         + &quot;you've provided a custom job serializer&quot;);
             }
-<span class="nc" id="L226">            configuration.queueFactory = queueFactory;</span>
-<span class="nc" id="L227">            return this;</span>
+<span class="nc" id="L227">            configuration.queueFactory = queueFactory;</span>
+<span class="nc" id="L228">            return this;</span>
         }
 
         /**
@@ -238,8 +239,8 @@ public class Configuration {
          */
         @NonNull
         public Builder jobSerializer(@NonNull SqliteJobQueue.JobSerializer jobSerializer) {
-<span class="fc" id="L241">            configuration.queueFactory = new DefaultQueueFactory(jobSerializer);</span>
-<span class="fc" id="L242">            return this;</span>
+<span class="fc" id="L242">            configuration.queueFactory = new DefaultQueueFactory(jobSerializer);</span>
+<span class="fc" id="L243">            return this;</span>
         }
 
         /**
@@ -253,8 +254,8 @@ public class Configuration {
          */
         @NonNull
         public Builder networkUtil(@Nullable NetworkUtil networkUtil) {
-<span class="fc" id="L256">            configuration.networkUtil = networkUtil;</span>
-<span class="fc" id="L257">            return this;</span>
+<span class="fc" id="L257">            configuration.networkUtil = networkUtil;</span>
+<span class="fc" id="L258">            return this;</span>
         }
 
         /**
@@ -268,8 +269,8 @@ public class Configuration {
          */
         @NonNull
         public Builder injector(@Nullable DependencyInjector injector) {
-<span class="fc" id="L271">            configuration.dependencyInjector = injector;</span>
-<span class="fc" id="L272">            return this;</span>
+<span class="fc" id="L272">            configuration.dependencyInjector = injector;</span>
+<span class="fc" id="L273">            return this;</span>
         }
 
         /**
@@ -280,8 +281,8 @@ public class Configuration {
          */
         @NonNull
         public Builder maxConsumerCount(int count) {
-<span class="fc" id="L283">            configuration.maxConsumerCount = count;</span>
-<span class="fc" id="L284">            return this;</span>
+<span class="fc" id="L284">            configuration.maxConsumerCount = count;</span>
+<span class="fc" id="L285">            return this;</span>
         }
 
         /**
@@ -294,8 +295,8 @@ public class Configuration {
          */
         @NonNull
         public Builder minConsumerCount(int count) {
-<span class="fc" id="L297">            configuration.minConsumerCount = count;</span>
-<span class="fc" id="L298">            return this;</span>
+<span class="fc" id="L298">            configuration.minConsumerCount = count;</span>
+<span class="fc" id="L299">            return this;</span>
         }
 
         /**
@@ -307,21 +308,22 @@ public class Configuration {
          */
         @NonNull
         public Builder timer(@Nullable Timer timer) {
-<span class="fc" id="L310">            configuration.timer = timer;</span>
-<span class="fc" id="L311">            return this;</span>
+<span class="fc" id="L311">            configuration.timer = timer;</span>
+<span class="fc" id="L312">            return this;</span>
         }
 
         /**
          * you can provide a custom logger to get logs from JobManager.
-         * by default, logs will go no-where.
+         * by default, JobManager only logs error via Android's &lt;code&gt;Log.e&lt;/code&gt;.
+         *
          * @param logger The logger to be used by the JobManager.
          *
          * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder customLogger(@Nullable CustomLogger logger) {
-<span class="nc" id="L323">            configuration.customLogger = logger;</span>
-<span class="nc" id="L324">            return this;</span>
+<span class="nc" id="L325">            configuration.customLogger = logger;</span>
+<span class="nc" id="L326">            return this;</span>
         }
 
         /**
@@ -336,8 +338,8 @@ public class Configuration {
          */
         @NonNull
         public Builder loadFactor(int loadFactor) {
-<span class="fc" id="L339">            configuration.loadFactor = loadFactor;</span>
-<span class="fc" id="L340">            return this;</span>
+<span class="fc" id="L341">            configuration.loadFactor = loadFactor;</span>
+<span class="fc" id="L342">            return this;</span>
         }
 
         /**
@@ -349,8 +351,8 @@ public class Configuration {
          */
         @NonNull
         public Builder inTestMode() {
-<span class="fc" id="L352">            configuration.inTestMode = true;</span>
-<span class="fc" id="L353">            return this;</span>
+<span class="fc" id="L354">            configuration.inTestMode = true;</span>
+<span class="fc" id="L355">            return this;</span>
         }
 
         /**
@@ -377,9 +379,9 @@ public class Configuration {
          */
         @NonNull
         public Builder scheduler(@Nullable Scheduler scheduler, boolean batch) {
-<span class="fc" id="L380">            configuration.scheduler = scheduler;</span>
-<span class="fc" id="L381">            configuration.batchSchedulerRequests = batch;</span>
-<span class="fc" id="L382">            return this;</span>
+<span class="fc" id="L382">            configuration.scheduler = scheduler;</span>
+<span class="fc" id="L383">            configuration.batchSchedulerRequests = batch;</span>
+<span class="fc" id="L384">            return this;</span>
         }
 
         /**
@@ -394,8 +396,8 @@ public class Configuration {
          */
         @NonNull
         public Builder consumerThreadPriority(int threadPriority) {
-<span class="nc" id="L397">            configuration.threadPriority = threadPriority;</span>
-<span class="nc" id="L398">            return this;</span>
+<span class="nc" id="L399">            configuration.threadPriority = threadPriority;</span>
+<span class="nc" id="L400">            return this;</span>
         }
 
         /**
@@ -421,7 +423,7 @@ public class Configuration {
          */
         @NonNull
         public Builder scheduler(@Nullable Scheduler scheduler) {
-<span class="nc" id="L424">            return scheduler(scheduler, true);</span>
+<span class="nc" id="L426">            return scheduler(scheduler, true);</span>
         }
 
         /**
@@ -437,22 +439,22 @@ public class Configuration {
          */
         @NonNull
         public Builder threadFactory(@Nullable final ThreadFactory threadFactory) {
-<span class="fc" id="L440">            configuration.threadFactory = threadFactory;</span>
-<span class="fc" id="L441">            return this;</span>
+<span class="fc" id="L442">            configuration.threadFactory = threadFactory;</span>
+<span class="fc" id="L443">            return this;</span>
         }
 
         @NonNull
         public Configuration build() {
-<span class="fc bfc" id="L446" title="All 2 branches covered.">            if(configuration.queueFactory == null) {</span>
-<span class="fc" id="L447">                configuration.queueFactory = new DefaultQueueFactory();</span>
+<span class="fc bfc" id="L448" title="All 2 branches covered.">            if(configuration.queueFactory == null) {</span>
+<span class="fc" id="L449">                configuration.queueFactory = new DefaultQueueFactory();</span>
             }
-<span class="fc bfc" id="L449" title="All 2 branches covered.">            if(configuration.networkUtil == null) {</span>
-<span class="fc" id="L450">                configuration.networkUtil = new NetworkUtilImpl(configuration.appContext);</span>
+<span class="fc bfc" id="L451" title="All 2 branches covered.">            if(configuration.networkUtil == null) {</span>
+<span class="fc" id="L452">                configuration.networkUtil = new NetworkUtilImpl(configuration.appContext);</span>
             }
-<span class="fc bfc" id="L452" title="All 2 branches covered.">            if (configuration.timer == null) {</span>
-<span class="fc" id="L453">                configuration.timer = new SystemTimer();</span>
+<span class="fc bfc" id="L454" title="All 2 branches covered.">            if (configuration.timer == null) {</span>
+<span class="fc" id="L455">                configuration.timer = new SystemTimer();</span>
             }
-<span class="fc" id="L455">            return configuration;</span>
+<span class="fc" id="L457">            return configuration;</span>
         }
     }
 }

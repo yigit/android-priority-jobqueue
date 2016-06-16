@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Where.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.persistentQueue.sqlite</a> &gt; <span class="el_source">Where.java</span></div><h1>Where.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
-import com.birbit.android.jobqueue.Params;
-
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
+
+import com.birbit.android.jobqueue.JobManager;
+import com.birbit.android.jobqueue.Params;
 
 public class Where {
     public final long cacheKey;
@@ -13,125 +15,81 @@ public class Where {
     private SQLiteStatement countReadyStmt;
     private String findJobsQuery;
     private SQLiteStatement nextJobDelayUntilStmt;
-    private SQLiteStatement nextJobDelayUntilViaNetworkStmt;
     private String nextJobQuery;
-<span class="fc" id="L18">    private int networkTimeoutArgIndex = -1;</span>
-<span class="fc" id="L19">    private int unmeteredNetworkTimeoutArgIndex = -1;</span>
+<span class="fc" id="L19">    static final String NEVER = Long.toString(Params.NEVER);</span>
+<span class="fc" id="L20">    static final String FOREVER = Long.toString(Params.FOREVER);</span>
 
-<span class="fc" id="L21">    public Where(long cacheKey, String query, String[] args) {</span>
-<span class="fc" id="L22">        this.cacheKey = cacheKey;</span>
-<span class="fc" id="L23">        this.query = query;</span>
-<span class="fc" id="L24">        this.args = args;</span>
-<span class="fc" id="L25">    }</span>
-
-    public void setNetworkTimeoutArgIndex(int index) {
-<span class="fc" id="L28">        this.networkTimeoutArgIndex = index;</span>
-<span class="fc" id="L29">    }</span>
-
-    public void setUnmeteredNetworkTimeoutArgIndex(int unmeteredNetworkTimeoutArgIndex) {
-<span class="fc" id="L32">        this.unmeteredNetworkTimeoutArgIndex = unmeteredNetworkTimeoutArgIndex;</span>
-<span class="fc" id="L33">    }</span>
+<span class="fc" id="L22">    public Where(long cacheKey, String query, String[] args) {</span>
+<span class="fc" id="L23">        this.cacheKey = cacheKey;</span>
+<span class="fc" id="L24">        this.query = query;</span>
+<span class="fc" id="L25">        this.args = args;</span>
+<span class="fc" id="L26">    }</span>
 
     public SQLiteStatement countReady(SQLiteDatabase database, StringBuilder stringBuilder) {
-<span class="fc bfc" id="L36" title="All 2 branches covered.">        if (countReadyStmt == null) {</span>
-<span class="fc" id="L37">            stringBuilder.setLength(0);</span>
-<span class="fc" id="L38">            stringBuilder.append(&quot;SELECT SUM(case WHEN &quot;)</span>
-<span class="fc" id="L39">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
-<span class="fc" id="L40">                    .append(&quot; is null then group_cnt else 1 end) from (&quot;)</span>
-<span class="fc" id="L41">                        .append(&quot;SELECT count(*) group_cnt, &quot;)</span>
-<span class="fc" id="L42">                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
-<span class="fc" id="L43">                        .append(&quot; FROM &quot;)</span>
-<span class="fc" id="L44">                        .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)</span>
-<span class="fc" id="L45">                        .append(&quot; WHERE &quot;)</span>
-<span class="fc" id="L46">                        .append(query)</span>
-<span class="fc" id="L47">                        .append(&quot; GROUP BY &quot;)</span>
-<span class="fc" id="L48">                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
-<span class="fc" id="L49">                    .append(&quot;)&quot;);</span>
-<span class="fc" id="L50">            countReadyStmt = database.compileStatement(stringBuilder.toString());</span>
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (countReadyStmt == null) {</span>
+<span class="fc" id="L30">            stringBuilder.setLength(0);</span>
+<span class="fc" id="L31">            stringBuilder.append(&quot;SELECT SUM(case WHEN &quot;)</span>
+<span class="fc" id="L32">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L33">                    .append(&quot; is null then group_cnt else 1 end) from (&quot;)</span>
+<span class="fc" id="L34">                        .append(&quot;SELECT count(*) group_cnt, &quot;)</span>
+<span class="fc" id="L35">                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L36">                        .append(&quot; FROM &quot;)</span>
+<span class="fc" id="L37">                        .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)</span>
+<span class="fc" id="L38">                        .append(&quot; WHERE &quot;)</span>
+<span class="fc" id="L39">                        .append(query)</span>
+<span class="fc" id="L40">                        .append(&quot; GROUP BY &quot;)</span>
+<span class="fc" id="L41">                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L42">                    .append(&quot;)&quot;);</span>
+<span class="fc" id="L43">            countReadyStmt = database.compileStatement(stringBuilder.toString());</span>
         } else {
-<span class="fc" id="L52">            countReadyStmt.clearBindings();</span>
+<span class="fc" id="L45">            countReadyStmt.clearBindings();</span>
         }
-<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (int i = 1; i &lt;= args.length; i ++) {</span>
-<span class="fc" id="L55">            countReadyStmt.bindString(i, args[i - 1]);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        for (int i = 1; i &lt;= args.length; i ++) {</span>
+<span class="fc" id="L48">            countReadyStmt.bindString(i, args[i - 1]);</span>
         }
-<span class="fc" id="L57">        return countReadyStmt;</span>
-    }
-    public SQLiteStatement nextJobDelayUntilWithNetworkRequirement(SQLiteDatabase database,
-            SqlHelper sqlHelper) {
-<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (nextJobDelayUntilViaNetworkStmt == null) {</span>
-<span class="fc" id="L62">            StringBuilder sb = sqlHelper.reusedStringBuilder;</span>
-<span class="fc" id="L63">            sb.setLength(0);</span>
-<span class="fc" id="L64">            sb.append(&quot;SELECT max(&quot;)</span>
-<span class="fc" id="L65">                .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName);</span>
-<span class="fc bfc" id="L66" title="All 2 branches covered.">            if (networkTimeoutArgIndex != -1) {</span>
-<span class="fc" id="L67">                sb.append(&quot;,&quot;)</span>
-<span class="fc" id="L68">                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName);</span>
-            }
-<span class="fc bfc" id="L70" title="All 2 branches covered.">            if (unmeteredNetworkTimeoutArgIndex != -1) {</span>
-<span class="fc" id="L71">                sb.append(&quot;,&quot;)</span>
-<span class="fc" id="L72">                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName);</span>
-            }
-<span class="fc" id="L74">            sb.append(&quot;) FROM &quot;)</span>
-<span class="fc" id="L75">                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)</span>
-<span class="fc" id="L76">                    .append(&quot; WHERE &quot;)</span>
-<span class="fc" id="L77">                    .append(query);</span>
-            // below NOT constraints are safe to add because this query will only be accessed if
-            // they are set to be excluded.
-<span class="fc bfc" id="L80" title="All 2 branches covered.">            if (networkTimeoutArgIndex != -1) {</span>
-<span class="fc" id="L81">                sb.append(&quot; AND &quot;)</span>
-<span class="fc" id="L82">                        .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)</span>
-<span class="fc" id="L83">                        .append(&quot; != &quot;).append(Params.FOREVER);</span>
-            }
-<span class="fc bfc" id="L85" title="All 2 branches covered.">            if (unmeteredNetworkTimeoutArgIndex != -1) {</span>
-<span class="fc" id="L86">                sb.append(&quot; AND &quot;)</span>
-<span class="fc" id="L87">                        .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)</span>
-<span class="fc" id="L88">                        .append(&quot; != &quot;).append(Params.FOREVER);</span>
-            }
-<span class="fc" id="L90">            sb.append(&quot; ORDER BY 1 ASC&quot;).append(&quot; limit 1&quot;);</span>
-<span class="fc" id="L91">            String selectQuery = sb.toString();</span>
-<span class="fc" id="L92">            nextJobDelayUntilViaNetworkStmt = database.compileStatement(selectQuery);</span>
-<span class="fc" id="L93">        } else {</span>
-<span class="fc" id="L94">            nextJobDelayUntilViaNetworkStmt.clearBindings();</span>
-        }
-<span class="fc bfc" id="L96" title="All 2 branches covered.">        for (int i = 1; i &lt;= args.length; i ++) {</span>
-<span class="fc" id="L97">            nextJobDelayUntilViaNetworkStmt.bindString(i, args[i - 1]);</span>
-        }
-<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (networkTimeoutArgIndex != -1) {</span>
-<span class="fc" id="L100">            nextJobDelayUntilViaNetworkStmt.bindString(networkTimeoutArgIndex + 1,</span>
-<span class="fc" id="L101">                    Long.toString(Params.FOREVER));</span>
-        }
-<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (unmeteredNetworkTimeoutArgIndex != -1) {</span>
-<span class="fc" id="L104">            nextJobDelayUntilViaNetworkStmt.bindString(unmeteredNetworkTimeoutArgIndex + 1,</span>
-<span class="fc" id="L105">                    Long.toString(Params.FOREVER));</span>
-        }
-
-<span class="fc" id="L108">        return nextJobDelayUntilViaNetworkStmt;</span>
+<span class="fc" id="L50">        return countReadyStmt;</span>
     }
 
     public SQLiteStatement nextJobDelayUntil(SQLiteDatabase database, SqlHelper sqlHelper) {
-<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (nextJobDelayUntilStmt == null) {</span>
-<span class="fc" id="L113">            String selectQuery = sqlHelper.createSelectOneField(</span>
-                    DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (nextJobDelayUntilStmt == null) {</span>
+            // cannot use MIN because it always returns a value
+<span class="fc" id="L56">            String deadlineQuery = sqlHelper.createSelectOneField(</span>
+                    DbOpenHelper.DEADLINE_COLUMN.columnName,
                     query,
-<span class="fc" id="L116">                    1,</span>
-                    new SqlHelper.Order(DbOpenHelper.DELAY_UNTIL_NS_COLUMN,
-                            SqlHelper.Order.Type.ASC)
-            );
-<span class="fc" id="L120">            nextJobDelayUntilStmt = database.compileStatement(selectQuery);</span>
-<span class="fc" id="L121">        } else {</span>
-<span class="fc" id="L122">            nextJobDelayUntilStmt.clearBindings();</span>
+                    null);
+<span class="fc" id="L60">            String delayQuery = sqlHelper.createSelectOneField(</span>
+                    DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName,
+                    query,
+                    null);
+<span class="fc" id="L64">            StringBuilder sb = sqlHelper.reusedStringBuilder;</span>
+<span class="fc" id="L65">            sb.setLength(0);</span>
+<span class="fc" id="L66">            sb.append(&quot;SELECT * FROM (&quot;)</span>
+<span class="fc" id="L67">                    .append(deadlineQuery)</span>
+<span class="fc" id="L68">                    .append(&quot; ORDER BY 1 ASC LIMIT 1&quot;)</span>
+<span class="fc" id="L69">                    .append(&quot;) UNION SELECT * FROM (&quot;)</span>
+<span class="fc" id="L70">                    .append(delayQuery)</span>
+<span class="fc" id="L71">                    .append(&quot; ORDER BY 1 ASC LIMIT 1&quot;)</span>
+<span class="fc" id="L72">                    .append(&quot;) ORDER BY 1 ASC LIMIT 1&quot;);</span>
+<span class="fc" id="L73">            String selectQuery = sb.toString();</span>
+<span class="fc" id="L74">            nextJobDelayUntilStmt = database.compileStatement(selectQuery);</span>
+<span class="fc" id="L75">        } else {</span>
+<span class="fc" id="L76">            nextJobDelayUntilStmt.clearBindings();</span>
         }
-<span class="fc bfc" id="L124" title="All 2 branches covered.">        for (int i = 1; i &lt;= args.length; i ++) {</span>
-<span class="fc" id="L125">            nextJobDelayUntilStmt.bindString(i, args[i - 1]);</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (int i = 1; i &lt;= args.length; i ++) {</span>
+<span class="fc" id="L79">            nextJobDelayUntilStmt.bindString(i, args[i - 1]);</span>
+<span class="fc" id="L80">            nextJobDelayUntilStmt.bindString(i + args.length, args[i - 1]);</span>
         }
-<span class="fc" id="L127">        return nextJobDelayUntilStmt;</span>
+<span class="fc" id="L82">        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX, FOREVER);</span>
+<span class="fc" id="L83">        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX + args.length, NEVER);</span>
+
+<span class="fc" id="L85">        return nextJobDelayUntilStmt;</span>
     }
 
     public String nextJob(SqlHelper sqlHelper) {
-<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (nextJobQuery == null) {</span>
-<span class="fc" id="L132">            nextJobQuery = sqlHelper.createSelect(</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (nextJobQuery == null) {</span>
+<span class="fc" id="L90">            nextJobQuery = sqlHelper.createSelect(</span>
                     query,
-<span class="fc" id="L134">                    1,</span>
+<span class="fc" id="L92">                    1,</span>
                     new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
                             SqlHelper.Order.Type.DESC),
                     new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,
@@ -140,29 +98,25 @@ public class Where {
                             SqlHelper.Order.Type.ASC)
             );
         }
-<span class="fc" id="L143">        return nextJobQuery;</span>
+<span class="fc" id="L101">        return nextJobQuery;</span>
     }
 
     public String findJobs(SqlHelper sqlHelper) {
-<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (findJobsQuery == null) {</span>
-<span class="fc" id="L148">            findJobsQuery = sqlHelper.createSelect(query, null);</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if (findJobsQuery == null) {</span>
+<span class="fc" id="L106">            findJobsQuery = sqlHelper.createSelect(query, null);</span>
         }
-<span class="fc" id="L150">        return findJobsQuery;</span>
+<span class="fc" id="L108">        return findJobsQuery;</span>
     }
 
     public void destroy() {
-<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (countReadyStmt != null) {</span>
-<span class="nc" id="L155">            countReadyStmt.close();</span>
-<span class="nc" id="L156">            countReadyStmt = null;</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (countReadyStmt != null) {</span>
+<span class="nc" id="L113">            countReadyStmt.close();</span>
+<span class="nc" id="L114">            countReadyStmt = null;</span>
         }
-<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (nextJobDelayUntilStmt != null) {</span>
-<span class="nc" id="L159">            nextJobDelayUntilStmt.close();</span>
-<span class="nc" id="L160">            nextJobDelayUntilStmt = null;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (nextJobDelayUntilStmt != null) {</span>
+<span class="nc" id="L117">            nextJobDelayUntilStmt.close();</span>
+<span class="nc" id="L118">            nextJobDelayUntilStmt = null;</span>
         }
-<span class="nc bnc" id="L162" title="All 2 branches missed.">        if (nextJobDelayUntilViaNetworkStmt != null) {</span>
-<span class="nc" id="L163">            nextJobDelayUntilViaNetworkStmt.close();</span>
-<span class="nc" id="L164">            nextJobDelayUntilViaNetworkStmt = null;</span>
-        }
-<span class="nc" id="L166">    }</span>
+<span class="nc" id="L120">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

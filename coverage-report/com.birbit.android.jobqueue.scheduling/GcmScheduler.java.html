@@ -62,114 +62,119 @@ class GcmScheduler extends Scheduler {
 <span class="nc bnc" id="L62" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
 <span class="nc" id="L63">            JqLog.d(&quot;creating gcm wake up request for %s&quot;, constraint);</span>
         }
-<span class="nc" id="L65">        OneoffTask oneoffTask = new OneoffTask.Builder()</span>
-<span class="nc" id="L66">                .setExecutionWindow(constraint.getDelayInMs(), constraint.getDelayInMs()</span>
-<span class="nc" id="L67">                        + getExecutionWindowSizeInSeconds())</span>
-<span class="nc" id="L68">                .setRequiredNetwork(toNetworkState(constraint.getNetworkStatus()))</span>
-<span class="nc" id="L69">                .setPersisted(true)</span>
-<span class="nc" id="L70">                .setService(serviceClass)</span>
-<span class="nc" id="L71">                .setTag(&quot;jobmanager-&quot; + createId())</span>
-<span class="nc" id="L72">                .setExtras(toBundle(constraint))</span>
-<span class="nc" id="L73">                .build();</span>
-<span class="nc" id="L74">        gcmNetworkManager.schedule(oneoffTask);</span>
-<span class="nc" id="L75">    }</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        long endTimeMs = constraint.getOverrideDeadlineInMs() == null</span>
+<span class="nc" id="L66">                ? constraint.getDelayInMs() + TimeUnit.SECONDS.toMillis(getExecutionWindowSizeInSeconds())</span>
+<span class="nc" id="L67">                : constraint.getOverrideDeadlineInMs();</span>
+<span class="nc" id="L68">        OneoffTask oneoffTask = new OneoffTask.Builder()</span>
+<span class="nc" id="L69">                .setExecutionWindow(TimeUnit.MILLISECONDS.toSeconds(constraint.getDelayInMs()),</span>
+<span class="nc" id="L70">                        TimeUnit.MILLISECONDS.toSeconds(endTimeMs))</span>
+<span class="nc" id="L71">                .setRequiredNetwork(toNetworkState(constraint.getNetworkStatus()))</span>
+<span class="nc" id="L72">                .setPersisted(true)</span>
+<span class="nc" id="L73">                .setService(serviceClass)</span>
+<span class="nc" id="L74">                .setTag(&quot;jobmanager-&quot; + createId())</span>
+<span class="nc" id="L75">                .setExtras(toBundle(constraint))</span>
+<span class="nc" id="L76">                .build();</span>
+<span class="nc" id="L77">        gcmNetworkManager.schedule(oneoffTask);</span>
+<span class="nc" id="L78">    }</span>
 
     /**
      * GCMNetworkManager accepts an execution window for jobs so that it can batch them together for
      * better battery utilization. You can override this method to provide a different execution
      * window. The default value is {@link BatchingScheduler#DEFAULT_BATCHING_PERIOD_IN_MS} (converted
      * to seconds).
+     * &lt;p&gt;
+     * If this scheduling request is made for a Job with a deadline, this method is NOT called.
      *
      * @return The execution window time for the Job request
      */
     private long getExecutionWindowSizeInSeconds() {
-<span class="nc" id="L86">        return TimeUnit.MILLISECONDS.toSeconds(BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);</span>
+<span class="nc" id="L91">        return TimeUnit.MILLISECONDS.toSeconds(BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);</span>
     }
 
     @Override
     public void cancelAll() {
-<span class="nc" id="L91">        gcmNetworkManager.cancelAllTasks(serviceClass);</span>
-<span class="nc" id="L92">    }</span>
+<span class="nc" id="L96">        gcmNetworkManager.cancelAllTasks(serviceClass);</span>
+<span class="nc" id="L97">    }</span>
 
     private static int toNetworkState(@NetworkUtil.NetworkStatus int networkStatus) {
-<span class="nc bnc" id="L95" title="All 4 branches missed.">        switch (networkStatus) {</span>
+<span class="nc bnc" id="L100" title="All 4 branches missed.">        switch (networkStatus) {</span>
             case NetworkUtil.DISCONNECTED:
-<span class="nc" id="L97">                return Task.NETWORK_STATE_ANY;</span>
+<span class="nc" id="L102">                return Task.NETWORK_STATE_ANY;</span>
             case NetworkUtil.METERED:
-<span class="nc" id="L99">                return Task.NETWORK_STATE_CONNECTED;</span>
+<span class="nc" id="L104">                return Task.NETWORK_STATE_CONNECTED;</span>
             case NetworkUtil.UNMETERED:
-<span class="nc" id="L101">                return Task.NETWORK_STATE_UNMETERED;</span>
+<span class="nc" id="L106">                return Task.NETWORK_STATE_UNMETERED;</span>
         }
-<span class="nc" id="L103">        JqLog.e(&quot;unknown network status %d. Defaulting to CONNECTED&quot;, networkStatus);</span>
-<span class="nc" id="L104">        return Task.NETWORK_STATE_CONNECTED;</span>
+<span class="nc" id="L108">        JqLog.e(&quot;unknown network status %d. Defaulting to CONNECTED&quot;, networkStatus);</span>
+<span class="nc" id="L109">        return Task.NETWORK_STATE_CONNECTED;</span>
     }
 
     private static Bundle toBundle(SchedulerConstraint constraint) {
-<span class="nc" id="L108">        Bundle bundle = new Bundle();</span>
+<span class="nc" id="L113">        Bundle bundle = new Bundle();</span>
         // put boolean is api 22
-<span class="nc" id="L110">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
-<span class="nc" id="L111">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
-<span class="nc" id="L112">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
-<span class="nc" id="L113">        return bundle;</span>
+<span class="nc" id="L115">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
+<span class="nc" id="L116">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
+<span class="nc" id="L117">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
+<span class="nc" id="L118">        return bundle;</span>
     }
 
     private static SchedulerConstraint fromBundle(Bundle bundle) {
-<span class="nc" id="L117">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
-<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
+<span class="nc" id="L122">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
             // backward compatibility
-<span class="nc" id="L120">            constraint.setUuid(UUID.randomUUID().toString());</span>
+<span class="nc" id="L125">            constraint.setUuid(UUID.randomUUID().toString());</span>
         }
-<span class="nc" id="L122">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
-<span class="nc" id="L123">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
-<span class="nc" id="L124">        return constraint;</span>
+<span class="nc" id="L127">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
+<span class="nc" id="L128">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
+<span class="nc" id="L129">        return constraint;</span>
     }
 
     int onStartJob(TaskParams taskParams) {
-<span class="nc" id="L128">        SchedulerConstraint constraint = fromBundle(taskParams.getExtras());</span>
-<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L130">            JqLog.d(&quot;starting job %s&quot;, constraint);</span>
+<span class="nc" id="L133">        SchedulerConstraint constraint = fromBundle(taskParams.getExtras());</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L135">            JqLog.d(&quot;starting job %s&quot;, constraint);</span>
         }
 
-<span class="nc" id="L133">        ResultCallback callback = new ResultCallback();</span>
-<span class="nc" id="L134">        constraint.setData(callback);</span>
-<span class="nc" id="L135">        start(constraint);</span>
-<span class="nc bnc" id="L136" title="All 2 branches missed.">        return callback.get() ? GcmNetworkManager.RESULT_RESCHEDULE : GcmNetworkManager.RESULT_SUCCESS;</span>
+<span class="nc" id="L138">        ResultCallback callback = new ResultCallback();</span>
+<span class="nc" id="L139">        constraint.setData(callback);</span>
+<span class="nc" id="L140">        start(constraint);</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        return callback.get() ? GcmNetworkManager.RESULT_RESCHEDULE : GcmNetworkManager.RESULT_SUCCESS;</span>
     }
 
     @Override
     public void onFinished(SchedulerConstraint constraint, boolean reschedule) {
-<span class="nc" id="L141">        Object data = constraint.getData();</span>
-<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L143">            JqLog.d(&quot;finished job %s&quot;, constraint);</span>
+<span class="nc" id="L146">        Object data = constraint.getData();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L148">            JqLog.d(&quot;finished job %s&quot;, constraint);</span>
         }
-<span class="nc bnc" id="L145" title="All 2 branches missed.">        if (data instanceof ResultCallback) {</span>
-<span class="nc" id="L146">            ResultCallback callback = (ResultCallback) data;</span>
-<span class="nc" id="L147">            callback.onDone(reschedule);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (data instanceof ResultCallback) {</span>
+<span class="nc" id="L151">            ResultCallback callback = (ResultCallback) data;</span>
+<span class="nc" id="L152">            callback.onDone(reschedule);</span>
         }
-<span class="nc" id="L149">    }</span>
+<span class="nc" id="L154">    }</span>
 
     private static class ResultCallback {
         volatile boolean reschedule;
         CountDownLatch latch;
 
-<span class="nc" id="L155">        ResultCallback() {</span>
-<span class="nc" id="L156">            latch = new CountDownLatch(1);</span>
-<span class="nc" id="L157">            reschedule = false;</span>
-<span class="nc" id="L158">        }</span>
+<span class="nc" id="L160">        ResultCallback() {</span>
+<span class="nc" id="L161">            latch = new CountDownLatch(1);</span>
+<span class="nc" id="L162">            reschedule = false;</span>
+<span class="nc" id="L163">        }</span>
 
         public boolean get() {
             try {
-<span class="nc" id="L162">                latch.await(10 * 60, TimeUnit.SECONDS);</span>
-<span class="nc" id="L163">            } catch (InterruptedException e) {</span>
-<span class="nc" id="L164">                JqLog.e(&quot;job did not finish in 10 minutes :/&quot;);</span>
-<span class="nc" id="L165">            }</span>
-<span class="nc" id="L166">            return reschedule;</span>
+<span class="nc" id="L167">                latch.await(10 * 60, TimeUnit.SECONDS);</span>
+<span class="nc" id="L168">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L169">                JqLog.e(&quot;job did not finish in 10 minutes :/&quot;);</span>
+<span class="nc" id="L170">            }</span>
+<span class="nc" id="L171">            return reschedule;</span>
         }
 
         void onDone(boolean reschedule) {
-<span class="nc" id="L170">            this.reschedule = reschedule;</span>
-<span class="nc" id="L171">            latch.countDown();</span>
-<span class="nc" id="L172">        }</span>
+<span class="nc" id="L175">            this.reschedule = reschedule;</span>
+<span class="nc" id="L176">            latch.countDown();</span>
+<span class="nc" id="L177">        }</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

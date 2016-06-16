@@ -30,9 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
+import java.util.concurrent.TimeUnit;
 
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;
@@ -52,605 +50,625 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     final ConsumerManager consumerManager;
     @Nullable private List&lt;CancelHandler&gt; pendingCancelHandlers;
     @Nullable private List&lt;SchedulerConstraint&gt; pendingSchedulerCallbacks;
-<span class="fc" id="L55">    final Constraint queryConstraint = new Constraint();</span>
+<span class="fc" id="L53">    final Constraint queryConstraint = new Constraint();</span>
 
     final CallbackManager callbackManager;
 
-<span class="fc" id="L59">    private boolean running = true;</span>
+<span class="fc" id="L57">    private boolean running = true;</span>
     /**
      * We set this to true whenever we schedule a wake up and set to false whenever we call
      * cancelAll. It is not precise, does not cover scheduling across reboots but a fair comprimise
      * for simplicity.
      */
-<span class="fc" id="L65">    private boolean shouldCancelAllScheduledWhenEmpty = false;</span>
+<span class="fc" id="L63">    private boolean shouldCancelAllScheduledWhenEmpty = false;</span>
 
     final PriorityMessageQueue messageQueue;
     @Nullable
     Scheduler scheduler;
 
     JobManagerThread(Configuration config, PriorityMessageQueue messageQueue,
-<span class="fc" id="L72">            MessageFactory messageFactory) {</span>
-<span class="fc" id="L73">        this.messageQueue = messageQueue;</span>
-<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if(config.getCustomLogger() != null) {</span>
-<span class="nc" id="L75">            JqLog.setCustomLogger(config.getCustomLogger());</span>
+<span class="fc" id="L70">            MessageFactory messageFactory) {</span>
+<span class="fc" id="L71">        this.messageQueue = messageQueue;</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if(config.getCustomLogger() != null) {</span>
+<span class="fc" id="L73">            JqLog.setCustomLogger(config.getCustomLogger());</span>
         }
-<span class="fc" id="L77">        this.messageFactory = messageFactory;</span>
-<span class="fc" id="L78">        timer = config.getTimer();</span>
-<span class="fc" id="L79">        appContext = config.getAppContext();</span>
-<span class="fc" id="L80">        sessionId = timer.nanoTime();</span>
-<span class="fc" id="L81">        scheduler = config.getScheduler();</span>
-<span class="pc bpc" id="L82" title="3 of 6 branches missed.">        if (scheduler != null &amp;&amp; config.batchSchedulerRequests() &amp;&amp;</span>
+<span class="fc" id="L75">        this.messageFactory = messageFactory;</span>
+<span class="fc" id="L76">        timer = config.getTimer();</span>
+<span class="fc" id="L77">        appContext = config.getAppContext();</span>
+<span class="fc" id="L78">        sessionId = timer.nanoTime();</span>
+<span class="fc" id="L79">        scheduler = config.getScheduler();</span>
+<span class="pc bpc" id="L80" title="3 of 6 branches missed.">        if (scheduler != null &amp;&amp; config.batchSchedulerRequests() &amp;&amp;</span>
                 !(scheduler instanceof BatchingScheduler)) {
-<span class="nc" id="L84">            scheduler = new BatchingScheduler(scheduler, timer);</span>
+<span class="nc" id="L82">            scheduler = new BatchingScheduler(scheduler, timer);</span>
         }
-<span class="fc" id="L86">        this.persistentJobQueue = config.getQueueFactory()</span>
-<span class="fc" id="L87">                .createPersistentQueue(config, sessionId);</span>
-<span class="fc" id="L88">        this.nonPersistentJobQueue = config.getQueueFactory()</span>
-<span class="fc" id="L89">                .createNonPersistent(config, sessionId);</span>
-<span class="fc" id="L90">        networkUtil = config.getNetworkUtil();</span>
-<span class="fc" id="L91">        dependencyInjector = config.getDependencyInjector();</span>
-<span class="fc bfc" id="L92" title="All 2 branches covered.">        if(networkUtil instanceof NetworkEventProvider) {</span>
-<span class="fc" id="L93">            ((NetworkEventProvider) networkUtil).setListener(this);</span>
+<span class="fc" id="L84">        this.persistentJobQueue = config.getQueueFactory()</span>
+<span class="fc" id="L85">                .createPersistentQueue(config, sessionId);</span>
+<span class="fc" id="L86">        this.nonPersistentJobQueue = config.getQueueFactory()</span>
+<span class="fc" id="L87">                .createNonPersistent(config, sessionId);</span>
+<span class="fc" id="L88">        networkUtil = config.getNetworkUtil();</span>
+<span class="fc" id="L89">        dependencyInjector = config.getDependencyInjector();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if(networkUtil instanceof NetworkEventProvider) {</span>
+<span class="fc" id="L91">            ((NetworkEventProvider) networkUtil).setListener(this);</span>
         }
-<span class="fc" id="L95">        consumerManager = new ConsumerManager(this, timer, messageFactory, config);</span>
-<span class="fc" id="L96">        callbackManager = new CallbackManager(messageFactory, timer);</span>
-<span class="fc" id="L97">    }</span>
+<span class="fc" id="L93">        consumerManager = new ConsumerManager(this, timer, messageFactory, config);</span>
+<span class="fc" id="L94">        callbackManager = new CallbackManager(messageFactory, timer);</span>
+<span class="fc" id="L95">    }</span>
 
     void addCallback(JobManagerCallback callback) {
-<span class="fc" id="L100">        callbackManager.addCallback(callback);</span>
-<span class="fc" id="L101">    }</span>
+<span class="fc" id="L98">        callbackManager.addCallback(callback);</span>
+<span class="fc" id="L99">    }</span>
 
     boolean removeCallback(JobManagerCallback callback) {
-<span class="fc" id="L104">        return callbackManager.removeCallback(callback);</span>
+<span class="fc" id="L102">        return callbackManager.removeCallback(callback);</span>
     }
 
     boolean canListenToNetwork() {
-<span class="fc" id="L108">        return networkUtil instanceof NetworkEventProvider;</span>
+<span class="fc" id="L106">        return networkUtil instanceof NetworkEventProvider;</span>
     }
 
     private void handleAddJob(AddJobMessage message) {
-<span class="fc" id="L112">        Job job = message.getJob();</span>
+<span class="fc" id="L110">        Job job = message.getJob();</span>
         //noinspection deprecation
-<span class="fc bfc" id="L114" title="All 2 branches covered.">        long delayUntilNs = job.getDelayInMs() &gt; 0</span>
-<span class="fc" id="L115">                ? timer.nanoTime() + job.getDelayInMs() * NS_PER_MS</span>
+<span class="fc" id="L112">        long now = timer.nanoTime();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        long delayUntilNs = job.getDelayInMs() &gt; 0</span>
+<span class="fc" id="L114">                ? now + job.getDelayInMs() * NS_PER_MS</span>
                 : NOT_DELAYED_JOB_DELAY;
-<span class="fc" id="L117">        job.seal(timer);</span>
-<span class="fc" id="L118">        JobHolder jobHolder = new JobHolder.Builder()</span>
-<span class="fc" id="L119">                .priority(job.getPriority())</span>
-<span class="fc" id="L120">                .job(job)</span>
-<span class="fc" id="L121">                .groupId(job.getRunGroupId())</span>
-<span class="fc" id="L122">                .createdNs(timer.nanoTime())</span>
-<span class="fc" id="L123">                .delayUntilNs(delayUntilNs)</span>
-<span class="fc" id="L124">                .runningSessionId(NOT_RUNNING_SESSION_ID).build();</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        long deadline = job.getDeadlineInMs() &gt; 0</span>
+<span class="fc" id="L117">                ? now + job.getDeadlineInMs() * NS_PER_MS</span>
+                : Params.FOREVER;
+<span class="fc" id="L119">        JobHolder jobHolder = new JobHolder.Builder()</span>
+<span class="fc" id="L120">                .priority(job.getPriority())</span>
+<span class="fc" id="L121">                .job(job)</span>
+<span class="fc" id="L122">                .groupId(job.getRunGroupId())</span>
+<span class="fc" id="L123">                .createdNs(now)</span>
+<span class="fc" id="L124">                .delayUntilNs(delayUntilNs)</span>
+<span class="fc" id="L125">                .id(job.getId())</span>
+<span class="fc" id="L126">                .tags(job.getTags())</span>
+<span class="fc" id="L127">                .persistent(job.isPersistent())</span>
+<span class="fc" id="L128">                .runCount(0)</span>
+<span class="fc" id="L129">                .deadline(deadline, job.shouldCancelOnDeadline())</span>
+<span class="fc" id="L130">                .requiredNetworkType(job.requiredNetworkType)</span>
+<span class="fc" id="L131">                .runningSessionId(NOT_RUNNING_SESSION_ID).build();</span>
 
-<span class="fc" id="L126">        JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());</span>
-<span class="fc bfc" id="L127" title="All 4 branches covered.">        final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());</span>
-<span class="fc bfc" id="L128" title="All 2 branches covered.">        if (insert) {</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">            JobQueue queue = job.isPersistent() ? persistentJobQueue : nonPersistentJobQueue;</span>
-<span class="fc bfc" id="L130" title="All 2 branches covered.">            if (oldJob != null) { //the other job was running, will be cancelled if it fails</span>
-<span class="fc" id="L131">                consumerManager.markJobsCancelledSingleId(TagConstraint.ANY, new String[]{job.getSingleInstanceId()});</span>
-<span class="fc" id="L132">                queue.substitute(jobHolder, oldJob);</span>
+<span class="fc" id="L133">        JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());</span>
+<span class="fc bfc" id="L134" title="All 4 branches covered.">        final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (insert) {</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            JobQueue queue = job.isPersistent() ? persistentJobQueue : nonPersistentJobQueue;</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">            if (oldJob != null) { //the other job was running, will be cancelled if it fails</span>
+<span class="fc" id="L138">                consumerManager.markJobsCancelledSingleId(TagConstraint.ANY, new String[]{job.getSingleInstanceId()});</span>
+<span class="fc" id="L139">                queue.substitute(jobHolder, oldJob);</span>
             } else {
-<span class="fc" id="L134">                queue.insert(jobHolder);</span>
+<span class="fc" id="L141">                queue.insert(jobHolder);</span>
             }
-<span class="fc bfc" id="L136" title="All 2 branches covered.">            if (JqLog.isDebugEnabled()) {</span>
-<span class="fc" id="L137">                JqLog.d(&quot;added job class: %s priority: %d delay: %d group : %s persistent: %s requires network: %s&quot;</span>
-<span class="fc" id="L138">                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs(), job.getRunGroupId()</span>
-<span class="fc" id="L139">                        , job.isPersistent(), job.requiresNetwork(timer));</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">            if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L144">                JqLog.d(&quot;added job class: %s priority: %d delay: %d group : %s persistent: %s&quot;</span>
+<span class="nc" id="L145">                        , job.getClass().getSimpleName(), job.getPriority(), job.getDelayInMs()</span>
+<span class="nc" id="L146">                        , job.getRunGroupId(), job.isPersistent());</span>
             }
-<span class="fc" id="L141">        } else {</span>
-<span class="fc" id="L142">            JqLog.d(&quot;another job with same singleId: %s was already queued&quot;, job.getSingleInstanceId());</span>
+<span class="fc" id="L148">        } else {</span>
+<span class="fc" id="L149">            JqLog.d(&quot;another job with same singleId: %s was already queued&quot;, job.getSingleInstanceId());</span>
         }
-<span class="fc bfc" id="L144" title="All 2 branches covered.">        if(dependencyInjector != null) {</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        if(dependencyInjector != null) {</span>
             //inject members b4 calling onAdded
-<span class="fc" id="L146">            dependencyInjector.inject(job);</span>
+<span class="fc" id="L153">            dependencyInjector.inject(job);</span>
         }
-<span class="fc" id="L148">        jobHolder.setApplicationContext(appContext);</span>
-        try {
-<span class="fc" id="L150">            jobHolder.getJob().onAdded();</span>
-<span class="nc" id="L151">        } catch (Throwable t) {</span>
-<span class="nc" id="L152">            JqLog.e(t, &quot;job's onAdded did throw an exception, ignoring...&quot;);</span>
-<span class="fc" id="L153">        }</span>
-<span class="fc" id="L154">        callbackManager.notifyOnAdded(jobHolder.getJob());</span>
-<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (insert) {</span>
-<span class="fc" id="L156">            consumerManager.onJobAdded();</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">            if (job.isPersistent()) {</span>
-<span class="fc" id="L158">                scheduleWakeUpFor(job);</span>
+<span class="fc" id="L155">        jobHolder.setApplicationContext(appContext);</span>
+<span class="fc" id="L156">        jobHolder.getJob().onAdded();</span>
+<span class="fc" id="L157">        callbackManager.notifyOnAdded(jobHolder.getJob());</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (insert) {</span>
+<span class="fc" id="L159">            consumerManager.onJobAdded();</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">            if (job.isPersistent()) {</span>
+<span class="fc" id="L161">                scheduleWakeUpFor(jobHolder, now);</span>
             }
         } else {
-<span class="fc" id="L161">            cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);</span>
-<span class="fc" id="L162">            callbackManager.notifyOnDone(jobHolder.getJob());</span>
+<span class="fc" id="L164">            cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);</span>
+<span class="fc" id="L165">            callbackManager.notifyOnDone(jobHolder.getJob());</span>
         }
-<span class="fc" id="L164">    }</span>
+<span class="fc" id="L167">    }</span>
 
-    private void scheduleWakeUpFor(Job job) {
-<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (scheduler == null) {</span>
-<span class="fc" id="L168">            return;</span>
+    private void scheduleWakeUpFor(JobHolder holder, long now) {
+<span class="fc bfc" id="L170" title="All 2 branches covered.">        if (scheduler == null) {</span>
+<span class="fc" id="L171">            return;</span>
         }
-<span class="fc" id="L170">        boolean requireNetwork = job.requiresNetwork(timer);</span>
-<span class="fc" id="L171">        boolean requireUnmeteredNetwork = job.requiresUnmeteredNetwork(timer);</span>
-<span class="fc" id="L172">        long delayInMs = job.getDelayInMs();</span>
-<span class="fc bfc" id="L173" title="All 2 branches covered.">        long delay = delayInMs &gt; 0 ? delayInMs : 0;</span>
-<span class="pc bpc" id="L174" title="1 of 6 branches missed.">        if (!requireNetwork &amp;&amp; !requireUnmeteredNetwork</span>
-                &amp;&amp; delay &lt; JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS) {
-<span class="fc" id="L176">            return;</span>
+<span class="fc" id="L173">        int requiredNetwork = holder.requiredNetworkType;</span>
+<span class="fc" id="L174">        long delayUntilNs = holder.getDelayUntilNs();</span>
+<span class="fc" id="L175">        long deadlineNs = holder.getDeadlineNs();</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        long delay = delayUntilNs &gt; now ? TimeUnit.NANOSECONDS.toMillis(delayUntilNs - now) : 0;</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        Long deadline = deadlineNs != Params.FOREVER</span>
+<span class="fc" id="L178">                ? TimeUnit.NANOSECONDS.toMillis(deadlineNs - now)</span>
+                : null;
+<span class="fc bfc" id="L180" title="All 4 branches covered.">        boolean hasLargeDelay = delayUntilNs &gt; now &amp;&amp; delay &gt;= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS;</span>
+<span class="fc bfc" id="L181" title="All 4 branches covered.">        boolean hasLargeDeadline = deadline != null &amp;&amp; deadline &gt;= JobManager.MIN_DELAY_TO_USE_SCHEDULER_IN_MS;</span>
+<span class="fc bfc" id="L182" title="All 6 branches covered.">        if (requiredNetwork == NetworkUtil.DISCONNECTED &amp;&amp; !hasLargeDelay &amp;&amp; !hasLargeDeadline) {</span>
+<span class="fc" id="L183">            return;</span>
         }
 
-<span class="fc" id="L179">        SchedulerConstraint constraint = new SchedulerConstraint(UUID.randomUUID().toString());</span>
-<span class="fc bfc" id="L180" title="All 4 branches covered.">        constraint.setNetworkStatus(requireUnmeteredNetwork ? NetworkUtil.UNMETERED :</span>
-                requireNetwork ? NetworkUtil.METERED : NetworkUtil.DISCONNECTED);
-<span class="fc" id="L182">        constraint.setDelayInMs(delay);</span>
-<span class="fc" id="L183">        scheduler.request(constraint);</span>
-<span class="fc" id="L184">        shouldCancelAllScheduledWhenEmpty = true;</span>
-<span class="fc" id="L185">    }</span>
+<span class="fc" id="L186">        SchedulerConstraint constraint = new SchedulerConstraint(UUID.randomUUID().toString());</span>
+<span class="fc" id="L187">        constraint.setNetworkStatus(requiredNetwork);</span>
+<span class="fc" id="L188">        constraint.setDelayInMs(delay);</span>
+<span class="fc" id="L189">        constraint.setOverrideDeadlineInMs(deadline);</span>
+<span class="fc" id="L190">        scheduler.request(constraint);</span>
+<span class="fc" id="L191">        shouldCancelAllScheduledWhenEmpty = true;</span>
+<span class="fc" id="L192">    }</span>
 
     /**
      * Returns a queued job with the same single id. If any matching non-running job is found,
      * that one is returned. Otherwise any matching running job will be returned.
      */
     private JobHolder findJobBySingleId(/*Nullable*/String singleIdTag) {
-<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (singleIdTag != null) {</span>
-<span class="fc" id="L193">            queryConstraint.clear();</span>
-<span class="fc" id="L194">            queryConstraint.setTags(new String[]{singleIdTag});</span>
-<span class="fc" id="L195">            queryConstraint.setTagConstraint(TagConstraint.ANY);</span>
-<span class="fc" id="L196">            Set&lt;JobHolder&gt; jobs = nonPersistentJobQueue.findJobs(queryConstraint);</span>
-<span class="fc" id="L197">            jobs.addAll(persistentJobQueue.findJobs(queryConstraint));</span>
-<span class="fc bfc" id="L198" title="All 2 branches covered.">            if (!jobs.isEmpty()) {</span>
-<span class="fc bfc" id="L199" title="All 2 branches covered.">                for (JobHolder job : jobs) {</span>
-<span class="fc bfc" id="L200" title="All 2 branches covered.">                    if (!consumerManager.isJobRunning(job.getId())) {</span>
-<span class="fc" id="L201">                        return job;</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (singleIdTag != null) {</span>
+<span class="fc" id="L200">            queryConstraint.clear();</span>
+<span class="fc" id="L201">            queryConstraint.setTags(new String[]{singleIdTag});</span>
+<span class="fc" id="L202">            queryConstraint.setTagConstraint(TagConstraint.ANY);</span>
+<span class="fc" id="L203">            queryConstraint.setMaxNetworkType(NetworkUtil.UNMETERED);</span>
+<span class="fc" id="L204">            Set&lt;JobHolder&gt; jobs = nonPersistentJobQueue.findJobs(queryConstraint);</span>
+<span class="fc" id="L205">            jobs.addAll(persistentJobQueue.findJobs(queryConstraint));</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">            if (!jobs.isEmpty()) {</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">                for (JobHolder job : jobs) {</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">                    if (!consumerManager.isJobRunning(job.getId())) {</span>
+<span class="fc" id="L209">                        return job;</span>
                     }
-<span class="fc" id="L203">                }</span>
-<span class="fc" id="L204">                return jobs.iterator().next();</span>
+<span class="fc" id="L211">                }</span>
+<span class="fc" id="L212">                return jobs.iterator().next();</span>
             }
         }
-<span class="fc" id="L207">        return null;</span>
+<span class="fc" id="L215">        return null;</span>
     }
 
     @Override
     public void run() {
-<span class="fc" id="L212">        messageQueue.consume(new MessageQueueConsumer() {</span>
+<span class="fc" id="L220">        messageQueue.consume(new MessageQueueConsumer() {</span>
             @Override
             public void handleMessage(Message message) {
-<span class="pc bpc" id="L215" title="2 of 9 branches missed.">                switch (message.type) {</span>
+<span class="pc bpc" id="L223" title="2 of 9 branches missed.">                switch (message.type) {</span>
                     case ADD_JOB:
-<span class="fc" id="L217">                        handleAddJob((AddJobMessage) message);</span>
-<span class="fc" id="L218">                        break;</span>
+<span class="fc" id="L225">                        handleAddJob((AddJobMessage) message);</span>
+<span class="fc" id="L226">                        break;</span>
                     case JOB_CONSUMER_IDLE:
-<span class="fc" id="L220">                        boolean busy = consumerManager.handleIdle((JobConsumerIdleMessage) message);</span>
-<span class="fc bfc" id="L221" title="All 2 branches covered.">                        if (!busy) {</span>
-<span class="fc" id="L222">                            invokeSchedulersIfIdle();</span>
+<span class="fc" id="L228">                        boolean busy = consumerManager.handleIdle((JobConsumerIdleMessage) message);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">                        if (!busy) {</span>
+<span class="fc" id="L230">                            invokeSchedulersIfIdle();</span>
                         }
                         break;
                     case RUN_JOB_RESULT:
-<span class="fc" id="L226">                        handleRunJobResult((RunJobResultMessage) message);</span>
-<span class="fc" id="L227">                        break;</span>
+<span class="fc" id="L234">                        handleRunJobResult((RunJobResultMessage) message);</span>
+<span class="fc" id="L235">                        break;</span>
                     case CONSTRAINT_CHANGE:
-<span class="fc" id="L229">                        consumerManager.handleConstraintChange();</span>
-<span class="fc" id="L230">                        break;</span>
+<span class="fc" id="L237">                        consumerManager.handleConstraintChange();</span>
+<span class="fc" id="L238">                        break;</span>
                     case CANCEL:
-<span class="fc" id="L232">                        handleCancel((CancelMessage) message);</span>
-<span class="fc" id="L233">                        break;</span>
+<span class="fc" id="L240">                        handleCancel((CancelMessage) message);</span>
+<span class="fc" id="L241">                        break;</span>
                     case PUBLIC_QUERY:
-<span class="fc" id="L235">                        handlePublicQuery((PublicQueryMessage) message);</span>
-<span class="fc" id="L236">                        break;</span>
+<span class="fc" id="L243">                        handlePublicQuery((PublicQueryMessage) message);</span>
+<span class="fc" id="L244">                        break;</span>
                     case COMMAND:
-<span class="fc" id="L238">                        handleCommand((CommandMessage) message);</span>
-<span class="fc" id="L239">                        break;</span>
+<span class="fc" id="L246">                        handleCommand((CommandMessage) message);</span>
+<span class="fc" id="L247">                        break;</span>
                     case SCHEDULER:
-<span class="nc" id="L241">                        handleSchedulerMessage((SchedulerMessage) message);</span>
+<span class="nc" id="L249">                        handleSchedulerMessage((SchedulerMessage) message);</span>
                         break;
                 }
-<span class="fc" id="L244">            }</span>
+<span class="fc" id="L252">            }</span>
 
             @Override
             public void onIdle() {
-<span class="fc" id="L248">                JqLog.d(&quot;joq idle. running:? %s&quot;, running);</span>
-<span class="fc bfc" id="L249" title="All 2 branches covered.">                if (!running) {</span>
-<span class="fc" id="L250">                    return;</span>
+<span class="fc" id="L256">                JqLog.d(&quot;joq idle. running:? %s&quot;, running);</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">                if (!running) {</span>
+<span class="fc" id="L258">                    return;</span>
                 }
-<span class="fc" id="L252">                Long nextJobTimeNs = getNextWakeUpNs(true);</span>
+<span class="fc" id="L260">                Long nextJobTimeNs = getNextWakeUpNs(true);</span>
                 // TODO check network should be another message which goes idle if network is the
                 // same as now
-<span class="fc" id="L255">                JqLog.d(&quot;Job queue idle. next job at: %s&quot;, nextJobTimeNs);</span>
-<span class="fc bfc" id="L256" title="All 2 branches covered.">                if (nextJobTimeNs != null) {</span>
-<span class="fc" id="L257">                    ConstraintChangeMessage constraintMessage =</span>
-<span class="fc" id="L258">                            messageFactory.obtain(ConstraintChangeMessage.class);</span>
-<span class="fc" id="L259">                    messageQueue.postAt(constraintMessage, nextJobTimeNs);</span>
-<span class="fc bfc" id="L260" title="All 2 branches covered.">                } else if (scheduler != null) {</span>
+<span class="fc" id="L263">                JqLog.d(&quot;Job queue idle. next job at: %s&quot;, nextJobTimeNs);</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">                if (nextJobTimeNs != null) {</span>
+<span class="fc" id="L265">                    ConstraintChangeMessage constraintMessage =</span>
+<span class="fc" id="L266">                            messageFactory.obtain(ConstraintChangeMessage.class);</span>
+<span class="fc" id="L267">                    messageQueue.postAt(constraintMessage, nextJobTimeNs);</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">                } else if (scheduler != null) {</span>
                     // if we have a scheduler but the queue is empty, just clean them all.
-<span class="pc bpc" id="L262" title="1 of 4 branches missed.">                    if (shouldCancelAllScheduledWhenEmpty &amp;&amp; persistentJobQueue.count() == 0) {</span>
-<span class="fc" id="L263">                        shouldCancelAllScheduledWhenEmpty = false;</span>
-<span class="fc" id="L264">                        scheduler.cancelAll();</span>
+<span class="pc bpc" id="L270" title="1 of 4 branches missed.">                    if (shouldCancelAllScheduledWhenEmpty &amp;&amp; persistentJobQueue.count() == 0) {</span>
+<span class="fc" id="L271">                        shouldCancelAllScheduledWhenEmpty = false;</span>
+<span class="fc" id="L272">                        scheduler.cancelAll();</span>
                     }
                 }
-<span class="fc" id="L267">            }</span>
+<span class="fc" id="L275">            }</span>
         });
-<span class="fc" id="L269">    }</span>
+<span class="fc" id="L277">    }</span>
 
     private void invokeSchedulersIfIdle() {
-<span class="pc bpc" id="L272" title="1 of 4 branches missed.">        if (scheduler == null || pendingSchedulerCallbacks == null</span>
-<span class="nc bnc" id="L273" title="All 4 branches missed.">                || pendingSchedulerCallbacks.isEmpty() || !consumerManager.areAllConsumersIdle()) {</span>
-<span class="fc" id="L274">            return;</span>
+<span class="pc bpc" id="L280" title="1 of 4 branches missed.">        if (scheduler == null || pendingSchedulerCallbacks == null</span>
+<span class="nc bnc" id="L281" title="All 4 branches missed.">                || pendingSchedulerCallbacks.isEmpty() || !consumerManager.areAllConsumersIdle()) {</span>
+<span class="fc" id="L282">            return;</span>
         }
-<span class="nc bnc" id="L276" title="All 2 branches missed.">        for (int i = pendingSchedulerCallbacks.size() - 1; i &gt;= 0; i--) {</span>
-<span class="nc" id="L277">            SchedulerConstraint constraint = pendingSchedulerCallbacks.remove(i);</span>
-<span class="nc" id="L278">            boolean reschedule = hasJobsWithSchedulerConstraint(constraint);</span>
-<span class="nc" id="L279">            scheduler.onFinished(constraint, reschedule);</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        for (int i = pendingSchedulerCallbacks.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L285">            SchedulerConstraint constraint = pendingSchedulerCallbacks.remove(i);</span>
+<span class="nc" id="L286">            boolean reschedule = hasJobsWithSchedulerConstraint(constraint);</span>
+<span class="nc" id="L287">            scheduler.onFinished(constraint, reschedule);</span>
         }
-<span class="nc" id="L281">    }</span>
+<span class="nc" id="L289">    }</span>
 
     private void handleSchedulerMessage(SchedulerMessage message) {
-<span class="nc" id="L284">        final int what = message.getWhat();</span>
-<span class="nc bnc" id="L285" title="All 2 branches missed.">        if (what == SchedulerMessage.START) {</span>
-<span class="nc" id="L286">            handleSchedulerStart(message.getConstraint());</span>
-<span class="nc bnc" id="L287" title="All 2 branches missed.">        } else if (what == SchedulerMessage.STOP) {</span>
-<span class="nc" id="L288">            handleSchedulerStop(message.getConstraint());</span>
+<span class="nc" id="L292">        final int what = message.getWhat();</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">        if (what == SchedulerMessage.START) {</span>
+<span class="nc" id="L294">            handleSchedulerStart(message.getConstraint());</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        } else if (what == SchedulerMessage.STOP) {</span>
+<span class="nc" id="L296">            handleSchedulerStop(message.getConstraint());</span>
         } else {
-<span class="nc" id="L290">            throw new IllegalArgumentException(&quot;Unknown scheduler message with what &quot; + what);</span>
+<span class="nc" id="L298">            throw new IllegalArgumentException(&quot;Unknown scheduler message with what &quot; + what);</span>
         }
-<span class="nc" id="L292">    }</span>
+<span class="nc" id="L300">    }</span>
 
     private boolean hasJobsWithSchedulerConstraint(SchedulerConstraint constraint) {
-<span class="nc bnc" id="L295" title="All 2 branches missed.">        if (consumerManager.hasJobsWithSchedulerConstraint(constraint, timer.nanoTime())) {</span>
-<span class="nc" id="L296">            return true;</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">        if (consumerManager.hasJobsWithSchedulerConstraint(constraint)) {</span>
+<span class="nc" id="L304">            return true;</span>
         }
 
-<span class="nc" id="L299">        queryConstraint.clear();</span>
-<span class="nc" id="L300">        queryConstraint.setNowInNs(timer.nanoTime());</span>
-<span class="nc" id="L301">        queryConstraint.setNetworkStatus(constraint.getNetworkStatus());</span>
-<span class="nc bnc" id="L302" title="All 2 branches missed.">        return persistentJobQueue.countReadyJobs(queryConstraint) &gt; 0;</span>
+<span class="nc" id="L307">        queryConstraint.clear();</span>
+<span class="nc" id="L308">        queryConstraint.setNowInNs(timer.nanoTime());</span>
+<span class="nc" id="L309">        queryConstraint.setMaxNetworkType(constraint.getNetworkStatus());</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">        return persistentJobQueue.countReadyJobs(queryConstraint) &gt; 0;</span>
     }
 
     private void handleSchedulerStop(SchedulerConstraint constraint) {
-<span class="nc" id="L306">        final List&lt;SchedulerConstraint&gt; pendingCallbacks = this.pendingSchedulerCallbacks;</span>
-<span class="nc bnc" id="L307" title="All 2 branches missed.">        if (pendingCallbacks != null) {</span>
-<span class="nc bnc" id="L308" title="All 2 branches missed.">            for (int i = pendingCallbacks.size() - 1; i &gt;= 0; i--) {</span>
-<span class="nc" id="L309">                SchedulerConstraint pendingConstraint = pendingCallbacks.get(i);</span>
-<span class="nc bnc" id="L310" title="All 2 branches missed.">                if (pendingConstraint.getUuid().equals(constraint.getUuid())) {</span>
-<span class="nc" id="L311">                    pendingCallbacks.remove(i);</span>
+<span class="nc" id="L314">        final List&lt;SchedulerConstraint&gt; pendingCallbacks = this.pendingSchedulerCallbacks;</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        if (pendingCallbacks != null) {</span>
+<span class="nc bnc" id="L316" title="All 2 branches missed.">            for (int i = pendingCallbacks.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L317">                SchedulerConstraint pendingConstraint = pendingCallbacks.get(i);</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">                if (pendingConstraint.getUuid().equals(constraint.getUuid())) {</span>
+<span class="nc" id="L319">                    pendingCallbacks.remove(i);</span>
                 }
             }
         }
-<span class="nc bnc" id="L315" title="All 2 branches missed.">        if (scheduler == null) {</span>
-<span class="nc" id="L316">            return;//nothing to do</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">        if (scheduler == null) {</span>
+<span class="nc" id="L324">            return;//nothing to do</span>
         }
-<span class="nc" id="L318">        final boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);</span>
-<span class="nc bnc" id="L319" title="All 2 branches missed.">        if (hasMatchingJobs) {</span>
+<span class="nc" id="L326">        final boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">        if (hasMatchingJobs) {</span>
             // reschedule
-<span class="nc" id="L321">            scheduler.request(constraint);</span>
+<span class="nc" id="L329">            scheduler.request(constraint);</span>
         }
-<span class="nc" id="L323">    }</span>
+<span class="nc" id="L331">    }</span>
 
 
     private void handleSchedulerStart(SchedulerConstraint constraint) {
-<span class="nc bnc" id="L327" title="All 2 branches missed.">        if (!isRunning()) {</span>
-<span class="nc bnc" id="L328" title="All 2 branches missed.">            if (scheduler != null) {</span>
-<span class="nc" id="L329">                scheduler.onFinished(constraint, true);</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        if (!isRunning()) {</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">            if (scheduler != null) {</span>
+<span class="nc" id="L337">                scheduler.onFinished(constraint, true);</span>
             }
-<span class="nc" id="L331">            return;</span>
+<span class="nc" id="L339">            return;</span>
         }
-<span class="nc" id="L333">        boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);</span>
-<span class="nc bnc" id="L334" title="All 2 branches missed.">        if (!hasMatchingJobs) {</span>
-<span class="nc bnc" id="L335" title="All 2 branches missed.">            if (scheduler != null) {</span>
-<span class="nc" id="L336">                scheduler.onFinished(constraint, false);</span>
+<span class="nc" id="L341">        boolean hasMatchingJobs = hasJobsWithSchedulerConstraint(constraint);</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">        if (!hasMatchingJobs) {</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">            if (scheduler != null) {</span>
+<span class="nc" id="L344">                scheduler.onFinished(constraint, false);</span>
             }
-<span class="nc" id="L338">            return;</span>
+<span class="nc" id="L346">            return;</span>
         }
-<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (pendingSchedulerCallbacks == null) {</span>
-<span class="nc" id="L341">            pendingSchedulerCallbacks = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        if (pendingSchedulerCallbacks == null) {</span>
+<span class="nc" id="L349">            pendingSchedulerCallbacks = new ArrayList&lt;&gt;();</span>
         }
         // add this to callbacks to be invoked when job runs
-<span class="nc" id="L344">        pendingSchedulerCallbacks.add(constraint);</span>
-<span class="nc" id="L345">        consumerManager.handleConstraintChange();</span>
-<span class="nc" id="L346">    }</span>
+<span class="nc" id="L352">        pendingSchedulerCallbacks.add(constraint);</span>
+<span class="nc" id="L353">        consumerManager.handleConstraintChange();</span>
+<span class="nc" id="L354">    }</span>
 
     private void handleCommand(CommandMessage message) {
-<span class="pc bpc" id="L349" title="1 of 2 branches missed.">        if (message.getWhat() == CommandMessage.QUIT) {</span>
-<span class="fc" id="L350">            messageQueue.stop();</span>
-<span class="fc" id="L351">            messageQueue.clear();</span>
+<span class="pc bpc" id="L357" title="1 of 2 branches missed.">        if (message.getWhat() == CommandMessage.QUIT) {</span>
+<span class="fc" id="L358">            messageQueue.stop();</span>
+<span class="fc" id="L359">            messageQueue.clear();</span>
         }
-<span class="fc" id="L353">    }</span>
+<span class="fc" id="L361">    }</span>
 
     int count() {
-<span class="fc" id="L356">        return persistentJobQueue.count() + nonPersistentJobQueue.count();</span>
+<span class="fc" id="L364">        return persistentJobQueue.count() + nonPersistentJobQueue.count();</span>
     }
 
     private void handlePublicQuery(PublicQueryMessage message) {
-<span class="pc bpc" id="L360" title="1 of 9 branches missed.">        switch (message.getWhat()) {</span>
+<span class="pc bpc" id="L368" title="1 of 9 branches missed.">        switch (message.getWhat()) {</span>
             case PublicQueryMessage.COUNT:
-<span class="fc" id="L362">                message.getCallback().onResult(count());</span>
-<span class="fc" id="L363">                break;</span>
+<span class="fc" id="L370">                message.getCallback().onResult(count());</span>
+<span class="fc" id="L371">                break;</span>
             case PublicQueryMessage.COUNT_READY:
-<span class="fc" id="L365">                message.getCallback().onResult(countReadyJobs(getNetworkStatus()));</span>
-<span class="fc" id="L366">                break;</span>
-            case PublicQueryMessage.START:
-<span class="fc" id="L368">                JqLog.d(&quot;handling start request...&quot;);</span>
-<span class="fc bfc" id="L369" title="All 2 branches covered.">                if (running) {</span>
-<span class="fc" id="L370">                    return;</span>
-                }
-<span class="fc" id="L372">                running = true;</span>
-<span class="fc" id="L373">                consumerManager.handleConstraintChange();</span>
+<span class="fc" id="L373">                message.getCallback().onResult(countReadyJobs(getNetworkStatus()));</span>
 <span class="fc" id="L374">                break;</span>
+            case PublicQueryMessage.START:
+<span class="fc" id="L376">                JqLog.d(&quot;handling start request...&quot;);</span>
+<span class="fc bfc" id="L377" title="All 2 branches covered.">                if (running) {</span>
+<span class="fc" id="L378">                    return;</span>
+                }
+<span class="fc" id="L380">                running = true;</span>
+<span class="fc" id="L381">                consumerManager.handleConstraintChange();</span>
+<span class="fc" id="L382">                break;</span>
             case PublicQueryMessage.STOP:
-<span class="fc" id="L376">                JqLog.d(&quot;handling stop request...&quot;);</span>
-<span class="fc" id="L377">                running = false;</span>
-<span class="fc" id="L378">                consumerManager.handleStop();</span>
-<span class="fc" id="L379">                break;</span>
+<span class="fc" id="L384">                JqLog.d(&quot;handling stop request...&quot;);</span>
+<span class="fc" id="L385">                running = false;</span>
+<span class="fc" id="L386">                consumerManager.handleStop();</span>
+<span class="fc" id="L387">                break;</span>
             case PublicQueryMessage.JOB_STATUS:
-<span class="fc" id="L381">                JobStatus status = getJobStatus(message.getStringArg());</span>
-<span class="fc" id="L382">                message.getCallback().onResult(status.ordinal());</span>
-<span class="fc" id="L383">                break;</span>
+<span class="fc" id="L389">                JobStatus status = getJobStatus(message.getStringArg());</span>
+<span class="fc" id="L390">                message.getCallback().onResult(status.ordinal());</span>
+<span class="fc" id="L391">                break;</span>
             case PublicQueryMessage.CLEAR:
-<span class="fc" id="L385">                clear();</span>
-<span class="pc bpc" id="L386" title="1 of 2 branches missed.">                if (message.getCallback() != null) {</span>
-<span class="fc" id="L387">                    message.getCallback().onResult(0);</span>
+<span class="fc" id="L393">                clear();</span>
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">                if (message.getCallback() != null) {</span>
+<span class="fc" id="L395">                    message.getCallback().onResult(0);</span>
                 }
                 break;
             case PublicQueryMessage.ACTIVE_CONSUMER_COUNT:
-<span class="fc" id="L391">                message.getCallback().onResult(consumerManager.getWorkerCount());</span>
-<span class="fc" id="L392">                break;</span>
+<span class="fc" id="L399">                message.getCallback().onResult(consumerManager.getWorkerCount());</span>
+<span class="fc" id="L400">                break;</span>
             case PublicQueryMessage.INTERNAL_RUNNABLE:
-<span class="fc" id="L394">                message.getCallback().onResult(0);</span>
-<span class="fc" id="L395">                break;</span>
+<span class="fc" id="L402">                message.getCallback().onResult(0);</span>
+<span class="fc" id="L403">                break;</span>
             default:
-<span class="nc" id="L397">                throw new IllegalArgumentException(&quot;cannot handle public query with type &quot; +</span>
-<span class="nc" id="L398">                message.getWhat());</span>
+<span class="nc" id="L405">                throw new IllegalArgumentException(&quot;cannot handle public query with type &quot; +</span>
+<span class="nc" id="L406">                message.getWhat());</span>
         }
-<span class="fc" id="L400">    }</span>
+<span class="fc" id="L408">    }</span>
 
     private void clear() {
-<span class="fc" id="L403">        nonPersistentJobQueue.clear();</span>
-<span class="fc" id="L404">        persistentJobQueue.clear();</span>
-<span class="fc" id="L405">    }</span>
+<span class="fc" id="L411">        nonPersistentJobQueue.clear();</span>
+<span class="fc" id="L412">        persistentJobQueue.clear();</span>
+<span class="fc" id="L413">    }</span>
 
     private JobStatus getJobStatus(String id) {
-<span class="fc bfc" id="L408" title="All 2 branches covered.">        if (consumerManager.isJobRunning(id)) {</span>
-<span class="fc" id="L409">            return JobStatus.RUNNING;</span>
+<span class="fc bfc" id="L416" title="All 2 branches covered.">        if (consumerManager.isJobRunning(id)) {</span>
+<span class="fc" id="L417">            return JobStatus.RUNNING;</span>
         }
         JobHolder holder;
-<span class="fc" id="L412">        holder = nonPersistentJobQueue.findJobById(id);</span>
-<span class="fc bfc" id="L413" title="All 2 branches covered.">        if (holder == null) {</span>
-<span class="fc" id="L414">            holder = persistentJobQueue.findJobById(id);</span>
+<span class="fc" id="L420">        holder = nonPersistentJobQueue.findJobById(id);</span>
+<span class="fc bfc" id="L421" title="All 2 branches covered.">        if (holder == null) {</span>
+<span class="fc" id="L422">            holder = persistentJobQueue.findJobById(id);</span>
         }
-<span class="fc bfc" id="L416" title="All 2 branches covered.">        if(holder == null) {</span>
-<span class="fc" id="L417">            return JobStatus.UNKNOWN;</span>
+<span class="fc bfc" id="L424" title="All 2 branches covered.">        if(holder == null) {</span>
+<span class="fc" id="L425">            return JobStatus.UNKNOWN;</span>
         }
-<span class="fc" id="L419">        final int networkStatus = getNetworkStatus();</span>
-<span class="fc" id="L420">        long now = timer.nanoTime();</span>
-<span class="fc bfc" id="L421" title="All 4 branches covered.">        if(networkStatus == DISCONNECTED &amp;&amp; holder.requiresNetwork(now)) {</span>
-<span class="fc" id="L422">            return JobStatus.WAITING_NOT_READY;</span>
+<span class="fc" id="L427">        final int networkStatus = getNetworkStatus();</span>
+<span class="fc" id="L428">        final long now = timer.nanoTime();</span>
+<span class="fc bfc" id="L429" title="All 2 branches covered.">        if(networkStatus &lt; holder.requiredNetworkType) {</span>
+<span class="fc" id="L430">            return JobStatus.WAITING_NOT_READY;</span>
         }
-<span class="pc bpc" id="L424" title="1 of 4 branches missed.">        if(networkStatus != UNMETERED &amp;&amp; holder.requiresUnmeteredNetwork(now)) {</span>
-<span class="fc" id="L425">            return JobStatus.WAITING_NOT_READY;</span>
+<span class="fc bfc" id="L432" title="All 2 branches covered.">        if(holder.getDelayUntilNs() &gt; now) {</span>
+<span class="fc" id="L433">            return JobStatus.WAITING_NOT_READY;</span>
         }
-<span class="fc bfc" id="L427" title="All 2 branches covered.">        if(holder.getDelayUntilNs() &gt; now) {</span>
-<span class="fc" id="L428">            return JobStatus.WAITING_NOT_READY;</span>
-        }
-<span class="fc" id="L430">        return JobStatus.WAITING_READY;</span>
+<span class="fc" id="L435">        return JobStatus.WAITING_READY;</span>
     }
 
     private void handleCancel(CancelMessage message) {
-<span class="fc" id="L434">        CancelHandler handler = new CancelHandler(message.getConstraint(), message.getTags(),</span>
-<span class="fc" id="L435">                message.getCallback());</span>
-<span class="fc" id="L436">        handler.query(this, consumerManager);</span>
-<span class="fc bfc" id="L437" title="All 2 branches covered.">        if (handler.isDone()) {</span>
-<span class="fc" id="L438">            handler.commit(this);</span>
+<span class="fc" id="L439">        CancelHandler handler = new CancelHandler(message.getConstraint(), message.getTags(),</span>
+<span class="fc" id="L440">                message.getCallback());</span>
+<span class="fc" id="L441">        handler.query(this, consumerManager);</span>
+<span class="fc bfc" id="L442" title="All 2 branches covered.">        if (handler.isDone()) {</span>
+<span class="fc" id="L443">            handler.commit(this);</span>
         } else {
-<span class="pc bpc" id="L440" title="1 of 2 branches missed.">            if (pendingCancelHandlers == null) {</span>
-<span class="fc" id="L441">                pendingCancelHandlers = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L445" title="1 of 2 branches missed.">            if (pendingCancelHandlers == null) {</span>
+<span class="fc" id="L446">                pendingCancelHandlers = new ArrayList&lt;&gt;();</span>
             }
-<span class="fc" id="L443">            pendingCancelHandlers.add(handler);</span>
+<span class="fc" id="L448">            pendingCancelHandlers.add(handler);</span>
         }
-<span class="fc" id="L445">    }</span>
+<span class="fc" id="L450">    }</span>
 
     private void handleRunJobResult(RunJobResultMessage message) {
-<span class="fc" id="L448">        final int result = message.getResult();</span>
-<span class="fc" id="L449">        final JobHolder jobHolder = message.getJobHolder();</span>
-<span class="fc" id="L450">        callbackManager.notifyOnRun(jobHolder.getJob(), result);</span>
-<span class="fc" id="L451">        RetryConstraint retryConstraint = null;</span>
-<span class="pc bpc" id="L452" title="2 of 7 branches missed.">        switch (result) {</span>
+<span class="fc" id="L453">        final int result = message.getResult();</span>
+<span class="fc" id="L454">        final JobHolder jobHolder = message.getJobHolder();</span>
+<span class="fc" id="L455">        callbackManager.notifyOnRun(jobHolder.getJob(), result);</span>
+<span class="fc" id="L456">        RetryConstraint retryConstraint = null;</span>
+<span class="pc bpc" id="L457" title="2 of 8 branches missed.">        switch (result) {</span>
             case JobHolder.RUN_RESULT_SUCCESS:
-<span class="fc" id="L454">                jobHolder.markAsSuccessful();</span>
-<span class="fc" id="L455">                removeJob(jobHolder);</span>
-<span class="fc" id="L456">                break;</span>
-            case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
-<span class="fc" id="L458">                cancelSafely(jobHolder, CancelReason.REACHED_RETRY_LIMIT);</span>
 <span class="fc" id="L459">                removeJob(jobHolder);</span>
 <span class="fc" id="L460">                break;</span>
-            case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
-<span class="fc" id="L462">                cancelSafely(jobHolder, CancelReason.CANCELLED_VIA_SHOULD_RE_RUN);</span>
+            case JobHolder.RUN_RESULT_FAIL_RUN_LIMIT:
+<span class="fc" id="L462">                cancelSafely(jobHolder, CancelReason.REACHED_RETRY_LIMIT);</span>
 <span class="fc" id="L463">                removeJob(jobHolder);</span>
 <span class="fc" id="L464">                break;</span>
+            case JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN:
+<span class="fc" id="L466">                cancelSafely(jobHolder, CancelReason.CANCELLED_VIA_SHOULD_RE_RUN);</span>
+<span class="fc" id="L467">                removeJob(jobHolder);</span>
+<span class="fc" id="L468">                break;</span>
             case JobHolder.RUN_RESULT_FAIL_SINGLE_ID:
-<span class="nc" id="L466">                cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_WHILE_RUNNING);</span>
-<span class="nc" id="L467">                removeJob(jobHolder);</span>
-<span class="nc" id="L468">                break;</span>
+<span class="nc" id="L470">                cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_WHILE_RUNNING);</span>
+<span class="nc" id="L471">                removeJob(jobHolder);</span>
+<span class="nc" id="L472">                break;</span>
+            case JobHolder.RUN_RESULT_HIT_DEADLINE:
+<span class="fc" id="L474">                cancelSafely(jobHolder, CancelReason.REACHED_DEADLINE);</span>
+<span class="fc" id="L475">                removeJob(jobHolder);</span>
+<span class="fc" id="L476">                break;</span>
             case JobHolder.RUN_RESULT_TRY_AGAIN:
-<span class="fc" id="L470">                retryConstraint = jobHolder.getRetryConstraint();</span>
-<span class="fc" id="L471">                insertOrReplace(jobHolder);</span>
-<span class="fc" id="L472">                break;</span>
+<span class="fc" id="L478">                retryConstraint = jobHolder.getRetryConstraint();</span>
+<span class="fc" id="L479">                insertOrReplace(jobHolder);</span>
+<span class="fc" id="L480">                break;</span>
             case JobHolder.RUN_RESULT_FAIL_FOR_CANCEL:
-<span class="fc" id="L474">                JqLog.d(&quot;running job failed and cancelled, doing nothing. &quot;</span>
+<span class="fc" id="L482">                JqLog.d(&quot;running job failed and cancelled, doing nothing. &quot;</span>
                         + &quot;Will be removed after it's onCancel is called by the &quot;
                         + &quot;CancelHandler&quot;);
-<span class="fc" id="L477">                break;</span>
+<span class="fc" id="L485">                break;</span>
             default:
-<span class="nc" id="L479">                JqLog.e(&quot;unknown job holder result&quot;);</span>
+<span class="nc" id="L487">                throw new IllegalArgumentException(&quot;unknown job holder result&quot;);</span>
         }
-<span class="fc" id="L481">        consumerManager.handleRunJobResult(message, jobHolder, retryConstraint);</span>
-<span class="fc" id="L482">        callbackManager.notifyAfterRun(jobHolder.getJob(), result);</span>
-<span class="fc bfc" id="L483" title="All 2 branches covered.">        if (pendingCancelHandlers != null) {</span>
-<span class="fc" id="L484">            int limit = pendingCancelHandlers.size();</span>
-<span class="fc bfc" id="L485" title="All 2 branches covered.">            for (int i = 0; i &lt; limit; i ++) {</span>
-<span class="fc" id="L486">                CancelHandler handler = pendingCancelHandlers.get(i);</span>
-<span class="fc" id="L487">                handler.onJobRun(jobHolder, result);</span>
-<span class="fc bfc" id="L488" title="All 2 branches covered.">                if (handler.isDone()) {</span>
-<span class="fc" id="L489">                    handler.commit(this);</span>
-<span class="fc" id="L490">                    pendingCancelHandlers.remove(i);</span>
-<span class="fc" id="L491">                    i--;</span>
-<span class="fc" id="L492">                    limit--;</span>
+<span class="fc" id="L489">        consumerManager.handleRunJobResult(message, jobHolder, retryConstraint);</span>
+<span class="fc" id="L490">        callbackManager.notifyAfterRun(jobHolder.getJob(), result);</span>
+<span class="fc bfc" id="L491" title="All 2 branches covered.">        if (pendingCancelHandlers != null) {</span>
+<span class="fc" id="L492">            int limit = pendingCancelHandlers.size();</span>
+<span class="fc bfc" id="L493" title="All 2 branches covered.">            for (int i = 0; i &lt; limit; i ++) {</span>
+<span class="fc" id="L494">                CancelHandler handler = pendingCancelHandlers.get(i);</span>
+<span class="fc" id="L495">                handler.onJobRun(jobHolder, result);</span>
+<span class="fc bfc" id="L496" title="All 2 branches covered.">                if (handler.isDone()) {</span>
+<span class="fc" id="L497">                    handler.commit(this);</span>
+<span class="fc" id="L498">                    pendingCancelHandlers.remove(i);</span>
+<span class="fc" id="L499">                    i--;</span>
+<span class="fc" id="L500">                    limit--;</span>
                 }
             }
         }
-<span class="fc" id="L496">    }</span>
+<span class="fc" id="L504">    }</span>
 
     private void cancelSafely(JobHolder jobHolder, @CancelReason int cancelReason) {
         try {
-<span class="fc" id="L500">            jobHolder.onCancel(cancelReason);</span>
-<span class="nc" id="L501">        } catch (Throwable t) {</span>
-<span class="nc" id="L502">            JqLog.e(t, &quot;job's onCancel did throw an exception, ignoring...&quot;);</span>
-<span class="fc" id="L503">        }</span>
-<span class="fc" id="L504">        callbackManager.notifyOnCancel(jobHolder.getJob(), false, jobHolder.getThrowable());</span>
-<span class="fc" id="L505">    }</span>
+<span class="fc" id="L508">            jobHolder.onCancel(cancelReason);</span>
+<span class="nc" id="L509">        } catch (Throwable t) {</span>
+<span class="nc" id="L510">            JqLog.e(t, &quot;job's onCancel did throw an exception, ignoring...&quot;);</span>
+<span class="fc" id="L511">        }</span>
+<span class="fc" id="L512">        callbackManager.notifyOnCancel(jobHolder.getJob(), false, jobHolder.getThrowable());</span>
+<span class="fc" id="L513">    }</span>
 
     private void insertOrReplace(JobHolder jobHolder) {
-<span class="fc" id="L508">        RetryConstraint retryConstraint = jobHolder.getRetryConstraint();</span>
-<span class="pc bpc" id="L509" title="1 of 2 branches missed.">        if (retryConstraint == null) {</span>
-<span class="nc" id="L510">            reAddJob(jobHolder);</span>
-<span class="nc" id="L511">            return;</span>
+<span class="fc" id="L516">        RetryConstraint retryConstraint = jobHolder.getRetryConstraint();</span>
+<span class="pc bpc" id="L517" title="1 of 2 branches missed.">        if (retryConstraint == null) {</span>
+<span class="nc" id="L518">            reAddJob(jobHolder);</span>
+<span class="nc" id="L519">            return;</span>
         }
-<span class="fc bfc" id="L513" title="All 2 branches covered.">        if (retryConstraint.getNewPriority() != null) {</span>
-<span class="fc" id="L514">            jobHolder.setPriority(retryConstraint.getNewPriority());</span>
+<span class="fc bfc" id="L521" title="All 2 branches covered.">        if (retryConstraint.getNewPriority() != null) {</span>
+<span class="fc" id="L522">            jobHolder.setPriority(retryConstraint.getNewPriority());</span>
         }
-<span class="fc" id="L516">        long delay = -1;</span>
-<span class="fc bfc" id="L517" title="All 2 branches covered.">        if (retryConstraint.getNewDelayInMs() != null) {</span>
-<span class="fc" id="L518">            delay = retryConstraint.getNewDelayInMs();</span>
+<span class="fc" id="L524">        long delay = -1;</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">        if (retryConstraint.getNewDelayInMs() != null) {</span>
+<span class="fc" id="L526">            delay = retryConstraint.getNewDelayInMs();</span>
         }
-<span class="fc bfc" id="L520" title="All 2 branches covered.">        jobHolder.setDelayUntilNs(</span>
-<span class="fc" id="L521">                delay &gt; 0 ? timer.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY</span>
+<span class="fc bfc" id="L528" title="All 2 branches covered.">        jobHolder.setDelayUntilNs(</span>
+<span class="fc" id="L529">                delay &gt; 0 ? timer.nanoTime() + delay * NS_PER_MS : NOT_DELAYED_JOB_DELAY</span>
         );
-<span class="fc" id="L523">        reAddJob(jobHolder);</span>
-<span class="fc" id="L524">    }</span>
+<span class="fc" id="L531">        reAddJob(jobHolder);</span>
+<span class="fc" id="L532">    }</span>
 
     private void reAddJob(JobHolder jobHolder) {
-<span class="pc bpc" id="L527" title="1 of 2 branches missed.">        if (!jobHolder.isCancelled()) {</span>
-<span class="fc bfc" id="L528" title="All 2 branches covered.">            if (jobHolder.getJob().isPersistent()) {</span>
-<span class="fc" id="L529">                persistentJobQueue.insertOrReplace(jobHolder);</span>
+<span class="pc bpc" id="L535" title="1 of 2 branches missed.">        if (!jobHolder.isCancelled()) {</span>
+<span class="fc bfc" id="L536" title="All 2 branches covered.">            if (jobHolder.getJob().isPersistent()) {</span>
+<span class="fc" id="L537">                persistentJobQueue.insertOrReplace(jobHolder);</span>
             } else {
-<span class="fc" id="L531">                nonPersistentJobQueue.insertOrReplace(jobHolder);</span>
+<span class="fc" id="L539">                nonPersistentJobQueue.insertOrReplace(jobHolder);</span>
             }
         } else {
-<span class="nc" id="L534">            JqLog.d(&quot;not re-adding cancelled job &quot; + jobHolder);</span>
+<span class="nc" id="L542">            JqLog.d(&quot;not re-adding cancelled job &quot; + jobHolder);</span>
         }
-<span class="fc" id="L536">    }</span>
+<span class="fc" id="L544">    }</span>
 
     private void removeJob(JobHolder jobHolder) {
-<span class="fc bfc" id="L539" title="All 2 branches covered.">        if (jobHolder.getJob().isPersistent()) {</span>
-<span class="fc" id="L540">            persistentJobQueue.remove(jobHolder);</span>
+<span class="fc bfc" id="L547" title="All 2 branches covered.">        if (jobHolder.getJob().isPersistent()) {</span>
+<span class="fc" id="L548">            persistentJobQueue.remove(jobHolder);</span>
         } else {
-<span class="fc" id="L542">            nonPersistentJobQueue.remove(jobHolder);</span>
+<span class="fc" id="L550">            nonPersistentJobQueue.remove(jobHolder);</span>
         }
-<span class="fc" id="L544">        callbackManager.notifyOnDone(jobHolder.getJob());</span>
-<span class="fc" id="L545">    }</span>
+<span class="fc" id="L552">        callbackManager.notifyOnDone(jobHolder.getJob());</span>
+<span class="fc" id="L553">    }</span>
 
     @Override
     public void onNetworkChange(@NetworkUtil.NetworkStatus int networkStatus) {
-<span class="fc" id="L549">        ConstraintChangeMessage constraint = messageFactory.obtain(ConstraintChangeMessage.class);</span>
-<span class="fc" id="L550">        messageQueue.post(constraint);</span>
-<span class="fc" id="L551">    }</span>
+<span class="fc" id="L557">        ConstraintChangeMessage constraint = messageFactory.obtain(ConstraintChangeMessage.class);</span>
+<span class="fc" id="L558">        messageQueue.post(constraint);</span>
+<span class="fc" id="L559">    }</span>
 
     boolean isRunning() {
-<span class="fc" id="L554">        return running;</span>
+<span class="fc" id="L562">        return running;</span>
     }
 
     int countRemainingReadyJobs() {
-<span class="fc" id="L558">        return countReadyJobs(getNetworkStatus());</span>
+<span class="fc" id="L566">        return countReadyJobs(getNetworkStatus());</span>
     }
 
     private int countReadyJobs(@NetworkUtil.NetworkStatus int networkStatus) {
-<span class="fc" id="L562">        final Collection&lt;String&gt; runningJobs = consumerManager.runningJobGroups.getSafe();</span>
-<span class="fc" id="L563">        queryConstraint.clear();</span>
-<span class="fc" id="L564">        queryConstraint.setNowInNs(timer.nanoTime());</span>
-<span class="fc" id="L565">        queryConstraint.setNetworkStatus(networkStatus);</span>
-<span class="fc" id="L566">        queryConstraint.setExcludeGroups(runningJobs);</span>
-<span class="fc" id="L567">        queryConstraint.setExcludeRunning(true);</span>
-<span class="fc" id="L568">        queryConstraint.setTimeLimit(timer.nanoTime());</span>
+<span class="fc" id="L570">        final Collection&lt;String&gt; runningJobs = consumerManager.runningJobGroups.getSafe();</span>
+<span class="fc" id="L571">        queryConstraint.clear();</span>
+<span class="fc" id="L572">        queryConstraint.setNowInNs(timer.nanoTime());</span>
+<span class="fc" id="L573">        queryConstraint.setMaxNetworkType(networkStatus);</span>
+<span class="fc" id="L574">        queryConstraint.setExcludeGroups(runningJobs);</span>
+<span class="fc" id="L575">        queryConstraint.setExcludeRunning(true);</span>
+<span class="fc" id="L576">        queryConstraint.setTimeLimit(timer.nanoTime());</span>
         //TODO we can cache this
-<span class="fc" id="L570">        int total = 0;</span>
-<span class="fc" id="L571">        total += nonPersistentJobQueue.countReadyJobs(queryConstraint);</span>
-<span class="fc" id="L572">        total += persistentJobQueue.countReadyJobs(queryConstraint);</span>
-<span class="fc" id="L573">        return total;</span>
+<span class="fc" id="L578">        int total = 0;</span>
+<span class="fc" id="L579">        total += nonPersistentJobQueue.countReadyJobs(queryConstraint);</span>
+<span class="fc" id="L580">        total += persistentJobQueue.countReadyJobs(queryConstraint);</span>
+<span class="fc" id="L581">        return total;</span>
     }
 
     @NetworkUtil.NetworkStatus
     private int getNetworkStatus() {
-<span class="pc bpc" id="L578" title="1 of 2 branches missed.">        return networkUtil == null ? NetworkUtil.UNMETERED : networkUtil.getNetworkStatus(appContext);</span>
+<span class="pc bpc" id="L586" title="1 of 2 branches missed.">        return networkUtil == null ? NetworkUtil.UNMETERED : networkUtil.getNetworkStatus(appContext);</span>
     }
 
     Long getNextWakeUpNs(boolean includeNetworkWatch) {
-<span class="fc" id="L582">        final Long groupDelay = consumerManager.runningJobGroups.getNextDelayForGroups();</span>
-<span class="fc" id="L583">        final int networkStatus = getNetworkStatus();</span>
-<span class="fc" id="L584">        final Collection&lt;String&gt; groups = consumerManager.runningJobGroups.getSafe();</span>
-<span class="fc" id="L585">        queryConstraint.clear();</span>
-<span class="fc" id="L586">        queryConstraint.setNowInNs(timer.nanoTime());</span>
-<span class="fc" id="L587">        queryConstraint.setNetworkStatus(networkStatus);</span>
-<span class="fc" id="L588">        queryConstraint.setExcludeGroups(groups);</span>
-<span class="fc" id="L589">        queryConstraint.setExcludeRunning(true);</span>
-<span class="fc" id="L590">        final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(queryConstraint);</span>
-<span class="fc" id="L591">        final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(queryConstraint);</span>
-<span class="fc" id="L592">        Long delay = null;</span>
-<span class="fc bfc" id="L593" title="All 2 branches covered.">        if (groupDelay != null) {</span>
-<span class="fc" id="L594">            delay = groupDelay;</span>
+<span class="fc" id="L590">        final Long groupDelay = consumerManager.runningJobGroups.getNextDelayForGroups();</span>
+<span class="fc" id="L591">        final int networkStatus = getNetworkStatus();</span>
+<span class="fc" id="L592">        final Collection&lt;String&gt; groups = consumerManager.runningJobGroups.getSafe();</span>
+<span class="fc" id="L593">        queryConstraint.clear();</span>
+<span class="fc" id="L594">        queryConstraint.setNowInNs(timer.nanoTime());</span>
+<span class="fc" id="L595">        queryConstraint.setMaxNetworkType(networkStatus);</span>
+<span class="fc" id="L596">        queryConstraint.setExcludeGroups(groups);</span>
+<span class="fc" id="L597">        queryConstraint.setExcludeRunning(true);</span>
+<span class="fc" id="L598">        final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(queryConstraint);</span>
+<span class="fc" id="L599">        final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(queryConstraint);</span>
+<span class="fc" id="L600">        Long delay = null;</span>
+<span class="fc bfc" id="L601" title="All 2 branches covered.">        if (groupDelay != null) {</span>
+<span class="fc" id="L602">            delay = groupDelay;</span>
         }
-<span class="fc bfc" id="L596" title="All 2 branches covered.">        if (nonPersistent != null) {</span>
-<span class="fc bfc" id="L597" title="All 2 branches covered.">            delay = delay == null ? nonPersistent : Math.min(nonPersistent, delay);</span>
+<span class="fc bfc" id="L604" title="All 2 branches covered.">        if (nonPersistent != null) {</span>
+<span class="fc bfc" id="L605" title="All 2 branches covered.">            delay = delay == null ? nonPersistent : Math.min(nonPersistent, delay);</span>
         }
-<span class="fc bfc" id="L599" title="All 2 branches covered.">        if (persistent != null) {</span>
-<span class="fc bfc" id="L600" title="All 2 branches covered.">            delay = delay == null ? persistent : Math.min(persistent, delay);</span>
+<span class="fc bfc" id="L607" title="All 2 branches covered.">        if (persistent != null) {</span>
+<span class="fc bfc" id="L608" title="All 2 branches covered.">            delay = delay == null ? persistent : Math.min(persistent, delay);</span>
         }
-<span class="pc bpc" id="L602" title="1 of 4 branches missed.">        if (includeNetworkWatch &amp;&amp; !(networkUtil instanceof NetworkEventProvider)) {</span>
+<span class="pc bpc" id="L610" title="1 of 4 branches missed.">        if (includeNetworkWatch &amp;&amp; !(networkUtil instanceof NetworkEventProvider)) {</span>
             // if network cannot provide events, we need to wake up :/
-<span class="fc" id="L604">            long checkNetworkAt = timer.nanoTime() + JobManager.NETWORK_CHECK_INTERVAL;</span>
-<span class="fc bfc" id="L605" title="All 2 branches covered.">            delay = delay == null ? checkNetworkAt : Math.min(checkNetworkAt, delay);</span>
+<span class="fc" id="L612">            long checkNetworkAt = timer.nanoTime() + JobManager.NETWORK_CHECK_INTERVAL;</span>
+<span class="fc bfc" id="L613" title="All 2 branches covered.">            delay = delay == null ? checkNetworkAt : Math.min(checkNetworkAt, delay);</span>
         }
-<span class="fc" id="L607">        return delay;</span>
+<span class="fc" id="L615">        return delay;</span>
     }
 
     // Used for testing
     JobHolder getNextJobForTesting() {
-<span class="fc" id="L612">        return getNextJobForTesting(null);</span>
+<span class="fc" id="L620">        return getNextJobForTesting(null);</span>
     }
 
     // Used for testing
     JobHolder getNextJobForTesting(Collection&lt;String&gt; runningJobGroups) {
-<span class="fc" id="L617">        return getNextJob(runningJobGroups, true);</span>
+<span class="fc" id="L625">        return getNextJob(runningJobGroups, true);</span>
     }
 
     JobHolder getNextJob(Collection&lt;String&gt; runningJobGroups) {
-<span class="fc" id="L621">        return getNextJob(runningJobGroups, false);</span>
+<span class="fc" id="L629">        return getNextJob(runningJobGroups, false);</span>
     }
 
     JobHolder getNextJob(Collection&lt;String&gt; runningJobGroups, boolean ignoreRunning) {
-<span class="pc bpc" id="L625" title="1 of 4 branches missed.">        if (!running &amp;&amp; !ignoreRunning) {</span>
-<span class="nc" id="L626">            return null;</span>
+<span class="pc bpc" id="L633" title="1 of 4 branches missed.">        if (!running &amp;&amp; !ignoreRunning) {</span>
+<span class="nc" id="L634">            return null;</span>
         }
-<span class="fc" id="L628">        final int networkStatus = getNetworkStatus();</span>
-        JobHolder jobHolder;
-<span class="fc" id="L630">        boolean persistent = false;</span>
-<span class="fc" id="L631">        JqLog.v(&quot;looking for next job&quot;);</span>
-<span class="fc" id="L632">        queryConstraint.clear();</span>
-<span class="fc" id="L633">        queryConstraint.setNowInNs(timer.nanoTime());</span>
-<span class="fc" id="L634">        queryConstraint.setNetworkStatus(networkStatus);</span>
-<span class="fc" id="L635">        queryConstraint.setExcludeGroups(runningJobGroups);</span>
-<span class="fc" id="L636">        queryConstraint.setExcludeRunning(true);</span>
-<span class="fc" id="L637">        queryConstraint.setTimeLimit(timer.nanoTime());</span>
-<span class="fc" id="L638">        jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);</span>
-<span class="fc" id="L639">        JqLog.v(&quot;non persistent result %s&quot;, jobHolder);</span>
-<span class="fc bfc" id="L640" title="All 2 branches covered.">        if (jobHolder == null) {</span>
-            //go to disk, there aren't any non-persistent jobs
-<span class="fc" id="L642">            jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);</span>
-<span class="fc" id="L643">            persistent = true;</span>
-<span class="fc" id="L644">            JqLog.v(&quot;persistent result %s&quot;, jobHolder);</span>
-        }
-<span class="fc bfc" id="L646" title="All 2 branches covered.">        if(jobHolder == null) {</span>
-<span class="fc" id="L647">            return null;</span>
-        }
-<span class="fc bfc" id="L649" title="All 4 branches covered.">        if(persistent &amp;&amp; dependencyInjector != null) {</span>
-<span class="fc" id="L650">            dependencyInjector.inject(jobHolder.getJob());</span>
-        }
-<span class="fc" id="L652">        jobHolder.setApplicationContext(appContext);</span>
-<span class="fc" id="L653">        return jobHolder;</span>
+<span class="fc" id="L636">        JobHolder jobHolder = null;</span>
+<span class="fc bfc" id="L637" title="All 2 branches covered.">        while (jobHolder == null) {</span>
+<span class="fc" id="L638">            final int networkStatus = getNetworkStatus();</span>
+<span class="fc" id="L639">            boolean persistent = false;</span>
+<span class="fc" id="L640">            JqLog.v(&quot;looking for next job&quot;);</span>
+<span class="fc" id="L641">            queryConstraint.clear();</span>
+<span class="fc" id="L642">            long now = timer.nanoTime();</span>
+<span class="fc" id="L643">            queryConstraint.setNowInNs(now);</span>
+<span class="fc" id="L644">            queryConstraint.setMaxNetworkType(networkStatus);</span>
+<span class="fc" id="L645">            queryConstraint.setExcludeGroups(runningJobGroups);</span>
+<span class="fc" id="L646">            queryConstraint.setExcludeRunning(true);</span>
+<span class="fc" id="L647">            queryConstraint.setTimeLimit(now);</span>
+<span class="fc" id="L648">            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);</span>
+<span class="fc" id="L649">            JqLog.v(&quot;non persistent result %s&quot;, jobHolder);</span>
+<span class="fc bfc" id="L650" title="All 2 branches covered.">            if (jobHolder == null) {</span>
+                //go to disk, there aren't any non-persistent jobs
+<span class="fc" id="L652">                jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);</span>
+<span class="fc" id="L653">                persistent = true;</span>
+<span class="fc" id="L654">                JqLog.v(&quot;persistent result %s&quot;, jobHolder);</span>
+            }
+<span class="fc bfc" id="L656" title="All 2 branches covered.">            if (jobHolder == null) {</span>
+<span class="fc" id="L657">                return null;</span>
+            }
+<span class="fc bfc" id="L659" title="All 4 branches covered.">            if (persistent &amp;&amp; dependencyInjector != null) {</span>
+<span class="fc" id="L660">                dependencyInjector.inject(jobHolder.getJob());</span>
+            }
+<span class="fc" id="L662">            jobHolder.setApplicationContext(appContext);</span>
+<span class="fc bfc" id="L663" title="All 2 branches covered.">            jobHolder.setDeadlineIsReached(jobHolder.getDeadlineNs() &lt;= now);</span>
+<span class="fc bfc" id="L664" title="All 2 branches covered.">            if (jobHolder.getDeadlineNs() &lt;= now</span>
+<span class="fc bfc" id="L665" title="All 2 branches covered.">                    &amp;&amp; jobHolder.shouldCancelOnDeadline()) {</span>
+<span class="fc" id="L666">                cancelSafely(jobHolder, CancelReason.REACHED_DEADLINE);</span>
+<span class="fc" id="L667">                removeJob(jobHolder);</span>
+<span class="fc" id="L668">                jobHolder = null;</span>
+            }
+<span class="fc" id="L670">        }</span>
+<span class="fc" id="L671">        return jobHolder;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

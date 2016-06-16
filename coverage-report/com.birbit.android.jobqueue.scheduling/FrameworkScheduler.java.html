@@ -102,70 +102,73 @@ class FrameworkScheduler extends Scheduler {
 <span class="nc" id="L102">                builder.setRequiresDeviceIdle(true);</span>
                 break;
         }
-<span class="nc" id="L105">        int scheduled = jobScheduler.schedule(builder.build());</span>
-<span class="nc bnc" id="L106" title="All 2 branches missed.">        JqLog.d(&quot;[FW Scheduler] scheduled a framework job. Success? %s id: %d&quot; +</span>
-<span class="nc" id="L107">                &quot; created id: %d&quot;, scheduled &gt; 0, scheduled, id);</span>
-<span class="nc" id="L108">    }</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        if (constraint.getOverrideDeadlineInMs() != null) {</span>
+<span class="nc" id="L106">            builder.setOverrideDeadline(constraint.getOverrideDeadlineInMs());</span>
+        }
+<span class="nc" id="L108">        int scheduled = jobScheduler.schedule(builder.build());</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        JqLog.d(&quot;[FW Scheduler] scheduled a framework job. Success? %s id: %d&quot; +</span>
+<span class="nc" id="L110">                &quot; created id: %d&quot;, scheduled &gt; 0, scheduled, id);</span>
+<span class="nc" id="L111">    }</span>
 
     @Override
     public void onFinished(SchedulerConstraint constraint, boolean reschedule) {
-<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L113">            JqLog.d(&quot;[FW Scheduler] on finished job %s. reschedule:%s&quot;, constraint, reschedule);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L116">            JqLog.d(&quot;[FW Scheduler] on finished job %s. reschedule:%s&quot;, constraint, reschedule);</span>
         }
-<span class="nc" id="L115">        JobService service = this.jobService;</span>
-<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (service == null) {</span>
-<span class="nc" id="L117">            JqLog.e(&quot;[FW Scheduler] scheduler onfinished is called but i don't have a job service&quot;);</span>
-<span class="nc" id="L118">            return;</span>
-        }
-
-<span class="nc" id="L121">        Object data = constraint.getData();</span>
-<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (data instanceof JobParameters) {</span>
-<span class="nc" id="L123">            JobParameters params = (JobParameters) data;</span>
-<span class="nc" id="L124">            service.jobFinished(params, reschedule);</span>
-<span class="nc" id="L125">        } else {</span>
-<span class="nc" id="L126">            JqLog.e(&quot;[FW Scheduler] cannot obtain the job parameters&quot;);</span>
+<span class="nc" id="L118">        JobService service = this.jobService;</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (service == null) {</span>
+<span class="nc" id="L120">            JqLog.e(&quot;[FW Scheduler] scheduler onfinished is called but i don't have a job service&quot;);</span>
+<span class="nc" id="L121">            return;</span>
         }
 
-<span class="nc" id="L129">    }</span>
+<span class="nc" id="L124">        Object data = constraint.getData();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (data instanceof JobParameters) {</span>
+<span class="nc" id="L126">            JobParameters params = (JobParameters) data;</span>
+<span class="nc" id="L127">            service.jobFinished(params, reschedule);</span>
+<span class="nc" id="L128">        } else {</span>
+<span class="nc" id="L129">            JqLog.e(&quot;[FW Scheduler] cannot obtain the job parameters&quot;);</span>
+        }
+
+<span class="nc" id="L132">    }</span>
 
     @Override
     public void cancelAll() {
-<span class="nc" id="L133">        JqLog.d(&quot;[FW Scheduler] cancel all&quot;);</span>
-<span class="nc" id="L134">        getJobScheduler().cancelAll();</span>
-<span class="nc" id="L135">    }</span>
+<span class="nc" id="L136">        JqLog.d(&quot;[FW Scheduler] cancel all&quot;);</span>
+<span class="nc" id="L137">        getJobScheduler().cancelAll();</span>
+<span class="nc" id="L138">    }</span>
 
     private static PersistableBundle toPersistentBundle(SchedulerConstraint constraint) {
-<span class="nc" id="L138">        PersistableBundle bundle = new PersistableBundle();</span>
+<span class="nc" id="L141">        PersistableBundle bundle = new PersistableBundle();</span>
         // put boolean is api 22
-<span class="nc" id="L140">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
-<span class="nc" id="L141">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
-<span class="nc" id="L142">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
-<span class="nc" id="L143">        return bundle;</span>
+<span class="nc" id="L143">        bundle.putString(KEY_UUID, constraint.getUuid());</span>
+<span class="nc" id="L144">        bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());</span>
+<span class="nc" id="L145">        bundle.putLong(KEY_DELAY, constraint.getDelayInMs());</span>
+<span class="nc" id="L146">        return bundle;</span>
     }
 
     private static SchedulerConstraint fromBundle(PersistableBundle bundle) {
-<span class="nc" id="L147">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
-<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
+<span class="nc" id="L150">        SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (constraint.getUuid() == null) {</span>
             // backward compatibility
-<span class="nc" id="L150">            constraint.setUuid(UUID.randomUUID().toString());</span>
+<span class="nc" id="L153">            constraint.setUuid(UUID.randomUUID().toString());</span>
         }
-<span class="nc" id="L152">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
-<span class="nc" id="L153">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
-<span class="nc" id="L154">        return constraint;</span>
+<span class="nc" id="L155">        constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));</span>
+<span class="nc" id="L156">        constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));</span>
+<span class="nc" id="L157">        return constraint;</span>
     }
 
     boolean onStartJob(JobParameters params) {
-<span class="nc" id="L158">        SchedulerConstraint constraint = fromBundle(params.getExtras());</span>
-<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
-<span class="nc" id="L160">            JqLog.d(&quot;[FW Scheduler] start job %s %d&quot;, constraint, params.getJobId());</span>
+<span class="nc" id="L161">        SchedulerConstraint constraint = fromBundle(params.getExtras());</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        if (JqLog.isDebugEnabled()) {</span>
+<span class="nc" id="L163">            JqLog.d(&quot;[FW Scheduler] start job %s %d&quot;, constraint, params.getJobId());</span>
         }
-<span class="nc" id="L162">        constraint.setData(params);</span>
-<span class="nc" id="L163">        return start(constraint);</span>
+<span class="nc" id="L165">        constraint.setData(params);</span>
+<span class="nc" id="L166">        return start(constraint);</span>
     }
 
     boolean onStopJob(JobParameters params) {
-<span class="nc" id="L167">        SchedulerConstraint constraint = fromBundle(params.getExtras());</span>
-<span class="nc" id="L168">        return stop(constraint);</span>
+<span class="nc" id="L170">        SchedulerConstraint constraint = fromBundle(params.getExtras());</span>
+<span class="nc" id="L171">        return stop(constraint);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

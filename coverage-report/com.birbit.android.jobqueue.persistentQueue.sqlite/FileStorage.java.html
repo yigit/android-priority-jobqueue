@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>FileStorage.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue.persistentQueue.sqlite</a> &gt; <span class="el_source">FileStorage.java</span></div><h1>FileStorage.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue.persistentQueue.sqlite;
+
+
+import android.content.Context;
+import android.support.annotation.Nullable;
+
+import com.birbit.android.jobqueue.log.JqLog;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.Set;
+
+import okio.BufferedSink;
+import okio.BufferedSource;
+import okio.Okio;
+
+/**
+ * Provides a toFile based storage to keep jobs.
+ * This class is NOT thread safe and re-uses Buffers
+ */
+class FileStorage {
+    private static final String EXT = &quot;.jobs&quot;;
+    private final File folder;
+<span class="fc" id="L25">    FileStorage(Context appContext, String id) {</span>
+<span class="fc" id="L26">        this.folder = new File(appContext.getDir(&quot;com_birbit_jobqueue_jobs&quot;, Context.MODE_PRIVATE),</span>
+                &quot;files_&quot; + id);
+        //noinspection ResultOfMethodCallIgnored
+<span class="fc" id="L29">        this.folder.mkdirs();</span>
+<span class="fc" id="L30">    }</span>
+
+    void delete(String id) {
+<span class="fc" id="L33">        final File file = toFile(id);</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (file.exists()) {</span>
+            //noinspection ResultOfMethodCallIgnored
+<span class="fc" id="L36">            file.delete();</span>
+        }
+<span class="fc" id="L38">    }</span>
+
+    @Nullable
+    byte[] load(String id) throws IOException {
+<span class="fc" id="L42">        final File file = toFile(id);</span>
+<span class="pc bpc" id="L43" title="2 of 4 branches missed.">        if (file.exists() &amp;&amp; file.canRead()) {</span>
+<span class="fc" id="L44">            BufferedSource source = Okio.buffer(Okio.source(file));</span>
+            try {
+<span class="fc" id="L46">                return source.readByteArray();</span>
+            } finally {
+<span class="pc" id="L48">                closeQuitely(source);</span>
+            }
+
+        }
+<span class="nc" id="L52">        return null;</span>
+    }
+
+    void save(String id, byte[] data) throws IOException {
+<span class="fc" id="L56">        final File file = toFile(id);</span>
+<span class="fc" id="L57">        BufferedSink sink = Okio.buffer(Okio.sink(file));</span>
+        try {
+<span class="fc" id="L59">            sink.write(data).flush();</span>
+        } finally {
+<span class="pc" id="L61">            closeQuitely(sink);</span>
+<span class="fc" id="L62">        }</span>
+<span class="fc" id="L63">    }</span>
+
+    private static String filename(String id) {
+<span class="fc" id="L66">        return id + EXT;</span>
+    }
+
+    private File toFile(String id) {
+<span class="fc" id="L70">        return new File(folder, filename(id));</span>
+    }
+
+    @Nullable
+    private static String filenameToId(String filename) {
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">        if (filename.length() &lt; EXT.length() + 1) {</span>
+<span class="nc" id="L76">            return null;</span>
+        }
+<span class="fc" id="L78">        return filename.substring(0, filename.length() - EXT.length());</span>
+    }
+
+    void truncateExcept(Set&lt;String&gt; ids) {
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (String filename : folder.list()) {</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">            if (!filename.endsWith(EXT)) {</span>
+<span class="nc" id="L84">                continue;</span>
+            }
+<span class="fc" id="L86">            String id = filenameToId(filename);</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">            if (!ids.contains(id)) {</span>
+<span class="fc" id="L88">                File file = new File(folder, filename);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">                if (!file.delete()) {</span>
+<span class="nc" id="L90">                    JqLog.d(&quot;cannot delete unused job toFile &quot; + file.getAbsolutePath());</span>
+                }
+            }
+        }
+<span class="fc" id="L94">    }</span>
+
+    private static void closeQuitely(Closeable closeable) {
+        try {
+<span class="fc" id="L98">            closeable.close();</span>
+<span class="nc" id="L99">        } catch (IOException ignored) {</span>
+<span class="fc" id="L100">        }</span>
+<span class="fc" id="L101">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>Constraint.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">Constraint.java</span></div><h1>Constraint.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
 
-import com.birbit.android.jobqueue.TagConstraint;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
@@ -10,41 +9,28 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.birbit.android.jobqueue.network.NetworkUtil.DISCONNECTED;
-import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
-
 /**
  * This class is used when querying JobQueues to fetch particular jobs.
  * &lt;p&gt;
  * JobQueues should not reference this class after the query method returns because Constraints are
  * re-used by the JobManager.
  */
-<span class="fc" id="L22">public class Constraint {</span>
-    private boolean shouldNotRequireNetwork;
-    private boolean shouldNotRequireUnmeteredNetwork;
+<span class="fc" id="L18">public class Constraint {</span>
+    @NetworkUtil.NetworkStatus private int maxNetworkType;
     private TagConstraint tagConstraint;
-<span class="fc" id="L26">    private final Set&lt;String&gt; tags = new HashSet&lt;&gt;();</span>
-<span class="fc" id="L27">    private final List&lt;String&gt; excludeGroups = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L28">    private final List&lt;String&gt; excludeJobIds = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L21">    private final Set&lt;String&gt; tags = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L22">    private final List&lt;String&gt; excludeGroups = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L23">    private final List&lt;String&gt; excludeJobIds = new ArrayList&lt;&gt;();</span>
     private boolean excludeRunning;
     private Long timeLimit;
     private long nowInNs;
-    /**
-     * Returns true if the network is currently not available.
-     *
-     * @return True if network connection is currently unavailable, false otherwise.
-     */
-    public boolean shouldNotRequireNetwork() {
-<span class="fc" id="L38">        return shouldNotRequireNetwork;</span>
-    }
 
     /**
-     * Returns true if the unmetered network is currently not available.
-     *
-     * @return True if the unmetered network connection is currently unavailable, false otherwise.
+     * Returns the max allowed network type
+     * @return The max allowed network type for a job to match
      */
-    public boolean shouldNotRequireUnmeteredNetwork() {
-<span class="fc" id="L47">        return shouldNotRequireUnmeteredNetwork;</span>
+    public int getMaxNetworkType() {
+<span class="fc" id="L33">        return maxNetworkType;</span>
     }
 
     /**
@@ -54,7 +40,7 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
      * @see #getTags()
      */
     public TagConstraint getTagConstraint() {
-<span class="fc" id="L57">        return tagConstraint;</span>
+<span class="fc" id="L43">        return tagConstraint;</span>
     }
 
     /**
@@ -65,7 +51,7 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
      * @see #getTagConstraint()
      */
     public Set&lt;String&gt; getTags() {
-<span class="fc" id="L68">        return tags;</span>
+<span class="fc" id="L54">        return tags;</span>
     }
 
     /**
@@ -75,7 +61,7 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
      * @return The set of job groups to exclude.
      */
     public List&lt;String&gt; getExcludeGroups() {
-<span class="fc" id="L78">        return excludeGroups;</span>
+<span class="fc" id="L64">        return excludeGroups;</span>
     }
 
     /**
@@ -83,7 +69,7 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
      * @return True if running jobs should be excluded
      */
     public boolean excludeRunning() {
-<span class="fc" id="L86">        return excludeRunning;</span>
+<span class="fc" id="L72">        return excludeRunning;</span>
     }
 
     /**
@@ -91,7 +77,7 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
      * @return Time in NS which should be used to filter out delayed jobs
      */
     public Long getTimeLimit() {
-<span class="fc" id="L94">        return timeLimit;</span>
+<span class="fc" id="L80">        return timeLimit;</span>
     }
 
     /**
@@ -99,73 +85,63 @@ import static com.birbit.android.jobqueue.network.NetworkUtil.UNMETERED;
      * @return The list of job ids that should be excluded from the result
      */
     public List&lt;String&gt; getExcludeJobIds() {
-<span class="fc" id="L102">        return excludeJobIds;</span>
+<span class="fc" id="L88">        return excludeJobIds;</span>
     }
 
-    void setShouldNotRequireNetwork(boolean shouldNotRequireNetwork) {
-<span class="fc" id="L106">        this.shouldNotRequireNetwork = shouldNotRequireNetwork;</span>
-<span class="fc" id="L107">    }</span>
-
-    void setShouldNotRequireUnmeteredNetwork(boolean shouldNotRequireUnmeteredNetwork) {
-<span class="fc" id="L110">        this.shouldNotRequireUnmeteredNetwork = shouldNotRequireUnmeteredNetwork;</span>
-<span class="fc" id="L111">    }</span>
+    void setMaxNetworkType(int maxNetworkType) {
+<span class="fc" id="L92">        this.maxNetworkType = maxNetworkType;</span>
+<span class="fc" id="L93">    }</span>
 
     void setTagConstraint(TagConstraint tagConstraint) {
-<span class="fc" id="L114">        this.tagConstraint = tagConstraint;</span>
-<span class="fc" id="L115">    }</span>
+<span class="fc" id="L96">        this.tagConstraint = tagConstraint;</span>
+<span class="fc" id="L97">    }</span>
 
     void setExcludeRunning(boolean excludeRunning) {
-<span class="fc" id="L118">        this.excludeRunning = excludeRunning;</span>
-<span class="fc" id="L119">    }</span>
+<span class="fc" id="L100">        this.excludeRunning = excludeRunning;</span>
+<span class="fc" id="L101">    }</span>
 
     void setTags(String[] tags) {
-<span class="fc" id="L122">        this.tags.clear();</span>
-<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if (tags != null) {</span>
-<span class="fc" id="L124">            Collections.addAll(this.tags, tags);</span>
+<span class="fc" id="L104">        this.tags.clear();</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (tags != null) {</span>
+<span class="fc" id="L106">            Collections.addAll(this.tags, tags);</span>
+        }
+<span class="fc" id="L108">    }</span>
+
+    public void setNowInNs(long nowInNs) {
+<span class="fc" id="L111">        this.nowInNs = nowInNs;</span>
+<span class="fc" id="L112">    }</span>
+
+    void setExcludeGroups(Collection&lt;String&gt; excludeGroups) {
+<span class="fc" id="L115">        this.excludeGroups.clear();</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        if (excludeGroups != null) {</span>
+<span class="fc" id="L117">            this.excludeGroups.addAll(excludeGroups);</span>
+        }
+<span class="fc" id="L119">    }</span>
+
+    void setExcludeJobIds(Collection&lt;String&gt; jobsIds) {
+<span class="fc" id="L122">        this.excludeJobIds.clear();</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if (jobsIds != null) {</span>
+<span class="fc" id="L124">            this.excludeJobIds.addAll(jobsIds);</span>
         }
 <span class="fc" id="L126">    }</span>
 
-    public void setNowInNs(long nowInNs) {
-<span class="fc" id="L129">        this.nowInNs = nowInNs;</span>
-<span class="fc" id="L130">    }</span>
-
-    void setExcludeGroups(Collection&lt;String&gt; excludeGroups) {
-<span class="fc" id="L133">        this.excludeGroups.clear();</span>
-<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (excludeGroups != null) {</span>
-<span class="fc" id="L135">            this.excludeGroups.addAll(excludeGroups);</span>
-        }
-<span class="fc" id="L137">    }</span>
-
-    void setExcludeJobIds(Collection&lt;String&gt; jobsIds) {
-<span class="fc" id="L140">        this.excludeJobIds.clear();</span>
-<span class="pc bpc" id="L141" title="1 of 2 branches missed.">        if (jobsIds != null) {</span>
-<span class="fc" id="L142">            this.excludeJobIds.addAll(jobsIds);</span>
-        }
-<span class="fc" id="L144">    }</span>
-
     public long getNowInNs() {
-<span class="fc" id="L147">        return nowInNs;</span>
+<span class="fc" id="L129">        return nowInNs;</span>
     }
 
     void setTimeLimit(Long timeLimit) {
-<span class="fc" id="L151">        this.timeLimit = timeLimit;</span>
-<span class="fc" id="L152">    }</span>
+<span class="fc" id="L133">        this.timeLimit = timeLimit;</span>
+<span class="fc" id="L134">    }</span>
 
     void clear() {
-<span class="fc" id="L155">        shouldNotRequireNetwork = false;</span>
-<span class="fc" id="L156">        shouldNotRequireUnmeteredNetwork = false;</span>
-<span class="fc" id="L157">        tagConstraint = null;</span>
-<span class="fc" id="L158">        tags.clear();</span>
-<span class="fc" id="L159">        excludeGroups.clear();</span>
-<span class="fc" id="L160">        excludeJobIds.clear();</span>
-<span class="fc" id="L161">        excludeRunning = false;</span>
-<span class="fc" id="L162">        timeLimit = null;</span>
-<span class="fc" id="L163">        nowInNs = Long.MIN_VALUE;</span>
-<span class="fc" id="L164">    }</span>
-
-    void setNetworkStatus(@NetworkUtil.NetworkStatus int connectionStatus) {
-<span class="fc bfc" id="L167" title="All 2 branches covered.">        setShouldNotRequireNetwork(connectionStatus == DISCONNECTED);</span>
-<span class="fc bfc" id="L168" title="All 2 branches covered.">        setShouldNotRequireUnmeteredNetwork(connectionStatus != UNMETERED);</span>
-<span class="fc" id="L169">    }</span>
+<span class="fc" id="L137">        maxNetworkType = NetworkUtil.UNMETERED;</span>
+<span class="fc" id="L138">        tagConstraint = null;</span>
+<span class="fc" id="L139">        tags.clear();</span>
+<span class="fc" id="L140">        excludeGroups.clear();</span>
+<span class="fc" id="L141">        excludeJobIds.clear();</span>
+<span class="fc" id="L142">        excludeRunning = false;</span>
+<span class="fc" id="L143">        timeLimit = null;</span>
+<span class="fc" id="L144">        nowInNs = Long.MIN_VALUE;</span>
+<span class="fc" id="L145">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>

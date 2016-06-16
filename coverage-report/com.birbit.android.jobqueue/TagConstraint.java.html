@@ -7,7 +7,7 @@ import java.util.Set;
 <span class="fc" id="L7">    ALL,</span>
 <span class="fc" id="L8">    ANY;</span>
     public boolean matches(String[] constraintTags, Set&lt;String&gt; jobTags) {
-<span class="pc bpc" id="L10" title="1 of 2 branches missed.">        if (this == TagConstraint.ANY) {</span>
+<span class="fc bfc" id="L10" title="All 2 branches covered.">        if (this == TagConstraint.ANY) {</span>
 <span class="pc bpc" id="L11" title="1 of 2 branches missed.">            for (String tag : constraintTags) {</span>
 <span class="pc bpc" id="L12" title="1 of 2 branches missed.">                if (jobTags.contains(tag)) {</span>
 <span class="fc" id="L13">                    return true;</span>
@@ -15,12 +15,12 @@ import java.util.Set;
             }
 <span class="nc" id="L16">            return false;</span>
         } else {
-<span class="nc bnc" id="L18" title="All 2 branches missed.">            for (String tag : constraintTags) {</span>
-<span class="nc bnc" id="L19" title="All 2 branches missed.">                if (!jobTags.contains(tag)) {</span>
+<span class="fc bfc" id="L18" title="All 2 branches covered.">            for (String tag : constraintTags) {</span>
+<span class="pc bpc" id="L19" title="1 of 2 branches missed.">                if (!jobTags.contains(tag)) {</span>
 <span class="nc" id="L20">                    return false;</span>
                 }
             }
-<span class="nc" id="L23">            return true;</span>
+<span class="fc" id="L23">            return true;</span>
         }
     }
 

@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Helper class for {@link SqliteJobQueue} to handle database connection
  */
 public class DbOpenHelper extends SQLiteOpenHelper {
-    private static final int DB_VERSION = 8;
+    private static final int DB_VERSION = 11;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = &quot;job_holder&quot;;
     /*package*/ static final String JOB_TAGS_TABLE_NAME = &quot;job_holder_tags&quot;;
 <span class="fc" id="L14">    /*package*/ static final SqlHelper.Property INSERTION_ORDER_COLUMN = new SqlHelper.Property(&quot;insertionOrder&quot;, &quot;integer&quot;, 0);</span>
@@ -16,12 +16,12 @@ public class DbOpenHelper extends SQLiteOpenHelper {
 <span class="fc" id="L16">    /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property(&quot;priority&quot;, &quot;integer&quot;, 2);</span>
 <span class="fc" id="L17">    /*package*/ static final SqlHelper.Property GROUP_ID_COLUMN = new SqlHelper.Property(&quot;group_id&quot;, &quot;text&quot;, 3);</span>
 <span class="fc" id="L18">    /*package*/ static final SqlHelper.Property RUN_COUNT_COLUMN = new SqlHelper.Property(&quot;run_count&quot;, &quot;integer&quot;, 4);</span>
-<span class="fc" id="L19">    /*package*/ static final SqlHelper.Property BASE_JOB_COLUMN = new SqlHelper.Property(&quot;base_job&quot;, &quot;byte&quot;, 5);</span>
-<span class="fc" id="L20">    /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property(&quot;created_ns&quot;, &quot;long&quot;, 6);</span>
-<span class="fc" id="L21">    /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property(&quot;delay_until_ns&quot;, &quot;long&quot;, 7);</span>
-<span class="fc" id="L22">    /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property(&quot;running_session_id&quot;, &quot;long&quot;, 8);</span>
-<span class="fc" id="L23">    /*package*/ static final SqlHelper.Property REQUIRES_NETWORK_UNTIL_COLUMN = new SqlHelper.Property(&quot;requires_network_until&quot;, &quot;integer&quot;, 9);</span>
-<span class="fc" id="L24">    /*package*/ static final SqlHelper.Property REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN = new SqlHelper.Property(&quot;requires_unmetered_network_until&quot;, &quot;integer&quot;, 10);</span>
+<span class="fc" id="L19">    /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property(&quot;created_ns&quot;, &quot;long&quot;, 5);</span>
+<span class="fc" id="L20">    /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property(&quot;delay_until_ns&quot;, &quot;long&quot;, 6);</span>
+<span class="fc" id="L21">    /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property(&quot;running_session_id&quot;, &quot;long&quot;, 7);</span>
+<span class="fc" id="L22">    /*package*/ static final SqlHelper.Property REQUIRED_NETWORK_TYPE_OLUMN = new SqlHelper.Property(&quot;network_type&quot;, &quot;integer&quot;, 8);</span>
+<span class="fc" id="L23">    /*package*/ static final SqlHelper.Property DEADLINE_COLUMN = new SqlHelper.Property(&quot;deadline&quot;, &quot;integer&quot;, 9);</span>
+<span class="fc" id="L24">    /*package*/ static final SqlHelper.Property CANCEL_ON_DEADLINE_COLUMN = new SqlHelper.Property(&quot;cancel_on_deadline&quot;, &quot;integer&quot;, 10);</span>
 
 <span class="fc" id="L26">    /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property(&quot;_id&quot;, &quot;integer&quot;, 0);</span>
 <span class="fc" id="L27">    /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property(&quot;job_id&quot;, &quot;text&quot;, 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));</span>
@@ -46,12 +46,12 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 PRIORITY_COLUMN,
                 GROUP_ID_COLUMN,
                 RUN_COUNT_COLUMN,
-                BASE_JOB_COLUMN,
                 CREATED_NS_COLUMN,
                 DELAY_UNTIL_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN,
-                REQUIRES_NETWORK_UNTIL_COLUMN,
-                REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN
+                REQUIRED_NETWORK_TYPE_OLUMN,
+                DEADLINE_COLUMN,
+                CANCEL_ON_DEADLINE_COLUMN
         );
 <span class="fc" id="L56">        sqLiteDatabase.execSQL(createQuery);</span>
 

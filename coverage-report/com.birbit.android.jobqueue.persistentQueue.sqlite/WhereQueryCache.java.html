@@ -13,9 +13,7 @@ import java.util.Collection;
 class WhereQueryCache {
     private static final int INT_SIZE = 6;
     private static final int BOOL_SIZE = 1;
-    private static final int NETWORK = 0;
-    private static final int UNMETERED_NETWORK = NETWORK + BOOL_SIZE;
-    private static final int TAG_TYPE = UNMETERED_NETWORK + BOOL_SIZE;
+    private static final int TAG_TYPE = 0;
     private static final int TAG_COUNT = TAG_TYPE + BOOL_SIZE + BOOL_SIZE;
     private static final int GROUP_COUNT = TAG_COUNT + INT_SIZE;
     private static final int JOB_COUNT = GROUP_COUNT + INT_SIZE;
@@ -24,194 +22,186 @@ class WhereQueryCache {
     private static final int PENDING_CANCELLATIONS = TIME_LIMIT + BOOL_SIZE;
     private static final int INT_LIMIT = 1 &lt;&lt; INT_SIZE;
 
+    static final int DEADLINE_COLUMN_INDEX = 1;
+    static final int NETWORK_TYPE_COLUMN_INDEX = 2;
+
     // TODO implement some query cacheable check for queries that have way too many parameters
-<span class="fc" id="L28">    private final LruCache&lt;Long, Where&gt; queryCache = new LruCache&lt;Long, Where&gt;(15) {</span>
+<span class="fc" id="L29">    private final LruCache&lt;Long, Where&gt; queryCache = new LruCache&lt;Long, Where&gt;(15) {</span>
         @Override
         protected void entryRemoved(boolean evicted, Long key, Where oldValue, Where newValue) {
-<span class="nc" id="L31">            oldValue.destroy();</span>
-<span class="nc" id="L32">        }</span>
+<span class="nc" id="L32">            oldValue.destroy();</span>
+<span class="nc" id="L33">        }</span>
     };
 
     private final String sessionId;
 
-<span class="fc" id="L37">    public WhereQueryCache(long sessionId) {</span>
-<span class="fc" id="L38">        this.sessionId = Long.toString(sessionId);</span>
-<span class="fc" id="L39">    }</span>
+<span class="fc" id="L38">    public WhereQueryCache(long sessionId) {</span>
+<span class="fc" id="L39">        this.sessionId = Long.toString(sessionId);</span>
+<span class="fc" id="L40">    }</span>
 
     public Where build(Constraint constraint, Collection&lt;String&gt; pendingCancellations,
             StringBuilder stringBuilder) {
-<span class="fc" id="L43">        final boolean cacheable = isCacheable(constraint);</span>
-<span class="fc" id="L44">        final long cacheKey = cacheKey(constraint, pendingCancellations);</span>
-<span class="pc bpc" id="L45" title="1 of 2 branches missed.">        Where where = cacheable ? queryCache.get(cacheKey) : null;</span>
-<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (where == null) {</span>
+<span class="fc" id="L44">        final boolean cacheable = isCacheable(constraint);</span>
+<span class="fc" id="L45">        final long cacheKey = cacheKey(constraint, pendingCancellations);</span>
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">        Where where = cacheable ? queryCache.get(cacheKey) : null;</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (where == null) {</span>
             // build it
-<span class="fc" id="L48">            where = createWhere(cacheKey, constraint, pendingCancellations, stringBuilder);</span>
-<span class="pc bpc" id="L49" title="1 of 2 branches missed.">            if (cacheable) {</span>
-<span class="fc" id="L50">                queryCache.put(cacheKey, where);</span>
+<span class="fc" id="L49">            where = createWhere(cacheKey, constraint, pendingCancellations, stringBuilder);</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">            if (cacheable) {</span>
+<span class="fc" id="L51">                queryCache.put(cacheKey, where);</span>
             }
         }
-<span class="fc" id="L53">        fillWhere(constraint, where, pendingCancellations);</span>
-<span class="fc" id="L54">        return where;</span>
+<span class="fc" id="L54">        fillWhere(constraint, where, pendingCancellations);</span>
+<span class="fc" id="L55">        return where;</span>
     }
 
     private void fillWhere(Constraint constraint, Where where,
             Collection&lt;String&gt; pendingCancellations) {
-<span class="fc" id="L59">        int count = 0;</span>
-<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (constraint.shouldNotRequireNetwork()) {</span>
-<span class="fc" id="L61">            where.args[count++] = Long.toString(constraint.getNowInNs());</span>
+<span class="fc" id="L60">        int count = 0;</span>
+<span class="fc" id="L61">        where.args[count++] = Long.toString(constraint.getNowInNs());</span>
+<span class="fc" id="L62">        where.args[count++] = Integer.toString(constraint.getMaxNetworkType());</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (constraint.getTimeLimit() != null) {</span>
+<span class="fc" id="L64">            where.args[count++] = Long.toString(constraint.getTimeLimit());</span>
         }
-<span class="fc bfc" id="L63" title="All 2 branches covered.">        if (constraint.shouldNotRequireUnmeteredNetwork()) {</span>
-<span class="fc" id="L64">            where.args[count++] = Long.toString(constraint.getNowInNs());</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (constraint.getTagConstraint() != null) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">            for (String tag : constraint.getTags()) {</span>
+<span class="fc" id="L68">                where.args[count++] = tag;</span>
+<span class="fc" id="L69">            }</span>
         }
-<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (constraint.getTimeLimit() != null) {</span>
-<span class="fc" id="L67">            where.args[count++] = Long.toString(constraint.getTimeLimit());</span>
-        }
-<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (constraint.getTagConstraint() != null) {</span>
-<span class="fc bfc" id="L70" title="All 2 branches covered.">            for (String tag : constraint.getTags()) {</span>
-<span class="fc" id="L71">                where.args[count++] = tag;</span>
-<span class="fc" id="L72">            }</span>
-        }
-<span class="fc bfc" id="L74" title="All 2 branches covered.">        for (String group : constraint.getExcludeGroups()) {</span>
-<span class="fc" id="L75">            where.args[count++] = group;</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        for (String group : constraint.getExcludeGroups()) {</span>
+<span class="fc" id="L72">            where.args[count++] = group;</span>
+<span class="fc" id="L73">        }</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        for (String jobId : constraint.getExcludeJobIds()) {</span>
+<span class="fc" id="L75">            where.args[count++] = jobId;</span>
 <span class="fc" id="L76">        }</span>
-<span class="fc bfc" id="L77" title="All 2 branches covered.">        for (String jobId : constraint.getExcludeJobIds()) {</span>
-<span class="fc" id="L78">            where.args[count++] = jobId;</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        for (String cancelled : pendingCancellations) {</span>
+<span class="fc" id="L78">            where.args[count++] = cancelled;</span>
 <span class="fc" id="L79">        }</span>
-<span class="fc bfc" id="L80" title="All 2 branches covered.">        for (String cancelled : pendingCancellations) {</span>
-<span class="fc" id="L81">            where.args[count++] = cancelled;</span>
-<span class="fc" id="L82">        }</span>
-<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (constraint.excludeRunning()) {</span>
-<span class="fc" id="L84">            where.args[count++] = sessionId;</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">        if (constraint.excludeRunning()) {</span>
+<span class="fc" id="L81">            where.args[count++] = sessionId;</span>
         }
-<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (count != where.args.length) {</span>
-<span class="nc" id="L87">            throw new IllegalStateException(&quot;something is wrong with where query cache for &quot;</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (count != where.args.length) {</span>
+<span class="nc" id="L84">            throw new IllegalStateException(&quot;something is wrong with where query cache for &quot;</span>
                     + where.query);
         }
-<span class="fc" id="L90">    }</span>
+<span class="fc" id="L87">    }</span>
 
     private Where createWhere(long cacheKey, Constraint constraint,
             Collection&lt;String&gt; pendingCancellations, StringBuilder reusedStringBuilder) {
-<span class="fc" id="L94">        reusedStringBuilder.setLength(0);</span>
-<span class="fc" id="L95">        int argCount = 0;</span>
-<span class="fc" id="L96">        reusedStringBuilder.append(&quot;1&quot;);</span>
-<span class="fc" id="L97">        int networkTimeoutArgIndex = -1;</span>
-<span class="fc" id="L98">        int unmeteredTimeoutArgIndex = -1;</span>
-<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (constraint.shouldNotRequireNetwork()) {</span>
-<span class="fc" id="L100">            reusedStringBuilder</span>
-<span class="fc" id="L101">                    .append(&quot; AND &quot;)</span>
-<span class="fc" id="L102">                    .append(DbOpenHelper.REQUIRES_NETWORK_UNTIL_COLUMN.columnName)</span>
-<span class="fc" id="L103">                    .append(&quot; &lt;= ?&quot;);</span>
-<span class="fc" id="L104">            networkTimeoutArgIndex = argCount;</span>
-<span class="fc" id="L105">            argCount++;</span>
-        }
-<span class="fc bfc" id="L107" title="All 2 branches covered.">        if (constraint.shouldNotRequireUnmeteredNetwork()) {</span>
-<span class="fc" id="L108">            reusedStringBuilder</span>
-<span class="fc" id="L109">                    .append(&quot; AND &quot;)</span>
-<span class="fc" id="L110">                    .append(DbOpenHelper.REQUIRES_UNMETERED_NETWORK_UNTIL_COLUMN.columnName)</span>
-<span class="fc" id="L111">                    .append(&quot; &lt;= ?&quot;);</span>
-<span class="fc" id="L112">            unmeteredTimeoutArgIndex = argCount;</span>
+<span class="fc" id="L91">        reusedStringBuilder.setLength(0);</span>
+<span class="fc" id="L92">        int argCount = 0;</span>
+
+<span class="fc" id="L94">        reusedStringBuilder</span>
+<span class="fc" id="L95">                .append(&quot;( (&quot;)</span>
+                // deadline 4ever check is necessary to filter these from next job queries
+<span class="fc" id="L97">                .append(DbOpenHelper.DEADLINE_COLUMN.columnName)</span>
+<span class="fc" id="L98">                .append(&quot; != &quot;).append(Where.FOREVER)</span>
+<span class="fc" id="L99">                .append(&quot; AND &quot;)</span>
+<span class="fc" id="L100">                .append(DbOpenHelper.DEADLINE_COLUMN.columnName)</span>
+<span class="fc" id="L101">                .append(&quot; &lt;= ?) OR &quot;);</span>
+<span class="fc" id="L102">        argCount ++;</span>
+
+<span class="fc" id="L104">        reusedStringBuilder</span>
+<span class="fc" id="L105">                .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnName)</span>
+<span class="fc" id="L106">                .append(&quot; &lt;= ?)&quot;);</span>
+<span class="fc" id="L107">        argCount++;</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (constraint.getTimeLimit() != null) {</span>
+<span class="fc" id="L109">            reusedStringBuilder</span>
+<span class="fc" id="L110">                    .append(&quot; AND &quot;)</span>
+<span class="fc" id="L111">                    .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName)</span>
+<span class="fc" id="L112">                    .append(&quot; &lt;= ?&quot;);</span>
 <span class="fc" id="L113">            argCount++;</span>
         }
-<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (constraint.getTimeLimit() != null) {</span>
-<span class="fc" id="L116">            reusedStringBuilder</span>
-<span class="fc" id="L117">                    .append(&quot; AND &quot;)</span>
-<span class="fc" id="L118">                    .append(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName)</span>
-<span class="fc" id="L119">                    .append(&quot; &lt;= ?&quot;);</span>
-<span class="fc" id="L120">            argCount++;</span>
-        }
-<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (constraint.getTagConstraint() != null) {</span>
-<span class="fc bfc" id="L123" title="All 2 branches covered.">            if (constraint.getTags().isEmpty()) {</span>
-<span class="fc" id="L124">                reusedStringBuilder.append(&quot; AND 0 &quot;);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (constraint.getTagConstraint() != null) {</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">            if (constraint.getTags().isEmpty()) {</span>
+<span class="fc" id="L117">                reusedStringBuilder.append(&quot; AND 0 &quot;);</span>
             } else {
-<span class="fc" id="L126">                reusedStringBuilder</span>
-<span class="fc" id="L127">                        .append(&quot; AND &quot;)</span>
-<span class="fc" id="L128">                        .append(DbOpenHelper.ID_COLUMN.columnName).append(&quot; IN ( SELECT &quot;)</span>
-<span class="fc" id="L129">                        .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(&quot; FROM &quot;)</span>
-<span class="fc" id="L130">                        .append(DbOpenHelper.JOB_TAGS_TABLE_NAME).append(&quot; WHERE &quot;)</span>
-<span class="fc" id="L131">                        .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(&quot; IN (&quot;);</span>
-<span class="fc" id="L132">                SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
-<span class="fc" id="L133">                        constraint.getTags().size());</span>
-<span class="fc" id="L134">                reusedStringBuilder.append(&quot;)&quot;);</span>
-<span class="fc bfc" id="L135" title="All 2 branches covered.">                if (constraint.getTagConstraint() == TagConstraint.ANY) {</span>
-<span class="fc" id="L136">                    reusedStringBuilder.append(&quot;)&quot;);</span>
-<span class="pc bpc" id="L137" title="1 of 2 branches missed.">                } else if (constraint.getTagConstraint() == TagConstraint.ALL) {</span>
-<span class="fc" id="L138">                    reusedStringBuilder.append(&quot; GROUP BY (`&quot;)</span>
-<span class="fc" id="L139">                            .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(&quot;`)&quot;)</span>
-<span class="fc" id="L140">                            .append(&quot; HAVING count(*) = &quot;)</span>
-<span class="fc" id="L141">                            .append(constraint.getTags().size()).append(&quot;)&quot;);</span>
+<span class="fc" id="L119">                reusedStringBuilder</span>
+<span class="fc" id="L120">                        .append(&quot; AND &quot;)</span>
+<span class="fc" id="L121">                        .append(DbOpenHelper.ID_COLUMN.columnName).append(&quot; IN ( SELECT &quot;)</span>
+<span class="fc" id="L122">                        .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(&quot; FROM &quot;)</span>
+<span class="fc" id="L123">                        .append(DbOpenHelper.JOB_TAGS_TABLE_NAME).append(&quot; WHERE &quot;)</span>
+<span class="fc" id="L124">                        .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName).append(&quot; IN (&quot;);</span>
+<span class="fc" id="L125">                SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
+<span class="fc" id="L126">                        constraint.getTags().size());</span>
+<span class="fc" id="L127">                reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">                if (constraint.getTagConstraint() == TagConstraint.ANY) {</span>
+<span class="fc" id="L129">                    reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">                } else if (constraint.getTagConstraint() == TagConstraint.ALL) {</span>
+<span class="fc" id="L131">                    reusedStringBuilder.append(&quot; GROUP BY (`&quot;)</span>
+<span class="fc" id="L132">                            .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName).append(&quot;`)&quot;)</span>
+<span class="fc" id="L133">                            .append(&quot; HAVING count(*) = &quot;)</span>
+<span class="fc" id="L134">                            .append(constraint.getTags().size()).append(&quot;)&quot;);</span>
                 } else {
                     // have this in place in case we change number of constraints
-<span class="nc" id="L144">                    throw new IllegalArgumentException(&quot;unknown constraint &quot; + constraint);</span>
+<span class="nc" id="L137">                    throw new IllegalArgumentException(&quot;unknown constraint &quot; + constraint);</span>
                 }
-<span class="fc" id="L146">                argCount += constraint.getTags().size();</span>
+<span class="fc" id="L139">                argCount += constraint.getTags().size();</span>
             }
         }
-<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!constraint.getExcludeGroups().isEmpty()) {</span>
-<span class="fc" id="L150">            reusedStringBuilder</span>
-<span class="fc" id="L151">                    .append(&quot; AND (&quot;)</span>
-<span class="fc" id="L152">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
-<span class="fc" id="L153">                    .append(&quot; IS NULL OR &quot;)</span>
-<span class="fc" id="L154">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
-<span class="fc" id="L155">                    .append(&quot; NOT IN(&quot;);</span>
-<span class="fc" id="L156">            SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
-<span class="fc" id="L157">                    constraint.getExcludeGroups().size());</span>
-<span class="fc" id="L158">            reusedStringBuilder.append(&quot;))&quot;);</span>
-<span class="fc" id="L159">            argCount += constraint.getExcludeGroups().size();</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (!constraint.getExcludeGroups().isEmpty()) {</span>
+<span class="fc" id="L143">            reusedStringBuilder</span>
+<span class="fc" id="L144">                    .append(&quot; AND (&quot;)</span>
+<span class="fc" id="L145">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L146">                    .append(&quot; IS NULL OR &quot;)</span>
+<span class="fc" id="L147">                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)</span>
+<span class="fc" id="L148">                    .append(&quot; NOT IN(&quot;);</span>
+<span class="fc" id="L149">            SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
+<span class="fc" id="L150">                    constraint.getExcludeGroups().size());</span>
+<span class="fc" id="L151">            reusedStringBuilder.append(&quot;))&quot;);</span>
+<span class="fc" id="L152">            argCount += constraint.getExcludeGroups().size();</span>
         }
-<span class="fc bfc" id="L161" title="All 2 branches covered.">        if (!constraint.getExcludeJobIds().isEmpty()) {</span>
-<span class="fc" id="L162">            reusedStringBuilder</span>
-<span class="fc" id="L163">                    .append(&quot; AND &quot;)</span>
-<span class="fc" id="L164">                    .append(DbOpenHelper.ID_COLUMN.columnName)</span>
-<span class="fc" id="L165">                    .append(&quot; NOT IN(&quot;);</span>
-<span class="fc" id="L166">            SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
-<span class="fc" id="L167">                    constraint.getExcludeJobIds().size());</span>
-<span class="fc" id="L168">            reusedStringBuilder.append(&quot;)&quot;);</span>
-<span class="fc" id="L169">            argCount += constraint.getExcludeJobIds().size();</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (!constraint.getExcludeJobIds().isEmpty()) {</span>
+<span class="fc" id="L155">            reusedStringBuilder</span>
+<span class="fc" id="L156">                    .append(&quot; AND &quot;)</span>
+<span class="fc" id="L157">                    .append(DbOpenHelper.ID_COLUMN.columnName)</span>
+<span class="fc" id="L158">                    .append(&quot; NOT IN(&quot;);</span>
+<span class="fc" id="L159">            SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
+<span class="fc" id="L160">                    constraint.getExcludeJobIds().size());</span>
+<span class="fc" id="L161">            reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="fc" id="L162">            argCount += constraint.getExcludeJobIds().size();</span>
         }
-<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (!pendingCancellations.isEmpty()) {</span>
-<span class="fc" id="L172">            reusedStringBuilder</span>
-<span class="fc" id="L173">                    .append(&quot; AND &quot;)</span>
-<span class="fc" id="L174">                    .append(DbOpenHelper.ID_COLUMN.columnName)</span>
-<span class="fc" id="L175">                    .append(&quot; NOT IN(&quot;);</span>
-<span class="fc" id="L176">            SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
-<span class="fc" id="L177">                    pendingCancellations.size());</span>
-<span class="fc" id="L178">            reusedStringBuilder.append(&quot;)&quot;);</span>
-<span class="fc" id="L179">            argCount += pendingCancellations.size();</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">        if (!pendingCancellations.isEmpty()) {</span>
+<span class="fc" id="L165">            reusedStringBuilder</span>
+<span class="fc" id="L166">                    .append(&quot; AND &quot;)</span>
+<span class="fc" id="L167">                    .append(DbOpenHelper.ID_COLUMN.columnName)</span>
+<span class="fc" id="L168">                    .append(&quot; NOT IN(&quot;);</span>
+<span class="fc" id="L169">            SqlHelper.addPlaceholdersInto(reusedStringBuilder,</span>
+<span class="fc" id="L170">                    pendingCancellations.size());</span>
+<span class="fc" id="L171">            reusedStringBuilder.append(&quot;)&quot;);</span>
+<span class="fc" id="L172">            argCount += pendingCancellations.size();</span>
         }
-<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (constraint.excludeRunning()) {</span>
-<span class="fc" id="L182">            reusedStringBuilder</span>
-<span class="fc" id="L183">                    .append(&quot; AND &quot;)</span>
-<span class="fc" id="L184">                    .append(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName)</span>
-<span class="fc" id="L185">                    .append(&quot; != ?&quot;);</span>
-<span class="fc" id="L186">            argCount++;</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        if (constraint.excludeRunning()) {</span>
+<span class="fc" id="L175">            reusedStringBuilder</span>
+<span class="fc" id="L176">                    .append(&quot; AND &quot;)</span>
+<span class="fc" id="L177">                    .append(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnName)</span>
+<span class="fc" id="L178">                    .append(&quot; != ?&quot;);</span>
+<span class="fc" id="L179">            argCount++;</span>
         }
-<span class="fc" id="L188">        String[] args = new String[argCount];</span>
-<span class="fc" id="L189">        Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);</span>
-<span class="fc" id="L190">        where.setNetworkTimeoutArgIndex(networkTimeoutArgIndex);</span>
-<span class="fc" id="L191">        where.setUnmeteredNetworkTimeoutArgIndex(unmeteredTimeoutArgIndex);</span>
-<span class="fc" id="L192">        return where;</span>
+<span class="fc" id="L181">        String[] args = new String[argCount];</span>
+        //noinspection UnnecessaryLocalVariable
+<span class="fc" id="L183">        Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);</span>
+<span class="fc" id="L184">        return where;</span>
     }
 
     private boolean isCacheable(Constraint constraint) {
-<span class="pc bpc" id="L196" title="1 of 2 branches missed.">        return constraint.getTags().size() &lt; INT_LIMIT &amp;&amp;</span>
-<span class="pc bpc" id="L197" title="1 of 2 branches missed.">                constraint.getExcludeGroups().size() &lt; INT_LIMIT &amp;&amp;</span>
-<span class="pc bpc" id="L198" title="1 of 2 branches missed.">                constraint.getExcludeJobIds().size() &lt; INT_LIMIT;</span>
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">        return constraint.getTags().size() &lt; INT_LIMIT &amp;&amp;</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">                constraint.getExcludeGroups().size() &lt; INT_LIMIT &amp;&amp;</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">                constraint.getExcludeJobIds().size() &lt; INT_LIMIT;</span>
 
     }
 
     private long cacheKey(Constraint constraint, Collection&lt;String&gt; pendingCancelations) {
         long key;
         //noinspection PointlessBitwiseExpression
-<span class="fc bfc" id="L205" title="All 2 branches covered.">        key = (constraint.shouldNotRequireNetwork() ? 1 : 0) &lt;&lt; NETWORK</span>
-<span class="fc bfc" id="L206" title="All 2 branches covered.">                | (constraint.shouldNotRequireUnmeteredNetwork() ? 1 : 0) &lt;&lt; UNMETERED_NETWORK</span>
-<span class="fc bfc" id="L207" title="All 2 branches covered.">                | (constraint.getTagConstraint() == null ? 2 : constraint.getTagConstraint().ordinal()) &lt;&lt; TAG_TYPE</span>
-<span class="fc" id="L208">                | constraint.getTags().size() &lt;&lt; TAG_COUNT</span>
-<span class="fc" id="L209">                | constraint.getExcludeGroups().size() &lt;&lt; GROUP_COUNT</span>
-<span class="fc" id="L210">                | constraint.getExcludeJobIds().size() &lt;&lt; JOB_COUNT</span>
-<span class="fc bfc" id="L211" title="All 2 branches covered.">                | (constraint.excludeRunning() ? 1 : 0) &lt;&lt; EXCLUDE_RUNNING</span>
-<span class="fc bfc" id="L212" title="All 2 branches covered.">                | (constraint.getTimeLimit() == null ? 1 : 0) &lt;&lt; TIME_LIMIT</span>
-<span class="fc" id="L213">                | pendingCancelations.size() &lt;&lt; PENDING_CANCELLATIONS;</span>
-<span class="fc" id="L214">        return key;</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        key = (constraint.getTagConstraint() == null ? 2 : constraint.getTagConstraint().ordinal()) &lt;&lt; TAG_TYPE</span>
+<span class="fc" id="L198">                | constraint.getTags().size() &lt;&lt; TAG_COUNT</span>
+<span class="fc" id="L199">                | constraint.getExcludeGroups().size() &lt;&lt; GROUP_COUNT</span>
+<span class="fc" id="L200">                | constraint.getExcludeJobIds().size() &lt;&lt; JOB_COUNT</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">                | (constraint.excludeRunning() ? 1 : 0) &lt;&lt; EXCLUDE_RUNNING</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">                | (constraint.getTimeLimit() == null ? 1 : 0) &lt;&lt; TIME_LIMIT</span>
+<span class="fc" id="L203">                | pendingCancelations.size() &lt;&lt; PENDING_CANCELLATIONS;</span>
+<span class="fc" id="L204">        return key;</span>
     }
 
 }

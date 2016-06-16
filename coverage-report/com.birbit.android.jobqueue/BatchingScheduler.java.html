@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>BatchingScheduler.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jobqueue</a> &gt; <a href="index.source.html" class="el_package">com.birbit.android.jobqueue</a> &gt; <span class="el_source">BatchingScheduler.java</span></div><h1>BatchingScheduler.java</h1><pre class="source lang-java linenums">package com.birbit.android.jobqueue;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
@@ -19,106 +20,128 @@ import java.util.concurrent.TimeUnit;
  */
 public class BatchingScheduler extends Scheduler {
     // batch by 15 min intervals
-<span class="fc" id="L22">    public static final long DEFAULT_BATCHING_PERIOD_IN_MS = TimeUnit.SECONDS.toMillis(60 * 15);</span>
-<span class="fc" id="L23">    private long batchingDurationInMs = DEFAULT_BATCHING_PERIOD_IN_MS;</span>
-<span class="fc" id="L24">    private long batchingDurationInNs = TimeUnit.MILLISECONDS.toNanos(batchingDurationInMs);</span>
+<span class="fc" id="L23">    public static final long DEFAULT_BATCHING_PERIOD_IN_MS = TimeUnit.SECONDS.toMillis(60 * 15);</span>
+<span class="fc" id="L24">    private long batchingDurationInMs = DEFAULT_BATCHING_PERIOD_IN_MS;</span>
+<span class="fc" id="L25">    private long batchingDurationInNs = TimeUnit.MILLISECONDS.toNanos(batchingDurationInMs);</span>
     private final Scheduler delegate;
-<span class="fc" id="L26">    private final List&lt;ConstraintWrapper&gt; constraints = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L27">    private final List&lt;ConstraintWrapper&gt; constraints = new ArrayList&lt;&gt;();</span>
     private final Timer timer;
-<span class="fc" id="L28">    public BatchingScheduler(Scheduler delegate, Timer timer) {</span>
-<span class="fc" id="L29">        this.delegate = delegate;</span>
-<span class="fc" id="L30">        this.timer = timer;</span>
-<span class="fc" id="L31">    }</span>
+<span class="fc" id="L29">    public BatchingScheduler(Scheduler delegate, Timer timer) {</span>
+<span class="fc" id="L30">        this.delegate = delegate;</span>
+<span class="fc" id="L31">        this.timer = timer;</span>
+<span class="fc" id="L32">    }</span>
 
     @Override
     public void init(Context context, Callback callback) {
-<span class="fc" id="L35">        super.init(context, callback);</span>
-<span class="fc" id="L36">        delegate.init(context, new Callback() {</span>
+<span class="fc" id="L36">        super.init(context, callback);</span>
+<span class="fc" id="L37">        delegate.init(context, new Callback() {</span>
             @Override
             public boolean start(SchedulerConstraint constraint) {
-<span class="nc" id="L39">                removeFromConstraints(constraint);</span>
-<span class="nc" id="L40">                return BatchingScheduler.this.start(constraint);</span>
+<span class="nc" id="L40">                removeFromConstraints(constraint);</span>
+<span class="nc" id="L41">                return BatchingScheduler.this.start(constraint);</span>
             }
 
             @Override
             public boolean stop(SchedulerConstraint constraint) {
-<span class="nc" id="L45">                return BatchingScheduler.this.stop(constraint);</span>
+<span class="nc" id="L46">                return BatchingScheduler.this.stop(constraint);</span>
             }
         });
-<span class="fc" id="L48">    }</span>
+<span class="fc" id="L49">    }</span>
 
     private void removeFromConstraints(SchedulerConstraint constraint) {
-<span class="fc" id="L51">        synchronized (constraints) {</span>
-<span class="fc bfc" id="L52" title="All 2 branches covered.">            for (int i = constraints.size() - 1; i &gt;= 0; i--) {</span>
-<span class="fc" id="L53">                ConstraintWrapper existing = constraints.get(i);</span>
-<span class="pc bpc" id="L54" title="1 of 2 branches missed.">                if (existing.constraint.getUuid().equals(constraint.getUuid())) {</span>
-<span class="fc" id="L55">                    constraints.remove(i);</span>
+<span class="fc" id="L52">        synchronized (constraints) {</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            for (int i = constraints.size() - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L54">                ConstraintWrapper existing = constraints.get(i);</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">                if (existing.constraint.getUuid().equals(constraint.getUuid())) {</span>
+<span class="fc" id="L56">                    constraints.remove(i);</span>
                 }
             }
-<span class="pc" id="L58">        }</span>
-<span class="fc" id="L59">    }</span>
+<span class="pc" id="L59">        }</span>
+<span class="fc" id="L60">    }</span>
 
     private boolean addToConstraints(SchedulerConstraint constraint) {
-<span class="fc" id="L62">        final long now = timer.nanoTime();</span>
-<span class="fc" id="L63">        long expectedRunTime = TimeUnit.MILLISECONDS.toNanos(constraint.getDelayInMs()) + now;</span>
-<span class="fc" id="L64">        synchronized (constraints) {</span>
-<span class="fc bfc" id="L65" title="All 2 branches covered.">            for (ConstraintWrapper existing : constraints) {</span>
-<span class="fc bfc" id="L66" title="All 2 branches covered.">                if (covers(existing, constraint, expectedRunTime)) {</span>
-<span class="fc" id="L67">                    return false;</span>
+<span class="fc" id="L63">        final long now = timer.nanoTime();</span>
+<span class="fc" id="L64">        long expectedRunTime = TimeUnit.MILLISECONDS.toNanos(constraint.getDelayInMs()) + now;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        Long expectedDeadline = constraint.getOverrideDeadlineInMs() == null</span>
+                ? null
+<span class="fc" id="L67">                : TimeUnit.MILLISECONDS.toNanos(constraint.getOverrideDeadlineInMs()) + now;</span>
+<span class="fc" id="L68">        synchronized (constraints) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            for (ConstraintWrapper existing : constraints) {</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">                if (covers(existing, constraint, expectedRunTime, expectedDeadline)) {</span>
+<span class="fc" id="L71">                    return false;</span>
                 }
-<span class="fc" id="L69">            }</span>
+<span class="fc" id="L73">            }</span>
             // fix the delay
-<span class="fc" id="L71">            long group = constraint.getDelayInMs() / batchingDurationInMs;</span>
-<span class="fc" id="L72">            long newDelay = (group + 1) * batchingDurationInMs;</span>
-<span class="fc" id="L73">            constraint.setDelayInMs(newDelay);</span>
-<span class="fc" id="L74">            constraints.add(new ConstraintWrapper(now + TimeUnit.MILLISECONDS.toNanos(newDelay),</span>
-                    constraint));
-<span class="fc" id="L76">            return true;</span>
-<span class="nc" id="L77">        }</span>
+<span class="fc" id="L75">            long group = constraint.getDelayInMs() / batchingDurationInMs;</span>
+<span class="fc" id="L76">            long newDelay = (group + 1) * batchingDurationInMs;</span>
+<span class="fc" id="L77">            constraint.setDelayInMs(newDelay);</span>
+<span class="fc" id="L78">            Long deadline = null;</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">            if (constraint.getOverrideDeadlineInMs() != null) {</span>
+<span class="fc" id="L80">                group = constraint.getOverrideDeadlineInMs() / batchingDurationInMs;</span>
+<span class="fc" id="L81">                deadline = (group + 1) * batchingDurationInMs;</span>
+<span class="fc" id="L82">                constraint.setOverrideDeadlineInMs(deadline);</span>
+            }
+<span class="fc bfc" id="L84" title="All 2 branches covered.">            constraints.add(new ConstraintWrapper(now + TimeUnit.MILLISECONDS.toNanos(newDelay),</span>
+<span class="fc" id="L85">                    deadline == null ? null : now + TimeUnit.MILLISECONDS.toNanos(deadline), constraint));</span>
+<span class="fc" id="L86">            return true;</span>
+<span class="nc" id="L87">        }</span>
     }
 
     private boolean covers(ConstraintWrapper existing, SchedulerConstraint constraint,
-                           long expectedRunTime) {
-<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (existing.constraint.getNetworkStatus() != constraint.getNetworkStatus()) {</span>
-<span class="fc" id="L83">            return false;</span>
+                           long expectedRunTime, Long expectedDeadline) {
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (existing.constraint.getNetworkStatus() != constraint.getNetworkStatus()) {</span>
+<span class="fc" id="L93">            return false;</span>
+        }
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (expectedDeadline != null) {</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            if (existing.deadlineNs == null) {</span>
+<span class="fc" id="L97">                return false;</span>
+            }
+<span class="fc" id="L99">            long timeDiff = existing.deadlineNs - expectedDeadline;</span>
+<span class="pc bpc" id="L100" title="1 of 4 branches missed.">            if (timeDiff &lt; 1 || timeDiff &gt; batchingDurationInNs) {</span>
+<span class="fc" id="L101">                return false;</span>
+            }
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        } else if (existing.deadlineNs != null) {</span>
+<span class="fc" id="L104">            return false;</span>
         }
         // same network status, check if time matches
-<span class="fc" id="L86">        long timeDiff = existing.delayUntilNs - expectedRunTime;</span>
-<span class="pc bpc" id="L87" title="1 of 4 branches missed.">        return timeDiff &gt; 0 &amp;&amp; timeDiff &lt;= batchingDurationInNs;</span>
+<span class="fc" id="L107">        long timeDiff = existing.delayUntilNs - expectedRunTime;</span>
+<span class="pc bpc" id="L108" title="1 of 4 branches missed.">        return timeDiff &gt; 0 &amp;&amp; timeDiff &lt;= batchingDurationInNs;</span>
     }
 
     @Override
     public void request(SchedulerConstraint constraint) {
-<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (addToConstraints(constraint)) {</span>
-<span class="fc" id="L93">            delegate.request(constraint);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (addToConstraints(constraint)) {</span>
+<span class="fc" id="L114">            delegate.request(constraint);</span>
         }
-<span class="fc" id="L95">    }</span>
+<span class="fc" id="L116">    }</span>
 
     @Override
     public void onFinished(SchedulerConstraint constraint, boolean reschedule) {
-<span class="fc" id="L99">        removeFromConstraints(constraint);</span>
-<span class="fc" id="L100">        delegate.onFinished(constraint, false);</span>
-<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (reschedule) {</span>
-<span class="nc" id="L102">            request(constraint);</span>
+<span class="fc" id="L120">        removeFromConstraints(constraint);</span>
+<span class="fc" id="L121">        delegate.onFinished(constraint, false);</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">        if (reschedule) {</span>
+<span class="nc" id="L123">            request(constraint);</span>
         }
-<span class="fc" id="L104">    }</span>
+<span class="fc" id="L125">    }</span>
 
     @Override
     public void cancelAll() {
-<span class="nc" id="L108">        synchronized (constraints) {</span>
-<span class="nc" id="L109">            constraints.clear();</span>
-<span class="nc" id="L110">        }</span>
-<span class="nc" id="L111">        delegate.cancelAll();</span>
-<span class="nc" id="L112">    }</span>
+<span class="nc" id="L129">        synchronized (constraints) {</span>
+<span class="nc" id="L130">            constraints.clear();</span>
+<span class="nc" id="L131">        }</span>
+<span class="nc" id="L132">        delegate.cancelAll();</span>
+<span class="nc" id="L133">    }</span>
 
     private static class ConstraintWrapper {
         final long delayUntilNs;
+        @Nullable final Long deadlineNs;
         final SchedulerConstraint constraint;
 
-<span class="fc" id="L118">        public ConstraintWrapper(long delayUntilNs, SchedulerConstraint constraint) {</span>
-<span class="fc" id="L119">            this.delayUntilNs = delayUntilNs;</span>
-<span class="fc" id="L120">            this.constraint = constraint;</span>
-<span class="fc" id="L121">        }</span>
+<span class="fc" id="L140">        public ConstraintWrapper(long delayUntilNs, Long deadlineNs, SchedulerConstraint constraint) {</span>
+<span class="fc" id="L141">            this.delayUntilNs = delayUntilNs;</span>
+<span class="fc" id="L142">            this.deadlineNs = deadlineNs;</span>
+<span class="fc" id="L143">            this.constraint = constraint;</span>
+<span class="fc" id="L144">        }</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.1.201405082137</span></div></body></html>
