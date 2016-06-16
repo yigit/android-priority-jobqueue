@@ -5,7 +5,7 @@ See the migration guide here: [migration from v1 to v2](https://github.com/yigit
 
 ``` gradle
 dependencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha3'
+    compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha4'
 }
 ```
 Android Priority Job Queue (Job Manager)
@@ -165,6 +165,11 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.0-alpha4 (June 16, 2016) - Last planned alpha release
+   - Introduced deadline parameter. Job will be run (or cancelled) when it hits the deadline regardless of its constraints.
+   - Made it easier to write custom serializer by making base job fully transient.
+   - Moved persistent job data to individual files which will lift the limit on the job size.
+   - If Job serialization fails, JobManager will throw an exception.
   - 2.0.0-alpha3 (May 28, 2016)
    - New onCancel API receives the exception
    - Changed how schedulers are constructed to avoid NPE issues
