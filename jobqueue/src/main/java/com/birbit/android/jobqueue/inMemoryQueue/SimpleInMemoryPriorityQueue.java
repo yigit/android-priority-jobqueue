@@ -29,12 +29,12 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
                 return 0;
             }
             int cmp = compareInt(holder1.getPriority(), holder2.getPriority());
-            if(cmp != 0) {
+            if (cmp != 0) {
                 return cmp;
             }
 
             cmp = -compareLong(holder1.getCreatedNs(), holder2.getCreatedNs());
-            if(cmp != 0) {
+            if (cmp != 0) {
                 return cmp;
             }
             //if jobs were created at the same time, smaller id first
@@ -71,6 +71,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
             @SuppressWarnings("UnusedParameters") Configuration configuration, long sessionId) {
         this.sessionId = sessionId;
     }
+
     @Override
     public boolean insert(@NonNull JobHolder jobHolder) {
         jobHolder.setInsertionOrder(insertionOrderCounter.incrementAndGet());
@@ -120,8 +121,8 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         reusedList.clear();
         for (JobHolder holder : jobs) {
             String groupId = holder.getGroupId();
-            if ((groupId == null || !reusedList.contains(groupId)) && matches(holder, constraint)) {
-                count ++;
+            if ((groupId == null || !reusedList.contains(groupId)) && matches(holder, constraint, false)) {
+                count++;
                 if (groupId != null) {
                     reusedList.add(groupId);
                 }
@@ -134,7 +135,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     @Override
     public JobHolder nextJobAndIncRunCount(@NonNull Constraint constraint) {
         for (JobHolder holder : jobs) {
-            if (matches(holder, constraint)) {
+            if (matches(holder, constraint, false)) {
                 remove(holder);
                 holder.setRunCount(holder.getRunCount() + 1);
                 holder.setRunningSessionId(sessionId);
@@ -148,19 +149,20 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     public Long getNextJobDelayUntilNs(@NonNull Constraint constraint) {
         Long minDelay = null;
         for (JobHolder holder : jobs) {
-            if (holder.getDeadlineNs() <= constraint.getNowInNs()) {
-                return holder.getDeadlineNs();
-            }
-            if (matches(holder, constraint)) {
-                final long delay = holder.getDeadlineNs() != Params.FOREVER
-                        ? Math.min(holder.getDeadlineNs(), holder.getDelayUntilNs())
-                        : holder.getDelayUntilNs();
-                if (minDelay == null || delay < minDelay) {
-                    minDelay = holder.getDelayUntilNs();
+            if (matches(holder, constraint, true)) {
+                final boolean hasDelay = holder.hasDelay() && matches(holder, constraint, false);
+                final boolean hasDeadline = holder.hasDeadline();
+                final long delay;
+                if (hasDeadline == hasDelay) {
+                    delay = Math.min(holder.getDeadlineNs(), holder.getDelayUntilNs());
+                } else if (hasDeadline) {
+                    delay = holder.getDeadlineNs();
+                } else {
+                    delay = holder.getDelayUntilNs();
                 }
-            } else if (holder.getDeadlineNs() != Params.FOREVER) {
-                if (minDelay == null || holder.getDeadlineNs() < minDelay) {
-                    minDelay = holder.getDeadlineNs();
+
+                if (minDelay == null || delay < minDelay) {
+                    minDelay = delay;
                 }
             }
         }
@@ -184,7 +186,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     public Set<JobHolder> findJobs(@NonNull Constraint constraint) {
         Set<JobHolder> result = new HashSet<>();
         for (JobHolder holder : jobs) {
-            if (matches(holder, constraint)) {
+            if (matches(holder, constraint, false)) {
                 result.add(holder);
             }
         }
@@ -196,12 +198,13 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         remove(holder);
     }
 
-    private static boolean matches(JobHolder holder, Constraint constraint) {
-        if (constraint.getNowInNs() >= holder.getDeadlineNs()) {
-            return true;
-        }
-        if (constraint.getMaxNetworkType() < holder.getRequiredNetworkType()) {
-            return false;
+    private static boolean matches(JobHolder holder, Constraint constraint, boolean acceptAnyDeadline) {
+        boolean hitDeadline = constraint.getNowInNs() >= holder.getDeadlineNs()
+                || (acceptAnyDeadline && holder.hasDeadline());
+        if (!hitDeadline) {
+            if (constraint.getMaxNetworkType() < holder.getRequiredNetworkType()) {
+                return false;
+            }
         }
         if (constraint.getTimeLimit() != null && holder.getDelayUntilNs() > constraint.getTimeLimit()) {
             return false;
@@ -215,7 +218,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         //noinspection RedundantIfStatement
         if (constraint.getTagConstraint() != null &&
                 (holder.getTags() == null || constraint.getTags().isEmpty() ||
-                !constraint.getTagConstraint().matches(constraint.getTags(), holder.getTags()))) {
+                        !constraint.getTagConstraint().matches(constraint.getTags(), holder.getTags()))) {
             return false;
         }
         return true;

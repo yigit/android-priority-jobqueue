@@ -5,6 +5,7 @@ import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobQueue;
+import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
 
@@ -318,7 +319,8 @@ public class SqliteJobQueue implements JobQueue {
     public Long getNextJobDelayUntilNs(@NonNull Constraint constraint) {
         final Where where = createWhere(constraint);
         try {
-            return where.nextJobDelayUntil(db, sqlHelper).simpleQueryForLong();
+            long result = where.nextJobDelayUntil(db, sqlHelper).simpleQueryForLong();
+            return result == Params.FOREVER ? null : result;
         } catch (SQLiteDoneException empty) {
             return null;
         }

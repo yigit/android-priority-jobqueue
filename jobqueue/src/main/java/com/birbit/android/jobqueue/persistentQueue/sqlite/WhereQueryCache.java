@@ -92,17 +92,18 @@ class WhereQueryCache {
         int argCount = 0;
 
         reusedStringBuilder
+                .append("( (")
+                // deadline 4ever check is necessary to filter these from next job queries
                 .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
-                .append(" != ")
-                .append(Where.FOREVER)
+                .append(" != ").append(Where.FOREVER)
                 .append(" AND ")
                 .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
-                .append(" <= ? OR ( ");
+                .append(" <= ?) OR ");
         argCount ++;
 
         reusedStringBuilder
                 .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnName)
-                .append(" <= ?");
+                .append(" <= ?)");
         argCount++;
         if (constraint.getTimeLimit() != null) {
             reusedStringBuilder
@@ -177,8 +178,6 @@ class WhereQueryCache {
                     .append(" != ?");
             argCount++;
         }
-        // close OR from deadline
-        reusedStringBuilder.append(" )");
         String[] args = new String[argCount];
         //noinspection UnnecessaryLocalVariable
         Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);

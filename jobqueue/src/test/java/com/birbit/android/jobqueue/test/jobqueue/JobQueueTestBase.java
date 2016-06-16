@@ -175,6 +175,7 @@ public abstract class JobQueueTestBase extends TestBase {
         constraint.setTags(new String[]{"a"});
         constraint.setTagConstraint(TagConstraint.ANY);
         assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(nullValue()));
     }
 
     @Test
@@ -186,8 +187,9 @@ public abstract class JobQueueTestBase extends TestBase {
         mockTimer.incrementMs(100);
 
         TestConstraint constraint = new TestConstraint(mockTimer);
-        constraint.setExcludeJobIds(Arrays.asList(jobHolder.getId()));
+        constraint.setExcludeJobIds(Collections.singletonList(jobHolder.getId()));
         assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(nullValue()));
     }
 
     @Test
@@ -202,6 +204,7 @@ public abstract class JobQueueTestBase extends TestBase {
         TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setExcludeGroups(Arrays.asList("g1"));
         assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(nullValue()));
     }
 
     @Test
@@ -216,6 +219,7 @@ public abstract class JobQueueTestBase extends TestBase {
         TestConstraint constraint = new TestConstraint(mockTimer);
         constraint.setExcludeRunning(true);
         assertThat(jobQueue.findJobs(constraint), is(Collections.EMPTY_SET));
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(nullValue()));
     }
 
     @Test

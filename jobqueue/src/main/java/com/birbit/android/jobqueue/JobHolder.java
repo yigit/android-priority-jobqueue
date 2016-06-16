@@ -257,6 +257,14 @@ public class JobHolder {
         this.job.setDeadlineReached(didReachDeadline);
     }
 
+    public boolean hasDeadline() {
+        return deadlineNs != Params.FOREVER;
+    }
+
+    public boolean hasDelay() {
+        return delayUntilNs != JobManager.NOT_DELAYED_JOB_DELAY;
+    }
+
     public void onCancel(@CancelReason int cancelReason) {
         job.onCancel(cancelReason, throwable);
     }

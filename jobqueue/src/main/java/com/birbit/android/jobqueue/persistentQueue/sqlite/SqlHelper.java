@@ -14,7 +14,6 @@ public class SqlHelper {
     /**package**/ String FIND_BY_TAG_QUERY;
     /**package**/ String LOAD_ALL_IDS_QUERY;
     /**package**/ String LOAD_TAGS_QUERY;
-    /**package**/ String SELECT_MIN_DEADLINE_QUERY;
 
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertTagsStatement;
@@ -51,12 +50,6 @@ public class SqlHelper {
         LOAD_TAGS_QUERY = "SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName + " FROM "
                 + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                 + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?";
-        // cannot use MIN because it always returns a value
-        SELECT_MIN_DEADLINE_QUERY = createSelectOneField(
-                DbOpenHelper.DEADLINE_COLUMN.columnName,
-                DbOpenHelper.DEADLINE_COLUMN.columnName + " != " + Where.FOREVER, // where
-                1, // limit
-                new Order(DbOpenHelper.DEADLINE_COLUMN, Order.Type.ASC));
     }
 
     public static String create(String tableName, Property primaryKey, Property... properties) {

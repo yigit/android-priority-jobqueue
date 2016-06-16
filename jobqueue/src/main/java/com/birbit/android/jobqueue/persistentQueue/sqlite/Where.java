@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 
+import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 
 public class Where {
@@ -52,21 +53,34 @@ public class Where {
     public SQLiteStatement nextJobDelayUntil(SQLiteDatabase database, SqlHelper sqlHelper) {
         if (nextJobDelayUntilStmt == null) {
             // cannot use MIN because it always returns a value
-            String selectMatch = sqlHelper.createSelectOneField(
+            String deadlineQuery = sqlHelper.createSelectOneField(
+                    DbOpenHelper.DEADLINE_COLUMN.columnName,
+                    query,
+                    null);
+            String delayQuery = sqlHelper.createSelectOneField(
                     DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName,
                     query,
-                    1,
-                    new SqlHelper.Order(DbOpenHelper.DELAY_UNTIL_NS_COLUMN, SqlHelper.Order.Type.ASC));
-            String selectQuery = "SELECT * FROM (" + selectMatch + ") UNION SELECT * FROM (" +
-                    sqlHelper.SELECT_MIN_DEADLINE_QUERY + ") ORDER BY 1 ASC LIMIT 1";
+                    null);
+            StringBuilder sb = sqlHelper.reusedStringBuilder;
+            sb.setLength(0);
+            sb.append("SELECT * FROM (")
+                    .append(deadlineQuery)
+                    .append(" ORDER BY 1 ASC LIMIT 1")
+                    .append(") UNION SELECT * FROM (")
+                    .append(delayQuery)
+                    .append(" ORDER BY 1 ASC LIMIT 1")
+                    .append(") ORDER BY 1 ASC LIMIT 1");
+            String selectQuery = sb.toString();
             nextJobDelayUntilStmt = database.compileStatement(selectQuery);
         } else {
             nextJobDelayUntilStmt.clearBindings();
         }
         for (int i = 1; i <= args.length; i ++) {
             nextJobDelayUntilStmt.bindString(i, args[i - 1]);
+            nextJobDelayUntilStmt.bindString(i + args.length, args[i - 1]);
         }
-        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX, NEVER);
+        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX, FOREVER);
+        nextJobDelayUntilStmt.bindString(WhereQueryCache.DEADLINE_COLUMN_INDEX + args.length, NEVER);
 
         return nextJobDelayUntilStmt;
     }
