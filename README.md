@@ -19,6 +19,7 @@ It is written primarily with [flexibility][10] & [functionality][11] in mind. Th
    - [The Problem](#the-problem)
    - [Our Solution](#our-solution)
   - [Show me the code](#show-me-the-code)
+  - [Priority Job Queue vs Job Scheduler vs GCMNetworkManager vs ?](#priority-job-queue-vs-job-scheduler-vs-gcmnetworkmanager-vs-)
   - [What's happening under the hood?](#under-the-hood)
   - [Advantages](#advantages)
   - [Getting Started](#getting-started)
@@ -109,6 +110,17 @@ That's it. :) Job Manager allows you to enjoy:
 * No network calls in activity-bound async tasks
 * No serialization mess for important requests
 * No "manual" implementation of network connectivity checks or retry logic
+
+### Priority Job Queue vs Job Scheduler vs GCMNetworkManager vs ?
+On Lollipop, Android introduced [JobScheduler][14] which is a system friendly way to run non-time-critical tasks. It makes your code cleaner, makes your app a good citizen of the ecosystem and it is backported via [GCMNetworkManager][15].
+
+The first version of Job Queue was created approximately 2 years before Job Scheduler. The major difference is that Job Queue is designed to run **all of** your background tasks while Job Scheduler is designed only for those you can defer.
+
+We've created Job Queue because we wanted to have more control over the non-ui-thread activity of our application. We needed a convenient way to prioritize them, persist them accross application restarts and group based on the resources they access. 
+
+A good practice of using Job Queue is to write **all** of your network tasks as Jobs and use **AsyncTasks** for disk access (e.g. loading data from sqlite). If you have long running background operations (e.g. processing an image), it is also a good practice to use Job Queue.
+
+Starting with **v2**, Job Queue can be integrated with JobScheduler or GCMNetworkManager. This integration allows Job Queue to wake up the aplication based on the criterias of the Jobs it has. You can see the deatails on the related [wiki][16] page. The Scheduler API is flexible such that you can implement a custom version of it if your target market does not have Google Play Services.
 
 ### Under the hood
 * When user clicked the send button, `onSendClick()` was called, which creates a `PostTweetJob` and adds it to Job Queue for execution.
@@ -282,3 +294,6 @@ THE SOFTWARE.
 [11]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Configuration
 [12]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/Params.java
 [13]: https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration
+[14]: https://developer.android.com/reference/android/app/job/JobScheduler.html
+[15]: https://developers.google.com/android/reference/com/google/android/gms/gcm/GcmNetworkManager
+[16]: https://github.com/yigit/android-priority-jobqueue/wiki/Integration-with-JobScheduler-and-GcmNetworkManager
