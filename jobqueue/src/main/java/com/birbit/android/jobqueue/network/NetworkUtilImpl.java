@@ -19,14 +19,15 @@ import android.os.PowerManager;
  */
 public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
     private Listener listener;
-    public NetworkUtilImpl(final Context context) {
+    public NetworkUtilImpl(Context context) {
+        context = context.getApplicationContext();
         if (VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if (VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 listenForIdle(context);
             }
             listenNetworkViaConnectivityManager(context);
         } else {
-            context.getApplicationContext().registerReceiver(new BroadcastReceiver() {
+            context.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     dispatchNetworkChange(context);
@@ -37,7 +38,7 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
 
     @TargetApi(23)
     private void listenNetworkViaConnectivityManager(final Context context) {
-        ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext()
+        ConnectivityManager cm = (ConnectivityManager) context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkRequest request = new NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -53,7 +54,7 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
 
     @TargetApi(23)
     private void listenForIdle(Context context) {
-        context.getApplicationContext().registerReceiver(new BroadcastReceiver() {
+        context.registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 dispatchNetworkChange(context);
