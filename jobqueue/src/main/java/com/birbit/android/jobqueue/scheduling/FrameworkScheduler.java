@@ -102,6 +102,9 @@ class FrameworkScheduler extends Scheduler {
                 builder.setRequiresDeviceIdle(true);
                 break;
         }
+        if (constraint.getDelayInMs() > 0) {
+            builder.setMinimumLatency(constraint.getDelayInMs());
+        }
         if (constraint.getOverrideDeadlineInMs() != null) {
             builder.setOverrideDeadline(constraint.getOverrideDeadlineInMs());
         }
