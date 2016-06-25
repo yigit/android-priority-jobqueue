@@ -118,7 +118,7 @@ public class CallbackTest extends JobManagerTestBase {
 
         verify(callback).onJobAdded(job);
         verify(callback, times(1)).onJobRun(job, JobManagerCallback.RESULT_CANCEL_CANCELLED_VIA_SHOULD_RE_RUN);
-        verify(callback).onJobCancelled(job, false, null);
+        verify(callback).onJobCancelled(eq(job), eq(false), any(Throwable.class));
     }
 
     @Test
