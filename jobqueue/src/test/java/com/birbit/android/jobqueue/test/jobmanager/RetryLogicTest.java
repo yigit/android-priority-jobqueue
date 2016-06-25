@@ -34,6 +34,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -52,7 +53,7 @@ public class RetryLogicTest extends JobManagerTestBase {
 
     static Callback onRunCallback;
 
-    static Callback onCancelCallback;
+    static CancelCallback onCancelCallback;
 
     static CountDownLatch cancelLatch;
 
@@ -182,9 +183,9 @@ public class RetryLogicTest extends JobManagerTestBase {
                 runTimes.add(new Pair<>(retryJob.identifier, mockTimer.nanoTime()));
             }
         };
-        onCancelCallback = new Callback() {
+        onCancelCallback = new CancelCallback() {
             @Override
-            public void on(Job job) {
+            public void on(Job job, int cancelReason, Throwable throwable) {
                 JqLog.d("on cancel of job %s", job);
                 RetryJob retryJob = (RetryJob) job;
                 assertThat("Job should cancel only once",
@@ -448,10 +449,20 @@ public class RetryLogicTest extends JobManagerTestBase {
 
     public void testCancel(boolean persistent) throws InterruptedException {
         canRun = true;
+        final Throwable[] retryThrowable = new Throwable[1];
+        final Throwable[] cancelThrowable = new Throwable[1];
         retryProvider = new RetryProvider() {
             @Override
             public RetryConstraint build(Job job, Throwable throwable, int runCount, int maxRunCount) {
+                retryThrowable[0] = throwable;
                 return RetryConstraint.CANCEL;
+            }
+        };
+        onCancelCallback = new CancelCallback() {
+            @Override
+            public void on(Job job, @CancelReason int cancelReason, @Nullable Throwable throwable) {
+                assertThat("should call cancel only once", cancelThrowable[0], is(nullValue()));
+                cancelThrowable[0] = throwable;
             }
         };
         RetryJob job = new RetryJob(new Params(1).setPersistent(persistent));
@@ -461,6 +472,9 @@ public class RetryLogicTest extends JobManagerTestBase {
         assertThat(onRunLatch.await(2, TimeUnit.SECONDS), is(false));
         assertThat("it should run 1 time", runCount, is(1));
         assertThat(cancelLatch.await(2, TimeUnit.SECONDS), is(true));
+        assertThat(retryThrowable[0], instanceOf(RuntimeException.class));
+        assertThat(cancelThrowable[0], instanceOf(RuntimeException.class));
+        assertThat(retryThrowable[0], is(cancelThrowable[0]));
     }
 
     @Test
@@ -538,7 +552,7 @@ public class RetryLogicTest extends JobManagerTestBase {
         @Override
         protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable) {
             if (onCancelCallback != null) {
-                onCancelCallback.on(this);
+                onCancelCallback.on(this, cancelReason, throwable);
             }
             cancelLatch.countDown();
         }
@@ -573,5 +587,9 @@ public class RetryLogicTest extends JobManagerTestBase {
 
     interface Callback {
         public void on(Job job);
+    }
+
+    interface CancelCallback {
+        public void on(Job job,@CancelReason int cancelReason, @Nullable Throwable throwable);
     }
 }

@@ -268,6 +268,8 @@ abstract public class Job implements Serializable {
             return JobHolder.RUN_RESULT_HIT_DEADLINE;
         }
         if (currentRunCount < getRetryLimit()) {
+            // only set the Throwable if we are sure the Job is not gonna run again
+            holder.setThrowable(throwable);
             return JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
         } else {
             // only set the Throwable if we are sure the Job is not gonna run again
