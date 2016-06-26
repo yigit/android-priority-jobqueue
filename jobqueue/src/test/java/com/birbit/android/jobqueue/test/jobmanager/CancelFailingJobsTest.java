@@ -88,22 +88,22 @@ public class CancelFailingJobsTest extends JobManagerTestBase {
     }
 
     @Test
-    public void testCancelAnyAsyncWithoutNetworAndPersistent() throws InterruptedException {
+    public void testCancelAnyAsyncWithoutNetworkAndPersistent() throws InterruptedException {
         testCancelWithoutNetwork(true, TagConstraint.ANY);
     }
 
     @Test
-    public void testCancelAnySyncWithoutNetworAndPersistent() throws InterruptedException {
+    public void testCancelAnySyncWithoutNetworkAndPersistent() throws InterruptedException {
         testCancelWithoutNetwork(false, TagConstraint.ANY);
     }
 
     @Test
-    public void testCancelAllAsyncWithoutNetworAndPersistent() throws InterruptedException {
+    public void testCancelAllAsyncWithoutNetworkAndPersistent() throws InterruptedException {
         testCancelWithoutNetwork(true, TagConstraint.ALL);
     }
 
     @Test
-    public void testCancelAllSyncWithoutNetworAndPersistent() throws InterruptedException {
+    public void testCancelAllSyncWithoutNetworkAndPersistent() throws InterruptedException {
         testCancelWithoutNetwork(false, TagConstraint.ALL);
     }
 
