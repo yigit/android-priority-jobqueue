@@ -1,11 +1,10 @@
 ### V2 is on the way!
-There is a major internal rewrite of this project for more stability and new features. Although API is not final, I highly suggest using 2.0.
-It is still called alpha **not because** it is unstable but because the API is not final.
+There is a major internal rewrite of this project for more stability and new features. Although it is not a release version yet, I highly suggest using 2.0.
 See the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
 dependencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.0-alpha5'
+    compile 'com.birbit:android-priority-jobqueue:2.0.0-beta1'
 }
 ```
 Android Priority Job Queue (Job Manager)
@@ -177,6 +176,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.0-beta1 (June 27, 2016)
+   - Commitment to the final 2.0 API and backward compatibility
+   - Fixed a bug where cancel reason was not passed to onCancel if Job decides not to try again
   - 2.0.0-alpha5 (June 21, 2016)
    - Important fix with Framework Scheduler where it was not setting delay properly
   - 2.0.0-alpha4 (June 16, 2016) - Last planned alpha release (with api changes)
