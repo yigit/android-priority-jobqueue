@@ -436,19 +436,19 @@ public class SqliteJobQueue implements JobQueue {
 
     private Set<String> loadTags(String jobId) {
         Cursor cursor = db.rawQuery(sqlHelper.LOAD_TAGS_QUERY, new String[]{jobId});
-        if (cursor.getCount() == 0) {
-            //noinspection unchecked
-            return Collections.EMPTY_SET;
-        }
-        final Set<String> tags = new HashSet<>();
         try {
+            if (cursor.getCount() == 0) {
+                //noinspection unchecked
+                return Collections.EMPTY_SET;
+            }
+            final Set<String> tags = new HashSet<>();
             while (cursor.moveToNext()) {
                 tags.add(cursor.getString(0));
             }
+            return tags;
         } finally {
             cursor.close();
         }
-        return tags;
     }
 
     private Job safeDeserialize(byte[] bytes) {
