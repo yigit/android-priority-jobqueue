@@ -1,5 +1,6 @@
 package com.birbit.android.jobqueue.scheduling;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
@@ -10,7 +11,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
+import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
@@ -22,12 +25,14 @@ import java.util.UUID;
 @TargetApi(21)
 class FrameworkScheduler extends Scheduler {
     private static final String KEY_UUID = "uuid";
-    private static final String KEY_ID = "id";
+    @VisibleForTesting
+    static final String KEY_ID = "id";
     private static final String KEY_DELAY = "delay";
     private static final String KEY_NETWORK_STATUS = "networkStatus";
+    private static final String KEY_DEADLINE = "keyDeadline";
 
     private JobScheduler jobScheduler;
-    private static SharedPreferences preferences;
+    private SharedPreferences preferences;
     private ComponentName componentName;
     // set when service invokes, cleared when service dies
     @Nullable private JobService jobService;
@@ -41,7 +46,7 @@ class FrameworkScheduler extends Scheduler {
         this.jobService = jobService;
     }
 
-    private static SharedPreferences getPreferences(Context context) {
+    private SharedPreferences getPreferences(Context context) {
         synchronized (FrameworkScheduler.class) {
             if (preferences == null) {
                 preferences = context.getSharedPreferences("jobqueue_fw_scheduler",
@@ -51,7 +56,8 @@ class FrameworkScheduler extends Scheduler {
         }
     }
 
-    private ComponentName getComponentName() {
+    @VisibleForTesting
+    ComponentName getComponentName() {
         if (componentName == null) {
             componentName = new ComponentName(getApplicationContext().getPackageName(),
                     serviceImpl.getCanonicalName());
@@ -65,7 +71,9 @@ class FrameworkScheduler extends Scheduler {
      *
      * @return A unique integer id for the next Job request to be sent to system scheduler
      */
-    private int createId() {
+    @SuppressLint("CommitPrefEdits")
+    @VisibleForTesting
+    int createId() {
         synchronized (FrameworkScheduler.class) {
             final SharedPreferences preferences = getPreferences(getApplicationContext());
             final int id = preferences.getInt(KEY_ID, 0) + 1;
@@ -74,7 +82,8 @@ class FrameworkScheduler extends Scheduler {
         }
     }
 
-    private JobScheduler getJobScheduler() {
+    @VisibleForTesting
+    JobScheduler getJobScheduler() {
         if (jobScheduler == null) {
             jobScheduler = (JobScheduler) getApplicationContext()
                     .getSystemService(Context.JOB_SCHEDULER_SERVICE);
@@ -115,9 +124,7 @@ class FrameworkScheduler extends Scheduler {
 
     @Override
     public void onFinished(SchedulerConstraint constraint, boolean reschedule) {
-        if (JqLog.isDebugEnabled()) {
-            JqLog.d("[FW Scheduler] on finished job %s. reschedule:%s", constraint, reschedule);
-        }
+        JqLog.d("[FW Scheduler] on finished job %s. reschedule:%s", constraint, reschedule);
         JobService service = this.jobService;
         if (service == null) {
             JqLog.e("[FW Scheduler] scheduler onfinished is called but i don't have a job service");
@@ -140,16 +147,22 @@ class FrameworkScheduler extends Scheduler {
         getJobScheduler().cancelAll();
     }
 
-    private static PersistableBundle toPersistentBundle(SchedulerConstraint constraint) {
+    @VisibleForTesting
+    static PersistableBundle toPersistentBundle(SchedulerConstraint constraint) {
         PersistableBundle bundle = new PersistableBundle();
         // put boolean is api 22
         bundle.putString(KEY_UUID, constraint.getUuid());
         bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());
         bundle.putLong(KEY_DELAY, constraint.getDelayInMs());
+        Long deadline = constraint.getOverrideDeadlineInMs();
+        if (deadline != null) {
+            bundle.putLong(KEY_DEADLINE, deadline);
+        }
         return bundle;
     }
 
-    private static SchedulerConstraint fromBundle(PersistableBundle bundle) {
+    @VisibleForTesting
+    static SchedulerConstraint fromBundle(PersistableBundle bundle) {
         SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));
         if (constraint.getUuid() == null) {
             // backward compatibility
@@ -157,14 +170,16 @@ class FrameworkScheduler extends Scheduler {
         }
         constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));
         constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));
+        if (bundle.containsKey(KEY_DEADLINE)) {
+            constraint.setOverrideDeadlineInMs(bundle.getLong(KEY_DEADLINE, Params.FOREVER));
+        }
+
         return constraint;
     }
 
     boolean onStartJob(JobParameters params) {
         SchedulerConstraint constraint = fromBundle(params.getExtras());
-        if (JqLog.isDebugEnabled()) {
-            JqLog.d("[FW Scheduler] start job %s %d", constraint, params.getJobId());
-        }
+        JqLog.d("[FW Scheduler] start job %s %d", constraint, params.getJobId());
         constraint.setData(params);
         return start(constraint);
     }
