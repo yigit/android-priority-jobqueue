@@ -1,7 +1,8 @@
-package com.birbit.android.jobqueue;
+package com.birbit.android.jobqueue.scheduling;
 
 import android.content.Context;
 
+import com.birbit.android.jobqueue.BatchingScheduler;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.network.NetworkUtil;
