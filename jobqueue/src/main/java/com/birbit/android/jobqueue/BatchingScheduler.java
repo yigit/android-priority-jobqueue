@@ -2,6 +2,7 @@ package com.birbit.android.jobqueue;
 
 import android.content.Context;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
@@ -21,14 +22,41 @@ import java.util.concurrent.TimeUnit;
 public class BatchingScheduler extends Scheduler {
     // batch by 15 min intervals
     public static final long DEFAULT_BATCHING_PERIOD_IN_MS = TimeUnit.SECONDS.toMillis(60 * 15);
-    private long batchingDurationInMs = DEFAULT_BATCHING_PERIOD_IN_MS;
-    private long batchingDurationInNs = TimeUnit.MILLISECONDS.toNanos(batchingDurationInMs);
+    @VisibleForTesting
+    final long batchingDurationInMs;
+    @VisibleForTesting
+    final long batchingDurationInNs;
     private final Scheduler delegate;
     private final List<ConstraintWrapper> constraints = new ArrayList<>();
     private final Timer timer;
+
+    /**
+     * Creates a scheduler that wraps another scheduler and batches similar jobs into a single
+     * request to minimize IPC.
+     * <p>
+     * This constructor uses 15 minutes as the batching range.
+     *
+     * @param delegate The actual scheduler
+     * @param timer The Timer instance used by the JobManager
+     */
     public BatchingScheduler(Scheduler delegate, Timer timer) {
+        this(delegate, timer, DEFAULT_BATCHING_PERIOD_IN_MS);
+    }
+
+    /**
+     * Creates a scheduler that wraps another scheduler and batches similar jobs into a single
+     * request to minimize IPC.
+     *
+     * @param delegate The actual scheduler
+     * @param timer The Timer instance used by the JobManager
+     * @param batchingDurationInMs Jobs whose criteria match and execution period is within this
+     *                             value will be merged into 1 request.
+     */
+    public BatchingScheduler(Scheduler delegate, Timer timer, long batchingDurationInMs) {
         this.delegate = delegate;
         this.timer = timer;
+        this.batchingDurationInMs = batchingDurationInMs;
+        this.batchingDurationInNs = TimeUnit.MILLISECONDS.toNanos(batchingDurationInMs);
     }
 
     @Override
@@ -137,7 +165,8 @@ public class BatchingScheduler extends Scheduler {
         @Nullable final Long deadlineNs;
         final SchedulerConstraint constraint;
 
-        public ConstraintWrapper(long delayUntilNs, Long deadlineNs, SchedulerConstraint constraint) {
+        public ConstraintWrapper(long delayUntilNs, @Nullable Long deadlineNs,
+                                 SchedulerConstraint constraint) {
             this.delayUntilNs = delayUntilNs;
             this.deadlineNs = deadlineNs;
             this.constraint = constraint;

@@ -1,4 +1,4 @@
-package com.birbit.android.jobqueue.scheduling;
+package com.birbit.android.jobqueue;
 
 import android.content.Context;
 
@@ -29,6 +29,15 @@ public class BatchingSchedulerTest {
         Context context = mock(Context.class);
         when(context.getApplicationContext()).thenReturn(mock(Context.class));
         bs.init(context, mock(Scheduler.Callback.class));
+    }
+
+    @Test
+    public void testCustomDuration() {
+        scheduler = mock(Scheduler.class);
+        timer = new MockTimer();
+        bs = new BatchingScheduler(scheduler, timer, 123);
+        MatcherAssert.assertThat(bs.batchingDurationInMs, CoreMatchers.is(123L));
+        MatcherAssert.assertThat(bs.batchingDurationInNs, CoreMatchers.is(123000000L));
     }
 
     @Test
