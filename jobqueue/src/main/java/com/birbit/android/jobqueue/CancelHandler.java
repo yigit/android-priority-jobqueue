@@ -60,7 +60,7 @@ class CancelHandler {
                 JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
             }
             if (jobHolder.getJob().isPersistent()) {
-                jobManagerThread.nonPersistentJobQueue.remove(jobHolder);
+                jobManagerThread.persistentJobQueue.remove(jobHolder);
             }
         }
         if (callback != null) {
@@ -76,7 +76,8 @@ class CancelHandler {
             jobManagerThread.callbackManager.notifyCancelResult(result, callback);
         }
         for (JobHolder jobHolder : cancelled) {
-            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true, jobHolder.getThrowable());
+            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true,
+                    jobHolder.getThrowable());
         }
     }
 

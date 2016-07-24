@@ -36,9 +36,6 @@ public class SqliteJobQueue implements JobQueue {
     private SQLiteDatabase db;
     private SqlHelper sqlHelper;
     private JobSerializer jobSerializer;
-    // we keep a list of cancelled jobs in memory not to return them in subsequent find by tag
-    // queries. Set is cleaned when item is removed
-    private Set<String> pendingCancelations = new HashSet<>();
     private FileStorage jobStorage;
     private final StringBuilder reusedStringBuilder = new StringBuilder();
     private final WhereQueryCache whereQueryCache;
@@ -57,7 +54,14 @@ public class SqliteJobQueue implements JobQueue {
         if (configuration.resetDelaysOnRestart()) {
             sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
         }
+        reEnablePendingCancellations();
         cleanupFiles();
+    }
+
+    private void reEnablePendingCancellations() {
+        // if we had jobs that were cancelled but the cancellation could not complete, re-enable
+        // them. Looks like the app crashed before cancel could be completed.
+        db.execSQL(sqlHelper.RE_ENABLE_PENDING_CANCELLATIONS_QUERY);
     }
 
     private void cleanupFiles() {
@@ -168,6 +172,7 @@ public class SqliteJobQueue implements JobQueue {
                 jobHolder.getDeadlineNs());
         stmt.bindLong(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex + 1,
                 jobHolder.shouldCancelOnDeadline() ? 1 : 0);
+        stmt.bindLong(DbOpenHelper.CANCELLED_COLUMN.columnIndex + 1, jobHolder.isCancelled() ? 1 : 0);
     }
 
     /**
@@ -197,7 +202,6 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private void delete(String id) {
-        pendingCancelations.remove(id);
         db.beginTransaction();
         try {
             SQLiteStatement stmt = sqlHelper.getDeleteStatement();
@@ -272,9 +276,11 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     @Override
-    public void onJobCancelled(JobHolder holder) {
-        pendingCancelations.add(holder.getId());
-        setSessionIdOnJob(holder);
+    public void onJobCancelled(JobHolder jobHolder) {
+        SQLiteStatement stmt = sqlHelper.getMarkAsCancelledStatement();
+        stmt.clearBindings();
+        stmt.bindString(1, jobHolder.getId());
+        stmt.execute();
     }
 
     /**
@@ -309,7 +315,7 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private Where createWhere(Constraint constraint) {
-        return whereQueryCache.build(constraint, pendingCancelations, reusedStringBuilder);
+        return whereQueryCache.build(constraint, reusedStringBuilder);
     }
 
     /**
@@ -376,6 +382,8 @@ public class SqliteJobQueue implements JobQueue {
                         .append(cursor.getString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex))
                         .append(" deadline:")
                         .append(cursor.getLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex))
+                        .append(" cancelled:")
+                        .append(cursor.getInt(DbOpenHelper.CANCELLED_COLUMN.columnIndex) == 1)
                         .append(" delay until:")
                         .append(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                         .append(" sessionId:")
