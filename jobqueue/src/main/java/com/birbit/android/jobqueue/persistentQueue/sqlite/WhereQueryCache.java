@@ -1,11 +1,9 @@
 package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
-import com.birbit.android.jobqueue.Constraint;
-import com.birbit.android.jobqueue.TagConstraint;
-
 import android.support.v4.util.LruCache;
 
-import java.util.Collection;
+import com.birbit.android.jobqueue.Constraint;
+import com.birbit.android.jobqueue.TagConstraint;
 
 /**
  * Internal class to cache sql queries and statements.
@@ -19,11 +17,9 @@ class WhereQueryCache {
     private static final int JOB_COUNT = GROUP_COUNT + INT_SIZE;
     private static final int EXCLUDE_RUNNING = JOB_COUNT + INT_SIZE;
     private static final int TIME_LIMIT = EXCLUDE_RUNNING + BOOL_SIZE;
-    private static final int PENDING_CANCELLATIONS = TIME_LIMIT + BOOL_SIZE;
     private static final int INT_LIMIT = 1 << INT_SIZE;
 
     static final int DEADLINE_COLUMN_INDEX = 1;
-    static final int NETWORK_TYPE_COLUMN_INDEX = 2;
 
     // TODO implement some query cacheable check for queries that have way too many parameters
     private final LruCache<Long, Where> queryCache = new LruCache<Long, Where>(15) {
@@ -39,24 +35,22 @@ class WhereQueryCache {
         this.sessionId = Long.toString(sessionId);
     }
 
-    public Where build(Constraint constraint, Collection<String> pendingCancellations,
-            StringBuilder stringBuilder) {
+    public Where build(Constraint constraint, StringBuilder stringBuilder) {
         final boolean cacheable = isCacheable(constraint);
-        final long cacheKey = cacheKey(constraint, pendingCancellations);
+        final long cacheKey = cacheKey(constraint);
         Where where = cacheable ? queryCache.get(cacheKey) : null;
         if (where == null) {
             // build it
-            where = createWhere(cacheKey, constraint, pendingCancellations, stringBuilder);
+            where = createWhere(cacheKey, constraint, stringBuilder);
             if (cacheable) {
                 queryCache.put(cacheKey, where);
             }
         }
-        fillWhere(constraint, where, pendingCancellations);
+        fillWhere(constraint, where);
         return where;
     }
 
-    private void fillWhere(Constraint constraint, Where where,
-            Collection<String> pendingCancellations) {
+    private void fillWhere(Constraint constraint, Where where) {
         int count = 0;
         where.args[count++] = Long.toString(constraint.getNowInNs());
         where.args[count++] = Integer.toString(constraint.getMaxNetworkType());
@@ -74,9 +68,6 @@ class WhereQueryCache {
         for (String jobId : constraint.getExcludeJobIds()) {
             where.args[count++] = jobId;
         }
-        for (String cancelled : pendingCancellations) {
-            where.args[count++] = cancelled;
-        }
         if (constraint.excludeRunning()) {
             where.args[count++] = sessionId;
         }
@@ -87,7 +78,7 @@ class WhereQueryCache {
     }
 
     private Where createWhere(long cacheKey, Constraint constraint,
-            Collection<String> pendingCancellations, StringBuilder reusedStringBuilder) {
+            StringBuilder reusedStringBuilder) {
         reusedStringBuilder.setLength(0);
         int argCount = 0;
 
@@ -104,6 +95,13 @@ class WhereQueryCache {
         reusedStringBuilder
                 .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnName)
                 .append(" <= ?)");
+
+        reusedStringBuilder.append(" AND (")
+                .append(DbOpenHelper.CANCELLED_COLUMN.columnName)
+                .append(" IS NULL OR ")
+                .append(DbOpenHelper.CANCELLED_COLUMN.columnName)
+                .append( " != 1)");
+
         argCount++;
         if (constraint.getTimeLimit() != null) {
             reusedStringBuilder
@@ -161,16 +159,6 @@ class WhereQueryCache {
             reusedStringBuilder.append(")");
             argCount += constraint.getExcludeJobIds().size();
         }
-        if (!pendingCancellations.isEmpty()) {
-            reusedStringBuilder
-                    .append(" AND ")
-                    .append(DbOpenHelper.ID_COLUMN.columnName)
-                    .append(" NOT IN(");
-            SqlHelper.addPlaceholdersInto(reusedStringBuilder,
-                    pendingCancellations.size());
-            reusedStringBuilder.append(")");
-            argCount += pendingCancellations.size();
-        }
         if (constraint.excludeRunning()) {
             reusedStringBuilder
                     .append(" AND ")
@@ -191,7 +179,7 @@ class WhereQueryCache {
 
     }
 
-    private long cacheKey(Constraint constraint, Collection<String> pendingCancelations) {
+    private long cacheKey(Constraint constraint) {
         long key;
         //noinspection PointlessBitwiseExpression
         key = (constraint.getTagConstraint() == null ? 2 : constraint.getTagConstraint().ordinal()) << TAG_TYPE
@@ -199,8 +187,7 @@ class WhereQueryCache {
                 | constraint.getExcludeGroups().size() << GROUP_COUNT
                 | constraint.getExcludeJobIds().size() << JOB_COUNT
                 | (constraint.excludeRunning() ? 1 : 0) << EXCLUDE_RUNNING
-                | (constraint.getTimeLimit() == null ? 1 : 0) << TIME_LIMIT
-                | pendingCancelations.size() << PENDING_CANCELLATIONS;
+                | (constraint.getTimeLimit() == null ? 1 : 0) << TIME_LIMIT;
         return key;
     }
 

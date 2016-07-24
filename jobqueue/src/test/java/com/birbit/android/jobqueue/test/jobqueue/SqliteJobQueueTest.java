@@ -115,7 +115,6 @@ public class SqliteJobQueueTest extends JobQueueTestBase {
         MatcherAssert.assertThat("custom serializer should NOT be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(1));
         jobQueue.nextJobAndIncRunCount(new TestConstraint(mockTimer));
         MatcherAssert.assertThat("custom serializer should be called for deserialize", (int) calledForDeserialize.getCount(), CoreMatchers.equalTo(0));
-
     }
 
     private static class TagInfo {

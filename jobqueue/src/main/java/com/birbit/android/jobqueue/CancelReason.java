@@ -30,9 +30,8 @@ public @interface CancelReason {
     int REACHED_RETRY_LIMIT = JobHolder.RUN_RESULT_FAIL_RUN_LIMIT;
 
     /**
-     * Used when job throws an exception in {@link Job#onRun()}
-     * and will be cancelled because it was cancelled via
-     * {@link JobManager#cancelJobs(TagConstraint, String...)} while it was running.
+     * Used when a job is cancelled via {@link JobManager#cancelJobs(TagConstraint, String...)}.
+     * It might be waiting to be run or might have thrown an exception be in {@link Job#onRun()}.
      *
      * @see JobManager#cancelJobs(TagConstraint, String...)
      * @see JobManager#cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)
@@ -54,7 +53,6 @@ public @interface CancelReason {
      * {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
      */
     int CANCELLED_VIA_SHOULD_RE_RUN = JobHolder.RUN_RESULT_FAIL_SHOULD_RE_RUN;
-
 
     /**
      * Used when a Job is cancelled for hitting its deadline.

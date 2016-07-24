@@ -14,6 +14,7 @@ public class SqlHelper {
     /**package**/ String FIND_BY_TAG_QUERY;
     /**package**/ String LOAD_ALL_IDS_QUERY;
     /**package**/ String LOAD_TAGS_QUERY;
+    /**package**/ String RE_ENABLE_PENDING_CANCELLATIONS_QUERY;
 
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertTagsStatement;
@@ -22,6 +23,7 @@ public class SqlHelper {
     private SQLiteStatement deleteJobTagsStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
+    private SQLiteStatement markAsCancelledStatement;
     final StringBuilder reusedStringBuilder = new StringBuilder();
 
 
@@ -50,6 +52,8 @@ public class SqlHelper {
         LOAD_TAGS_QUERY = "SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName + " FROM "
                 + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                 + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?";
+        RE_ENABLE_PENDING_CANCELLATIONS_QUERY = "UPDATE " + tableName + " SET "
+                + DbOpenHelper.CANCELLED_COLUMN.columnName + " = 0";
     }
 
     public static String create(String tableName, Property primaryKey, Property... properties) {
@@ -166,6 +170,16 @@ public class SqlHelper {
             onJobFetchedForRunningStatement = db.compileStatement(sql);
         }
         return onJobFetchedForRunningStatement;
+    }
+
+    public SQLiteStatement getMarkAsCancelledStatement() {
+        if (markAsCancelledStatement == null) {
+            String sql = "UPDATE " + tableName + " SET "
+                    + DbOpenHelper.CANCELLED_COLUMN.columnName + " = 1 "
+                    + " WHERE " + primaryKeyColumnName + " = ? ";
+            markAsCancelledStatement = db.compileStatement(sql);
+        }
+        return markAsCancelledStatement;
     }
 
     public String createSelect(String where, Integer limit, Order... orders) {
