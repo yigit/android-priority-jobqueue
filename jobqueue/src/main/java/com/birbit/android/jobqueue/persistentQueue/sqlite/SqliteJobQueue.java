@@ -278,7 +278,6 @@ public class SqliteJobQueue implements JobQueue {
     @Override
     public void onJobCancelled(JobHolder jobHolder) {
         SQLiteStatement stmt = sqlHelper.getMarkAsCancelledStatement();
-        jobHolder.setRunningSessionId(sessionId);
         stmt.clearBindings();
         stmt.bindString(1, jobHolder.getId());
         stmt.execute();

@@ -69,9 +69,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
         if (oldVersion == 11) {
-            if (newVersion == 12) {
-                addCancelColumn(sqLiteDatabase);
-            }
+            addCancelColumn(sqLiteDatabase);
         } else {
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));

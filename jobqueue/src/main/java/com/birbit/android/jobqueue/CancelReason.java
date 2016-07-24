@@ -31,7 +31,7 @@ public @interface CancelReason {
 
     /**
      * Used when a job is cancelled via {@link JobManager#cancelJobs(TagConstraint, String...)}.
-     * It might be waiting to be run or might have thrown an exception be in {@link Job#onRun()}.
+     * It might be waiting to be run or might have thrown an exception in {@link Job#onRun()}.
      *
      * @see JobManager#cancelJobs(TagConstraint, String...)
      * @see JobManager#cancelJobsInBackground(CancelResult.AsyncCancelCallback, TagConstraint, String...)
