@@ -285,7 +285,7 @@ THE SOFTWARE.
 </pre>
 
 
-[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/network/NetworkUtil.java
+[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/network/NetworkUtil.java
 [2]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/network/NetworkEventProvider.java
 [3]: http://yigit.github.io/android-priority-jobqueue/coverage-report/index.html
 [4]: http://yigit.github.io/android-priority-jobqueue/javadoc/index.html
