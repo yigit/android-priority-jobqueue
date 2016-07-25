@@ -285,8 +285,8 @@ THE SOFTWARE.
 </pre>
 
 
-[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/network/NetworkUtil.java
-[2]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/network/NetworkEventProvider.java
+[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/network/NetworkUtil.java
+[2]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/network/NetworkEventProvider.java
 [3]: http://yigit.github.io/android-priority-jobqueue/coverage-report/index.html
 [4]: http://yigit.github.io/android-priority-jobqueue/javadoc/index.html
 [5]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22android-priority-jobqueue%22
@@ -296,7 +296,7 @@ THE SOFTWARE.
 [9]: https://github.com/yigit/android-priority-jobqueue/wiki
 [10]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Manager-Configuration
 [11]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Configuration
-[12]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/com/birbit/android/jobqueue/Params.java
+[12]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/Params.java
 [13]: https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration
 [14]: https://developer.android.com/reference/android/app/job/JobScheduler.html
 [15]: https://developers.google.com/android/reference/com/google/android/gms/gcm/GcmNetworkManager
