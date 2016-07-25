@@ -4,7 +4,7 @@ See the migration guide here: [migration from v1 to v2](https://github.com/yigit
 
 ``` gradle
 dependencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.0-beta1'
+    compile 'com.birbit:android-priority-jobqueue:2.0.0-beta2'
 }
 ```
 Android Priority Job Queue (Job Manager)
@@ -155,7 +155,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.birbit:android-priority-jobqueue:1.3.5'`
+Gradle: `compile 'com.birbit:android-priority-jobqueue:2.0.0-beta2'`
 
 Maven:
 
@@ -163,7 +163,7 @@ Maven:
 <dependency>
     <groupId>com.birbit</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>1.3.5</version>
+    <version>2.0.0-beta2</version>
 </dependency>
 ```
 
@@ -176,6 +176,10 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.0-beta2 (July 25, 2016)
+   - Fixed a bug about cancelling persistent jobs (#212)
+   - Fixed a cursor leak in the persistent queue (#206)
+   - Added custom duration to the BatchingScheduler (#202)
   - 2.0.0-beta1 (June 27, 2016)
    - Commitment to the final 2.0 API and backward compatibility
    - Fixed a bug where cancel reason was not passed to onCancel if Job decides not to try again
