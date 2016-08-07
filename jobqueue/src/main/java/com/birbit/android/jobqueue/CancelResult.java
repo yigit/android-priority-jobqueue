@@ -1,7 +1,6 @@
 package com.birbit.android.jobqueue;
 
 import java.util.Collection;
-import java.util.HashSet;
 
 /**
  * This class holds the result of a cancel request via {@link JobManager#cancelJobs(TagConstraint, String...)}
@@ -17,11 +16,6 @@ import java.util.HashSet;
 public class CancelResult {
     private Collection<Job> cancelledJobs;
     private Collection<Job> failedToCancel;
-
-    public CancelResult() {
-        this.cancelledJobs = new HashSet<>();
-        this.failedToCancel = new HashSet<>();
-    }
 
     public CancelResult(Collection<Job> cancelledJobs, Collection<Job> failedToCancel) {
         this.cancelledJobs = cancelledJobs;
