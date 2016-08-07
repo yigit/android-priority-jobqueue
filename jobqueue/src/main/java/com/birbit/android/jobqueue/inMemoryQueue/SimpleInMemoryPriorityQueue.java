@@ -5,7 +5,6 @@ import android.support.annotation.NonNull;
 import com.birbit.android.jobqueue.Constraint;
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.JobQueue;
-import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.config.Configuration;
 
 import java.util.ArrayList;

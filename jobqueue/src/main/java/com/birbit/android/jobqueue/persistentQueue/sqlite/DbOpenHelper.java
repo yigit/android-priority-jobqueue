@@ -19,7 +19,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property CREATED_NS_COLUMN = new SqlHelper.Property("created_ns", "long", 5);
     /*package*/ static final SqlHelper.Property DELAY_UNTIL_NS_COLUMN = new SqlHelper.Property("delay_until_ns", "long", 6);
     /*package*/ static final SqlHelper.Property RUNNING_SESSION_ID_COLUMN = new SqlHelper.Property("running_session_id", "long", 7);
-    /*package*/ static final SqlHelper.Property REQUIRED_NETWORK_TYPE_OLUMN = new SqlHelper.Property("network_type", "integer", 8);
+    /*package*/ static final SqlHelper.Property REQUIRED_NETWORK_TYPE_COLUMN = new SqlHelper.Property("network_type", "integer", 8);
     /*package*/ static final SqlHelper.Property DEADLINE_COLUMN = new SqlHelper.Property("deadline", "integer", 9);
     /*package*/ static final SqlHelper.Property CANCEL_ON_DEADLINE_COLUMN = new SqlHelper.Property("cancel_on_deadline", "integer", 10);
     /*package*/ static final SqlHelper.Property CANCELLED_COLUMN = new SqlHelper.Property("cancelled", "integer", 11);
@@ -50,7 +50,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 CREATED_NS_COLUMN,
                 DELAY_UNTIL_NS_COLUMN,
                 RUNNING_SESSION_ID_COLUMN,
-                REQUIRED_NETWORK_TYPE_OLUMN,
+                REQUIRED_NETWORK_TYPE_COLUMN,
                 DEADLINE_COLUMN,
                 CANCEL_ON_DEADLINE_COLUMN,
                 CANCELLED_COLUMN

@@ -166,7 +166,7 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex + 1, jobHolder.getCreatedNs());
         stmt.bindLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex + 1, jobHolder.getDelayUntilNs());
         stmt.bindLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex + 1, jobHolder.getRunningSessionId());
-        stmt.bindLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnIndex + 1,
+        stmt.bindLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex + 1,
                 jobHolder.getRequiredNetworkType());
         stmt.bindLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex + 1,
                 jobHolder.getDeadlineNs());
@@ -304,7 +304,7 @@ public class SqliteJobQueue implements JobQueue {
                 //delete
                 String jobId = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
                 if (jobId == null) {
-                    JqLog.e("cannot find job id on a retriewed job");
+                    JqLog.e("cannot find job id on a retrieved job");
                 } else {
                     delete(jobId);
                 }
@@ -389,7 +389,7 @@ public class SqliteJobQueue implements JobQueue {
                         .append(" sessionId:")
                         .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
                         .append(" reqNetworkType:")
-                        .append(cursor.getLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnIndex));
+                        .append(cursor.getLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex));
                 Cursor tags = db.rawQuery("SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName
                         + " FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                         + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?", new String[]{id});
@@ -437,7 +437,7 @@ public class SqliteJobQueue implements JobQueue {
                 .createdNs(cursor.getLong(DbOpenHelper.CREATED_NS_COLUMN.columnIndex))
                 .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                 .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
-                .requiredNetworkType(cursor.getInt(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnIndex))
+                .requiredNetworkType(cursor.getInt(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex))
                 .build();
         return holder;
     }

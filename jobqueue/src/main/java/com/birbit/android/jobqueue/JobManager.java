@@ -465,7 +465,7 @@ public class JobManager {
         message.set(PublicQueryMessage.INTERNAL_RUNNABLE, null);
         new IntQueryFuture<PublicQueryMessage>(messageQueue, message) {
             @Override
-            public void onResult(int result) { // this is hacky but allright
+            public void onResult(int result) { // this is hacky but alright
                 try {
                     runnable.run();
                 } catch (Throwable t) {

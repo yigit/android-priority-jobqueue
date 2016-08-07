@@ -127,7 +127,7 @@ class FrameworkScheduler extends Scheduler {
         JqLog.d("[FW Scheduler] on finished job %s. reschedule:%s", constraint, reschedule);
         JobService service = this.jobService;
         if (service == null) {
-            JqLog.e("[FW Scheduler] scheduler onfinished is called but i don't have a job service");
+            JqLog.e("[FW Scheduler] scheduler onFinished is called but i don't have a job service");
             return;
         }
 

@@ -1,10 +1,8 @@
 package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 
-import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 
 public class Where {

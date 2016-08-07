@@ -57,7 +57,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private boolean running = true;
     /**
      * We set this to true whenever we schedule a wake up and set to false whenever we call
-     * cancelAll. It is not precise, does not cover scheduling across reboots but a fair comprimise
+     * cancelAll. It is not precise, does not cover scheduling across reboots but a fair compromise
      * for simplicity.
      */
     private boolean shouldCancelAllScheduledWhenEmpty = false;

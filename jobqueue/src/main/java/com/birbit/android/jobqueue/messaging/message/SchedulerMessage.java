@@ -1,9 +1,7 @@
 package com.birbit.android.jobqueue.messaging.message;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
-import com.birbit.android.jobqueue.IntCallback;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;

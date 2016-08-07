@@ -27,7 +27,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.1.0'
+        classpath 'com.android.tools.build:gradle:2.1.2'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.3'
     }
 }
@@ -56,14 +56,15 @@ dependencies {
 
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
+    //noinspection GradleDependency
     compile 'com.android.support:support-v4:21.0.3'
-    // build tools does not allow makingt this provided so we make it optional when pom is created
+    // build tools does not allow making this provided so we make it optional when pom is created
     compile 'com.google.android.gms:play-services-gcm:8.4.0'
 }
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    compileSdkVersion 24
+    buildToolsVersion "24.0.0"
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -75,7 +76,7 @@ android {
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 23
+        targetSdkVersion 24
     }
 
     testOptions {
@@ -109,12 +110,12 @@ android.libraryVariants.all { variant ->
     }
     def suffix = name.capitalize()
     println "found release variant"
-    def jarTask = project.tasks.create(name: "jar${suffix}", type: Jar){
+    project.tasks.create(name: "jar${suffix}", type: Jar){
         dependsOn variant.javaCompile
         from variant.javaCompile.destinationDir
         from 'LICENSE.txt'
     }
-    def javadocTask = project.tasks.create(name: "javadoc${suffix}", type: Javadoc) {
+    project.tasks.create(name: "javadoc${suffix}", type: Javadoc) {
         source = variant.javaCompile.source
         ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
         classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)

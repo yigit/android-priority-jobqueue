@@ -285,7 +285,7 @@ public class JobHolder {
     /**
      * Returns the type of network required by this job.
      * <p>
-     * Note that these network status can be compared to eachother and higher network type is a
+     * Note that these network status can be compared to each other and higher network type is a
      * larger requirement. For instance, if this method returns
      * {@link com.birbit.android.jobqueue.network.NetworkUtil.NetworkStatus#DISCONNECTED}, that does
      * not mean job requires no network to run. Instead, it means it does not require any network

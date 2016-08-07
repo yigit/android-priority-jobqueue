@@ -16,11 +16,8 @@ import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.timer.Timer;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;

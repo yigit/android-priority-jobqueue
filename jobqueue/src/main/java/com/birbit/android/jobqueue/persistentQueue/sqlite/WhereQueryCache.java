@@ -93,7 +93,7 @@ class WhereQueryCache {
         argCount ++;
 
         reusedStringBuilder
-                .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_OLUMN.columnName)
+                .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnName)
                 .append(" <= ?)");
 
         reusedStringBuilder.append(" AND (")

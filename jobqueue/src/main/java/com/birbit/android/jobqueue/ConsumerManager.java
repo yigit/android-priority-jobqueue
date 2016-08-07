@@ -170,7 +170,7 @@ class ConsumerManager {
         boolean aboveLoadFactor = (workerCount * loadFactor < remainingJobs + runningHolders) ||
                 (workerCount < minConsumerCount && workerCount < remainingJobs + runningHolders);
         JqLog.d("check above load factor: totalCons:%s minCons:%s maxConsCount: %s, loadFactor %s"
-                        + " remainingJobs: %s runningsHolders: %s. isAbove:%s", workerCount,
+                        + " remainingJobs: %s running holders: %s. isAbove:%s", workerCount,
                 minConsumerCount, maxConsumerCount, loadFactor, remainingJobs, runningHolders,
                 aboveLoadFactor);
         return aboveLoadFactor;

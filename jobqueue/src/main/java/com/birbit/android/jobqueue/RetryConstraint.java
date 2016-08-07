@@ -6,7 +6,7 @@ package com.birbit.android.jobqueue;
  * This object keeps additional data about handling job failures. You can simply use
  * {@link #RETRY} or {@link #CANCEL} if you just want to retry or cancel a job. Alternatively,
  * you can create your own instance where you can add a delay {@link #setNewDelayInMs(Long)} or
- * change Job's prioritiy {@link #setNewPriority(Integer)}.
+ * change Job's priority {@link #setNewPriority(Integer)}.
  * <p>
  * A common use case is exponentially backing off a Job and you can use
  * {@link #createExponentialBackoff(int, long)} method to do that.
@@ -68,10 +68,10 @@ public class RetryConstraint {
      *
      * @param runCount The run count that was passed to
      * {@link Job#shouldReRunOnThrowable(Throwable, int, int)}
-     * @param initialBackOffInMs The initial back off time. This will be the back off for the inital
+     * @param initialBackOffInMs The initial back off time. This will be the back off for the initial
      *                           run and then it will exponentially grow from this number.
      *
-     * @return A RetryContraint that will report exponential back off.
+     * @return A RetryConstraint that will report exponential back off.
      */
     public static RetryConstraint createExponentialBackoff(int runCount, long initialBackOffInMs) {
         RetryConstraint constraint = new RetryConstraint(true);
