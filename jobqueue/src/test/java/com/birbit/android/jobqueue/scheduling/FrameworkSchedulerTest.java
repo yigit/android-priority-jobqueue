@@ -205,6 +205,12 @@ public class FrameworkSchedulerTest {
         // TODO would be nice to use powermock and assert onFinished call
     }
 
+    @Test
+    public void cancelAll() {
+        fwScheduler.cancelAll();
+        verify(mockJobScheduler).cancelAll();
+    }
+
     private void onStartTest(int networkStatus, long delay, Long overrideDeadline) {
         SchedulerConstraint constraint = mock(SchedulerConstraint.class);
         when(constraint.getNetworkStatus()).thenReturn(networkStatus);

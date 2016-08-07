@@ -36,7 +36,7 @@ class FrameworkScheduler extends Scheduler {
     private ComponentName componentName;
     // set when service invokes, cleared when service dies
     @Nullable private JobService jobService;
-    private final Class<? extends FrameworkJobSchedulerService> serviceImpl;
+    final Class<? extends FrameworkJobSchedulerService> serviceImpl;
 
     FrameworkScheduler(Class<? extends FrameworkJobSchedulerService> serviceImpl) {
         this.serviceImpl = serviceImpl;
