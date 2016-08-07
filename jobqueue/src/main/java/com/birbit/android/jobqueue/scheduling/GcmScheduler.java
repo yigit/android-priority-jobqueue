@@ -1,8 +1,6 @@
 package com.birbit.android.jobqueue.scheduling;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import com.birbit.android.jobqueue.BatchingScheduler;
@@ -19,42 +17,15 @@ import java.util.concurrent.TimeUnit;
 
 class GcmScheduler extends Scheduler {
     private static final String KEY_UUID = "uuid";
-    private static final String KEY_ID = "id";
     private static final String KEY_DELAY = "delay";
+    private static final String KEY_OVERRIDE_DEADLINE = "deadline";
     private static final String KEY_NETWORK_STATUS = "networkStatus";
-    private static SharedPreferences preferences;
-    private final GcmNetworkManager gcmNetworkManager;
-    private final Class<? extends GcmJobSchedulerService> serviceClass;
+    GcmNetworkManager gcmNetworkManager;
+    final Class<? extends GcmJobSchedulerService> serviceClass;
 
     GcmScheduler(Context context, Class<? extends GcmJobSchedulerService> serviceClass) {
         this.serviceClass = serviceClass;
         gcmNetworkManager = GcmNetworkManager.getInstance(context.getApplicationContext());
-    }
-
-    private static SharedPreferences getPreferences(Context context) {
-        synchronized (GcmScheduler.class) {
-            if (preferences == null) {
-                preferences = context.getSharedPreferences("jobqueue_gcm_scheduler",
-                        Context.MODE_PRIVATE);
-            }
-            return preferences;
-        }
-    }
-
-    /**
-     * Creates a new ID for the job info. Can be overridden if you need to provide different ids not
-     * to conflict with the rest of your application.
-     *
-     * @return A unique integer id for the next Job request to be sent to system scheduler
-     */
-    @SuppressLint("CommitPrefEdits")
-    private int createId() {
-        synchronized (GcmScheduler.class) {
-            final SharedPreferences preferences = getPreferences(getApplicationContext());
-            final int id = preferences.getInt(KEY_ID, 0) + 1;
-            preferences.edit().putInt(KEY_ID, id).commit();
-            return id;
-        }
     }
 
     @Override
@@ -62,19 +33,24 @@ class GcmScheduler extends Scheduler {
         if (JqLog.isDebugEnabled()) {
             JqLog.d("creating gcm wake up request for %s", constraint);
         }
-        long endTimeMs = constraint.getOverrideDeadlineInMs() == null
-                ? constraint.getDelayInMs() + TimeUnit.SECONDS.toMillis(getExecutionWindowSizeInSeconds())
-                : constraint.getOverrideDeadlineInMs();
-        OneoffTask oneoffTask = new OneoffTask.Builder()
-                .setExecutionWindow(TimeUnit.MILLISECONDS.toSeconds(constraint.getDelayInMs()),
-                        TimeUnit.MILLISECONDS.toSeconds(endTimeMs))
+        OneoffTask.Builder builder = new OneoffTask.Builder()
                 .setRequiredNetwork(toNetworkState(constraint.getNetworkStatus()))
                 .setPersisted(true)
                 .setService(serviceClass)
-                .setTag("jobmanager-" + createId())
-                .setExtras(toBundle(constraint))
-                .build();
-        gcmNetworkManager.schedule(oneoffTask);
+                .setTag(constraint.getUuid())
+                .setExtras(toBundle(constraint));
+        long endTimeMs = constraint.getOverrideDeadlineInMs() == null
+                ? constraint.getDelayInMs() + TimeUnit.SECONDS.toMillis(getExecutionWindowSizeInSeconds())
+                : constraint.getOverrideDeadlineInMs();
+        long executionStart = TimeUnit.MILLISECONDS.toSeconds(constraint.getDelayInMs());
+        long executionEnd = TimeUnit.MILLISECONDS.toSeconds(endTimeMs);
+        // JobManager uses MS vs GCM uses seconds so we must check to avoid illegal arg exceptions
+        if (executionEnd <= executionStart) {
+            executionEnd = executionStart + 1;
+        }
+        builder.setExecutionWindow(executionStart, executionEnd);
+
+        gcmNetworkManager.schedule(builder.build());
     }
 
     /**
@@ -87,8 +63,9 @@ class GcmScheduler extends Scheduler {
      *
      * @return The execution window time for the Job request
      */
-    private long getExecutionWindowSizeInSeconds() {
-        return TimeUnit.MILLISECONDS.toSeconds(BatchingScheduler.DEFAULT_BATCHING_PERIOD_IN_MS);
+    long getExecutionWindowSizeInSeconds() {
+        // let jobs timeout in a week
+        return TimeUnit.DAYS.toSeconds(7);
     }
 
     @Override
@@ -109,16 +86,22 @@ class GcmScheduler extends Scheduler {
         return Task.NETWORK_STATE_CONNECTED;
     }
 
-    private static Bundle toBundle(SchedulerConstraint constraint) {
+    static Bundle toBundle(SchedulerConstraint constraint) {
         Bundle bundle = new Bundle();
         // put boolean is api 22
-        bundle.putString(KEY_UUID, constraint.getUuid());
+        if (constraint.getUuid() != null) {
+            // gcm throws an exception if this is null
+            bundle.putString(KEY_UUID, constraint.getUuid());
+        }
         bundle.putInt(KEY_NETWORK_STATUS, constraint.getNetworkStatus());
         bundle.putLong(KEY_DELAY, constraint.getDelayInMs());
+        if (constraint.getOverrideDeadlineInMs() != null) {
+            bundle.putLong(KEY_OVERRIDE_DEADLINE, constraint.getOverrideDeadlineInMs());
+        }
         return bundle;
     }
 
-    private static SchedulerConstraint fromBundle(Bundle bundle) {
+    static SchedulerConstraint fromBundle(Bundle bundle) {
         SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));
         if (constraint.getUuid() == null) {
             // backward compatibility
@@ -126,6 +109,9 @@ class GcmScheduler extends Scheduler {
         }
         constraint.setNetworkStatus(bundle.getInt(KEY_NETWORK_STATUS, NetworkUtil.DISCONNECTED));
         constraint.setDelayInMs(bundle.getLong(KEY_DELAY, 0));
+        if (bundle.containsKey(KEY_OVERRIDE_DEADLINE)) {
+            constraint.setOverrideDeadlineInMs(bundle.getLong(KEY_OVERRIDE_DEADLINE));
+        }
         return constraint;
     }
 
