@@ -4,7 +4,7 @@ See the migration guide here: [migration from v1 to v2](https://github.com/yigit
 
 ``` gradle
 dependencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.0-beta2'
+    compile 'com.birbit:android-priority-jobqueue:2.0.0-beta3'
 }
 ```
 
@@ -160,7 +160,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.birbit:android-priority-jobqueue:2.0.0-beta2'`
+Gradle: `compile 'com.birbit:android-priority-jobqueue:2.0.0-beta3'`
 
 Maven:
 
@@ -168,7 +168,7 @@ Maven:
 <dependency>
     <groupId>com.birbit</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>2.0.0-beta2</version>
+    <version>2.0.0-beta3</version>
 </dependency>
 ```
 
@@ -181,6 +181,8 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.0-beta3 (Aug 7, 2016)
+   - Minor improvements in GCMNetworkManager
   - 2.0.0-beta2 (July 25, 2016)
    - Fixed a bug about cancelling persistent jobs (#212)
    - Fixed a cursor leak in the persistent queue (#206)
