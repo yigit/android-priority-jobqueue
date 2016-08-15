@@ -19,6 +19,7 @@ import com.birbit.android.jobqueue.timer.SystemTimer;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.ThreadFactory;
+import java.util.regex.Pattern;
 
 /**
  * {@link com.birbit.android.jobqueue.JobManager} configuration object
@@ -152,6 +153,7 @@ public class Configuration {
 
     @SuppressWarnings("unused")
     public static final class Builder {
+        private Pattern idRegex = Pattern.compile("^([A-Za-z]|[0-9]|_|-)+$");
         private Configuration configuration;
 
         public Builder(@NonNull Context context) {
@@ -160,14 +162,22 @@ public class Configuration {
         }
 
         /**
-         * provide and ID for this job manager to be used while creating persistent queue. it is useful if you are going to
-         * create multiple instances of it.
+         * Provide and ID for this job manager to be used while creating persistent queue. it is
+         * necessary if you are going to create multiple instances of it.
          * default id is {@link #DEFAULT_ID}
-         * @param id if you have multiple instances of job manager, you should provide an id to distinguish their persistent files.
+         * <p>
+         * You can only use alphanumeric characters, <code>-</code> and <code>_</code> .
+         * @param id if you have multiple instances of job manager, you should provide an id to
+         *           distinguish their persistent files.
          * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder id(@NonNull String id) {
+            //noinspection ConstantConditions
+            if (id == null || !idRegex.matcher(id).matches()) {
+                throw new IllegalArgumentException("id cannot be null or empty and can only include"
+                        + " alphanumeric characters, - or _ .");
+            }
             configuration.id = id;
             return this;
         }
