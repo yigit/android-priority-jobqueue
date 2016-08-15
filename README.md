@@ -1,6 +1,5 @@
 ### V2 is here!
-There is a major internal rewrite of this project for more stability and new features. If you were using v1, 
-see the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
+There is a major internal rewrite of this project for more stability and new features. If you were using v1, see the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
 dependencies {
@@ -182,6 +181,7 @@ We highly recommend checking how you can configure job manager and individual jo
 
 ### Version History
   - 2.0.0 (Aug 14, 2016)
+   - Validate JobManager ids
   - 2.0.0-beta3 (Aug 7, 2016)
    - Minor improvements in GCMNetworkManager
   - 2.0.0-beta2 (July 25, 2016)
