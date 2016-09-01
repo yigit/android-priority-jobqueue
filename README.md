@@ -242,7 +242,7 @@ We highly recommend checking how you can configure job manager and individual jo
 ### Dependencies
 - Job Queue
 - - [Support-v4](https://developer.android.com/topic/libraries/support-library/index.html)
-- - [OkiIO](https://github.com/square/okio) ([license](https://github.com/square/okio/blob/master/LICENSE.txt))
+- - [Okio](https://github.com/square/okio) ([license](https://github.com/square/okio/blob/master/LICENSE.txt))
 - For testing, we use:
 - - [Junit 4](http://junit.org/) ([license](https://github.com/junit-team/junit/blob/master/LICENSE.txt))
 - - [Robolectric](http://robolectric.org/) ([license](https://github.com/robolectric/robolectric/blob/master/LICENSE.txt))
