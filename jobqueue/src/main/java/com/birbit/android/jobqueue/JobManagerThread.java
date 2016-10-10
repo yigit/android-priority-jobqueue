@@ -222,6 +222,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         messageQueue.consume(new MessageQueueConsumer() {
             @Override
             public void handleMessage(Message message) {
+                canScheduleConstraintChangeOnIdle = true;
                 switch (message.type) {
                     case ADD_JOB:
                         handleAddJob((AddJobMessage) message);
