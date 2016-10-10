@@ -95,8 +95,11 @@ class ConsumerManager {
         considerAddingConsumers(false);
     }
 
-    void handleConstraintChange() {
-        considerAddingConsumers(true);
+    /**
+     * @return True if a new consumer is added or a waiting consumer is waken up
+     */
+    boolean handleConstraintChange() {
+        return considerAddingConsumers(true);
     }
 
     void handleStop() {
@@ -114,13 +117,17 @@ class ConsumerManager {
         }
     }
 
-    private void considerAddingConsumers(boolean pokeAllWaiting) {
+    /**
+     * @param pokeAllWaiting True if all waiting consumers should be poked instead of 1
+     * @return True if a consumer is poked or a new consumer is added
+     */
+    private boolean considerAddingConsumers(boolean pokeAllWaiting) {
         JqLog.d("considering adding a new consumer. Should poke all waiting? %s isRunning? %s"
                         + " waiting workers? %d"
                 , pokeAllWaiting, jobManagerThread.isRunning(), waitingConsumers.size());
         if (!jobManagerThread.isRunning()) {
             JqLog.d("jobqueue is not running, no consumers will be added");
-            return;
+            return false;
         }
         if (waitingConsumers.size() > 0) {
             JqLog.d("there are waiting workers, will poke them instead");
@@ -134,13 +141,15 @@ class ConsumerManager {
                 }
             }
             JqLog.d("there were waiting workers, poked them and I'm done");
-            return;
+            return true;
         }
         boolean isAboveLoadFactor = isAboveLoadFactor();
         JqLog.d("nothing has been poked. are we above load factor? %s", isAboveLoadFactor);
         if (isAboveLoadFactor) {
             addWorker();
+            return true;
         }
+        return false;
     }
 
     private void addWorker() {

@@ -1031,6 +1031,23 @@ public abstract class JobQueueTestBase extends TestBase {
         assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(500000000L));
     }
 
+    @Test
+    public void testDelayUntilWithRunningJobs() {
+        JobQueue jobQueue = createNewJobQueue();
+        JobHolder holder = createNewJobHolder();
+        jobQueue.insert(holder);
+        TestConstraint constraint = new TestConstraint(mockTimer);
+        constraint.setMaxNetworkType(NetworkUtil.METERED);
+        constraint.setExcludeRunning(true);
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(JobManager.NOT_DELAYED_JOB_DELAY));
+
+        JobHolder nextJob = jobQueue.nextJobAndIncRunCount(constraint);
+        assertThat(nextJob, is(notNullValue()));
+        assertThat(nextJob.getId(), is(holder.getId()));
+
+        assertThat(jobQueue.getNextJobDelayUntilNs(constraint), is(nullValue()));
+    }
+
     private void assertTags(String msg, JobQueue jobQueue, JobHolder holder) {
         Set<JobHolder> result;
         String wrongTag;
