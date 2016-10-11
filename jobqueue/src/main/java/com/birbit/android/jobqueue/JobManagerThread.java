@@ -61,6 +61,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
      * for simplicity.
      */
     private boolean shouldCancelAllScheduledWhenEmpty = false;
+    // see https://github.com/yigit/android-priority-jobqueue/issues/262
+    private boolean canScheduleConstraintChangeOnIdle = true;
 
     final PriorityMessageQueue messageQueue;
     @Nullable
@@ -220,6 +222,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         messageQueue.consume(new MessageQueueConsumer() {
             @Override
             public void handleMessage(Message message) {
+                canScheduleConstraintChangeOnIdle = true;
                 switch (message.type) {
                     case ADD_JOB:
                         handleAddJob((AddJobMessage) message);
@@ -234,7 +237,11 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                         handleRunJobResult((RunJobResultMessage) message);
                         break;
                     case CONSTRAINT_CHANGE:
-                        consumerManager.handleConstraintChange();
+                        boolean handled = consumerManager.handleConstraintChange();
+                        ConstraintChangeMessage constraintChangeMessage =
+                                (ConstraintChangeMessage) message;
+                        canScheduleConstraintChangeOnIdle = handled ||
+                                !constraintChangeMessage.isForNextJob();
                         break;
                     case CANCEL:
                         handleCancel((CancelMessage) message);
@@ -253,8 +260,13 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
             @Override
             public void onIdle() {
-                JqLog.d("joq idle. running:? %s", running);
+                JqLog.v("joq idle. running:? %s", running);
                 if (!running) {
+                    return;
+                }
+                if (!canScheduleConstraintChangeOnIdle) {
+                    JqLog.v("skipping scheduling a new idle callback because looks like last one"
+                            + " did not do anything");
                     return;
                 }
                 Long nextJobTimeNs = getNextWakeUpNs(true);
@@ -264,6 +276,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 if (nextJobTimeNs != null) {
                     ConstraintChangeMessage constraintMessage =
                             messageFactory.obtain(ConstraintChangeMessage.class);
+                    constraintMessage.setForNextJob(true);
                     messageQueue.postAt(constraintMessage, nextJobTimeNs);
                 } else if (scheduler != null) {
                     // if we have a scheduler but the queue is empty, just clean them all.
