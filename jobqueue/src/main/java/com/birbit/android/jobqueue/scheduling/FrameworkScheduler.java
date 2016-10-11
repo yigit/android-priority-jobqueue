@@ -162,7 +162,7 @@ class FrameworkScheduler extends Scheduler {
     }
 
     @VisibleForTesting
-    static SchedulerConstraint fromBundle(PersistableBundle bundle) {
+    static SchedulerConstraint fromBundle(PersistableBundle bundle) throws Exception {
         SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));
         if (constraint.getUuid() == null) {
             // backward compatibility
@@ -178,14 +178,26 @@ class FrameworkScheduler extends Scheduler {
     }
 
     boolean onStartJob(JobParameters params) {
-        SchedulerConstraint constraint = fromBundle(params.getExtras());
+        SchedulerConstraint constraint;
+        try {
+            constraint = fromBundle(params.getExtras());
+        } catch (Exception e) {
+            JqLog.e(e, "bad bundle from framework job scheduler start callback.");
+            return false;
+        }
         JqLog.d("[FW Scheduler] start job %s %d", constraint, params.getJobId());
         constraint.setData(params);
         return start(constraint);
     }
 
     boolean onStopJob(JobParameters params) {
-        SchedulerConstraint constraint = fromBundle(params.getExtras());
+        SchedulerConstraint constraint;
+        try {
+            constraint = fromBundle(params.getExtras());
+        } catch (Exception e) {
+            JqLog.e(e, "bad bundle from job scheduler stop callback");
+            return false;
+        }
         return stop(constraint);
     }
 }

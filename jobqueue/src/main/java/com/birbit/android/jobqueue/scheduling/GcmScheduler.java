@@ -101,7 +101,7 @@ class GcmScheduler extends Scheduler {
         return bundle;
     }
 
-    static SchedulerConstraint fromBundle(Bundle bundle) {
+    static SchedulerConstraint fromBundle(Bundle bundle) throws Exception {
         SchedulerConstraint constraint = new SchedulerConstraint(bundle.getString(KEY_UUID));
         if (constraint.getUuid() == null) {
             // backward compatibility
@@ -116,7 +116,13 @@ class GcmScheduler extends Scheduler {
     }
 
     int onStartJob(TaskParams taskParams) {
-        SchedulerConstraint constraint = fromBundle(taskParams.getExtras());
+        SchedulerConstraint constraint = null;
+        try {
+            constraint = fromBundle(taskParams.getExtras());
+        } catch (Exception e) {
+            JqLog.e(e, "bad bundle from GcmScheduler. Ignoring the call");
+            return GcmNetworkManager.RESULT_SUCCESS;
+        }
         if (JqLog.isDebugEnabled()) {
             JqLog.d("starting job %s", constraint);
         }

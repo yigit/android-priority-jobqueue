@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.google.android.gms.gcm.GcmNetworkManager;
@@ -140,6 +141,17 @@ public class GcmSchedulerTest {
         assertThat(fromBundle.getUuid(), is("abc"));
         assertThat(fromBundle.getDelayInMs(), is(345L));
         assertThat(fromBundle.getOverrideDeadlineInMs(), is(235L));
+    }
+
+    @Test
+    public void badBundleOnStart() {
+        // see https://github.com/yigit/android-priority-jobqueue/issues/254
+        TaskParams params = mock(TaskParams.class);
+        PersistableBundle badBundle = mock(PersistableBundle.class);
+        when(badBundle.getString(anyString(), anyString())).thenThrow(new NullPointerException());
+        when(badBundle.getString(anyString())).thenThrow(new NullPointerException());
+        // return success since we cannot handle this bad bundle
+        assertThat(gcmScheduler.onStartJob(params), is(GcmNetworkManager.RESULT_SUCCESS));
     }
 
     @Test
