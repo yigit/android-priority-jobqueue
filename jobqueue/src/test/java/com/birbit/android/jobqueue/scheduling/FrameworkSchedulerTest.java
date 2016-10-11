@@ -126,7 +126,7 @@ public class FrameworkSchedulerTest {
     }
 
     @Test
-    public void bundle() {
+    public void bundle() throws Exception {
         SchedulerConstraint constraint = mock(SchedulerConstraint.class);
         when(constraint.getNetworkStatus()).thenReturn(NetworkUtil.METERED);
         when(constraint.getUuid()).thenReturn("abc");
@@ -142,7 +142,7 @@ public class FrameworkSchedulerTest {
     }
 
     @Test
-    public void bundleNullDeadline() {
+    public void bundleNullDeadline() throws Exception {
         SchedulerConstraint constraint = mock(SchedulerConstraint.class);
         when(constraint.getNetworkStatus()).thenReturn(NetworkUtil.METERED);
         when(constraint.getUuid()).thenReturn("abc");
@@ -155,6 +155,26 @@ public class FrameworkSchedulerTest {
         assertThat(fromBundle.getUuid(), is("abc"));
         assertThat(fromBundle.getDelayInMs(), is(345L));
         assertThat(fromBundle.getOverrideDeadlineInMs(), is(nullValue()));
+    }
+
+    @Test
+    public void badBundleOnStart() {
+        // see https://github.com/yigit/android-priority-jobqueue/issues/254
+        JobParameters params = mock(JobParameters.class);
+        PersistableBundle badBundle = mock(PersistableBundle.class);
+        when(badBundle.getString(anyString(), anyString())).thenThrow(new NullPointerException());
+        when(badBundle.getString(anyString())).thenThrow(new NullPointerException());
+        assertThat(fwScheduler.onStartJob(params), is(false));
+    }
+
+    @Test
+    public void badBundleOnStop() {
+        // see https://github.com/yigit/android-priority-jobqueue/issues/254
+        JobParameters params = mock(JobParameters.class);
+        PersistableBundle badBundle = mock(PersistableBundle.class);
+        when(badBundle.getString(anyString(), anyString())).thenThrow(new NullPointerException());
+        when(badBundle.getString(anyString())).thenThrow(new NullPointerException());
+        assertThat(fwScheduler.onStopJob(params), is(false));
     }
 
     @Test
