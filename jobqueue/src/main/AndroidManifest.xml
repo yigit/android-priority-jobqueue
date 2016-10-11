@@ -3,7 +3,7 @@
           xmlns:tools="http://schemas.android.com/tools"
           package="com.birbit.android.jobqueue"
           android:versionCode="3"
-          android:versionName="2.0.0">
+          android:versionName="2.0.1">
     <uses-sdk tools:overrideLibrary="com.google.android.gms.gcm, com.google.android.gms.base,
     com.google.android.gms, com.google.android.gms.measurement"/>
     <uses-permission android:name="android.permission.INTERNET" />

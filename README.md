@@ -3,7 +3,7 @@ There is a major internal rewrite of this project for more stability and new fea
 
 ``` gradle
 dependencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.0'
+    compile 'com.birbit:android-priority-jobqueue:2.0.1'
 }
 ```
 
@@ -159,7 +159,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.birbit:android-priority-jobqueue:2.0.0'`
+Gradle: `compile 'com.birbit:android-priority-jobqueue:2.0.1'`
 
 Maven:
 
@@ -167,7 +167,7 @@ Maven:
 <dependency>
     <groupId>com.birbit</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
@@ -180,6 +180,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 2.0.1 (Oct 11, 2016)
+   - Fixed high CPU usage if queues are full (#262)
+   - Handle bad input from job schedulers (#254)
   - 2.0.0 (Aug 14, 2016)
    - Validate JobManager ids
   - 2.0.0-beta3 (Aug 7, 2016)
