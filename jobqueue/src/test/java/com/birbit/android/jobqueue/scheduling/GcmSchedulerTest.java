@@ -128,7 +128,7 @@ public class GcmSchedulerTest {
     }
 
     @Test
-    public void bundle() {
+    public void bundle() throws Exception {
         SchedulerConstraint constraint = mock(SchedulerConstraint.class);
         when(constraint.getNetworkStatus()).thenReturn(NetworkUtil.METERED);
         when(constraint.getUuid()).thenReturn("abc");
@@ -155,7 +155,7 @@ public class GcmSchedulerTest {
     }
 
     @Test
-    public void bundleNullDeadline() {
+    public void bundleNullDeadline() throws Exception {
         SchedulerConstraint constraint = mock(SchedulerConstraint.class);
         when(constraint.getNetworkStatus()).thenReturn(NetworkUtil.METERED);
         when(constraint.getUuid()).thenReturn("abc");
