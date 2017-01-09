@@ -122,6 +122,12 @@ android.libraryVariants.all { variant ->
         exclude 'com/google/**'
     }
 
+    def jarJarTask = project.tasks.create(name: "jarJar${suffix}", type: Jar) {
+        from variant.javaCompile.destinationDir
+        from 'LICENSE.txt'
+        exclude 'com/google/**'
+    }
+
     def javadocJarTask = project.tasks.create(name: "javadocJar${suffix}", type: Jar) {
         classifier = 'javadoc'
         from 'build/docs/javadoc'
@@ -131,6 +137,8 @@ android.libraryVariants.all { variant ->
         from android.sourceSets.main.getJava().getSrcDirs()
         classifier = 'sources'
     }
+
+    artifacts.add('archives', jarJarTask);
     artifacts.add('archives', javadocJarTask);
     artifacts.add('archives', sourcesJarTask);
 }
