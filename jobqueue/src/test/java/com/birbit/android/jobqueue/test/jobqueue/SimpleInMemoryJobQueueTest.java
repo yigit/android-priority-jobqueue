@@ -6,10 +6,10 @@ import com.birbit.android.jobqueue.test.util.JobQueueFactory;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
 public class SimpleInMemoryJobQueueTest extends JobQueueTestBase {
     public SimpleInMemoryJobQueueTest() {

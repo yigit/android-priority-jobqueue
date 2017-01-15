@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
 public class RunManyNonPersistentTest extends JobManagerTestBase {
     @Test

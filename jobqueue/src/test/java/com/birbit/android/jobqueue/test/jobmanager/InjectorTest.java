@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
 public class InjectorTest extends JobManagerTestBase {
     @Test

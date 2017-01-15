@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
 public class NetworkJobWithConnectivityListenerTest extends JobManagerTestBase {
     @Test
