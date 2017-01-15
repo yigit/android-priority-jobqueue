@@ -15,6 +15,7 @@ import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
 
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class KeepAliveTest extends JobManagerTestBase {
         jobManager.count();
         MatcherAssert.assertThat("there should be 1 thread  actively waiting for jobs",
                 jobManager.getActiveConsumerCount(), equalTo(1));
-        jobDone.await(1, TimeUnit.MINUTES);
+        MatcherAssert.assertThat(jobDone.await(1, TimeUnit.MINUTES), CoreMatchers.is(true));
         //sleep till it dies
         mockTimer.incrementNs((long) (JobManager.NETWORK_CHECK_INTERVAL
                 + TimeUnit.SECONDS.toNanos(keepAlive) * 1.33));
@@ -74,7 +75,7 @@ public class KeepAliveTest extends JobManagerTestBase {
             }
         });
         new Thread(waitForConsumersFuture).start();
-        waitForConsumersFuture.get(keepAlive * 3, TimeUnit.SECONDS);
+        waitForConsumersFuture.get(keepAlive * 10, TimeUnit.SECONDS);
         jobManager.waitUntilConsumersAreFinished();
         MatcherAssert.assertThat("after keep alive timeout, there should NOT be any threads waiting",
                 jobManager.getActiveConsumerCount(), equalTo(0));
