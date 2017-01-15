@@ -164,7 +164,13 @@ class ConsumerManager {
             thread.setPriority(threadPriority);
         }
         consumers.add(consumer);
-        thread.start();
+        try {
+            thread.start();
+        } catch (InternalError error) {
+            // process is already dying, no reason to crash for this (and hide the real crash)
+            JqLog.e(error, "Cannot start a thread. Looks like app is shutting down."
+                    + "See issue #294 for details.");
+        }
     }
 
     private boolean isAboveLoadFactor() {
