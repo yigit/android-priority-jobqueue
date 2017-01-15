@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
+import com.birbit.android.jobqueue.log.JqLog;
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.MessageFactory;
 import com.birbit.android.jobqueue.messaging.MessageQueueConsumer;
@@ -84,7 +85,7 @@ public class CallbackManager {
     }
 
     private void start() {
-        new Thread(new Runnable() {
+        Thread callbackThread = new Thread(new Runnable() {
             @Override
             public void run() {
 
@@ -125,7 +126,14 @@ public class CallbackManager {
                     }
                 });
             }
-        }, "job-manager-callbacks").start();
+        }, "job-manager-callbacks");
+        try {
+            callbackThread.start();
+        } catch (InternalError error) {
+            // process is already dying, no reason to crash for this (and hide the real crash)
+            JqLog.e(error, "Cannot start a thread. Looks like app is shutting down."
+                    + "See issue #294 for details.");
+        }
     }
 
     private void deliverCancelResult(@NonNull CancelResultMessage message) {
