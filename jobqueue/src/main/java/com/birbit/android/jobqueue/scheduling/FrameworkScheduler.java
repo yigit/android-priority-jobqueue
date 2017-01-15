@@ -91,6 +91,7 @@ class FrameworkScheduler extends Scheduler {
         return jobScheduler;
     }
 
+    @SuppressLint("SwitchIntDef")
     @Override
     public void request(SchedulerConstraint constraint) {
         JobScheduler jobScheduler = getJobScheduler();

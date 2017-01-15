@@ -9,7 +9,7 @@ import com.birbit.android.jobqueue.test.jobs.DummyJob;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
 public class CancelWhileRunningWithGroupsTest extends JobManagerTestBase {
     public static CountDownLatch[] endLatches = new CountDownLatch[]{new CountDownLatch(2), new CountDownLatch(2)};
