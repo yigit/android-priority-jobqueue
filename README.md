@@ -256,6 +256,7 @@ We highly recommend checking how you can configure job manager and individual jo
 - - [Twitter4j](http://twitter4j.org/en)
 - - [EventBus](https://github.com/greenrobot/EventBus)
 - - [Path's fork of greenDAO](https://github.com/path/greenDAO) . ([original repo](https://github.com/greenrobot/greenDAO))
+- - [Play Services GCM](https://developer.android.com/topic/libraries/support-library/features.html#v4) `compile 'com.google.android.gms:play-services-gcm:10.0.1'`
 
 ### Building
 
