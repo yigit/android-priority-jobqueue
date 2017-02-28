@@ -123,7 +123,7 @@ We've created Job Queue because we wanted to have more control over the non-ui-t
 
 A good practice of using Job Queue is to write **all** of your network tasks as Jobs and use **AsyncTasks** for disk access (e.g. loading data from sqlite). If you have long running background operations (e.g. processing an image), it is also a good practice to use Job Queue.
 
-Starting with **v2**, Job Queue can be integrated with JobScheduler or GCMNetworkManager. This integration allows Job Queue to wake up the aplication based on the criterias of the Jobs it has. You can see the deatails on the related [wiki][16] page. The Scheduler API is flexible such that you can implement a custom version of it if your target market does not have Google Play Services.
+Starting with **v2**, Job Queue can be integrated with JobScheduler or GCMNetworkManager. This integration allows Job Queue to wake up the aplication based on the criterias of the Jobs it has. You can see the details on the related [wiki][16] page. The Scheduler API is flexible such that you can implement a custom version of it if your target market does not have Google Play Services.
 
 ### Under the hood
 * When user clicked the send button, `onSendClick()` was called, which creates a `PostTweetJob` and adds it to Job Queue for execution.
