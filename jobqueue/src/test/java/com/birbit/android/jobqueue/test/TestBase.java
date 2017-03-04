@@ -62,40 +62,4 @@ public class TestBase {
             }
         });
     }
-
-    protected void enableCollectingDebug() {
-        ShadowLog.stream = System.out;
-        JqLog.setCustomLogger(new CustomLogger() {
-            private String TAG = "test_logger";
-            private StringBuffer logs = new StringBuffer();
-            @Override
-            public boolean isDebugEnabled() {
-                return true;
-            }
-
-            @Override
-            public void d(String text, Object... args) {
-                logs.append(Thread.currentThread().getName()).append("[d]:");
-                logs.append(String.format(text, args)).append("\n");
-            }
-
-            @Override
-            public void e(Throwable t, String text, Object... args) {
-                logs.append(Thread.currentThread().getName()).append("[e]:");
-                logs.append(String.format(text, args)).append("\n");
-            }
-
-            @Override
-            public void e(String text, Object... args) {
-                logs.append(Thread.currentThread().getName()).append("[e]:");
-                logs.append(String.format(text, args)).append("\n");
-            }
-
-            @Override
-            public void v(String text, Object... args) {
-                logs.append(Thread.currentThread().getName()).append("[v]:");
-                logs.append(String.format(text, args)).append("\n");
-            }
-        });
-    }
 }

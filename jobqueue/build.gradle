@@ -27,7 +27,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
 }
@@ -46,25 +46,26 @@ configurations {
 
 dependencies {
     testCompile 'junit:junit:4.12'
-    testCompile "org.robolectric:robolectric:3.2.2"
+    testCompile "org.robolectric:robolectric:3.3"
     testCompile 'org.hamcrest:hamcrest-core:1.3'
     testCompile 'org.easytesting:fest-util:1.2.5'
     testCompile 'org.easytesting:fest-reflect:1.4.1'
-    testCompile 'org.mockito:mockito-core:2.0.2-beta'
+    testCompile 'org.mockito:mockito-core:2.7.13'
 
     compile 'com.squareup.okio:okio:1.8.0'
 
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
     //noinspection GradleDependency
-    compile 'com.android.support:support-core-utils:25.0.1'
+    // remove when gms moves to individual libraries
+    compile 'com.android.support:support-v4:25.2.0'
     // build tools does not allow making this provided so we make it optional when pom is created
-    compile 'com.google.android.gms:play-services-gcm:10.0.1'
+    compile 'com.google.android.gms:play-services-gcm:10.2.0'
 }
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "24.0.3"
+    buildToolsVersion "25.0.2"
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -75,7 +76,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 9
+        minSdkVersion 14
         targetSdkVersion 25
     }
 

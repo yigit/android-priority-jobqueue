@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 
+import com.birbit.android.jobqueue.BuildConfig;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.JobManagerThreadRunnable;
 import com.birbit.android.jobqueue.RetryConstraint;
@@ -20,6 +21,7 @@ import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.test.TestBase;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
 import com.birbit.android.jobqueue.test.timer.MockTimer;
+import com.birbit.android.jobqueue.testing.CollectLogsRule;
 
 import static org.hamcrest.CoreMatchers.*;
 
@@ -44,6 +46,8 @@ public class JobManagerTestBase extends TestBase {
     final MockTimer mockTimer = new MockTimer();
     @Rule public CleanupRule cleanup = new CleanupRule(this);
     @Rule public Timeout timeout = Timeout.seconds(getTimeout());
+    @Rule public CollectLogsRule collectLogsRule = new CollectLogsRule();
+
 
     protected int getActiveConsumerCount(JobManager jobManager) {
         return jobManager.getActiveConsumerCount();
@@ -67,6 +71,9 @@ public class JobManagerTestBase extends TestBase {
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
         if(createdJobManagers.size() > 0) {
             throw new AssertionError("only 1 job manager per test");
+        }
+        if (BuildConfig.DEBUG) {
+            configurationBuilder.customLogger(collectLogsRule.logger);
         }
         Configuration config = configurationBuilder.inTestMode().id(UUID.randomUUID().toString())
                 .build();

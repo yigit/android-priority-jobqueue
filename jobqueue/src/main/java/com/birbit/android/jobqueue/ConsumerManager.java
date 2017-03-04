@@ -217,10 +217,11 @@ class ConsumerManager {
             return true;
         } else {
             long keepAliveTimeout = message.getLastJobCompleted() + consumerKeepAliveNs;
-            JqLog.d("keep alive: %s", keepAliveTimeout);
+            JqLog.v("keep alive: %s", keepAliveTimeout);
             final boolean tooMany = consumers.size() > minConsumerCount;
             boolean kill = !running || (tooMany && keepAliveTimeout < timer.nanoTime());
-            JqLog.d("Consumer idle, will kill? %s . isRunning: %s", kill, running);
+            JqLog.v("Consumer idle, will kill? %s. isRunning: %s. too many? %s timeout: %s now: %s",
+                    kill, running, tooMany, keepAliveTimeout, timer.nanoTime() );
             if (kill) {
                 CommandMessage command = factory.obtain(CommandMessage.class);
                 command.set(CommandMessage.QUIT);
@@ -341,7 +342,7 @@ class ConsumerManager {
 
         boolean hasJob;// controlled by the consumer controller to avoid multiple idle-job loops
 
-        long lastJobCompleted;
+        volatile long lastJobCompleted;
 
         static final MessagePredicate pokeMessagePredicate =
                 new MessagePredicate() {
@@ -358,7 +359,6 @@ class ConsumerManager {
                 switch (message.type) {
                     case RUN_JOB:
                         handleRunJob((RunJobMessage) message);
-                        lastJobCompleted = timer.nanoTime();
                         removePokeMessages();
                         break;
                     case COMMAND:
@@ -415,6 +415,8 @@ class ConsumerManager {
             resultMessage.setJobHolder(jobHolder);
             resultMessage.setResult(result);
             resultMessage.setWorker(this);
+            // update time here before posting the result
+            lastJobCompleted = timer.nanoTime();
             parentMessageQueue.post(resultMessage);
         }
     }
