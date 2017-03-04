@@ -203,9 +203,11 @@ public class JobManager {
     private void waitUntilConsumersAreFinished(boolean stop) {
         assertNotInMainThread();
         final CountDownLatch latch = new CountDownLatch(1);
+        JqLog.v("adding no consumers listener.");
         jobManagerThread.consumerManager.addNoConsumersListener(new Runnable() {
             @Override
             public void run() {
+                JqLog.v("received no consumers callback");
                 latch.countDown();
                 jobManagerThread.consumerManager.removeNoConsumersListener(this);
             }

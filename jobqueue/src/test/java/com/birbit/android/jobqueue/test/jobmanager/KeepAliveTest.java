@@ -14,10 +14,12 @@ import com.birbit.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.network.NetworkUtil;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
+import com.birbit.android.jobqueue.testing.CollectLogsRule;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -45,8 +47,10 @@ public class KeepAliveTest extends JobManagerTestBase {
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     public void testKeepAlive(final DummyNetworkUtil networkUtil) throws Exception {
         int keepAlive = 3;
-        final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-                .consumerKeepAlive(keepAlive).networkUtil(networkUtil).timer(mockTimer));
+        final JobManager jobManager = createJobManager(new Configuration
+                .Builder(RuntimeEnvironment.application)
+                .consumerKeepAlive(keepAlive).networkUtil(networkUtil)
+                .timer(mockTimer));
         //give it a little time to create first consumer
         final CountDownLatch jobDone = new CountDownLatch(1);
         jobManager.addCallback(new JobManagerCallbackAdapter() {
@@ -62,11 +66,12 @@ public class KeepAliveTest extends JobManagerTestBase {
         MatcherAssert.assertThat("there should be 1 thread  actively waiting for jobs",
                 jobManager.getActiveConsumerCount(), equalTo(1));
         MatcherAssert.assertThat(jobDone.await(1, TimeUnit.MINUTES), CoreMatchers.is(true));
-        //sleep till it dies
-        mockTimer.incrementNs((long) (JobManager.NETWORK_CHECK_INTERVAL
-                + TimeUnit.SECONDS.toNanos(keepAlive) * 1.33));
         // Sync on job manager to ensure it handled add requests
         jobManager.count();
+
+        mockTimer.incrementNs((long) (JobManager.NETWORK_CHECK_INTERVAL
+                + TimeUnit.SECONDS.toNanos(keepAlive) + 1));
+
         FutureTask<Void> waitForConsumersFuture = new FutureTask<>(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -84,7 +89,8 @@ public class KeepAliveTest extends JobManagerTestBase {
         networkUtil.setNetworkStatus(NetworkUtil.DISCONNECTED);
         final DummyJob dj1 = new DummyJob(new Params(0).requireNetwork());
         jobManager.addJob(dj1);
-
+        // sync add job request
+        jobManager.count();
         mockTimer.incrementNs(JobManager.NETWORK_CHECK_INTERVAL +
                 TimeUnit.SECONDS.toNanos(keepAlive) * 2);
 
@@ -101,8 +107,6 @@ public class KeepAliveTest extends JobManagerTestBase {
         });
         MatcherAssert.assertThat("when network is recovered, job should be handled",
                 jobManager.count(), equalTo(0));
-
-
     }
 
 }
