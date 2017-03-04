@@ -27,7 +27,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
 }
@@ -59,12 +59,12 @@ dependencies {
     //noinspection GradleDependency
     compile 'com.android.support:support-core-utils:25.0.1'
     // build tools does not allow making this provided so we make it optional when pom is created
-    compile 'com.google.android.gms:play-services-gcm:10.0.1'
+    compile 'com.google.android.gms:play-services-gcm:10.2.0'
 }
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "24.0.3"
+    buildToolsVersion "25.0.1"
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -75,7 +75,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 9
+        minSdkVersion 14
         targetSdkVersion 25
     }
 
