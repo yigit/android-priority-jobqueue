@@ -84,6 +84,9 @@ android {
         unitTests.all {
             // All the usual Gradle options.
             jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
+            jacoco {
+                includeNoLocationClasses = true
+            }
         }
     }
 
@@ -232,16 +235,20 @@ task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
                        '**/R$*.class',
                        '**/BuildConfig.*',
                        '**/Manifest*.*',
-                        'com/google/**']
+                       'android/**/*.*',
+                       'com/google/**']
     )
 
-    additionalSourceDirs = files(android.sourceSets.main.getJava().getSrcDirs())
     sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
+    executionData = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
 
     reports {
         xml.enabled = true
         html.enabled = true
     }
 
+    dependsOn "createDebugCoverageReport"
 }
