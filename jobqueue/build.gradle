@@ -57,14 +57,15 @@ dependencies {
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
     //noinspection GradleDependency
-    compile 'com.android.support:support-core-utils:25.0.1'
+    compile 'com.android.support:support-core-utils:25.2.0'
+    compile 'com.android.support:support-compat:25.2.0'
     // build tools does not allow making this provided so we make it optional when pom is created
     compile 'com.google.android.gms:play-services-gcm:10.2.0'
 }
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.1"
+    buildToolsVersion "25.0.2"
     buildTypes {
         debug {
             testCoverageEnabled = true
