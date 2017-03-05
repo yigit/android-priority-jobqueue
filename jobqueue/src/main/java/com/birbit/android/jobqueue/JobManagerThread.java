@@ -688,7 +688,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     /**
-     * We should lazily init queues to avoid early queries that may strict mode violations.
+     * We should lazily init queues to avoid early queries that may trigger strict mode violations.
      */
     static class LazyQueue {
         private volatile JobQueue queue;
