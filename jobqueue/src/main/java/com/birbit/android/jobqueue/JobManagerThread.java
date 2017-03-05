@@ -42,8 +42,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private final Context appContext;
     @SuppressWarnings("FieldCanBeLocal")
     private final long sessionId;
-    final JobQueue persistentJobQueue;
-    final JobQueue nonPersistentJobQueue;
+    final LazyQueue persistentJobQueue;
+    final LazyQueue nonPersistentJobQueue;
     private final NetworkUtil networkUtil;
     private final DependencyInjector dependencyInjector;
     private final MessageFactory messageFactory;
@@ -83,10 +83,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 !(scheduler instanceof BatchingScheduler)) {
             scheduler = new BatchingScheduler(scheduler, timer);
         }
-        this.persistentJobQueue = config.getQueueFactory()
-                .createPersistentQueue(config, sessionId);
-        this.nonPersistentJobQueue = config.getQueueFactory()
-                .createNonPersistent(config, sessionId);
+        this.persistentJobQueue = new LazyQueue(config, sessionId, true);
+        this.nonPersistentJobQueue =  new LazyQueue(config, sessionId, false);
         networkUtil = config.getNetworkUtil();
         dependencyInjector = config.getDependencyInjector();
         if(networkUtil instanceof NetworkEventProvider) {
@@ -135,9 +133,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());
         final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());
         if (insert) {
-            JobQueue queue = job.isPersistent() ? persistentJobQueue : nonPersistentJobQueue;
+            JobQueue queue = job.isPersistent()
+                    ? persistentJobQueue.get()
+                    : nonPersistentJobQueue.get();
             if (oldJob != null) { //the other job was running, will be cancelled if it fails
-                consumerManager.markJobsCancelledSingleId(TagConstraint.ANY, new String[]{job.getSingleInstanceId()});
+                consumerManager.markJobsCancelledSingleId(TagConstraint.ANY,
+                        new String[]{job.getSingleInstanceId()});
                 queue.substitute(jobHolder, oldJob);
             } else {
                 queue.insert(jobHolder);
@@ -203,8 +204,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             queryConstraint.setTags(new String[]{singleIdTag});
             queryConstraint.setTagConstraint(TagConstraint.ANY);
             queryConstraint.setMaxNetworkType(NetworkUtil.UNMETERED);
-            Set<JobHolder> jobs = nonPersistentJobQueue.findJobs(queryConstraint);
-            jobs.addAll(persistentJobQueue.findJobs(queryConstraint));
+            Set<JobHolder> jobs = nonPersistentJobQueue.get().findJobs(queryConstraint);
+            jobs.addAll(persistentJobQueue.get().findJobs(queryConstraint));
             if (!jobs.isEmpty()) {
                 for (JobHolder job : jobs) {
                     if (!consumerManager.isJobRunning(job.getId())) {
@@ -280,7 +281,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     messageQueue.postAt(constraintMessage, nextJobTimeNs);
                 } else if (scheduler != null) {
                     // if we have a scheduler but the queue is empty, just clean them all.
-                    if (shouldCancelAllScheduledWhenEmpty && persistentJobQueue.count() == 0) {
+                    if (shouldCancelAllScheduledWhenEmpty && persistentJobQueue.get().count() == 0) {
                         shouldCancelAllScheduledWhenEmpty = false;
                         scheduler.cancelAll();
                     }
@@ -320,7 +321,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         queryConstraint.clear();
         queryConstraint.setNowInNs(timer.nanoTime());
         queryConstraint.setMaxNetworkType(constraint.getNetworkStatus());
-        return persistentJobQueue.countReadyJobs(queryConstraint) > 0;
+        return persistentJobQueue.get().countReadyJobs(queryConstraint) > 0;
     }
 
     private void handleSchedulerStop(SchedulerConstraint constraint) {
@@ -374,7 +375,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     int count() {
-        return persistentJobQueue.count() + nonPersistentJobQueue.count();
+        return persistentJobQueue.get().count() + nonPersistentJobQueue.get().count();
     }
 
     private void handlePublicQuery(PublicQueryMessage message) {
@@ -421,8 +422,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     }
 
     private void clear() {
-        nonPersistentJobQueue.clear();
-        persistentJobQueue.clear();
+        nonPersistentJobQueue.get().clear();
+        persistentJobQueue.get().clear();
     }
 
     private JobStatus getJobStatus(String id) {
@@ -430,9 +431,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             return JobStatus.RUNNING;
         }
         JobHolder holder;
-        holder = nonPersistentJobQueue.findJobById(id);
+        holder = nonPersistentJobQueue.get().findJobById(id);
         if (holder == null) {
-            holder = persistentJobQueue.findJobById(id);
+            holder = persistentJobQueue.get().findJobById(id);
         }
         if(holder == null) {
             return JobStatus.UNKNOWN;
@@ -547,9 +548,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     private void reAddJob(JobHolder jobHolder) {
         if (!jobHolder.isCancelled()) {
             if (jobHolder.getJob().isPersistent()) {
-                persistentJobQueue.insertOrReplace(jobHolder);
+                persistentJobQueue.get().insertOrReplace(jobHolder);
             } else {
-                nonPersistentJobQueue.insertOrReplace(jobHolder);
+                nonPersistentJobQueue.get().insertOrReplace(jobHolder);
             }
         } else {
             JqLog.d("not re-adding cancelled job " + jobHolder);
@@ -558,9 +559,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
     private void removeJob(JobHolder jobHolder) {
         if (jobHolder.getJob().isPersistent()) {
-            persistentJobQueue.remove(jobHolder);
+            persistentJobQueue.get().remove(jobHolder);
         } else {
-            nonPersistentJobQueue.remove(jobHolder);
+            nonPersistentJobQueue.get().remove(jobHolder);
         }
         callbackManager.notifyOnDone(jobHolder.getJob());
     }
@@ -589,8 +590,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         queryConstraint.setTimeLimit(timer.nanoTime());
         //TODO we can cache this
         int total = 0;
-        total += nonPersistentJobQueue.countReadyJobs(queryConstraint);
-        total += persistentJobQueue.countReadyJobs(queryConstraint);
+        total += nonPersistentJobQueue.get().countReadyJobs(queryConstraint);
+        total += persistentJobQueue.get().countReadyJobs(queryConstraint);
         return total;
     }
 
@@ -608,8 +609,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         queryConstraint.setMaxNetworkType(networkStatus);
         queryConstraint.setExcludeGroups(groups);
         queryConstraint.setExcludeRunning(true);
-        final Long nonPersistent = nonPersistentJobQueue.getNextJobDelayUntilNs(queryConstraint);
-        final Long persistent = persistentJobQueue.getNextJobDelayUntilNs(queryConstraint);
+        final Long nonPersistent = nonPersistentJobQueue.get()
+                .getNextJobDelayUntilNs(queryConstraint);
+        final Long persistent = persistentJobQueue.get()
+                .getNextJobDelayUntilNs(queryConstraint);
         Long delay = null;
         if (groupDelay != null) {
             delay = groupDelay;
@@ -658,11 +661,11 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             queryConstraint.setExcludeGroups(runningJobGroups);
             queryConstraint.setExcludeRunning(true);
             queryConstraint.setTimeLimit(now);
-            jobHolder = nonPersistentJobQueue.nextJobAndIncRunCount(queryConstraint);
+            jobHolder = nonPersistentJobQueue.get().nextJobAndIncRunCount(queryConstraint);
             JqLog.v("non persistent result %s", jobHolder);
             if (jobHolder == null) {
                 //go to disk, there aren't any non-persistent jobs
-                jobHolder = persistentJobQueue.nextJobAndIncRunCount(queryConstraint);
+                jobHolder = persistentJobQueue.get().nextJobAndIncRunCount(queryConstraint);
                 persistent = true;
                 JqLog.v("persistent result %s", jobHolder);
             }
@@ -682,5 +685,39 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             }
         }
         return jobHolder;
+    }
+
+    /**
+     * We should lazily init queues to avoid early queries that may strict mode violations.
+     */
+    static class LazyQueue {
+        private volatile JobQueue queue;
+        private final Configuration configuration;
+        private final long sessionId;
+        private final boolean persistent;
+
+        LazyQueue(Configuration configuration, long sessionId, boolean persistent) {
+            this.configuration = configuration;
+            this.sessionId = sessionId;
+            this.persistent = persistent;
+        }
+
+
+        public JobQueue get() {
+            if (queue == null) {
+                synchronized (this) {
+                    if (queue == null) {
+                        if (persistent) {
+                            queue = configuration.getQueueFactory().createPersistentQueue(
+                                    configuration, sessionId);
+                        } else {
+                            queue = configuration.getQueueFactory().createNonPersistent(
+                                    configuration, sessionId);
+                        }
+                    }
+                }
+            }
+            return queue;
+        }
     }
 }

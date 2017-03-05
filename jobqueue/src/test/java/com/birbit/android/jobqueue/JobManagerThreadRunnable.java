@@ -30,17 +30,17 @@ public abstract class JobManagerThreadRunnable<T> {
 
     protected void removeJob(JobHolder jobHolder) {
         assertRunning();
-        jobManager.jobManagerThread.nonPersistentJobQueue.remove(jobHolder);
-        jobManager.jobManagerThread.persistentJobQueue.remove(jobHolder);
+        jobManager.jobManagerThread.nonPersistentJobQueue.get().remove(jobHolder);
+        jobManager.jobManagerThread.persistentJobQueue.get().remove(jobHolder);
     }
 
     protected JobHolder findJobFromQueues(String id) {
         assertRunning();
-        JobHolder holder = jobManager.jobManagerThread.nonPersistentJobQueue.findJobById(id);
+        JobHolder holder = jobManager.jobManagerThread.nonPersistentJobQueue.get().findJobById(id);
         if (holder != null) {
             return holder;
         }
-        return jobManager.jobManagerThread.persistentJobQueue.findJobById(id);
+        return jobManager.jobManagerThread.persistentJobQueue.get().findJobById(id);
     }
 
     public T run() throws Throwable {
