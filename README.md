@@ -7,7 +7,7 @@ dependencies {
 }
 ```
 
-###Master Build Status
+### Master Build Status
 [![CircleCI](https://circleci.com/gh/yigit/android-priority-jobqueue/tree/master.svg?style=svg)](https://circleci.com/gh/yigit/android-priority-jobqueue/tree/master)
 [![codecov](https://codecov.io/gh/yigit/android-priority-jobqueue/branch/master/graph/badge.svg)](https://codecov.io/gh/yigit/android-priority-jobqueue)
 
