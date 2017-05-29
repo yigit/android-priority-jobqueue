@@ -39,8 +39,13 @@ public class MultiThreadTest extends JobManagerTestBase {
     @Test
     public void testMultiThreaded() throws Exception {
         multiThreadedJobCounter = new AtomicInteger(0);
+
+        JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
+                dummyNetworkUtil.setNetworkStatus(DummyNetworkUtil.UNMETERED);
+
         final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-            .loadFactor(3).maxConsumerCount(10));
+            .networkUtil(dummyNetworkUtil).loadFactor(3).maxConsumerCount(10));
+
         int limit = 200;
         ExecutorService executor = new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(limit));
         final String cancelTag = "iWillBeCancelled";

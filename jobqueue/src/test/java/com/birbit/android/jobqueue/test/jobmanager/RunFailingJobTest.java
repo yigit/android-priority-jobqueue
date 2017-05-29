@@ -8,6 +8,8 @@ import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
+import com.birbit.android.jobqueue.config.Configuration;
+import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
@@ -26,7 +28,15 @@ public class RunFailingJobTest extends JobManagerTestBase {
     @Test
     public void runFailingJob() throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
-        JobManager jobManager = createJobManager();
+
+        JobManagerTestBase.DummyNetworkUtil dummyNetworkUtil = new JobManagerTestBase.DummyNetworkUtil();
+        dummyNetworkUtil.setNetworkStatus(NetworkUtil.UNMETERED);
+
+        JobManager jobManager = createJobManager(
+            new Configuration.Builder(RuntimeEnvironment.application)
+                .timer(mockTimer)
+                .networkUtil(dummyNetworkUtil));
+
         jobManager.addJob(new Job(new Params(0).requireNetwork()) {
             @Override
             public void onAdded() {
