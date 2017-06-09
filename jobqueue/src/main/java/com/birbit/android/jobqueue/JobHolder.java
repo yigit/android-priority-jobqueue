@@ -77,6 +77,7 @@ public class JobHolder {
     private boolean cancelOnDeadline;
     transient final Job job;
     protected final Set<String> tags;
+    protected final Set<String> dependeeTags;
     private volatile boolean cancelled;
     private volatile boolean cancelledSingleId;
 
@@ -100,12 +101,13 @@ public class JobHolder {
      * @param delayUntilNs     System.nanotime value: when job can be run the very first time
      * @param runningSessionId The running session id for the job
      * @param tags             The tags of the Job
+     * @param dependeeTags    The dependent tags for the Job
      * @param requiredNetworkType The minimum type of network that is required to run this job
      * @param deadlineNs       System.nanotime value: when the job will ignore its constraints
      * @param cancelOnDeadline true if job should be cancelled when deadline is reached, false otherwise
      */
     private JobHolder(String id, boolean persistent, int priority, String groupId, int runCount, Job job, long createdNs,
-                      long delayUntilNs, long runningSessionId, Set<String> tags,
+                      long delayUntilNs, long runningSessionId, Set<String> tags, Set<String> dependeeTags,
                       int requiredNetworkType, long deadlineNs, boolean cancelOnDeadline) {
         this.id = id;
         this.persistent = persistent;
@@ -118,14 +120,15 @@ public class JobHolder {
         this.runningSessionId = runningSessionId;
         this.requiredNetworkType = requiredNetworkType;
         this.tags = tags;
+        this.dependeeTags = dependeeTags;
         this.deadlineNs = deadlineNs;
         this.cancelOnDeadline = cancelOnDeadline;
     }
 
     /**
      * runs the job w/o throwing any exceptions
-     * @param currentRunCount The current run count of the job
      *
+     * @param currentRunCount The current run count of the job
      * @return RUN_RESULT
      */
     int safeRun(int currentRunCount, Timer timer) {
@@ -212,6 +215,10 @@ public class JobHolder {
         return tags;
     }
 
+    public Set<String> getDependeeTags() {
+        return dependeeTags;
+    }
+
     public void markAsCancelled() {
         cancelled = true;
         job.cancelled = true;
@@ -247,6 +254,10 @@ public class JobHolder {
 
     public boolean hasTags() {
         return tags != null && tags.size() > 0;
+    }
+
+    public boolean hasDependeeTags() {
+        return dependeeTags != null && dependeeTags.size() > 0;
     }
 
     public void setApplicationContext(Context applicationContext) {
@@ -323,9 +334,11 @@ public class JobHolder {
         private int providedFlags = 0;
         private Set<String> tags;
         private static final int FLAG_TAGS = FLAG_RUNNING_SESSION_ID << 1;
+        private Set<String> dependeeTags;
+        private static final int FLAG_DEPENDEE_TAGS = FLAG_TAGS << 1;
         @NetworkUtil.NetworkStatus
         private int requiredNetworkType;
-        private static final int FLAG_REQ_NETWORK = FLAG_TAGS << 1;
+        private static final int FLAG_REQ_NETWORK = FLAG_DEPENDEE_TAGS << 1;
 
         private static final int REQUIRED_FLAGS = (FLAG_REQ_NETWORK << 1) - 1;
 
@@ -343,6 +356,12 @@ public class JobHolder {
         public Builder tags(Set<String> tags) {
             this.tags = tags;
             providedFlags |= FLAG_TAGS;
+            return this;
+        }
+
+        public Builder dependeeTags(Set<String> tags) {
+            this.dependeeTags = tags;
+            providedFlags |= FLAG_DEPENDEE_TAGS;
             return this;
         }
 
@@ -412,7 +431,7 @@ public class JobHolder {
             }
 
             JobHolder jobHolder = new JobHolder(id, persistent, priority, groupId, runCount, job, createdNs,
-                    delayUntilNs, runningSessionId, tags, requiredNetworkType, deadlineNs, cancelOnDeadline);
+                    delayUntilNs, runningSessionId, tags, dependeeTags, requiredNetworkType, deadlineNs, cancelOnDeadline);
             if (insertionOrder != null) {
                 jobHolder.setInsertionOrder(insertionOrder);
             }

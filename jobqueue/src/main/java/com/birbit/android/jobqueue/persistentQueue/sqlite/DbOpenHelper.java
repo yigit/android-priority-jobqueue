@@ -11,6 +11,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     private static final int DB_VERSION = 12;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
     /*package*/ static final String JOB_TAGS_TABLE_NAME = "job_holder_tags";
+    /*package*/ static final String JOB_DEPENDEE_TAGS_TABLE_NAME = "job_holder_dependee_tags";
     /*package*/ static final SqlHelper.Property INSERTION_ORDER_COLUMN = new SqlHelper.Property("insertionOrder", "integer", 0);
     /*package*/ static final SqlHelper.Property ID_COLUMN = new SqlHelper.Property("_id", "text", 1, null, true);
     /*package*/ static final SqlHelper.Property PRIORITY_COLUMN = new SqlHelper.Property("priority", "integer", 2);
@@ -28,12 +29,17 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
     /*package*/ static final SqlHelper.Property TAGS_NAME_COLUMN = new SqlHelper.Property("tag_name", "text", 2);
 
+    /*package*/ static final SqlHelper.Property DEPENDEE_TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
+    /*package*/ static final SqlHelper.Property DEPENDEE_TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
+    /*package*/ static final SqlHelper.Property DEPENDEE_TAGS_NAME_COLUMN = new SqlHelper.Property("tag_name", "text", 2);
 
 
     /*package*/ static final int COLUMN_COUNT = 12;
     /*package*/ static final int TAGS_COLUMN_COUNT = 3;
+    /*package*/ static final int DEPENDEE_TAGS_COLUMN_COUNT = 3;
 
     static final String TAG_INDEX_NAME = "TAG_NAME_INDEX";
+    static final String DEPENDEE_TAG_INDEX_NAME = "DEPENDEE_TAG_INDEX_NAME";
 
     public DbOpenHelper(Context context, String name) {
         super(context, name, null, DB_VERSION);
@@ -62,8 +68,17 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 TAGS_NAME_COLUMN);
         sqLiteDatabase.execSQL(createTagsQuery);
 
+        String createDependeeTagsQuery = SqlHelper.create(JOB_DEPENDEE_TAGS_TABLE_NAME,
+                DEPENDEE_TAGS_ID_COLUMN,
+                DEPENDEE_TAGS_JOB_ID_COLUMN,
+                DEPENDEE_TAGS_NAME_COLUMN);
+        sqLiteDatabase.execSQL(createDependeeTagsQuery);
+
         sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + TAG_INDEX_NAME + " ON "
                 + JOB_TAGS_TABLE_NAME + "(" + DbOpenHelper.TAGS_NAME_COLUMN.columnName + ")");
+
+        sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + DEPENDEE_TAG_INDEX_NAME + " ON "
+                + JOB_DEPENDEE_TAGS_TABLE_NAME + "(" + DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName + ")");
     }
 
     @Override
@@ -73,7 +88,9 @@ public class DbOpenHelper extends SQLiteOpenHelper {
         } else {
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));
+            sqLiteDatabase.execSQL(SqlHelper.drop(JOB_DEPENDEE_TAGS_TABLE_NAME));
             sqLiteDatabase.execSQL("DROP INDEX IF EXISTS " + TAG_INDEX_NAME);
+            sqLiteDatabase.execSQL("DROP INDEX IF EXISTS " + DEPENDEE_TAG_INDEX_NAME);
             onCreate(sqLiteDatabase);
         }
     }

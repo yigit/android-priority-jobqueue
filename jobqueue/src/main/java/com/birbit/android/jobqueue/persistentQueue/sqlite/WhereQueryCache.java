@@ -16,7 +16,8 @@ class WhereQueryCache {
     private static final int GROUP_COUNT = TAG_COUNT + INT_SIZE;
     private static final int JOB_COUNT = GROUP_COUNT + INT_SIZE;
     private static final int EXCLUDE_RUNNING = JOB_COUNT + INT_SIZE;
-    private static final int TIME_LIMIT = EXCLUDE_RUNNING + BOOL_SIZE;
+    private static final int EXCLUDE_DEPENDENT = EXCLUDE_RUNNING + BOOL_SIZE;
+    private static final int TIME_LIMIT = EXCLUDE_DEPENDENT + BOOL_SIZE;
     private static final int INT_LIMIT = 1 << INT_SIZE;
 
     static final int DEADLINE_COLUMN_INDEX = 1;
@@ -103,6 +104,23 @@ class WhereQueryCache {
                 .append( " != 1)");
 
         argCount++;
+
+        if (constraint.excludeDependent()){
+            reusedStringBuilder.append(" AND ")
+                    .append(DbOpenHelper.ID_COLUMN.columnName)
+                    .append(" NOT IN (SELECT DISTINCT ")
+                    .append(DbOpenHelper.DEPENDEE_TAGS_JOB_ID_COLUMN.columnName)
+                    .append(" FROM ")
+                    .append(DbOpenHelper.JOB_DEPENDEE_TAGS_TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName)
+                    .append(" IN (SELECT ")
+                    .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName)
+                    .append(" FROM ")
+                    .append(DbOpenHelper.JOB_TAGS_TABLE_NAME)
+                    .append("))");
+        }
+
         if (constraint.getTimeLimit() != null) {
             reusedStringBuilder
                     .append(" AND ")
@@ -187,6 +205,7 @@ class WhereQueryCache {
                 | constraint.getExcludeGroups().size() << GROUP_COUNT
                 | constraint.getExcludeJobIds().size() << JOB_COUNT
                 | (constraint.excludeRunning() ? 1 : 0) << EXCLUDE_RUNNING
+                | (constraint.excludeDependent() ? 1 : 0) << EXCLUDE_DEPENDENT
                 | (constraint.getTimeLimit() == null ? 1 : 0) << TIME_LIMIT;
         return key;
     }

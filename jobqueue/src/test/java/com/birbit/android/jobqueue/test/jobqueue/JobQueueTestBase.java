@@ -1184,6 +1184,7 @@ public abstract class JobQueueTestBase extends TestBase {
                 .id(job.getId())
                 .persistent(params.isPersistent())
                 .tags(job.getTags())
+                .dependeeTags(job.getDependeeTags())
                 .createdNs(timer.nanoTime())
                 .deadline(deadline > 0 ? timer.nanoTime() + deadline * JobManager.NS_PER_MS : Params.FOREVER, cancelOnDeadline)
                 .delayUntilNs(delay > 0 ? timer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)

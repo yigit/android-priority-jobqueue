@@ -22,6 +22,7 @@ public class Constraint {
     private final List<String> excludeGroups = new ArrayList<>();
     private final List<String> excludeJobIds = new ArrayList<>();
     private boolean excludeRunning;
+    private boolean excludeDependent;
     private Long timeLimit;
     private long nowInNs;
 
@@ -73,6 +74,14 @@ public class Constraint {
     }
 
     /**
+     * Returns true if dependent jobs should be excluded from the query
+     * @return True if running dependent jobs should be excluded
+     */
+    public boolean excludeDependent() {
+        return excludeDependent;
+    }
+
+    /**
      * Exclude jobs whose run time is after this time. Might be null if there is no time limit.
      * @return Time in NS which should be used to filter out delayed jobs
      */
@@ -98,6 +107,10 @@ public class Constraint {
 
     void setExcludeRunning(boolean excludeRunning) {
         this.excludeRunning = excludeRunning;
+    }
+
+    void setExcludeDependent(boolean excludeDependent) {
+        this.excludeDependent = excludeDependent;
     }
 
     void setTags(String[] tags) {
@@ -140,6 +153,7 @@ public class Constraint {
         excludeGroups.clear();
         excludeJobIds.clear();
         excludeRunning = false;
+        excludeDependent = false;
         timeLimit = null;
         nowInNs = Long.MIN_VALUE;
     }

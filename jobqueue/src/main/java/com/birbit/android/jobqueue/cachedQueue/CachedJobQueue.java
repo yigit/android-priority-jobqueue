@@ -53,7 +53,7 @@ public class CachedJobQueue implements JobQueue {
 
     @Override
     public int count() {
-        if(cachedCount == null) {
+        if (cachedCount == null) {
             cachedCount = delegate.count();
         }
         return cachedCount;
@@ -73,7 +73,7 @@ public class CachedJobQueue implements JobQueue {
 
     @Override
     public JobHolder nextJobAndIncRunCount(@NonNull Constraint constraint) {
-        if(isEmpty()) {
+        if (isEmpty()) {
             return null;//we know we are empty, no need for querying
         }
         JobHolder holder = delegate.nextJobAndIncRunCount(constraint);
@@ -110,5 +110,17 @@ public class CachedJobQueue implements JobQueue {
     @Nullable
     public JobHolder findJobById(@NonNull String id) {
         return delegate.findJobById(id);
+    }
+
+    @Override
+    @NonNull
+    public Set<JobHolder> findDependentJobs(Set<JobHolder> jobHolders) {
+        return delegate.findDependentJobs(jobHolders);
+    }
+
+    @Override
+    @NonNull
+    public Set<JobHolder> findDependentJobs(JobHolder jobHolder) {
+        return delegate.findDependentJobs(jobHolder);
     }
 }

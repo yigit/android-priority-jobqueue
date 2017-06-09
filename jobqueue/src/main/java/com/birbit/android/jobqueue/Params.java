@@ -32,13 +32,14 @@ public class Params {
     private HashSet<String> tags;
     private long deadlineMs = 0;
     private Boolean cancelOnDeadline; // this also serve as a field set check
+    private HashSet<String> dependeeTags;
 
     /**
      *
      * @param priority higher = better
      */
-    public Params(int priority) {
-        this.priority = priority;
+    public Params(int priority) {this.priority = priority;
+
     }
 
     /**
@@ -224,6 +225,44 @@ public class Params {
         return this;
     }
 
+  /**
+   * Attaches given dependee tags to the Job.
+   * These are used for building dependency between jobs along with {@link Params#addTags(String...)}.
+   *
+   * @param newTags List of dependee job's tags to add
+   * @return this
+   */
+  public Params addDependeeTags(String... newTags) {
+    if(dependeeTags == null) {
+      dependeeTags = new HashSet<>();
+    }
+    Collections.addAll(dependeeTags, newTags);
+    return this;
+  }
+
+  /**
+   * Removes the given tags from the dependee tags.
+   *
+   * @param oldTags List of tags to be removed
+   * @return this
+   */
+  @SuppressWarnings("unused")
+  public Params removeDependeeTags(String... oldTags) {
+    if(dependeeTags == null) {
+      return this;
+    }
+    for(String tag : oldTags) {
+      dependeeTags.remove(tag);
+    }
+    return this;
+  }
+
+  @SuppressWarnings("unused")
+  public Params clearDependeeTags() {
+    dependeeTags = null;
+    return this;
+  }
+
     /**
      * Set a deadline on the job's constraints. After this deadline is reached, the job is run
      * regardless of its constraints.
@@ -324,6 +363,10 @@ public class Params {
 
     public HashSet<String> getTags() {
         return tags;
+    }
+
+    public HashSet<String> getDependeeTags() {
+        return dependeeTags;
     }
 
     public boolean shouldCancelOnDeadline() {

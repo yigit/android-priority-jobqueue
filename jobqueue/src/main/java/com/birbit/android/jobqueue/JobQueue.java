@@ -118,4 +118,20 @@ public interface JobQueue {
      * @param holder The JobHolder that is being cancelled
      */
     void onJobCancelled(JobHolder holder);
+
+    /**
+     * Returns dependent job for the given jobs.
+     * @param jobHolders jobs to find dependent jobs.
+     * @return Dependent jobs for given jobs.F
+     */
+    @NonNull
+    Set<JobHolder> findDependentJobs(Set<JobHolder> jobHolders);
+
+    /**
+     * Returns dependent jobs for the given job.
+     * @param jobHolder job to find dependent jobs of.
+     * @return Dependent jobs for given job.
+     */
+    @NonNull
+    Set<JobHolder> findDependentJobs(JobHolder jobHolder);
 }

@@ -34,6 +34,7 @@ abstract public class Job implements Serializable {
     private transient String groupId;
     private transient boolean persistent;
     private transient Set<String> readonlyTags;
+    private transient Set<String> dependeeTags;
 
     private transient int currentRunCount;
     /**package**/ transient int priority;
@@ -72,12 +73,17 @@ abstract public class Job implements Serializable {
             }
             this.readonlyTags = Collections.unmodifiableSet(tags);
         }
+        if (params.getDependeeTags() != null) {
+            this.dependeeTags = Collections.unmodifiableSet(params.getDependeeTags());
+        }
         if (deadlineInMs > 0 && deadlineInMs < delayInMs) {
             throw new IllegalArgumentException("deadline cannot be less than the delay. It" +
                     " does not make sense. deadline:" + deadlineInMs + "," +
                     "delay:" + delayInMs);
         }
-
+        if (!persistent && dependeeTags != null) {
+            throw new IllegalArgumentException("Non persistent jobs with dependency is not supported.");
+        }
     }
 
     public final String getId() {
@@ -111,6 +117,15 @@ abstract public class Job implements Serializable {
         return readonlyTags;
     }
 
+    /**
+     * Returns a set of dependee tags attached to this Job.
+     * @return Set of Dependee Tags. If tags do not exists, returns null.
+     */
+    @Nullable
+    public final Set<String> getDependeeTags() {
+        return dependeeTags;
+    }
+
     private void writeObject(ObjectOutputStream oos) throws IOException {
         if (!sealed) {
             throw new IllegalStateException("A job cannot be serialized w/o first being added into"
@@ -135,6 +150,7 @@ abstract public class Job implements Serializable {
         priority = holder.getPriority();
         this.persistent = holder.persistent;
         readonlyTags = holder.tags;
+        dependeeTags = holder.dependeeTags;
         requiredNetworkType = holder.requiredNetworkType;
         sealed = true; //  deserialized jobs are sealed
     }

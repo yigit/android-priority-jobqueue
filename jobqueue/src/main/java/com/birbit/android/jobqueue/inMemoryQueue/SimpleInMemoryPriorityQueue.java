@@ -197,6 +197,18 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         remove(holder);
     }
 
+    @Override
+    @NonNull
+    public Set<JobHolder> findDependentJobs(Set<JobHolder> jobHolders) {
+        throw new RuntimeException("Operation not supported yet.");
+    }
+
+    @Override
+    @NonNull
+    public Set<JobHolder> findDependentJobs(JobHolder jobHolders) {
+        throw new RuntimeException("Operation not supported yet.");
+    }
+
     private static boolean matches(JobHolder holder, Constraint constraint, boolean acceptAnyDeadline) {
         boolean hitDeadline = constraint.getNowInNs() >= holder.getDeadlineNs()
                 || (acceptAnyDeadline && holder.hasDeadline());

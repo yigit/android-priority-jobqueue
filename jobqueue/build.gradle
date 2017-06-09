@@ -58,7 +58,7 @@ dependencies {
     // time. If app depends on a newer one, gradle will pick it for us.
     //noinspection GradleDependency
     // remove when gms moves to individual libraries
-    compile 'com.android.support:support-v4:25.2.0'
+    compile 'com.android.support:support-v4:25.3.1'
     // build tools does not allow making this provided so we make it optional when pom is created
     compile 'com.google.android.gms:play-services-gcm:10.2.0'
 }

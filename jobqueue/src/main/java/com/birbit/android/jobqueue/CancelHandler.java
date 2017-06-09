@@ -15,6 +15,7 @@ class CancelHandler {
     private final TagConstraint tagConstraint;
     private final String[] tags;
     private final Collection<JobHolder> cancelled;
+    private final Collection<JobHolder> dependentCancelled;
     private final Collection<JobHolder> failedToCancel;
     private final CancelResult.AsyncCancelCallback callback;
 
@@ -22,6 +23,7 @@ class CancelHandler {
         this.tagConstraint = constraint;
         this.tags = tags;
         cancelled = new ArrayList<>();
+        dependentCancelled = new ArrayList<>();
         failedToCancel = new ArrayList<>();
         this.callback = callback;
     }
@@ -40,6 +42,8 @@ class CancelHandler {
                 .findJobs(queryConstraint);
         Set<JobHolder> persistentInQueue = jobManagerThread.persistentJobQueue
                 .findJobs(queryConstraint);
+        Set<JobHolder> persistedDependentInQueue = jobManagerThread.persistentJobQueue
+                .findDependentJobs(persistentInQueue);
         for (JobHolder nonPersistent : nonPersistentInQueue) {
             nonPersistent.markAsCancelled();
             cancelled.add(nonPersistent);
@@ -49,6 +53,11 @@ class CancelHandler {
             persistent.markAsCancelled();
             cancelled.add(persistent);
             jobManagerThread.persistentJobQueue.onJobCancelled(persistent);
+        }
+        for (JobHolder dependent: persistedDependentInQueue) {
+            dependent.markAsCancelled();
+            dependentCancelled.add(dependent);
+            jobManagerThread.persistentJobQueue.onJobCancelled(dependent);
         }
     }
 
@@ -63,19 +72,37 @@ class CancelHandler {
                 jobManagerThread.persistentJobQueue.remove(jobHolder);
             }
         }
+        for (JobHolder jobHolder : dependentCancelled) {
+            try {
+                jobHolder.onCancel(CancelReason.CANCELLED_DUE_TO_DEPENDENT_JOB_CANCELLED);
+            } catch (Throwable t) {
+                JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
+            }
+            if (jobHolder.getJob().isPersistent()) {
+                jobManagerThread.persistentJobQueue.remove(jobHolder);
+            }
+        }
         if (callback != null) {
             Collection<Job> cancelledJobs = new ArrayList<>(cancelled.size());
+            Collection<Job> cancelledDependentJobs = new ArrayList<>(dependentCancelled.size());
             Collection<Job> failedToCancelJobs = new ArrayList<>(failedToCancel.size());
             for (JobHolder holder : cancelled) {
                 cancelledJobs.add(holder.getJob());
             }
+            for (JobHolder holder : dependentCancelled) {
+                cancelledDependentJobs.add(holder.getJob());
+            }
             for (JobHolder holder : failedToCancel) {
                 failedToCancelJobs.add(holder.getJob());
             }
-            CancelResult result = new CancelResult(cancelledJobs, failedToCancelJobs);
+            CancelResult result = new CancelResult(cancelledJobs, cancelledDependentJobs, failedToCancelJobs);
             jobManagerThread.callbackManager.notifyCancelResult(result, callback);
         }
         for (JobHolder jobHolder : cancelled) {
+            jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true,
+                    jobHolder.getThrowable());
+        }
+        for (JobHolder jobHolder : dependentCancelled) {
             jobManagerThread.callbackManager.notifyOnCancel(jobHolder.getJob(), true,
                     jobHolder.getThrowable());
         }

@@ -26,7 +26,7 @@ public class UnsafeMessageQueueTest {
     UnsafeMessageQueue mq = new UnsafeMessageQueue(new MessageFactory(), "test");
     List<Long> items = Arrays.asList(1000L, 2000L, 3000L);
     Map<Long, Message> added = new HashMap<>();
-    
+
     @Test
     public void simplePost() {
         Message m = new CommandMessage();

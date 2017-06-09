@@ -1,9 +1,9 @@
 package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
-import com.birbit.android.jobqueue.log.JqLog;
-
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
+
+import com.birbit.android.jobqueue.log.JqLog;
 
 /**
  * Helper class for {@link SqliteJobQueue} to generate sql queries and statements.
@@ -12,15 +12,19 @@ public class SqlHelper {
 
     /**package**/ String FIND_BY_ID_QUERY;
     /**package**/ String FIND_BY_TAG_QUERY;
+    /**package**/ String FIND_BY_DEPENDEE_TAG_QUERY;
     /**package**/ String LOAD_ALL_IDS_QUERY;
     /**package**/ String LOAD_TAGS_QUERY;
+    /**package**/ String LOAD_DEPENDENT_TAGS_QUERY;
     /**package**/ String RE_ENABLE_PENDING_CANCELLATIONS_QUERY;
 
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertTagsStatement;
+    private SQLiteStatement insertDependeeTagsStatement;
     private SQLiteStatement insertOrReplaceStatement;
     private SQLiteStatement deleteStatement;
     private SQLiteStatement deleteJobTagsStatement;
+    private SQLiteStatement deleteDependeeJobTagsStatement;
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
     private SQLiteStatement markAsCancelledStatement;
@@ -33,10 +37,13 @@ public class SqlHelper {
     final int columnCount;
     final String tagsTableName;
     final int tagsColumnCount;
+    final String dependeeTagsTableName;
+    final int dependeeTagsColumnCount;
     final long sessionId;
 
     public SqlHelper(SQLiteDatabase db, String tableName, String primaryKeyColumnName,
-            int columnCount, String tagsTableName, int tagsColumnCount, long sessionId) {
+                     int columnCount, String tagsTableName, int tagsColumnCount,
+                     String dependeeTagsTableName, int dependeeTagsColumnCount, long sessionId) {
         this.db = db;
         this.tableName = tableName;
         this.columnCount = columnCount;
@@ -44,14 +51,22 @@ public class SqlHelper {
         this.sessionId = sessionId;
         this.tagsColumnCount = tagsColumnCount;
         this.tagsTableName = tagsTableName;
+        this.dependeeTagsTableName = dependeeTagsTableName;
+        this.dependeeTagsColumnCount = dependeeTagsColumnCount;
         FIND_BY_ID_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName + " = ?";
         FIND_BY_TAG_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName
                 + " IN ( SELECT " + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " FROM " + tagsTableName
                 + " WHERE " + DbOpenHelper.TAGS_NAME_COLUMN.columnName + " = ?)";
+        FIND_BY_DEPENDEE_TAG_QUERY = "SELECT * FROM " + tableName + " WHERE " + DbOpenHelper.ID_COLUMN.columnName
+                + " IN ( SELECT " + DbOpenHelper.DEPENDEE_TAGS_JOB_ID_COLUMN.columnName + " FROM " + dependeeTagsTableName
+                + " WHERE " + DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName + " = ?)";
         LOAD_ALL_IDS_QUERY = "SELECT " + DbOpenHelper.ID_COLUMN.columnName + " FROM " + tableName;
         LOAD_TAGS_QUERY = "SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName + " FROM "
                 + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
                 + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?";
+        LOAD_DEPENDENT_TAGS_QUERY = "SELECT " + DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName + " FROM "
+                + DbOpenHelper.JOB_DEPENDEE_TAGS_TABLE_NAME + " WHERE "
+                + DbOpenHelper.DEPENDEE_TAGS_JOB_ID_COLUMN.columnName + " = ?";
         RE_ENABLE_PENDING_CANCELLATIONS_QUERY = "UPDATE " + tableName + " SET "
                 + DbOpenHelper.CANCELLED_COLUMN.columnName + " = 0";
     }
@@ -120,6 +135,24 @@ public class SqlHelper {
         return insertTagsStatement;
     }
 
+    public SQLiteStatement getInsertDependeeTagsStatement() {
+        if (insertDependeeTagsStatement == null) {
+            reusedStringBuilder.setLength(0);
+            reusedStringBuilder.append("INSERT INTO ")
+                    .append(DbOpenHelper.JOB_DEPENDEE_TAGS_TABLE_NAME);
+            reusedStringBuilder.append(" VALUES (");
+            for (int i = 0; i < tagsColumnCount; i++) {
+                if (i != 0) {
+                    reusedStringBuilder.append(",");
+                }
+                reusedStringBuilder.append("?");
+            }
+            reusedStringBuilder.append(")");
+            insertDependeeTagsStatement = db.compileStatement(reusedStringBuilder.toString());
+        }
+        return insertDependeeTagsStatement;
+    }
+
     public SQLiteStatement getCountStatement() {
         if (countStatement == null) {
             countStatement = db.compileStatement("SELECT COUNT(*) FROM " + tableName + " WHERE " +
@@ -159,6 +192,14 @@ public class SqlHelper {
                     + " WHERE " + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + "= ?");
         }
         return deleteJobTagsStatement;
+    }
+
+    public SQLiteStatement getDeleteDependeeJobTagsStatement() {
+        if (deleteDependeeJobTagsStatement == null) {
+            deleteDependeeJobTagsStatement = db.compileStatement("DELETE FROM " + dependeeTagsTableName
+                    + " WHERE " + DbOpenHelper.DEPENDEE_TAGS_JOB_ID_COLUMN.columnName + "= ?");
+        }
+        return deleteDependeeJobTagsStatement;
     }
 
     public SQLiteStatement getOnJobFetchedForRunningStatement() {
@@ -241,9 +282,28 @@ public class SqlHelper {
         }
     }
 
+    public String getDependentJobsQuery(int tagsLength) {
+        reusedStringBuilder.setLength(0);
+        reusedStringBuilder
+                .append(DbOpenHelper.ID_COLUMN.columnName)
+                .append(" IN (SELECT DISTINCT ")
+                .append(DbOpenHelper.DEPENDEE_TAGS_JOB_ID_COLUMN.columnName)
+                .append(" FROM ")
+                .append(DbOpenHelper.JOB_DEPENDEE_TAGS_TABLE_NAME)
+                .append(" WHERE ")
+                .append(DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName)
+                .append(" IN (");
+        addPlaceholdersInto(reusedStringBuilder, tagsLength);
+        reusedStringBuilder.append("))");
+
+        String where = reusedStringBuilder.toString();
+        return createSelect(where, null);
+    }
+
     public void truncate() {
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME);
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME);
+        db.execSQL("DELETE FROM " + DbOpenHelper.JOB_DEPENDEE_TAGS_TABLE_NAME);
         vacuum();
     }
 
@@ -273,7 +333,7 @@ public class SqlHelper {
         }
 
         public Property(String columnName, String type, int columnIndex, ForeignKey foreignKey,
-                boolean unique) {
+                        boolean unique) {
             this.columnName = columnName;
             this.type = type;
             this.columnIndex = columnIndex;

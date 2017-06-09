@@ -14,7 +14,8 @@ import java.lang.annotation.RetentionPolicy;
         CancelReason.SINGLE_INSTANCE_WHILE_RUNNING,
         CancelReason.CANCELLED_VIA_SHOULD_RE_RUN,
         CancelReason.SINGLE_INSTANCE_ID_QUEUED,
-        CancelReason.REACHED_DEADLINE})
+        CancelReason.REACHED_DEADLINE,
+        CancelReason.CANCELLED_DUE_TO_DEPENDENT_JOB_CANCELLED})
 public @interface CancelReason {
     /**
      * Used when a job was added while another job with the same single instance ID was already
@@ -61,5 +62,13 @@ public @interface CancelReason {
      * {@link Params#overrideDeadlineToCancelInMs(long)}.
      */
     int REACHED_DEADLINE = JobHolder.RUN_RESULT_HIT_DEADLINE;
+
+    /**
+     * Used when a Dependee Job with tags set via {@link Params#addDependeeTags(String...)} is/are cancelled.
+     * <p>
+     * This means the job's params were constructed using
+     * {@link Params#addDependeeTags(String...)}.
+     */
+    int CANCELLED_DUE_TO_DEPENDENT_JOB_CANCELLED = 8;
 
 }

@@ -1,5 +1,12 @@
 package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDoneException;
+import android.database.sqlite.SQLiteStatement;
+import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
+
 import com.birbit.android.jobqueue.Constraint;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobHolder;
@@ -8,13 +15,6 @@ import com.birbit.android.jobqueue.JobQueue;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
-
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteDoneException;
-import android.database.sqlite.SQLiteStatement;
-import android.support.annotation.NonNull;
-import android.support.annotation.VisibleForTesting;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,7 +49,9 @@ public class SqliteJobQueue implements JobQueue {
         db = dbOpenHelper.getWritableDatabase();
         sqlHelper = new SqlHelper(db, DbOpenHelper.JOB_HOLDER_TABLE_NAME,
                 DbOpenHelper.ID_COLUMN.columnName, DbOpenHelper.COLUMN_COUNT,
-                DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT, sessionId);
+                DbOpenHelper.JOB_TAGS_TABLE_NAME, DbOpenHelper.TAGS_COLUMN_COUNT,
+                DbOpenHelper.JOB_DEPENDEE_TAGS_TABLE_NAME, DbOpenHelper.DEPENDEE_TAGS_COLUMN_COUNT,
+                sessionId);
         this.jobSerializer = serializer;
         if (configuration.resetDelaysOnRestart()) {
             sqlHelper.resetDelayTimesTo(JobManager.NOT_DELAYED_JOB_DELAY);
@@ -88,7 +90,7 @@ public class SqliteJobQueue implements JobQueue {
     @Override
     public boolean insert(@NonNull JobHolder jobHolder) {
         persistJobToDisk(jobHolder);
-        if (jobHolder.hasTags()) {
+        if (jobHolder.hasTags() || jobHolder.hasDependeeTags()) {
             return insertWithTags(jobHolder);
         }
         final SQLiteStatement stmt = sqlHelper.getInsertStatement();
@@ -123,6 +125,7 @@ public class SqliteJobQueue implements JobQueue {
     private boolean insertWithTags(JobHolder jobHolder) {
         final SQLiteStatement stmt = sqlHelper.getInsertStatement();
         final SQLiteStatement tagsStmt = sqlHelper.getInsertTagsStatement();
+        final SQLiteStatement dependeeTagsStmt = sqlHelper.getInsertDependeeTagsStatement();
         db.beginTransaction();
         try {
             stmt.clearBindings();
@@ -131,18 +134,26 @@ public class SqliteJobQueue implements JobQueue {
             if (!insertResult) {
                 return false;
             }
-            for (String tag : jobHolder.getTags()) {
-                tagsStmt.clearBindings();
-                bindTag(tagsStmt, jobHolder.getId(), tag);
-                tagsStmt.executeInsert();
+            if (jobHolder.hasTags()) {
+                for (String tag : jobHolder.getTags()) {
+                    tagsStmt.clearBindings();
+                    bindTag(tagsStmt, jobHolder.getId(), tag);
+                    tagsStmt.executeInsert();
+                }
+            }
+            if (jobHolder.hasDependeeTags()) {
+                for (String tag : jobHolder.getDependeeTags()) {
+                    dependeeTagsStmt.clearBindings();
+                    bindDependeeTag(dependeeTagsStmt, jobHolder.getId(), tag);
+                    dependeeTagsStmt.executeInsert();
+                }
             }
             db.setTransactionSuccessful();
             return true;
         } catch (Throwable t) {
             JqLog.e(t, "error while inserting job with tags");
             return false;
-        }
-        finally {
+        } finally {
             db.endTransaction();
         }
     }
@@ -152,6 +163,11 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindString(DbOpenHelper.TAGS_NAME_COLUMN.columnIndex + 1, tag);
     }
 
+    private void bindDependeeTag(SQLiteStatement stmt, String jobId, String tag) {
+        stmt.bindString(DbOpenHelper.DEPENDEE_TAGS_JOB_ID_COLUMN.columnIndex + 1, jobId);
+        stmt.bindString(DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnIndex + 1, tag);
+    }
+
     private void bindValues(SQLiteStatement stmt, JobHolder jobHolder) {
         if (jobHolder.getInsertionOrder() != null) {
             stmt.bindLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex + 1, jobHolder.getInsertionOrder());
@@ -159,7 +175,7 @@ public class SqliteJobQueue implements JobQueue {
 
         stmt.bindString(DbOpenHelper.ID_COLUMN.columnIndex + 1, jobHolder.getId());
         stmt.bindLong(DbOpenHelper.PRIORITY_COLUMN.columnIndex + 1, jobHolder.getPriority());
-        if(jobHolder.getGroupId() != null) {
+        if (jobHolder.getGroupId() != null) {
             stmt.bindString(DbOpenHelper.GROUP_ID_COLUMN.columnIndex + 1, jobHolder.getGroupId());
         }
         stmt.bindLong(DbOpenHelper.RUN_COUNT_COLUMN.columnIndex + 1, jobHolder.getRunCount());
@@ -211,6 +227,9 @@ public class SqliteJobQueue implements JobQueue {
             SQLiteStatement deleteTagsStmt = sqlHelper.getDeleteJobTagsStatement();
             deleteTagsStmt.bindString(1, id);
             deleteTagsStmt.execute();
+            SQLiteStatement deleteDependeeTagsStmt = sqlHelper.getDeleteDependeeJobTagsStatement();
+            deleteDependeeTagsStmt.bindString(1, id);
+            deleteDependeeTagsStmt.execute();
             db.setTransactionSuccessful();
             jobStorage.delete(id);
         } finally {
@@ -243,7 +262,7 @@ public class SqliteJobQueue implements JobQueue {
     public JobHolder findJobById(@NonNull String id) {
         Cursor cursor = db.rawQuery(sqlHelper.FIND_BY_ID_QUERY, new String[]{id});
         try {
-            if(!cursor.moveToFirst()) {
+            if (!cursor.moveToFirst()) {
                 return null;
             }
             return createJobHolderFromCursor(cursor);
@@ -362,7 +381,7 @@ public class SqliteJobQueue implements JobQueue {
 
     @SuppressWarnings("unused")
     public String logJobs() {
-        StringBuilder sb =  new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         String select = sqlHelper.createSelect(
                 null,
                 100,
@@ -389,10 +408,9 @@ public class SqliteJobQueue implements JobQueue {
                         .append(" sessionId:")
                         .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
                         .append(" reqNetworkType:")
-                        .append(cursor.getLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex));
-                Cursor tags = db.rawQuery("SELECT " + DbOpenHelper.TAGS_NAME_COLUMN.columnName
-                        + " FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME + " WHERE "
-                        + DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName + " = ?", new String[]{id});
+                        .append(cursor.getLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex))
+                        .append(" tags: {");
+                Cursor tags = db.rawQuery(sqlHelper.LOAD_TAGS_QUERY, new String[]{id});
                 try {
                     while (tags.moveToNext()) {
                         sb.append(", ").append(tags.getString(0));
@@ -400,8 +418,17 @@ public class SqliteJobQueue implements JobQueue {
                 } finally {
                     tags.close();
                 }
-                sb.append("\n");
+                sb.append("} dependeeTags: {");
 
+                Cursor dependeeTags = db.rawQuery(sqlHelper.LOAD_DEPENDENT_TAGS_QUERY, new String[]{id});
+                try {
+                    while (dependeeTags.moveToNext()) {
+                        sb.append(", ").append(dependeeTags.getString(0));
+                    }
+                } finally {
+                    dependeeTags.close();
+                }
+                sb.append("}\n");
             }
         } finally {
             cursor.close();
@@ -422,6 +449,7 @@ public class SqliteJobQueue implements JobQueue {
         }
         // load tags
         Set<String> tags = loadTags(jobId);
+        Set<String> dependeeTags = loadDependeeTags(jobId);
         //noinspection WrongConstant,UnnecessaryLocalVariable
         JobHolder holder = new JobHolder.Builder()
                 .insertionOrder(cursor.getLong(DbOpenHelper.INSERTION_ORDER_COLUMN.columnIndex))
@@ -431,6 +459,7 @@ public class SqliteJobQueue implements JobQueue {
                 .job(job)
                 .id(jobId)
                 .tags(tags)
+                .dependeeTags(dependeeTags)
                 .persistent(true)
                 .deadline(cursor.getLong(DbOpenHelper.DEADLINE_COLUMN.columnIndex),
                         cursor.getInt(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex) == 1)
@@ -457,6 +486,67 @@ public class SqliteJobQueue implements JobQueue {
         } finally {
             cursor.close();
         }
+    }
+
+    private Set<String> loadDependeeTags(String jobId) {
+        Cursor cursor = db.rawQuery(sqlHelper.LOAD_DEPENDENT_TAGS_QUERY, new String[]{jobId});
+        try {
+            if (cursor.getCount() == 0) {
+                //noinspection unchecked
+                return Collections.EMPTY_SET;
+            }
+            final Set<String> tags = new HashSet<>();
+            while (cursor.moveToNext()) {
+                tags.add(cursor.getString(0));
+            }
+            return tags;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    @Override
+    @NonNull
+    public Set<JobHolder> findDependentJobs(Set<JobHolder> jobHolders) {
+        if (!jobHolders.isEmpty()) {
+            Set<String> tagsSet = new HashSet<>();
+            for (JobHolder jobHolder : jobHolders) {
+                if (jobHolder.hasTags()) {
+                    tagsSet.addAll(jobHolder.getTags());
+                }
+            }
+            return findDependentJobsForTags(tagsSet);
+        }
+        return Collections.EMPTY_SET;
+    }
+
+    @Override
+    @NonNull
+    public Set<JobHolder> findDependentJobs(JobHolder jobHolder) {
+        if (jobHolder.hasTags()) {
+            return findDependentJobsForTags(jobHolder.getTags());
+        } else {
+            return Collections.EMPTY_SET;
+        }
+    }
+
+    private Set<JobHolder> findDependentJobsForTags(Set<String> tags) {
+        if (!tags.isEmpty()) {
+            String query = sqlHelper.getDependentJobsQuery(tags.size());
+            Cursor cursor = db.rawQuery(query, tags.toArray(new String[0]));
+            final Set<JobHolder> dependentJobs = new HashSet<>();
+            try {
+                while (cursor.moveToNext()) {
+                    dependentJobs.add(createJobHolderFromCursor(cursor));
+                }
+            } catch (InvalidJobException e) {
+                JqLog.e(e, "invalid dependent job found by tags.");
+            } finally {
+                cursor.close();
+            }
+            return dependentJobs;
+        }
+        return Collections.EMPTY_SET;
     }
 
     private Job safeDeserialize(byte[] bytes) {
@@ -520,6 +610,7 @@ public class SqliteJobQueue implements JobQueue {
 
     public interface JobSerializer {
         byte[] serialize(Object object) throws IOException;
+
         <T extends Job> T deserialize(byte[] bytes) throws IOException, ClassNotFoundException;
     }
 }

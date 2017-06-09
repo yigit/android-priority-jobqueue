@@ -15,10 +15,12 @@ import java.util.Collection;
  */
 public class CancelResult {
     private Collection<Job> cancelledJobs;
+    private Collection<Job> cancelledDependentJobs;
     private Collection<Job> failedToCancel;
 
-    public CancelResult(Collection<Job> cancelledJobs, Collection<Job> failedToCancel) {
+    public CancelResult(Collection<Job> cancelledJobs, Collection<Job> cancelledDependentJobs, Collection<Job> failedToCancel) {
         this.cancelledJobs = cancelledJobs;
+        this.cancelledDependentJobs = cancelledDependentJobs;
         this.failedToCancel = failedToCancel;
     }
 
@@ -27,6 +29,14 @@ public class CancelResult {
      */
     public Collection<Job> getCancelledJobs() {
         return cancelledJobs;
+    }
+
+
+    /**
+     * @return The list of jobs that are cancelled due to dependee job getting cancelled.
+     */
+    public Collection<Job> getCancelledDependentJobs() {
+        return cancelledDependentJobs;
     }
 
     /**
