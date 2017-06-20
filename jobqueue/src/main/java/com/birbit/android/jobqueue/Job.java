@@ -197,7 +197,9 @@ abstract public class Job implements Serializable {
      *                   <li>{@link CancelReason#SINGLE_INSTANCE_WHILE_RUNNING}</li>
      *                   <li>{@link CancelReason#SINGLE_INSTANCE_ID_QUEUED}</li>
      *                   </ul>
-     * @param throwable The exception that was thrown from the last execution of {@link #onRun()}
+     * @param throwable The exception that was thrown from the last execution of {@link #onRun()}.
+     *                  Or {@link Throwable} of dependee job, if dependee job return
+     *                  {@link RetryConstraint#CANCEL} from {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
      */
     abstract protected void onCancel(@CancelReason int cancelReason, @Nullable Throwable throwable);
 

@@ -86,7 +86,9 @@ public class JobHolder {
      */
     RetryConstraint retryConstraint;
     /**
-     * Eventual exception thrown from the last execution of {@link Job#onRun}
+     * Eventual exception thrown from the last execution of {@link Job#onRun}.
+     * Or {@link Throwable} of dependee job, if dependee job return {@link RetryConstraint#CANCEL}
+     * from {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
      */
     @Nullable private Throwable throwable;
 

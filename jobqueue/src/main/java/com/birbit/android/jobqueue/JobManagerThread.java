@@ -521,6 +521,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (jobHolder.getJob().isPersistent()) {
             Set<JobHolder> dependentJobs = persistentJobQueue.findDependentJobs(jobHolder);
             for (JobHolder holder : dependentJobs) {
+                //Setting Throwable of dependee job to dependent job. This would be passed to {@link Job#onCancel}.
+                holder.setThrowable(jobHolder.getThrowable());
                 holder.markAsCancelled();
                 persistentJobQueue.onJobCancelled(holder);
                 cancelSafely(holder, CancelReason.CANCELLED_DUE_TO_DEPENDENT_JOB_CANCELLED);
