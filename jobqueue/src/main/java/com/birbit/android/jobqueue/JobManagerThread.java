@@ -153,11 +153,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         } else {
             JqLog.d("another job with same singleId: %s was already queued", job.getSingleInstanceId());
         }
-        if (dependencyInjector != null) {
-            //inject members b4 calling onAdded
-            dependencyInjector.inject(job);
-        }
-        jobHolder.setApplicationContext(appContext);
+        setupJobHolder(jobHolder);
         jobHolder.getJob().onAdded();
         callbackManager.notifyOnAdded(jobHolder.getJob());
         if (insert) {
@@ -524,6 +520,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 //Setting Throwable of dependee job to dependent job. This would be passed to {@link Job#onCancel}.
                 holder.setThrowable(jobHolder.getThrowable());
                 holder.markAsCancelled();
+                setupJobHolder(holder);
                 persistentJobQueue.onJobCancelled(holder);
                 cancelSafely(holder, CancelReason.CANCELLED_DUE_TO_DEPENDENT_JOB_CANCELLED);
                 removeJob(holder);
@@ -691,10 +688,11 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             if (jobHolder == null) {
                 return null;
             }
-            if (persistent && dependencyInjector != null) {
-                dependencyInjector.inject(jobHolder.getJob());
+            if (persistent) {
+                setupJobHolder(jobHolder);
+            } else {
+                jobHolder.setApplicationContext(appContext);
             }
-            jobHolder.setApplicationContext(appContext);
             jobHolder.setDeadlineIsReached(jobHolder.getDeadlineNs() <= now);
             if (jobHolder.getDeadlineNs() <= now
                     && jobHolder.shouldCancelOnDeadline()) {
@@ -703,5 +701,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             }
         }
         return jobHolder;
+    }
+
+    public void setupJobHolder(JobHolder jobHolder) {
+        jobHolder.setApplicationContext(appContext);
+        if (dependencyInjector != null) {
+            dependencyInjector.inject(jobHolder.job);
+        }
     }
 }

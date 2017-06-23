@@ -27,7 +27,7 @@ class CancelHandler {
         failedToCancel = new ArrayList<>();
         this.callback = callback;
     }
-    
+
     void query(JobManagerThread jobManagerThread, ConsumerManager consumerManager) {
         running = consumerManager.markJobsCancelled(tagConstraint, tags);
         Constraint queryConstraint = jobManagerThread.queryConstraint;
@@ -54,7 +54,7 @@ class CancelHandler {
             cancelled.add(persistent);
             jobManagerThread.persistentJobQueue.onJobCancelled(persistent);
         }
-        for (JobHolder dependent: persistedDependentInQueue) {
+        for (JobHolder dependent : persistedDependentInQueue) {
             dependent.markAsCancelled();
             dependentCancelled.add(dependent);
             jobManagerThread.persistentJobQueue.onJobCancelled(dependent);
@@ -63,22 +63,30 @@ class CancelHandler {
 
     void commit(JobManagerThread jobManagerThread) {
         for (JobHolder jobHolder : cancelled) {
+            boolean persistent = jobHolder.getJob().isPersistent();
+            if (persistent) {
+                jobManagerThread.setupJobHolder(jobHolder);
+            }
             try {
                 jobHolder.onCancel(CancelReason.CANCELLED_WHILE_RUNNING);
             } catch (Throwable t) {
                 JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
             }
-            if (jobHolder.getJob().isPersistent()) {
+            if (persistent) {
                 jobManagerThread.persistentJobQueue.remove(jobHolder);
             }
         }
         for (JobHolder jobHolder : dependentCancelled) {
+            boolean persistent = jobHolder.getJob().isPersistent();
+            if (persistent) {
+                jobManagerThread.setupJobHolder(jobHolder);
+            }
             try {
                 jobHolder.onCancel(CancelReason.CANCELLED_DUE_TO_DEPENDENT_JOB_CANCELLED);
             } catch (Throwable t) {
                 JqLog.e(t, "job's on cancel has thrown an exception. Ignoring...");
             }
-            if (jobHolder.getJob().isPersistent()) {
+            if (persistent) {
                 jobManagerThread.persistentJobQueue.remove(jobHolder);
             }
         }
