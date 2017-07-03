@@ -531,22 +531,35 @@ public class SqliteJobQueue implements JobQueue {
     }
 
     private Set<JobHolder> findDependentJobsForTags(Set<String> tags) {
-        if (!tags.isEmpty()) {
-            String query = sqlHelper.getDependentJobsQuery(tags.size());
-            Cursor cursor = db.rawQuery(query, tags.toArray(new String[0]));
-            final Set<JobHolder> dependentJobs = new HashSet<>();
+        final Set<JobHolder> dependentJobs = new HashSet<>();
+        final Set<JobHolder> jobsCache = new HashSet<>();
+        Set<String> tagsCache = new HashSet<>(tags);
+        while (!tagsCache.isEmpty()) {
+            String query = sqlHelper.getDependentJobsQuery(tagsCache.size());
+            Cursor cursor = db.rawQuery(query, tagsCache.toArray(new String[0]));
+
             try {
                 while (cursor.moveToNext()) {
-                    dependentJobs.add(createJobHolderFromCursor(cursor));
+                    jobsCache.add(createJobHolderFromCursor(cursor));
                 }
             } catch (InvalidJobException e) {
                 JqLog.e(e, "invalid dependent job found by tags.");
             } finally {
                 cursor.close();
             }
-            return dependentJobs;
+
+            tagsCache.clear();
+            if (!jobsCache.isEmpty()) {
+                dependentJobs.addAll(jobsCache);
+                for (JobHolder jobHolder : jobsCache) {
+                    if (jobHolder.hasTags()) {
+                        tagsCache.addAll(jobHolder.getTags());
+                    }
+                }
+                jobsCache.clear();
+            }
         }
-        return Collections.EMPTY_SET;
+        return dependentJobs;
     }
 
     private Job safeDeserialize(byte[] bytes) {
