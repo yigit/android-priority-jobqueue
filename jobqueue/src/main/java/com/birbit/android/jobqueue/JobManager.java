@@ -118,7 +118,7 @@ public class JobManager {
 
     private void dispatchSchedulerStop(SchedulerConstraint constraint) {
         SchedulerMessage message = messageFactory.obtain(SchedulerMessage.class);
-        message.set(PublicQueryMessage.START, constraint);
+        message.set(SchedulerMessage.STOP, constraint);
         messageQueue.post(message);
     }
 
