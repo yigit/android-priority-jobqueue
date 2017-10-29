@@ -54,6 +54,9 @@ class CancelHandler {
 
     void commit(JobManagerThread jobManagerThread) {
         for (JobHolder jobHolder : cancelled) {
+            if (jobHolder.persistent) {
+                jobManagerThread.setupJobHolder(jobHolder);
+            }
             try {
                 jobHolder.onCancel(CancelReason.CANCELLED_WHILE_RUNNING);
             } catch (Throwable t) {
