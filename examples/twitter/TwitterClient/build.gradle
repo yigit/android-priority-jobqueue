@@ -26,7 +26,7 @@ class RunApk extends DefaultTask {
     def runApp() {
         println "running path on device or emulator"
         println "adb:" + adbExec
-        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.birbit.android.jobqueue.examples.twitter/com.birbit.android.jobqueue.examples.twitter.SampleTwitterClient"
+        def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.tarkalabs.android.jobqueue.examples.twitter/com.tarkalabs.android.jobqueue.examples.twitter.SampleTwitterClient"
         println cmd
         def proc = cmd.execute()
         proc.in.eachLine {line -> println line}

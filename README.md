@@ -1,15 +1,15 @@
 ### V2 is here!
-There is a major internal rewrite of this project for more stability and new features. If you were using v1, see the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
+There is a major internal rewrite of this project for more stability and new features. If you were using v1, see the migration guide here: [migration from v1 to v2](https://github.com/tarkalabs/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
 ``` gradle
 dependencies {
-    compile 'com.birbit:android-priority-jobqueue:2.0.1'
+    compile 'com.tarkalabs:android-priority-jobqueue:2.0.1'
 }
 ```
 
 ### Master Build Status
-[![CircleCI](https://circleci.com/gh/yigit/android-priority-jobqueue/tree/master.svg?style=svg)](https://circleci.com/gh/yigit/android-priority-jobqueue/tree/master)
-[![codecov](https://codecov.io/gh/yigit/android-priority-jobqueue/branch/master/graph/badge.svg)](https://codecov.io/gh/yigit/android-priority-jobqueue)
+[![CircleCI](https://circleci.com/gh/tarkalabs/android-priority-jobqueue/tree/master.svg?style=svg)](https://circleci.com/gh/tarkalabs/android-priority-jobqueue/tree/master)
+[![codecov](https://codecov.io/gh/tarkalabs/android-priority-jobqueue/branch/master/graph/badge.svg)](https://codecov.io/gh/tarkalabs/android-priority-jobqueue)
 
 Android Priority Job Queue (Job Manager)
 ==========================
@@ -52,7 +52,7 @@ Although not required, it is most useful when used with an event bus. It also su
 
 Since a code example is worth thousands of documentation pages, here it is.
 
-File: [PostTweetJob.java](https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/birbit/android/jobqueue/examples/twitter/jobs/PostTweetJob.java)
+File: [PostTweetJob.java](https://github.com/tarkalabs/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/tarkalabs/android/jobqueue/examples/twitter/jobs/PostTweetJob.java)
 ``` java
 // A job to send a tweet
 public class PostTweetJob extends Job {
@@ -72,7 +72,7 @@ public class PostTweetJob extends Job {
     @Override
     public void onRun() throws Throwable {
         // Job logic goes here. In this example, the network call to post to Twitter is done here.
-        // All work done here should be synchronous, a job is removed from the queue once 
+        // All work done here should be synchronous, a job is removed from the queue once
         // onRun() finishes.
         webservice.postTweet(text);
     }
@@ -94,7 +94,7 @@ public class PostTweetJob extends Job {
 
 ```
 
-File: [TweetActivity.java](https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/birbit/android/jobqueue/examples/twitter/SampleTwitterClient.java#L53)
+File: [TweetActivity.java](https://github.com/tarkalabs/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/tarkalabs/android/jobqueue/examples/twitter/SampleTwitterClient.java#L53)
 ``` java
 //...
 public void onSendClick() {
@@ -119,7 +119,7 @@ On Lollipop, Android introduced [JobScheduler][14] which is a system friendly wa
 
 The first version of Job Queue was created approximately 2 years before Job Scheduler. The major difference is that Job Queue is designed to run **all of** your background tasks while Job Scheduler is designed only for those you can defer.
 
-We've created Job Queue because we wanted to have more control over the non-ui-thread activity of our application. We needed a convenient way to prioritize them, persist them accross application restarts and group based on the resources they access. 
+We've created Job Queue because we wanted to have more control over the non-ui-thread activity of our application. We needed a convenient way to prioritize them, persist them accross application restarts and group based on the resources they access.
 
 A good practice of using Job Queue is to write **all** of your network tasks as Jobs and use **AsyncTasks** for disk access (e.g. loading data from sqlite). If you have long running background operations (e.g. processing an image), it is also a good practice to use Job Queue.
 
@@ -159,13 +159,13 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 ### Getting Started
 We distribute artifacts through maven central repository.
 
-Gradle: `compile 'com.birbit:android-priority-jobqueue:2.0.1'`
+Gradle: `compile 'com.tarkalabs:android-priority-jobqueue:2.0.1'`
 
 Maven:
 
 ``` xml
 <dependency>
-    <groupId>com.birbit</groupId>
+    <groupId>com.tarkalabs</groupId>
     <artifactId>android-priority-jobqueue</artifactId>
     <version>2.0.1</version>
 </dependency>
@@ -229,10 +229,10 @@ We highly recommend checking how you can configure job manager and individual jo
   - 1.1.2 (Feb 18, 2014)
    - Report exceptions to logger if addInBackground fails. (#31)
   - 1.1.1 (Feb 8, 2014)
-   - Fixed an important bug (#35) where jobs in the same group may run in parallel if many of them become available at the same time while multiple consumer threads are waiting for a new job. 
+   - Fixed an important bug (#35) where jobs in the same group may run in parallel if many of them become available at the same time while multiple consumer threads are waiting for a new job.
   - 1.1 (Jan 30, 2014)
    - Job Status query API (#18)
-   - Fixed a stackoverflow bug when network status changes after a long time. (#21) 
+   - Fixed a stackoverflow bug when network status changes after a long time. (#21)
   - 1.0 (Jan 14, 2014):
    - Added [parameterized][12] constructor for Job for more readable code.
    - Deprecated `BaseJob` in favor of a more complete `Job` class.
@@ -301,19 +301,19 @@ THE SOFTWARE.
 </pre>
 
 
-[1]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/network/NetworkUtil.java
-[2]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/network/NetworkEventProvider.java
-[3]: http://yigit.github.io/android-priority-jobqueue/coverage-report/index.html
-[4]: http://yigit.github.io/android-priority-jobqueue/javadoc/index.html
+[1]: https://github.com/tarkalabs/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/tarkalabs/android/jobqueue/network/NetworkUtil.java
+[2]: https://github.com/tarkalabs/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/tarkalabs/android/jobqueue/network/NetworkEventProvider.java
+[3]: http://tarkalabs.github.io/android-priority-jobqueue/coverage-report/index.html
+[4]: http://tarkalabs.github.io/android-priority-jobqueue/javadoc/index.html
 [5]: http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22android-priority-jobqueue%22
-[6]: https://github.com/yigit/android-priority-jobqueue/tree/master/examples
-[7]: https://github.com/yigit/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/birbit/android/jobqueue/examples/twitter/TwitterApplication.java#L26
+[6]: https://github.com/tarkalabs/android-priority-jobqueue/tree/master/examples
+[7]: https://github.com/tarkalabs/android-priority-jobqueue/blob/master/examples/twitter/TwitterClient/src/com/tarkalabs/android/jobqueue/examples/twitter/TwitterApplication.java#L26
 [8]: http://www.youtube.com/watch?v=xHXn3Kg2IQE
-[9]: https://github.com/yigit/android-priority-jobqueue/wiki
-[10]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Manager-Configuration
-[11]: https://github.com/yigit/android-priority-jobqueue/wiki/Job-Configuration
-[12]: https://github.com/yigit/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/birbit/android/jobqueue/Params.java
-[13]: https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration
+[9]: https://github.com/tarkalabs/android-priority-jobqueue/wiki
+[10]: https://github.com/tarkalabs/android-priority-jobqueue/wiki/Job-Manager-Configuration
+[11]: https://github.com/tarkalabs/android-priority-jobqueue/wiki/Job-Configuration
+[12]: https://github.com/tarkalabs/android-priority-jobqueue/blob/master/jobqueue/src/main/java/com/tarkalabs/android/jobqueue/Params.java
+[13]: https://github.com/tarkalabs/android-priority-jobqueue/wiki/V1-to-V2-migration
 [14]: https://developer.android.com/reference/android/app/job/JobScheduler.html
 [15]: https://developers.google.com/android/reference/com/google/android/gms/gcm/GcmNetworkManager
-[16]: https://github.com/yigit/android-priority-jobqueue/wiki/Integration-with-JobScheduler-and-GcmNetworkManager
+[16]: https://github.com/tarkalabs/android-priority-jobqueue/wiki/Integration-with-JobScheduler-and-GcmNetworkManager

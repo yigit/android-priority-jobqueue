@@ -8,9 +8,9 @@ public class TwitterDaoGenerator extends DaoGenerator {
     public TwitterDaoGenerator() throws IOException {
     }
     public static void main(String[] args) {
-        Schema schema = new Schema(3, "com.birbit.android.jobqueue.examples.twitter.entities");
-        schema.setDefaultJavaPackageTest("com.birbit.android.jobqueue.examples.twitter.test");
-        schema.setDefaultJavaPackageDao("com.birbit.android.jobqueue.examples.twitter.dao");
+        Schema schema = new Schema(3, "com.tarkalabs.android.jobqueue.examples.twitter.entities");
+        schema.setDefaultJavaPackageTest("com.tarkalabs.android.jobqueue.examples.twitter.test");
+        schema.setDefaultJavaPackageDao("com.tarkalabs.android.jobqueue.examples.twitter.dao");
         schema.enableKeepSectionsByDefault();
         Entity tweet = schema.addEntity("Tweet");
         tweet.addLongProperty("localId").primaryKey().autoincrement();
