@@ -8,7 +8,7 @@ if (releaseFile.exists()) {
     releaseConfig.load(new FileInputStream(releaseFile))
 }
 // for jitpack
-group='com.github.yigit'
+group='com.github.tarkalabs'
 ext.releaseConfig = releaseConfig
 
 task wrapper(type: Wrapper) {
@@ -171,7 +171,7 @@ afterEvaluate { project ->
                     name 'Android Priority Job Queue'
                     version manifestVersionName
                     description 'a Job Queue specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.'
-                    url 'https://github.com/yigit/android-priority-jobqueue'
+                    url 'https://github.com/tarkalabs/android-priority-jobqueue'
 
                     parent {
                         groupId 'org.sonatype.oss'
@@ -180,9 +180,9 @@ afterEvaluate { project ->
                     }
 
                     scm {
-                        connection 'scm:git:git@github.com:yigit/android-priority-jobqueue.git'
-                        developerConnection 'scm:git:git@github.com:yigit/android-priority-jobqueue.git'
-                        url 'git@github.com:yigit/android-priority-jobqueue.git'
+                        connection 'scm:git:git@github.com:tarkalabs/android-priority-jobqueue.git'
+                        developerConnection 'scm:git:git@github.com:tarkalabs/android-priority-jobqueue.git'
+                        url 'git@github.com:tarkalabs/android-priority-jobqueue.git'
                     }
 
                     licenses {
@@ -195,8 +195,8 @@ afterEvaluate { project ->
 
                     developers {
                         developer {
-                            id "yigit"
-                            name "Yigit Boyar"
+                            id "gaurav-tarkalabs"
+                            name "Gaurav Agarwal"
                         }
                     }
                 }
