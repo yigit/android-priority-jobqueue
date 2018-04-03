@@ -152,12 +152,9 @@ afterEvaluate { project ->
                 pom.artifactId = 'android-priority-jobqueue'
 
 
-//                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-//                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
-//                }
-                snapshotRepository(url: mavenLocal().url) {
-
-                }
+               snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                   authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
+               }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                     authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
