@@ -77,7 +77,7 @@ class FrameworkScheduler extends Scheduler {
         synchronized (FrameworkScheduler.class) {
             final SharedPreferences preferences = getPreferences(getApplicationContext());
             final int id = preferences.getInt(KEY_ID, 0) + 1;
-            preferences.edit().putInt(KEY_ID, id).commit();
+            preferences.edit().putInt(KEY_ID, id).apply();
             return id;
         }
     }
