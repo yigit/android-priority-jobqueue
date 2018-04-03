@@ -149,7 +149,7 @@ afterEvaluate { project ->
                 }
                 println "ossr username: ${releaseConfig.ossrhUsername}"
 
-                pom.artifactId = 'android-priority-jobqueue'
+                pom.artifactId = 'jobqueue'
 
 
                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
@@ -163,7 +163,7 @@ afterEvaluate { project ->
                 pom.project {
                     modelVersion '4.0.0'
                     groupId 'com.tarkalabs'
-                    artifactId 'android-priority-jobqueue'
+                    artifactId 'jobqueue'
                     packaging 'jar'
                     name 'Android Priority Job Queue'
                     version manifestVersionName
