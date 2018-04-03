@@ -3,7 +3,7 @@ There is a major internal rewrite of this project for more stability and new fea
 
 ``` gradle
 dependencies {
-    compile 'com.tarkalabs:android-priority-jobqueue:2.0.1'
+    compile 'com.tarkalabs:jobqueue:2.0.2'
 }
 ```
 
