@@ -165,7 +165,7 @@ afterEvaluate { project ->
 
                 pom.project {
                     modelVersion '4.0.0'
-                    groupId 'com.birbit'
+                    groupId 'com.tarkalabs'
                     artifactId 'android-priority-jobqueue'
                     packaging 'jar'
                     name 'Android Priority Job Queue'

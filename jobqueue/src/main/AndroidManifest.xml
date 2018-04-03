@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools"
-          package="com.birbit.android.jobqueue"
+          package="com.tarkalabs.android.jobqueue"
           android:versionCode="3"
           android:versionName="2.0.1">
 
