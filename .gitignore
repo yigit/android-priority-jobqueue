@@ -36,3 +36,4 @@ out
 pages
 .gradle
 build
+gradle.properties
