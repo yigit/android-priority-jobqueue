@@ -49,6 +49,11 @@ public class NetworkUtilImpl implements NetworkUtil, NetworkEventProvider {
             public void onAvailable(Network network) {
                 dispatchNetworkChange(context);
             }
+
+            @Override
+            public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
+                dispatchNetworkChange(context);
+            }
         });
     }
 
