@@ -1,3 +1,15 @@
+# This Project is Deprecated!
+
+Thanks to everybody who've used Android Priority JobQueue.
+It was designed in a world where there was no JobScheduler, RxJava was not popular and Kotlin wasn't even born publicly.
+
+Today, most of the learnings in this project are part of WorkManager, the official deferred task library for Android. I've been involved in its development and I think it is the right way to do deferred tasks on Android.
+
+For your persistent jobs, I recommend using WorkManager.
+For your non-persistent jobs, drink the kool aid and use Coroutines.
+
+Thanks.
+
 ### V2 is here!
 There is a major internal rewrite of this project for more stability and new features. If you were using v1, see the migration guide here: [migration from v1 to v2](https://github.com/yigit/android-priority-jobqueue/wiki/V1-to-V2-migration)
 
