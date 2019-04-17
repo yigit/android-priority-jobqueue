@@ -8,7 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Helper class for {@link SqliteJobQueue} to handle database connection
  */
 public class DbOpenHelper extends SQLiteOpenHelper {
-    private static final int DB_VERSION = 12;
+    private static final int DB_VERSION = 13;
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
     /*package*/ static final String JOB_TAGS_TABLE_NAME = "job_holder_tags";
     /*package*/ static final String JOB_DEPENDEE_TAGS_TABLE_NAME = "job_holder_dependee_tags";
@@ -68,23 +68,22 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 TAGS_NAME_COLUMN);
         sqLiteDatabase.execSQL(createTagsQuery);
 
-        String createDependeeTagsQuery = SqlHelper.create(JOB_DEPENDEE_TAGS_TABLE_NAME,
-                DEPENDEE_TAGS_ID_COLUMN,
-                DEPENDEE_TAGS_JOB_ID_COLUMN,
-                DEPENDEE_TAGS_NAME_COLUMN);
-        sqLiteDatabase.execSQL(createDependeeTagsQuery);
-
         sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + TAG_INDEX_NAME + " ON "
                 + JOB_TAGS_TABLE_NAME + "(" + DbOpenHelper.TAGS_NAME_COLUMN.columnName + ")");
 
-        sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + DEPENDEE_TAG_INDEX_NAME + " ON "
-                + JOB_DEPENDEE_TAGS_TABLE_NAME + "(" + DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName + ")");
+        createDependeeTagsTable(sqLiteDatabase);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-        if (oldVersion == 11) {
-            addCancelColumn(sqLiteDatabase);
+        if (oldVersion == 11 || oldVersion == 12) {
+            if (oldVersion == 11) {
+                addCancelColumn(sqLiteDatabase);
+                oldVersion++;
+            }
+            if (oldVersion == 12) {
+                createDependeeTagsTable(sqLiteDatabase);
+            }
         } else {
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_TAGS_TABLE_NAME));
@@ -99,6 +98,16 @@ public class DbOpenHelper extends SQLiteOpenHelper {
         String query = "ALTER TABLE " + JOB_HOLDER_TABLE_NAME + " ADD COLUMN "
                 + CANCELLED_COLUMN.columnName + " " + CANCELLED_COLUMN.type;
         sqLiteDatabase.execSQL(query);
+    }
+
+    private void createDependeeTagsTable(SQLiteDatabase sqLiteDatabase) {
+        String createDependeeTagsQuery = SqlHelper.create(JOB_DEPENDEE_TAGS_TABLE_NAME,
+                DEPENDEE_TAGS_ID_COLUMN,
+                DEPENDEE_TAGS_JOB_ID_COLUMN,
+                DEPENDEE_TAGS_NAME_COLUMN);
+        sqLiteDatabase.execSQL(createDependeeTagsQuery);
+        sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + DEPENDEE_TAG_INDEX_NAME + " ON "
+                + JOB_DEPENDEE_TAGS_TABLE_NAME + "(" + DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName + ")");
     }
 
     @Override
