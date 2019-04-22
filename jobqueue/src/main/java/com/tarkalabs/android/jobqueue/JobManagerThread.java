@@ -1,7 +1,6 @@
 package com.tarkalabs.android.jobqueue;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.callback.JobManagerCallback;
 import com.tarkalabs.android.jobqueue.config.Configuration;
@@ -31,6 +30,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import androidx.annotation.Nullable;
 
 class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     public static final long NS_PER_MS = 1000000;

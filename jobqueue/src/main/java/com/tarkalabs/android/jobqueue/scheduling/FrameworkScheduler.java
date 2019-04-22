@@ -10,14 +10,15 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.PersistableBundle;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 
 import com.tarkalabs.android.jobqueue.Params;
 import com.tarkalabs.android.jobqueue.log.JqLog;
 import com.tarkalabs.android.jobqueue.network.NetworkUtil;
 
 import java.util.UUID;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 /**
  * Scheduler implementation that uses the frameworks' scheduler API.

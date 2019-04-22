@@ -1,11 +1,11 @@
 package com.tarkalabs.android.jobqueue;
 
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.network.NetworkUtil;
 
 import java.util.Collections;
 import java.util.HashSet;
+
+import androidx.annotation.Nullable;
 
 /**
  * Job builder object to have a more readable design.

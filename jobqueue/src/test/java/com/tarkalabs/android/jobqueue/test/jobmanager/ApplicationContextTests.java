@@ -1,8 +1,6 @@
 package com.tarkalabs.android.jobqueue.test.jobmanager;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.CancelReason;
 import com.tarkalabs.android.jobqueue.Job;
@@ -20,6 +18,9 @@ import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;

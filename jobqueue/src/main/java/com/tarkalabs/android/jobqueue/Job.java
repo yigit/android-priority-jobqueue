@@ -1,8 +1,6 @@
 package com.tarkalabs.android.jobqueue;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.log.JqLog;
 import com.tarkalabs.android.jobqueue.network.NetworkUtil;
@@ -15,6 +13,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * Base class for all of your jobs.

@@ -1,12 +1,12 @@
 package com.tarkalabs.android.jobqueue.callback;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.CancelResult;
 import com.tarkalabs.android.jobqueue.Job;
 import com.tarkalabs.android.jobqueue.JobHolder;
 import com.tarkalabs.android.jobqueue.TagConstraint;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * A callback class that you can attach to the JobManager to get notified as Jobs change states.

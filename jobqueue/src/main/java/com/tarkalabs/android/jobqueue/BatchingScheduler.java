@@ -1,8 +1,6 @@
 package com.tarkalabs.android.jobqueue;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 
 import com.tarkalabs.android.jobqueue.scheduling.Scheduler;
 import com.tarkalabs.android.jobqueue.scheduling.SchedulerConstraint;
@@ -11,6 +9,9 @@ import com.tarkalabs.android.jobqueue.timer.Timer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 /**
  * JobManager calls scheduler every time it receives some job that can use the Scheduler APIs.

@@ -1,9 +1,9 @@
 package com.tarkalabs.android.jobqueue.persistentQueue.sqlite;
 
-import android.support.v4.util.LruCache;
-
 import com.tarkalabs.android.jobqueue.Constraint;
 import com.tarkalabs.android.jobqueue.TagConstraint;
+
+import androidx.collection.LruCache;
 
 /**
  * Internal class to cache sql queries and statements.

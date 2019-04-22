@@ -1,13 +1,14 @@
 package com.tarkalabs.android.jobqueue;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.network.NetworkUtil;
 import com.tarkalabs.android.jobqueue.timer.Timer;
 
 import java.util.Set;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * Container class to address Jobs inside job manager.

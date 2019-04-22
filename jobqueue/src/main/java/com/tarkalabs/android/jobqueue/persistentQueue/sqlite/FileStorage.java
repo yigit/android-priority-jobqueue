@@ -2,7 +2,6 @@ package com.tarkalabs.android.jobqueue.persistentQueue.sqlite;
 
 
 import android.content.Context;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.log.JqLog;
 
@@ -11,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import androidx.annotation.Nullable;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;

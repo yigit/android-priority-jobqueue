@@ -1,9 +1,5 @@
 package com.tarkalabs.android.jobqueue;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
-
 import com.tarkalabs.android.jobqueue.callback.JobManagerCallback;
 import com.tarkalabs.android.jobqueue.log.JqLog;
 import com.tarkalabs.android.jobqueue.messaging.Message;
@@ -22,6 +18,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 /**
  * Handles callbacks to user code.

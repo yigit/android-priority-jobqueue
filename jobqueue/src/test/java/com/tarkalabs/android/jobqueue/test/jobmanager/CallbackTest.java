@@ -1,8 +1,5 @@
 package com.tarkalabs.android.jobqueue.test.jobmanager;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.CancelReason;
 import com.tarkalabs.android.jobqueue.Job;
 import com.tarkalabs.android.jobqueue.JobManager;
@@ -22,6 +19,9 @@ import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;

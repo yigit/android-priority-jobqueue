@@ -1,6 +1,5 @@
 package com.tarkalabs.android.jobqueue.test.jobmanager;
 
-import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.tarkalabs.android.jobqueue.CancelResult;
@@ -10,11 +9,13 @@ import com.tarkalabs.android.jobqueue.RetryConstraint;
 import com.tarkalabs.android.jobqueue.TagConstraint;
 import com.tarkalabs.android.jobqueue.config.Configuration;
 import com.tarkalabs.android.jobqueue.test.jobs.DummyJob;
-import static org.hamcrest.CoreMatchers.*;
-import org.hamcrest.*;
+
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.*;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.util.Collection;
@@ -25,6 +26,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import androidx.annotation.NonNull;
+
+import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(constants = com.tarkalabs.android.jobqueue.BuildConfig.class)

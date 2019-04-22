@@ -1,7 +1,5 @@
 package com.tarkalabs.android.jobqueue.inMemoryQueue;
 
-import android.support.annotation.NonNull;
-
 import com.tarkalabs.android.jobqueue.Constraint;
 import com.tarkalabs.android.jobqueue.JobHolder;
 import com.tarkalabs.android.jobqueue.JobQueue;
@@ -16,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
+
+import androidx.annotation.NonNull;
 
 /**
  * A simple implementation of in memory {@link com.tarkalabs.android.jobqueue.JobQueue}

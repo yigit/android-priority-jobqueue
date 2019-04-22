@@ -4,16 +4,14 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
-import android.support.annotation.NonNull;
 
 import com.tarkalabs.android.jobqueue.BuildConfig;
-import com.tarkalabs.android.jobqueue.JobManager;
-import com.tarkalabs.android.jobqueue.JobManagerThreadRunnable;
-import com.tarkalabs.android.jobqueue.RetryConstraint;
-import com.tarkalabs.android.jobqueue.testing.CleanupRule;
 import com.tarkalabs.android.jobqueue.Job;
 import com.tarkalabs.android.jobqueue.JobHolder;
+import com.tarkalabs.android.jobqueue.JobManager;
+import com.tarkalabs.android.jobqueue.JobManagerThreadRunnable;
 import com.tarkalabs.android.jobqueue.Params;
+import com.tarkalabs.android.jobqueue.RetryConstraint;
 import com.tarkalabs.android.jobqueue.callback.JobManagerCallbackAdapter;
 import com.tarkalabs.android.jobqueue.config.Configuration;
 import com.tarkalabs.android.jobqueue.network.NetworkEventProvider;
@@ -21,14 +19,14 @@ import com.tarkalabs.android.jobqueue.network.NetworkUtil;
 import com.tarkalabs.android.jobqueue.test.TestBase;
 import com.tarkalabs.android.jobqueue.test.jobs.DummyJob;
 import com.tarkalabs.android.jobqueue.test.timer.MockTimer;
+import com.tarkalabs.android.jobqueue.testing.CleanupRule;
 import com.tarkalabs.android.jobqueue.testing.CollectLogsRule;
 
-import static org.hamcrest.CoreMatchers.*;
-
-import org.hamcrest.*;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
-import org.robolectric.*;
+import org.robolectric.RuntimeEnvironment;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +37,11 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import androidx.annotation.NonNull;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 
 
 public class JobManagerTestBase extends TestBase {

@@ -1,8 +1,8 @@
 package com.tarkalabs.android.jobqueue.scheduling;
 
-import android.support.annotation.NonNull;
-
 import com.tarkalabs.android.jobqueue.JobManager;
+
+import androidx.annotation.NonNull;
 
 public class MockFwService extends FrameworkJobSchedulerService {
     private JobManager jobManager;

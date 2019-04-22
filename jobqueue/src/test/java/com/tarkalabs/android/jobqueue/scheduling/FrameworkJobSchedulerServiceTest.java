@@ -3,7 +3,6 @@ package com.tarkalabs.android.jobqueue.scheduling;
 import android.annotation.TargetApi;
 import android.app.job.JobParameters;
 import android.os.Build;
-import android.support.annotation.NonNull;
 
 import com.tarkalabs.android.jobqueue.JobManager;
 
@@ -13,6 +12,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+
+import androidx.annotation.NonNull;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;

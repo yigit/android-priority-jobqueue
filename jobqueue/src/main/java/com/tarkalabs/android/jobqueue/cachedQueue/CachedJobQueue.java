@@ -1,13 +1,13 @@
 package com.tarkalabs.android.jobqueue.cachedQueue;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.Constraint;
 import com.tarkalabs.android.jobqueue.JobHolder;
 import com.tarkalabs.android.jobqueue.JobQueue;
 
 import java.util.Set;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * a class that implements {@link JobQueue} interface, wraps another {@link JobQueue} and caches

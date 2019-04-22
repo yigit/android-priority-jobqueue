@@ -4,8 +4,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
-import android.support.annotation.NonNull;
-import android.support.annotation.VisibleForTesting;
 
 import com.tarkalabs.android.jobqueue.Constraint;
 import com.tarkalabs.android.jobqueue.Job;
@@ -25,6 +23,9 @@ import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 /**
  * Persistent Job Queue that keeps its data in an sqlite database.

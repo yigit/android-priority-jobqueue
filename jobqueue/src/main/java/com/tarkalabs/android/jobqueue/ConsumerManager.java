@@ -1,7 +1,5 @@
 package com.tarkalabs.android.jobqueue;
 
-import android.support.annotation.NonNull;
-
 import com.tarkalabs.android.jobqueue.config.Configuration;
 import com.tarkalabs.android.jobqueue.log.JqLog;
 import com.tarkalabs.android.jobqueue.messaging.Message;
@@ -27,6 +25,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadFactory;
+
+import androidx.annotation.NonNull;
 
 /**
  * This class is responsible to communicate with the Workers(consumers) that run the jobs.

@@ -1,10 +1,10 @@
 package com.tarkalabs.android.jobqueue.messaging.message;
 
-import android.support.annotation.NonNull;
-
 import com.tarkalabs.android.jobqueue.messaging.Message;
 import com.tarkalabs.android.jobqueue.messaging.Type;
 import com.tarkalabs.android.jobqueue.scheduling.SchedulerConstraint;
+
+import androidx.annotation.NonNull;
 
 /**
  * The messages with the scheduler

@@ -1,9 +1,9 @@
 package com.tarkalabs.android.jobqueue;
 
-import android.support.annotation.IntDef;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+
+import androidx.annotation.IntDef;
 
 /**
  * A list of possible reasons why a Job was cancelled. A reason will be passed to {@link Job#onCancel(int, Throwable)}.

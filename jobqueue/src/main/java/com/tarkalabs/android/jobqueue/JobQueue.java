@@ -1,9 +1,9 @@
 package com.tarkalabs.android.jobqueue;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import java.util.Set;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * Interface that any JobQueue should implement

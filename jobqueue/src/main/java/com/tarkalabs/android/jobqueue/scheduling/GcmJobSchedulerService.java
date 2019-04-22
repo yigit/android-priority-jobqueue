@@ -1,14 +1,15 @@
 package com.tarkalabs.android.jobqueue.scheduling;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
-import com.tarkalabs.android.jobqueue.JobManager;
-import com.tarkalabs.android.jobqueue.log.JqLog;
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.GcmTaskService;
 import com.google.android.gms.gcm.TaskParams;
+import com.tarkalabs.android.jobqueue.JobManager;
+import com.tarkalabs.android.jobqueue.log.JqLog;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 abstract public class GcmJobSchedulerService extends GcmTaskService {
     /**

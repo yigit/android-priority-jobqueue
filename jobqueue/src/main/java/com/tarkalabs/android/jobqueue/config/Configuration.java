@@ -2,8 +2,6 @@ package com.tarkalabs.android.jobqueue.config;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.DefaultQueueFactory;
 import com.tarkalabs.android.jobqueue.JobQueue;
@@ -20,6 +18,9 @@ import com.tarkalabs.android.jobqueue.timer.Timer;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.regex.Pattern;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * {@link com.tarkalabs.android.jobqueue.JobManager} configuration object

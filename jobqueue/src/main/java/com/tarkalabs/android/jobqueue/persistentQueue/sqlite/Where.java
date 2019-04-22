@@ -42,7 +42,7 @@ public class Where {
         } else {
             countReadyStmt.clearBindings();
         }
-        for (int i = 1; i <= args.length; i ++) {
+        for (int i = 1; i <= args.length; i++) {
             countReadyStmt.bindString(i, args[i - 1]);
         }
         return countReadyStmt;
@@ -73,7 +73,7 @@ public class Where {
         } else {
             nextJobDelayUntilStmt.clearBindings();
         }
-        for (int i = 1; i <= args.length; i ++) {
+        for (int i = 1; i <= args.length; i++) {
             nextJobDelayUntilStmt.bindString(i, args[i - 1]);
             nextJobDelayUntilStmt.bindString(i + args.length, args[i - 1]);
         }

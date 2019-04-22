@@ -1,10 +1,11 @@
 package com.tarkalabs.android.jobqueue.network;
 
 import android.content.Context;
-import android.support.annotation.IntDef;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+
+import androidx.annotation.IntDef;
 
 /**
  * Interface which you can implement if you want to provide a custom Network callback.

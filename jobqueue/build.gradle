@@ -8,12 +8,8 @@ if (releaseFile.exists()) {
     releaseConfig.load(new FileInputStream(releaseFile))
 }
 // for jitpack
-group='com.github.tarkalabs'
+group = 'com.github.tarkalabs'
 ext.releaseConfig = releaseConfig
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.3'
-}
 
 apply plugin: 'maven'
 apply plugin: 'signing'
@@ -24,11 +20,12 @@ buildscript {
     repositories {
         jcenter()
         mavenCentral()
+        google()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath 'com.android.tools.build:gradle:3.4.0'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
 
@@ -36,6 +33,7 @@ repositories {
     mavenCentral()
     jcenter()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+    google()
 }
 
 configurations {
@@ -45,27 +43,27 @@ configurations {
 }
 
 dependencies {
-    testCompile 'junit:junit:4.12'
-    testCompile "org.robolectric:robolectric:3.3"
-    testCompile 'org.hamcrest:hamcrest-core:1.3'
-    testCompile 'org.easytesting:fest-util:1.2.5'
-    testCompile 'org.easytesting:fest-reflect:1.4.1'
-    testCompile 'org.mockito:mockito-core:2.7.13'
+    testImplementation 'junit:junit:4.12'
+    testImplementation "org.robolectric:robolectric:3.8"
+    testImplementation 'org.hamcrest:hamcrest-core:1.3'
+    testImplementation 'org.easytesting:fest-util:1.2.5'
+    testImplementation 'org.easytesting:fest-reflect:1.4.1'
+    testImplementation 'org.mockito:mockito-core:2.19.0'
 
-    compile 'com.squareup.okio:okio:1.8.0'
+    implementation 'com.squareup.okio:okio:1.17.2'
 
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
     //noinspection GradleDependency
     // remove when gms moves to individual libraries
-    compile 'com.android.support:support-v4:25.3.1'
+    implementation 'androidx.collection:collection:1.0.0'
     // build tools does not allow making this provided so we make it optional when pom is created
-    compile 'com.google.android.gms:play-services-gcm:10.2.0'
+    implementation 'com.google.android.gms:play-services-gcm:16.1.0'
 }
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -77,7 +75,7 @@ android {
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 25
+        targetSdkVersion 28
     }
 
     testOptions {
@@ -114,15 +112,20 @@ android.libraryVariants.all { variant ->
     }
     def suffix = name.capitalize()
     println "found release variant"
-    project.tasks.create(name: "jar${suffix}", type: Jar){
+    project.tasks.create(name: "jar${suffix}", type: Jar) {
         dependsOn variant.javaCompile
         from variant.javaCompile.destinationDir
         from 'LICENSE.txt'
     }
     project.tasks.create(name: "javadoc${suffix}", type: Javadoc) {
+        doFirst {
+            classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
+        }
+        doLast {
+            println "name of task is $name"
+        }
         source = variant.javaCompile.source
         ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
-        classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
         exclude 'com/google/**'
     }
 
@@ -152,9 +155,9 @@ afterEvaluate { project ->
                 pom.artifactId = 'jobqueue'
 
 
-               snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-                   authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
-               }
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
+                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
+                }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
                     authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
@@ -215,13 +218,13 @@ afterEvaluate { project ->
     }
 }
 
-task testLint(type : Exec) {
+task testLint(type: Exec) {
     workingDir project.projectDir
     // SET ANDROID_LINT_JARS ENV VARIABLE
     commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
 }
 
-task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
+task jacocoTestReport(type: JacocoReport, dependsOn: "testDebugUnitTest") {
     group = "Reporting"
 
     description = "Generate Jacoco coverage reports"

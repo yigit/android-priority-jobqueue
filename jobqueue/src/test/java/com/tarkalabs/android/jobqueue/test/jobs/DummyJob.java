@@ -1,12 +1,12 @@
 package com.tarkalabs.android.jobqueue.test.jobs;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.CancelReason;
 import com.tarkalabs.android.jobqueue.Job;
 import com.tarkalabs.android.jobqueue.Params;
 import com.tarkalabs.android.jobqueue.RetryConstraint;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public class DummyJob extends Job {
     int onAddedCnt = 0;

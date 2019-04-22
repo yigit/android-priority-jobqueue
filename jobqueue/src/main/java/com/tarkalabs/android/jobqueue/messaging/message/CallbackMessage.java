@@ -1,10 +1,10 @@
 package com.tarkalabs.android.jobqueue.messaging.message;
 
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.Job;
 import com.tarkalabs.android.jobqueue.messaging.Message;
 import com.tarkalabs.android.jobqueue.messaging.Type;
+
+import androidx.annotation.Nullable;
 
 /**
  * Used for external callbacks to user code

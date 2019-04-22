@@ -4,11 +4,12 @@ import android.annotation.TargetApi;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import com.tarkalabs.android.jobqueue.JobManager;
 import com.tarkalabs.android.jobqueue.log.JqLog;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * The service implementation for the framework job scheduler

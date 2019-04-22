@@ -1,8 +1,8 @@
 package com.tarkalabs.android.jobqueue.scheduling;
 
-import android.support.annotation.Nullable;
-
 import com.tarkalabs.android.jobqueue.network.NetworkUtil;
+
+import androidx.annotation.Nullable;
 
 /**
  * The constraints that are passed into Scheduler from JobManager

@@ -1,15 +1,13 @@
 package com.tarkalabs.android.jobqueue.test.jobqueue;
 
 import android.database.Cursor;
-import android.support.v4.util.Pair;
 
-import com.tarkalabs.android.jobqueue.JobHolder;
-import com.tarkalabs.android.jobqueue.TestConstraint;
 import com.tarkalabs.android.jobqueue.Job;
+import com.tarkalabs.android.jobqueue.JobHolder;
 import com.tarkalabs.android.jobqueue.JobQueue;
 import com.tarkalabs.android.jobqueue.Params;
+import com.tarkalabs.android.jobqueue.TestConstraint;
 import com.tarkalabs.android.jobqueue.config.Configuration;
-import com.tarkalabs.android.jobqueue.persistentQueue.sqlite.DbOpenHelper;
 import com.tarkalabs.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue;
 import com.tarkalabs.android.jobqueue.test.util.JobQueueFactory;
 import com.tarkalabs.android.jobqueue.timer.Timer;
@@ -18,19 +16,19 @@ import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.CoreMatchers.*;
+
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(constants = com.tarkalabs.android.jobqueue.BuildConfig.class)
