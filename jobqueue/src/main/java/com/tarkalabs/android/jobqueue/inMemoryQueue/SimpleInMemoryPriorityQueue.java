@@ -234,4 +234,10 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         }
         return true;
     }
+
+    @NonNull
+    @Override
+    public Set<JobHolder> findJobsAndMarkScheduled(@NonNull Constraint constraint, int limit) {
+        throw new RuntimeException("Operation not supported yet.");
+    }
 }

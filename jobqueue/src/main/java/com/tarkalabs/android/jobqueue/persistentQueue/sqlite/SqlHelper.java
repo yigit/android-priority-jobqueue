@@ -10,13 +10,34 @@ import com.tarkalabs.android.jobqueue.log.JqLog;
  */
 public class SqlHelper {
 
-    /**package**/ String FIND_BY_ID_QUERY;
-    /**package**/ String FIND_BY_TAG_QUERY;
-    /**package**/ String FIND_BY_DEPENDEE_TAG_QUERY;
-    /**package**/ String LOAD_ALL_IDS_QUERY;
-    /**package**/ String LOAD_TAGS_QUERY;
-    /**package**/ String LOAD_DEPENDENT_TAGS_QUERY;
-    /**package**/ String RE_ENABLE_PENDING_CANCELLATIONS_QUERY;
+    /**
+     * package
+     **/
+    String FIND_BY_ID_QUERY;
+    /**
+     * package
+     **/
+    String FIND_BY_TAG_QUERY;
+    /**
+     * package
+     **/
+    String FIND_BY_DEPENDEE_TAG_QUERY;
+    /**
+     * package
+     **/
+    String LOAD_ALL_IDS_QUERY;
+    /**
+     * package
+     **/
+    String LOAD_TAGS_QUERY;
+    /**
+     * package
+     **/
+    String LOAD_DEPENDENT_TAGS_QUERY;
+    /**
+     * package
+     **/
+    String RE_ENABLE_PENDING_CANCELLATIONS_QUERY;
 
     private SQLiteStatement insertStatement;
     private SQLiteStatement insertTagsStatement;
@@ -28,6 +49,7 @@ public class SqlHelper {
     private SQLiteStatement onJobFetchedForRunningStatement;
     private SQLiteStatement countStatement;
     private SQLiteStatement markAsCancelledStatement;
+    private SQLiteStatement markAsScheduledStatement;
     final StringBuilder reusedStringBuilder = new StringBuilder();
 
 
@@ -223,6 +245,16 @@ public class SqlHelper {
         return markAsCancelledStatement;
     }
 
+    static void addPlaceholdersInto(StringBuilder stringBuilder, int count) {
+        if (count == 0) {
+            throw new IllegalArgumentException("cannot create placeholders for 0 items");
+        }
+        stringBuilder.append("?");
+        for (int i = 1; i < count; i++) {
+            stringBuilder.append(",?");
+        }
+    }
+
     public String createSelect(String where, Integer limit, Order... orders) {
         reusedStringBuilder.setLength(0);
         reusedStringBuilder.append("SELECT * FROM ");
@@ -246,8 +278,18 @@ public class SqlHelper {
         return reusedStringBuilder.toString();
     }
 
+    public SQLiteStatement getMarkAsScheduledStatement() {
+        if (markAsScheduledStatement == null) {
+            String sql = "UPDATE " + tableName + " SET "
+                    + DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnName + " = ? "
+                    + " WHERE " + primaryKeyColumnName + " = ? ";
+            markAsScheduledStatement = db.compileStatement(sql);
+        }
+        return markAsScheduledStatement;
+    }
+
     public String createSelectOneField(String selectArg, String where, Integer limit,
-            Order... orders) {
+                                       Order... orders) {
         reusedStringBuilder.setLength(0);
 
         reusedStringBuilder.append("SELECT ")
@@ -270,16 +312,6 @@ public class SqlHelper {
             reusedStringBuilder.append(" LIMIT ").append(limit);
         }
         return reusedStringBuilder.toString();
-    }
-
-    static void addPlaceholdersInto(StringBuilder stringBuilder, int count) {
-        if (count == 0) {
-            throw new IllegalArgumentException("cannot create placeholders for 0 items");
-        }
-        stringBuilder.append("?");
-        for (int i = 1; i < count; i ++) {
-            stringBuilder.append(",?");
-        }
     }
 
     public String getDependentJobsQuery(int tagsLength) {
@@ -313,8 +345,8 @@ public class SqlHelper {
 
     public void resetDelayTimesTo(long newDelayTime) {
         db.execSQL("UPDATE " + DbOpenHelper.JOB_HOLDER_TABLE_NAME + " SET "
-                + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
-            , new Object[]{newDelayTime});
+                        + DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnName + "=?"
+                , new Object[]{newDelayTime});
     }
 
     public static class Property {

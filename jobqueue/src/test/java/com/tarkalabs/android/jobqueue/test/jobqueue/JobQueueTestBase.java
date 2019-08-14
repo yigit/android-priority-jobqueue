@@ -1,12 +1,12 @@
 package com.tarkalabs.android.jobqueue.test.jobqueue;
 
 import com.tarkalabs.android.jobqueue.Constraint;
-import com.tarkalabs.android.jobqueue.JobManager;
-import com.tarkalabs.android.jobqueue.TestConstraint;
 import com.tarkalabs.android.jobqueue.JobHolder;
+import com.tarkalabs.android.jobqueue.JobManager;
 import com.tarkalabs.android.jobqueue.JobQueue;
 import com.tarkalabs.android.jobqueue.Params;
 import com.tarkalabs.android.jobqueue.TagConstraint;
+import com.tarkalabs.android.jobqueue.TestConstraint;
 import com.tarkalabs.android.jobqueue.network.NetworkUtil;
 import com.tarkalabs.android.jobqueue.test.TestBase;
 import com.tarkalabs.android.jobqueue.test.jobs.DummyJob;
@@ -14,11 +14,7 @@ import com.tarkalabs.android.jobqueue.test.timer.MockTimer;
 import com.tarkalabs.android.jobqueue.test.util.JobQueueFactory;
 import com.tarkalabs.android.jobqueue.timer.Timer;
 
-import org.fest.reflect.core.*;
-
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.*;
-
+import org.fest.reflect.core.Reflection;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.Ignore;
@@ -37,6 +33,13 @@ import java.util.concurrent.TimeUnit;
 import static com.tarkalabs.android.jobqueue.TagConstraint.ALL;
 import static com.tarkalabs.android.jobqueue.TagConstraint.ANY;
 import static com.tarkalabs.android.jobqueue.TestConstraint.forTags;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @Ignore
 public abstract class JobQueueTestBase extends TestBase {
@@ -1189,7 +1192,9 @@ public abstract class JobQueueTestBase extends TestBase {
                 .deadline(deadline > 0 ? timer.nanoTime() + deadline * JobManager.NS_PER_MS : Params.FOREVER, cancelOnDeadline)
                 .delayUntilNs(delay > 0 ? timer.nanoTime() + delay * JobManager.NS_PER_MS : JobManager.NOT_DELAYED_JOB_DELAY)
                 .requiredNetworkType(getNetworkTypeField(params).get())
-                .runningSessionId(JobManager.NOT_RUNNING_SESSION_ID).build();
+                .runningSessionId(JobManager.NOT_RUNNING_SESSION_ID)
+                .scheduleRequestedAt(JobHolder.DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE)
+                .build();
     }
 
     private JobHolder createNewJobHolderWithDelayUntil(Params params, long delayUntil) {

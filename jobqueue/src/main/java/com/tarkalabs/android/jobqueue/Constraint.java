@@ -16,7 +16,8 @@ import java.util.Set;
  * re-used by the JobManager.
  */
 public class Constraint {
-    @NetworkUtil.NetworkStatus private int maxNetworkType;
+    @NetworkUtil.NetworkStatus
+    private int maxNetworkType;
     private TagConstraint tagConstraint;
     private final Set<String> tags = new HashSet<>();
     private final List<String> excludeGroups = new ArrayList<>();
@@ -25,9 +26,11 @@ public class Constraint {
     private boolean excludeDependent;
     private Long timeLimit;
     private long nowInNs;
+    private boolean excludeScheduled;
 
     /**
      * Returns the max allowed network type
+     *
      * @return The max allowed network type for a job to match
      */
     public int getMaxNetworkType() {
@@ -67,6 +70,7 @@ public class Constraint {
 
     /**
      * Returns true if running jobs should be excluded from the query
+     *
      * @return True if running jobs should be excluded
      */
     public boolean excludeRunning() {
@@ -75,6 +79,7 @@ public class Constraint {
 
     /**
      * Returns true if dependent jobs should be excluded from the query
+     *
      * @return True if running dependent jobs should be excluded
      */
     public boolean excludeDependent() {
@@ -83,6 +88,7 @@ public class Constraint {
 
     /**
      * Exclude jobs whose run time is after this time. Might be null if there is no time limit.
+     *
      * @return Time in NS which should be used to filter out delayed jobs
      */
     public Long getTimeLimit() {
@@ -91,10 +97,20 @@ public class Constraint {
 
     /**
      * The list of jobs ids that should be excluded from the result
+     *
      * @return The list of job ids that should be excluded from the result
      */
     public List<String> getExcludeJobIds() {
         return excludeJobIds;
+    }
+
+    /**
+     * Exclude jobs which are scheduled using scheduler.
+     *
+     * @return True if scheduled jobs should be excluded.
+     */
+    public boolean excludeScheduled() {
+        return excludeScheduled;
     }
 
     void setMaxNetworkType(int maxNetworkType) {
@@ -146,6 +162,10 @@ public class Constraint {
         this.timeLimit = timeLimit;
     }
 
+    public void setExcludeScheduled(boolean excludeScheduled) {
+        this.excludeScheduled = excludeScheduled;
+    }
+
     void clear() {
         maxNetworkType = NetworkUtil.UNMETERED;
         tagConstraint = null;
@@ -156,5 +176,6 @@ public class Constraint {
         excludeDependent = false;
         timeLimit = null;
         nowInNs = Long.MIN_VALUE;
+        excludeScheduled = false;
     }
 }

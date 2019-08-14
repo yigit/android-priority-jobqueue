@@ -4,11 +4,13 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.tarkalabs.android.jobqueue.JobHolder;
+
 /**
  * Helper class for {@link SqliteJobQueue} to handle database connection
  */
 public class DbOpenHelper extends SQLiteOpenHelper {
-    private static final int DB_VERSION = 13;
+    /*package*/ static final SqlHelper.Property SCHEDULE_REQUESTED_AT_NS = new SqlHelper.Property("schedule_requested_at_ns", "long", 12);
     /*package*/ static final String JOB_HOLDER_TABLE_NAME = "job_holder";
     /*package*/ static final String JOB_TAGS_TABLE_NAME = "job_holder_tags";
     /*package*/ static final String JOB_DEPENDEE_TAGS_TABLE_NAME = "job_holder_dependee_tags";
@@ -24,6 +26,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property DEADLINE_COLUMN = new SqlHelper.Property("deadline", "integer", 9);
     /*package*/ static final SqlHelper.Property CANCEL_ON_DEADLINE_COLUMN = new SqlHelper.Property("cancel_on_deadline", "integer", 10);
     /*package*/ static final SqlHelper.Property CANCELLED_COLUMN = new SqlHelper.Property("cancelled", "integer", 11);
+    /*package*/ static final int COLUMN_COUNT = 13;
 
     /*package*/ static final SqlHelper.Property TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
     /*package*/ static final SqlHelper.Property TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
@@ -32,9 +35,7 @@ public class DbOpenHelper extends SQLiteOpenHelper {
     /*package*/ static final SqlHelper.Property DEPENDEE_TAGS_ID_COLUMN = new SqlHelper.Property("_id", "integer", 0);
     /*package*/ static final SqlHelper.Property DEPENDEE_TAGS_JOB_ID_COLUMN = new SqlHelper.Property("job_id", "text", 1, new SqlHelper.ForeignKey(JOB_HOLDER_TABLE_NAME, ID_COLUMN.columnName));
     /*package*/ static final SqlHelper.Property DEPENDEE_TAGS_NAME_COLUMN = new SqlHelper.Property("tag_name", "text", 2);
-
-
-    /*package*/ static final int COLUMN_COUNT = 12;
+    private static final int DB_VERSION = 14;
     /*package*/ static final int TAGS_COLUMN_COUNT = 3;
     /*package*/ static final int DEPENDEE_TAGS_COLUMN_COUNT = 3;
 
@@ -59,7 +60,8 @@ public class DbOpenHelper extends SQLiteOpenHelper {
                 REQUIRED_NETWORK_TYPE_COLUMN,
                 DEADLINE_COLUMN,
                 CANCEL_ON_DEADLINE_COLUMN,
-                CANCELLED_COLUMN
+                CANCELLED_COLUMN,
+                SCHEDULE_REQUESTED_AT_NS
         );
         sqLiteDatabase.execSQL(createQuery);
         String createTagsQuery = SqlHelper.create(JOB_TAGS_TABLE_NAME,
@@ -76,13 +78,18 @@ public class DbOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-        if (oldVersion == 11 || oldVersion == 12) {
+        if (oldVersion >= 11) {
             if (oldVersion == 11) {
                 addCancelColumn(sqLiteDatabase);
                 oldVersion++;
             }
             if (oldVersion == 12) {
                 createDependeeTagsTable(sqLiteDatabase);
+                oldVersion++;
+            }
+            if (oldVersion == 13) {
+                addScheduleRequestedAtNsColumn(sqLiteDatabase);
+                oldVersion++;
             }
         } else {
             sqLiteDatabase.execSQL(SqlHelper.drop(JOB_HOLDER_TABLE_NAME));
@@ -108,6 +115,13 @@ public class DbOpenHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL(createDependeeTagsQuery);
         sqLiteDatabase.execSQL("CREATE INDEX IF NOT EXISTS " + DEPENDEE_TAG_INDEX_NAME + " ON "
                 + JOB_DEPENDEE_TAGS_TABLE_NAME + "(" + DbOpenHelper.DEPENDEE_TAGS_NAME_COLUMN.columnName + ")");
+    }
+
+    private void addScheduleRequestedAtNsColumn(SQLiteDatabase sqLiteDatabase) {
+        String query = "ALTER TABLE " + JOB_HOLDER_TABLE_NAME + " ADD COLUMN "
+                + SCHEDULE_REQUESTED_AT_NS.columnName + " " + SCHEDULE_REQUESTED_AT_NS.type
+                + " DEFAULT " + JobHolder.DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE;
+        sqLiteDatabase.execSQL(query);
     }
 
     @Override

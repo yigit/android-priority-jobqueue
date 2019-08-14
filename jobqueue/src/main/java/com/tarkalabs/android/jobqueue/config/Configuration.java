@@ -53,6 +53,17 @@ public class Configuration {
      */
     public static final int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
 
+    /**
+     * The default max number of jobs that will scheduled using scheduled.
+     */
+    public static final int DEFAULT_MAX_JOBS_TO_SCHEDULE_USING_SCHEDULER = 25;
+
+    /**
+     * The maximum number of jobs that can scheduled using scheduled.
+     * This is due to hard limit of {@link android.app.job.JobScheduler}
+     */
+    public static final int MAX_JOBS_TO_SCHEDULE_USING_SCHEDULER = 100;
+
     String id = DEFAULT_ID;
     int maxConsumerCount = MAX_CONSUMER_COUNT;
     int minConsumerCount = MIN_CONSUMER_COUNT;
@@ -70,8 +81,9 @@ public class Configuration {
     int threadPriority = DEFAULT_THREAD_PRIORITY;
     boolean batchSchedulerRequests = true;
     ThreadFactory threadFactory = null;
+    int maxJobsToScheduleUsingScheduler = DEFAULT_MAX_JOBS_TO_SCHEDULE_USING_SCHEDULER;
 
-    private Configuration(){
+    private Configuration() {
         //use builder instead
     }
 
@@ -152,6 +164,10 @@ public class Configuration {
         return threadFactory;
     }
 
+    public int getMaxJobsToScheduleUsingScheduler() {
+        return maxJobsToScheduleUsingScheduler;
+    }
+
     @SuppressWarnings("unused")
     public static final class Builder {
         private Pattern idRegex = Pattern.compile("^([A-Za-z]|[0-9]|_|-)+$");
@@ -168,6 +184,7 @@ public class Configuration {
          * default id is {@link #DEFAULT_ID}
          * <p>
          * You can only use alphanumeric characters, <code>-</code> and <code>_</code> .
+         *
          * @param id if you have multiple instances of job manager, you should provide an id to
          *           distinguish their persistent files.
          * @return This Configuration for easy chaining
@@ -186,6 +203,7 @@ public class Configuration {
         /**
          * When JobManager runs out of `ready` jobs, it will keep consumers alive for this duration.
          * It defaults to {@link #DEFAULT_THREAD_KEEP_ALIVE_SECONDS}
+         *
          * @param keepAlive in seconds
          * @return This Configuration for easy chaining
          */
@@ -225,13 +243,13 @@ public class Configuration {
          * {@link com.tarkalabs.android.jobqueue.inMemoryQueue.SimpleInMemoryPriorityQueue}
          * You can provide your own implementation if they don't fit your needs. Make sure it passes all tests in
          * {@code JobQueueTestBase} to ensure it will work fine.
-         * @param queueFactory your custom queue factory.
          *
+         * @param queueFactory your custom queue factory.
          * @return This Configuration for easy chaining
          */
         @NonNull
         public Builder queueFactory(@Nullable QueueFactory queueFactory) {
-            if(configuration.queueFactory != null && queueFactory != null) {
+            if (configuration.queueFactory != null && queueFactory != null) {
                 throw new RuntimeException("already set a queue factory. This might happen if"
                         + "you've provided a custom job serializer");
             }
@@ -244,8 +262,8 @@ public class Configuration {
          * queue for persistence. By default, it uses a
          * {@link com.tarkalabs.android.jobqueue.persistentQueue.sqlite.SqliteJobQueue.JavaSerializer}
          * which will use default Java serialization.
-         * @param jobSerializer The serializer to be used to persist jobs.
          *
+         * @param jobSerializer The serializer to be used to persist jobs.
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -273,9 +291,8 @@ public class Configuration {
          * JobManager is suitable for DependencyInjection. Just provide your DependencyInjector and it will call it
          * before {Job#onAdded} method is called.
          * if job is persistent, it will also be called before run method.
-         * 
-         * @param injector your dependency injector interface, if using one
          *
+         * @param injector your dependency injector interface, if using one
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -286,8 +303,8 @@ public class Configuration {
 
         /**
          * # of max consumers to run concurrently. defaults to {@link #MAX_CONSUMER_COUNT}
-         * @param count The max number of threads that JobManager can create to run jobs
          *
+         * @param count The max number of threads that JobManager can create to run jobs
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -301,7 +318,6 @@ public class Configuration {
          * {@link #MIN_CONSUMER_COUNT}
          *
          * @param count The min of of threads that JobManager will keep alive even if they are idle.
-         *
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -314,7 +330,6 @@ public class Configuration {
          * You can specify a custom timer to control task execution. Useful for testing.
          *
          * @param timer The timer to use
-         *
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -328,7 +343,6 @@ public class Configuration {
          * by default, JobManager only logs error via Android's <code>Log.e</code>.
          *
          * @param logger The logger to be used by the JobManager.
-         *
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -344,7 +358,6 @@ public class Configuration {
          * defaults to {@link #DEFAULT_LOAD_FACTOR_PER_CONSUMER}
          *
          * @param loadFactor Number of available jobs per thread
-         *
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -385,7 +398,6 @@ public class Configuration {
          *
          * @param scheduler The scheduler to be used
          * @param batch     Defines whether the scheduling requests should be batched or not.
-         *
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -402,7 +414,6 @@ public class Configuration {
          * If a {@link ThreadFactory} is provided, this value is ignored.
          *
          * @param threadPriority The thread priority to be used for new jobs
-         *
          * @return This Configuration for easy chaining
          */
         @NonNull
@@ -429,7 +440,6 @@ public class Configuration {
          * waking up the application to consume the jobs.
          *
          * @param scheduler The scheduler to be used
-         *
          * @return This Configuration.Builder for easy chaining
          */
         @NonNull
@@ -445,7 +455,6 @@ public class Configuration {
          * as is.
          *
          * @param threadFactory The factory to be used
-         *
          * @return This Configuration.Builder for easy chaining
          */
         @NonNull
@@ -454,12 +463,22 @@ public class Configuration {
             return this;
         }
 
+        /**
+         * Provide maximum number of jobs to be scheduled using scheduler at a given time.
+         * Maximum value is {@link com.tarkalabs.android.jobqueue.config.Configuration#MAX_JOBS_TO_SCHEDULE_USING_SCHEDULER}. and Default value is {@link com.tarkalabs.android.jobqueue.config.Configuration#DEFAULT_MAX_JOBS_TO_SCHEDULE_USING_SCHEDULER}
+         */
+        @NonNull
+        public Builder maxJobsToScheduleUsingScheduler(int maxJobsToScheduleUsingScheduler) {
+            configuration.maxJobsToScheduleUsingScheduler = maxJobsToScheduleUsingScheduler;
+            return this;
+        }
+
         @NonNull
         public Configuration build() {
-            if(configuration.queueFactory == null) {
+            if (configuration.queueFactory == null) {
                 configuration.queueFactory = new DefaultQueueFactory();
             }
-            if(configuration.networkUtil == null) {
+            if (configuration.networkUtil == null) {
                 configuration.networkUtil = new NetworkUtilImpl(configuration.appContext);
             }
             if (configuration.timer == null) {

@@ -51,6 +51,11 @@ public class JobHolder {
      */
     public static final int RUN_RESULT_HIT_DEADLINE = 7;
 
+    /**
+     * Internal constant. Used to find if job is scheduled in {@link com.tarkalabs.android.jobqueue.scheduling.Scheduler Scheduler}.
+     */
+    public static final long DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE = -1;
+
     private Long insertionOrder;
     public final String id;
     public final boolean persistent;
@@ -81,6 +86,7 @@ public class JobHolder {
     protected final Set<String> dependeeTags;
     private volatile boolean cancelled;
     private volatile boolean cancelledSingleId;
+    private long scheduleRequestedAtNs;
 
     /**
      * may be set after a job is run and cleared by the JobManager
@@ -91,27 +97,28 @@ public class JobHolder {
      * Or {@link Throwable} of dependee job, if dependee job return {@link RetryConstraint#CANCEL}
      * from {@link Job#shouldReRunOnThrowable(Throwable, int, int)}.
      */
-    @Nullable private Throwable throwable;
+    @Nullable
+    private Throwable throwable;
 
     /**
-     * @param id               The ID of the Job
-     * @param persistent       Is the job persistent
-     * @param priority         Higher is better
-     * @param groupId          which group does this job belong to? default null
-     * @param runCount         Incremented each time job is fetched to run, initial value should be 0
-     * @param job              Actual job to run
-     * @param createdNs        System.nanotime
-     * @param delayUntilNs     System.nanotime value: when job can be run the very first time
-     * @param runningSessionId The running session id for the job
-     * @param tags             The tags of the Job
-     * @param dependeeTags    The dependent tags for the Job
+     * @param id                  The ID of the Job
+     * @param persistent          Is the job persistent
+     * @param priority            Higher is better
+     * @param groupId             which group does this job belong to? default null
+     * @param runCount            Incremented each time job is fetched to run, initial value should be 0
+     * @param job                 Actual job to run
+     * @param createdNs           System.nanotime
+     * @param delayUntilNs        System.nanotime value: when job can be run the very first time
+     * @param runningSessionId    The running session id for the job
+     * @param tags                The tags of the Job
+     * @param dependeeTags        The dependent tags for the Job
      * @param requiredNetworkType The minimum type of network that is required to run this job
-     * @param deadlineNs       System.nanotime value: when the job will ignore its constraints
-     * @param cancelOnDeadline true if job should be cancelled when deadline is reached, false otherwise
+     * @param deadlineNs          System.nanotime value: when the job will ignore its constraints
+     * @param cancelOnDeadline    true if job should be cancelled when deadline is reached, false otherwise
      */
     private JobHolder(String id, boolean persistent, int priority, String groupId, int runCount, Job job, long createdNs,
                       long delayUntilNs, long runningSessionId, Set<String> tags, Set<String> dependeeTags,
-                      int requiredNetworkType, long deadlineNs, boolean cancelOnDeadline) {
+                      int requiredNetworkType, long deadlineNs, boolean cancelOnDeadline, long scheduleRequestedAtNs) {
         this.id = id;
         this.persistent = persistent;
         this.priority = priority;
@@ -126,6 +133,7 @@ public class JobHolder {
         this.dependeeTags = dependeeTags;
         this.deadlineNs = deadlineNs;
         this.cancelOnDeadline = cancelOnDeadline;
+        this.scheduleRequestedAtNs = scheduleRequestedAtNs;
     }
 
     /**
@@ -138,7 +146,8 @@ public class JobHolder {
         return job.safeRun(this, currentRunCount, timer);
     }
 
-    @NonNull public String getId() {
+    @NonNull
+    public String getId() {
         return id;
     }
 
@@ -240,6 +249,14 @@ public class JobHolder {
         return cancelledSingleId;
     }
 
+    public long getScheduleRequestedAtNs() {
+        return scheduleRequestedAtNs;
+    }
+
+    public void setScheduleRequestedAtNs(long scheduleRequestedAtNs) {
+        this.scheduleRequestedAtNs = scheduleRequestedAtNs;
+    }
+
     @Override
     public int hashCode() {
         //we don't really care about overflow.
@@ -248,7 +265,7 @@ public class JobHolder {
 
     @Override
     public boolean equals(Object o) {
-        if(!(o instanceof JobHolder)) {
+        if (!(o instanceof JobHolder)) {
             return false;
         }
         JobHolder other = (JobHolder) o;
@@ -343,13 +360,16 @@ public class JobHolder {
         private int requiredNetworkType;
         private static final int FLAG_REQ_NETWORK = FLAG_DEPENDEE_TAGS << 1;
 
-        private static final int REQUIRED_FLAGS = (FLAG_REQ_NETWORK << 1) - 1;
+        private static final int FLAG_SCHEDULE_REQUEST_AT_NS = FLAG_REQ_NETWORK << 1;
+        private static final int REQUIRED_FLAGS = (FLAG_SCHEDULE_REQUEST_AT_NS << 1) - 1;
+        private long scheduleRequestedAtNs;
 
         public Builder priority(int priority) {
             this.priority = priority;
             providedFlags |= FLAG_PRIORITY;
             return this;
         }
+
         public Builder groupId(String groupId) {
             this.groupId = groupId;
             providedFlags |= FLAG_GROUP_ID;
@@ -402,15 +422,18 @@ public class JobHolder {
             providedFlags |= FLAG_CREATED_NS;
             return this;
         }
+
         public Builder delayUntilNs(long delayUntilNs) {
             this.delayUntilNs = delayUntilNs;
             providedFlags |= FLAG_DELAY_UNTIL;
             return this;
         }
+
         public Builder insertionOrder(long insertionOrder) {
             this.insertionOrder = insertionOrder;
             return this;
         }
+
         public Builder runningSessionId(long runningSessionId) {
             this.runningSessionId = runningSessionId;
             providedFlags |= FLAG_RUNNING_SESSION_ID;
@@ -424,6 +447,12 @@ public class JobHolder {
             return this;
         }
 
+        public Builder scheduleRequestedAt(long scheduleRequestedAtNs) {
+            this.scheduleRequestedAtNs = scheduleRequestedAtNs;
+            providedFlags |= FLAG_SCHEDULE_REQUEST_AT_NS;
+            return this;
+        }
+
         public JobHolder build() {
             if (job == null) {
                 throw new IllegalArgumentException("must provide a job");
@@ -434,7 +463,8 @@ public class JobHolder {
             }
 
             JobHolder jobHolder = new JobHolder(id, persistent, priority, groupId, runCount, job, createdNs,
-                    delayUntilNs, runningSessionId, tags, dependeeTags, requiredNetworkType, deadlineNs, cancelOnDeadline);
+                    delayUntilNs, runningSessionId, tags, dependeeTags, requiredNetworkType, deadlineNs, cancelOnDeadline,
+                    scheduleRequestedAtNs);
             if (insertionOrder != null) {
                 jobHolder.setInsertionOrder(insertionOrder);
             }

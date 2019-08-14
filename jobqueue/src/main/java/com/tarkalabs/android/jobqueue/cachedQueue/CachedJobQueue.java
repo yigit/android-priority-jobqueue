@@ -123,4 +123,10 @@ public class CachedJobQueue implements JobQueue {
     public Set<JobHolder> findDependentJobs(JobHolder jobHolder) {
         return delegate.findDependentJobs(jobHolder);
     }
+
+    @NonNull
+    @Override
+    public Set<JobHolder> findJobsAndMarkScheduled(@NonNull Constraint constraint, int limit) {
+        return delegate.findJobsAndMarkScheduled(constraint, limit);
+    }
 }

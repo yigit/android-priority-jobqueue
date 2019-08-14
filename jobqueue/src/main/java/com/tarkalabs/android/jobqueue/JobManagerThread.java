@@ -71,6 +71,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
     @Nullable
     Scheduler scheduler;
 
+    private final int maxJobsToScheduleUsingScheduler;
+
     JobManagerThread(Configuration config, PriorityMessageQueue messageQueue,
                      MessageFactory messageFactory) {
         this.messageQueue = messageQueue;
@@ -97,6 +99,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         }
         consumerManager = new ConsumerManager(this, timer, messageFactory, config);
         callbackManager = new CallbackManager(messageFactory, timer);
+        maxJobsToScheduleUsingScheduler = config.getMaxJobsToScheduleUsingScheduler();
     }
 
     void addCallback(JobManagerCallback callback) {
@@ -134,7 +137,8 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 .runCount(0)
                 .deadline(deadline, job.shouldCancelOnDeadline())
                 .requiredNetworkType(job.requiredNetworkType)
-                .runningSessionId(NOT_RUNNING_SESSION_ID).build();
+                .runningSessionId(NOT_RUNNING_SESSION_ID)
+                .scheduleRequestedAt(JobHolder.DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE).build();
 
         JobHolder oldJob = findJobBySingleId(job.getSingleInstanceId());
         final boolean insert = oldJob == null || consumerManager.isJobRunning(oldJob.getId());
@@ -160,11 +164,28 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         if (insert) {
             consumerManager.onJobAdded();
             if (job.isPersistent()) {
-                scheduleWakeUpFor(jobHolder, now);
+                scheduleWakeup(now);
             }
         } else {
             cancelSafely(jobHolder, CancelReason.SINGLE_INSTANCE_ID_QUEUED);
             callbackManager.notifyOnDone(jobHolder.getJob());
+        }
+    }
+
+    public void scheduleWakeup(long now) {
+        if (scheduler == null) {
+            return;
+        }
+
+        queryConstraint.clear();
+        queryConstraint.setNowInNs(now);
+        queryConstraint.setExcludeGroups(consumerManager.runningJobGroups.getSafe());
+        queryConstraint.setExcludeRunning(true);
+        queryConstraint.setExcludeDependent(true);
+        queryConstraint.setExcludeScheduled(true);
+        final Set<JobHolder> jobsAndMarkScheduled = persistentJobQueue.findJobsAndMarkScheduled(queryConstraint, maxJobsToScheduleUsingScheduler);
+        for (JobHolder jobHolder : jobsAndMarkScheduled) {
+            scheduleWakeUpFor(jobHolder, now);
         }
     }
 
@@ -455,6 +476,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         handler.query(this, consumerManager);
         if (handler.isDone()) {
             handler.commit(this);
+            scheduleWakeup(timer.nanoTime());
         } else {
             if (pendingCancelHandlers == null) {
                 pendingCancelHandlers = new ArrayList<>();
@@ -511,6 +533,10 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     limit--;
                 }
             }
+        }
+        if (result != JobHolder.RUN_RESULT_TRY_AGAIN) {
+            //Scheduling next jobs.
+            scheduleWakeup(timer.nanoTime());
         }
     }
 

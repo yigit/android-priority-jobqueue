@@ -190,6 +190,7 @@ public class SqliteJobQueue implements JobQueue {
         stmt.bindLong(DbOpenHelper.CANCEL_ON_DEADLINE_COLUMN.columnIndex + 1,
                 jobHolder.shouldCancelOnDeadline() ? 1 : 0);
         stmt.bindLong(DbOpenHelper.CANCELLED_COLUMN.columnIndex + 1, jobHolder.isCancelled() ? 1 : 0);
+        stmt.bindLong(DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnIndex + 1, jobHolder.getScheduleRequestedAtNs());
     }
 
     /**
@@ -380,6 +381,15 @@ public class SqliteJobQueue implements JobQueue {
         stmt.execute();
     }
 
+    private void markJobAsScheduled(JobHolder jobHolder, long now) {
+        SQLiteStatement stmt = sqlHelper.getMarkAsScheduledStatement();
+        jobHolder.setScheduleRequestedAtNs(now);
+        stmt.clearBindings();
+        stmt.bindLong(1, jobHolder.getScheduleRequestedAtNs());
+        stmt.bindString(2, jobHolder.getId());
+        stmt.execute();
+    }
+
     @SuppressWarnings("unused")
     public String logJobs() {
         StringBuilder sb = new StringBuilder();
@@ -410,6 +420,8 @@ public class SqliteJobQueue implements JobQueue {
                         .append(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
                         .append(" reqNetworkType:")
                         .append(cursor.getLong(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex))
+                        .append(" scheduleRequestedAtNs:")
+                        .append(cursor.getLong(DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnIndex))
                         .append(" tags: {");
                 Cursor tags = db.rawQuery(sqlHelper.LOAD_TAGS_QUERY, new String[]{id});
                 try {
@@ -468,6 +480,7 @@ public class SqliteJobQueue implements JobQueue {
                 .delayUntilNs(cursor.getLong(DbOpenHelper.DELAY_UNTIL_NS_COLUMN.columnIndex))
                 .runningSessionId(cursor.getLong(DbOpenHelper.RUNNING_SESSION_ID_COLUMN.columnIndex))
                 .requiredNetworkType(cursor.getInt(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnIndex))
+                .scheduleRequestedAt(cursor.getLong(DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnIndex))
                 .build();
         return holder;
     }
@@ -529,6 +542,34 @@ public class SqliteJobQueue implements JobQueue {
         } else {
             return Collections.EMPTY_SET;
         }
+    }
+
+    @NonNull
+    @Override
+    public Set<JobHolder> findJobsAndMarkScheduled(@NonNull Constraint constraint, int limit) {
+        final Where where = createWhere(constraint);
+
+        //we can even keep these prepared but not sure the cost of them in db layer
+        final String selectQuery = where.findJobsToScheduleQuery(sqlHelper, reusedStringBuilder, limit);
+        Cursor cursor = db.rawQuery(selectQuery, where.args);
+        Set<JobHolder> jobHolders = new HashSet<>();
+        while (cursor.moveToNext()) {
+            try {
+                JobHolder holder = createJobHolderFromCursor(cursor);
+                markJobAsScheduled(holder, constraint.getNowInNs());
+                jobHolders.add(holder);
+            } catch (InvalidJobException e) {
+                //delete
+                String jobId = cursor.getString(DbOpenHelper.ID_COLUMN.columnIndex);
+                if (jobId == null) {
+                    JqLog.e("cannot find job id on a retrieved job");
+                } else {
+                    delete(jobId);
+                }
+            }
+        }
+        cursor.close();
+        return jobHolders;
     }
 
     private Set<JobHolder> findDependentJobsForTags(Set<String> tags) {

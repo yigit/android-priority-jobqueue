@@ -14,7 +14,6 @@ public interface JobQueue {
      * Inserts the given JobHolder.
      *
      * @param jobHolder The JobHolder to be inserted
-     *
      * @return True if job is added, false otherwise
      */
     boolean insert(@NonNull JobHolder jobHolder);
@@ -22,8 +21,8 @@ public interface JobQueue {
     /**
      * Does the same thing with insert but the only difference is that
      * if job has an insertion ID, it should replace the existing one
-     *  should also reset running session id to {@link JobManager#NOT_RUNNING_SESSION_ID}
-     *  Is called when a job is re-added (due to exception during run)
+     * should also reset running session id to {@link JobManager#NOT_RUNNING_SESSION_ID}
+     * Is called when a job is re-added (due to exception during run)
      *
      * @param jobHolder The JobHolder to be added
      * @return True if job is added, false otherwise
@@ -48,6 +47,7 @@ public interface JobQueue {
 
     /**
      * Returns the # of jobs that are waiting to be run
+     *
      * @return The number of jobs that are waiting in the queue
      */
     int count();
@@ -59,7 +59,6 @@ public interface JobQueue {
      * Exclude groups are guaranteed to be ordered in natural order.
      *
      * @param constraint The constraint to match the jobs
-     *
      * @return The number of jobs that are ready to run
      */
     int countReadyJobs(@NonNull Constraint constraint);
@@ -80,6 +79,7 @@ public interface JobQueue {
      * jobs to run.
      * <p>
      * This method should check both delayed jobs and jobs that require network with a timeout.
+     *
      * @param constraint The constraint to match the job.
      * @return The time until next job is ready or null if there aren't any jobs matching the
      * constraint
@@ -94,8 +94,8 @@ public interface JobQueue {
 
     /**
      * returns the job with the given id if it exists in the queue
-     * @param id id of the job
      *
+     * @param id id of the job
      * @return JobHolder with the given id or null if it does not exists
      */
     @Nullable
@@ -121,6 +121,7 @@ public interface JobQueue {
 
     /**
      * Returns dependent job for the given jobs.
+     *
      * @param jobHolders jobs to find dependent jobs.
      * @return Dependent jobs for given jobs.F
      */
@@ -129,9 +130,20 @@ public interface JobQueue {
 
     /**
      * Returns dependent jobs for the given job.
+     *
      * @param jobHolder job to find dependent jobs of.
      * @return Dependent jobs for given job.
      */
     @NonNull
     Set<JobHolder> findDependentJobs(JobHolder jobHolder);
+
+    /**
+     * Returns unscheduled jobs and marks them scheduled before returning.
+     *
+     * @param constraint The constraint to match the job.
+     * @param limit      Maximum number of jobs to return
+     * @return The set of jobs that matches the given constraint
+     */
+    @NonNull
+    Set<JobHolder> findJobsAndMarkScheduled(@NonNull Constraint constraint, int limit);
 }

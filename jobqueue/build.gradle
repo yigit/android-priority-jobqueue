@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.0'
+        classpath 'com.android.tools.build:gradle:3.4.2'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
@@ -56,9 +56,9 @@ dependencies {
     // time. If app depends on a newer one, gradle will pick it for us.
     //noinspection GradleDependency
     // remove when gms moves to individual libraries
-    implementation 'androidx.collection:collection:1.0.0'
+    implementation 'androidx.collection:collection:1.1.0'
     // build tools does not allow making this provided so we make it optional when pom is created
-    implementation 'com.google.android.gms:play-services-gcm:16.1.0'
+    implementation 'com.google.android.gms:play-services-gcm:17.0.0'
 }
 
 android {

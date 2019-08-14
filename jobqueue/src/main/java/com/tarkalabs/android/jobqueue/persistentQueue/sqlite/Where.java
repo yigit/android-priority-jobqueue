@@ -3,6 +3,7 @@ package com.tarkalabs.android.jobqueue.persistentQueue.sqlite;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 
+import com.tarkalabs.android.jobqueue.JobHolder;
 import com.tarkalabs.android.jobqueue.Params;
 
 public class Where {
@@ -14,6 +15,7 @@ public class Where {
     private String findJobsQuery;
     private SQLiteStatement nextJobDelayUntilStmt;
     private String nextJobQuery;
+    private String findJobsToScheduleQuery;
     static final String NEVER = Long.toString(Params.NEVER);
     static final String FOREVER = Long.toString(Params.FOREVER);
 
@@ -29,14 +31,14 @@ public class Where {
             stringBuilder.append("SELECT SUM(case WHEN ")
                     .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
                     .append(" is null then group_cnt else 1 end) from (")
-                        .append("SELECT count(*) group_cnt, ")
-                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
-                        .append(" FROM ")
-                        .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
-                        .append(" WHERE ")
-                        .append(query)
-                        .append(" GROUP BY ")
-                        .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append("SELECT count(*) group_cnt, ")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append(" FROM ")
+                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(query)
+                    .append(" GROUP BY ")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
                     .append(")");
             countReadyStmt = database.compileStatement(stringBuilder.toString());
         } else {
@@ -97,6 +99,33 @@ public class Where {
             );
         }
         return nextJobQuery;
+    }
+
+    public String findJobsToScheduleQuery(SqlHelper sqlHelper, StringBuilder stringBuilder, int limit) {
+        if (findJobsToScheduleQuery == null) {
+            stringBuilder.setLength(0);
+            stringBuilder.append(sqlHelper.createSelect(
+                    query,
+                    null,
+                    new SqlHelper.Order(DbOpenHelper.PRIORITY_COLUMN,
+                            SqlHelper.Order.Type.DESC),
+                    new SqlHelper.Order(DbOpenHelper.CREATED_NS_COLUMN,
+                            SqlHelper.Order.Type.ASC),
+                    new SqlHelper.Order(DbOpenHelper.INSERTION_ORDER_COLUMN,
+                            SqlHelper.Order.Type.ASC)
+            ));
+            stringBuilder.append(" LIMIT (SELECT MAX(")
+                    .append(limit)
+                    .append("-COUNT(*), 0) FROM ")
+                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnName)
+                    .append(" <> ")
+                    .append(JobHolder.DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE)
+                    .append(")");
+            findJobsToScheduleQuery = stringBuilder.toString();
+        }
+        return findJobsToScheduleQuery;
     }
 
     public String findJobs(SqlHelper sqlHelper) {

@@ -1,6 +1,7 @@
 package com.tarkalabs.android.jobqueue.persistentQueue.sqlite;
 
 import com.tarkalabs.android.jobqueue.Constraint;
+import com.tarkalabs.android.jobqueue.JobHolder;
 import com.tarkalabs.android.jobqueue.TagConstraint;
 
 import androidx.collection.LruCache;
@@ -18,6 +19,7 @@ class WhereQueryCache {
     private static final int EXCLUDE_RUNNING = JOB_COUNT + INT_SIZE;
     private static final int EXCLUDE_DEPENDENT = EXCLUDE_RUNNING + BOOL_SIZE;
     private static final int TIME_LIMIT = EXCLUDE_DEPENDENT + BOOL_SIZE;
+    private static final int EXCLUDE_SCHEDULED = TIME_LIMIT + BOOL_SIZE;
     private static final int INT_LIMIT = 1 << INT_SIZE;
 
     static final int DEADLINE_COLUMN_INDEX = 1;
@@ -79,7 +81,7 @@ class WhereQueryCache {
     }
 
     private Where createWhere(long cacheKey, Constraint constraint,
-            StringBuilder reusedStringBuilder) {
+                              StringBuilder reusedStringBuilder) {
         reusedStringBuilder.setLength(0);
         int argCount = 0;
 
@@ -91,7 +93,7 @@ class WhereQueryCache {
                 .append(" AND ")
                 .append(DbOpenHelper.DEADLINE_COLUMN.columnName)
                 .append(" <= ?) OR ");
-        argCount ++;
+        argCount++;
 
         reusedStringBuilder
                 .append(DbOpenHelper.REQUIRED_NETWORK_TYPE_COLUMN.columnName)
@@ -101,11 +103,11 @@ class WhereQueryCache {
                 .append(DbOpenHelper.CANCELLED_COLUMN.columnName)
                 .append(" IS NULL OR ")
                 .append(DbOpenHelper.CANCELLED_COLUMN.columnName)
-                .append( " != 1)");
+                .append(" != 1)");
 
         argCount++;
 
-        if (constraint.excludeDependent()){
+        if (constraint.excludeDependent()) {
             reusedStringBuilder.append(" AND ")
                     .append(DbOpenHelper.ID_COLUMN.columnName)
                     .append(" NOT IN (SELECT DISTINCT ")
@@ -184,6 +186,23 @@ class WhereQueryCache {
                     .append(" != ?");
             argCount++;
         }
+        if (constraint.excludeScheduled()) {
+            reusedStringBuilder
+                    .append(" AND (")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append(" IS NULL OR (")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append(" NOT IN (SELECT DISTINCT ")
+                    .append(DbOpenHelper.GROUP_ID_COLUMN.columnName)
+                    .append(" FROM ")
+                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnName)
+                    .append(" <> " + JobHolder.DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE)
+                    .append("))) AND ")
+                    .append(DbOpenHelper.SCHEDULE_REQUESTED_AT_NS.columnName)
+                    .append(" == " + JobHolder.DEFAULT_SCHEDULE_REQUEST_AT_NS_VALUE);
+        }
         String[] args = new String[argCount];
         //noinspection UnnecessaryLocalVariable
         Where where = new Where(cacheKey, reusedStringBuilder.toString(), args);
@@ -206,7 +225,8 @@ class WhereQueryCache {
                 | constraint.getExcludeJobIds().size() << JOB_COUNT
                 | (constraint.excludeRunning() ? 1 : 0) << EXCLUDE_RUNNING
                 | (constraint.excludeDependent() ? 1 : 0) << EXCLUDE_DEPENDENT
-                | (constraint.getTimeLimit() == null ? 1 : 0) << TIME_LIMIT;
+                | (constraint.getTimeLimit() == null ? 1 : 0) << TIME_LIMIT
+                | (constraint.excludeScheduled() ? 1 : 0) << EXCLUDE_SCHEDULED;
         return key;
     }
 
