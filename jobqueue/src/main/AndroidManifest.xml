@@ -3,7 +3,7 @@
           xmlns:tools="http://schemas.android.com/tools"
           package="com.tarkalabs.android.jobqueue"
           android:versionCode="3"
-          android:versionName="2.0.2">
+    android:versionName="2.1.0-SNAPSHOT">
 
     <uses-sdk tools:overrideLibrary="com.google.android.gms.gcm, com.google.android.gms.base,
     com.google.android.gms, com.google.android.gms.measurement"/>
