@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.scheduling;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.birbit.android.jobqueue.JobManager;
 import com.google.android.gms.gcm.TaskParams;

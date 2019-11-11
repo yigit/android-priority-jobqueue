@@ -1,7 +1,7 @@
 package com.birbit.android.jobqueue;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.config.Configuration;

@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.persistentQueue.sqlite;
 
 
 import android.content.Context;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.birbit.android.jobqueue.log.JqLog;
 

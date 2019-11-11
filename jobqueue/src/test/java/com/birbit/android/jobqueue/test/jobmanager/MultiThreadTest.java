@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import com.birbit.android.jobqueue.CancelResult;

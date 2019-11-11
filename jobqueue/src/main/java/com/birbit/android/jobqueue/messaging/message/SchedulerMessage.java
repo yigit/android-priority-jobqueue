@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue.messaging.message;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.birbit.android.jobqueue.messaging.Message;
 import com.birbit.android.jobqueue.messaging.Type;

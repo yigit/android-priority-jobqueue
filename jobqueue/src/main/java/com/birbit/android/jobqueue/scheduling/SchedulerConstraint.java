@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue.scheduling;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
