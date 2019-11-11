@@ -11,10 +11,6 @@ if (releaseFile.exists()) {
 group='com.github.yigit'
 ext.releaseConfig = releaseConfig
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.3'
-}
-
 apply plugin: 'maven'
 apply plugin: 'signing'
 apply plugin: 'com.github.dcendents.android-maven'
@@ -22,6 +18,7 @@ apply plugin: 'jacoco'
 
 buildscript {
     repositories {
+        google()
         jcenter()
         mavenCentral()
     }
@@ -33,6 +30,7 @@ buildscript {
 }
 
 repositories {
+    google()
     mavenCentral()
     jcenter()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
@@ -64,8 +62,7 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 29
     buildTypes {
         debug {
             testCoverageEnabled = true
