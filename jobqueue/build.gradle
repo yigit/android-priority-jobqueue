@@ -42,9 +42,3 @@ android {
         warning 'InvalidPackage'
     }
 }
-
-task testLint(type : Exec) {
-    workingDir project.projectDir
-    // SET ANDROID_LINT_JARS ENV VARIABLE
-    commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
-}
