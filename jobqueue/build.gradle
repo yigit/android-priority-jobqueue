@@ -9,6 +9,7 @@ dependencies {
     testImplementation 'org.easytesting:fest-reflect:1.4.1'
     testImplementation 'org.mockito:mockito-core:2.7.13'
     testImplementation 'androidx.core:core:1.1.0'
+    testImplementation 'com.google.android.gms:play-services-gcm:17.0.0'
 
     implementation 'com.squareup.okio:okio:1.17.5'
 
