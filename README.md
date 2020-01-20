@@ -204,6 +204,8 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 3.0.0 (Jan 20, 2020)
+   - Updated to AndroidX dependencies
   - 2.0.1 (Oct 11, 2016)
    - Fixed high CPU usage if queues are full (#262)
    - Handle bad input from job schedulers (#254)
