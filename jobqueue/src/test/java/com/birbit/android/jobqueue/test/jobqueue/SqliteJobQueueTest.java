@@ -1,7 +1,7 @@
 package com.birbit.android.jobqueue.test.jobqueue;
 
 import android.database.Cursor;
-import android.support.v4.util.Pair;
+import androidx.core.util.Pair;
 
 import com.birbit.android.jobqueue.JobHolder;
 import com.birbit.android.jobqueue.TestConstraint;
@@ -33,7 +33,7 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class SqliteJobQueueTest extends JobQueueTestBase {
     public SqliteJobQueueTest() {
         super(new JobQueueFactory() {

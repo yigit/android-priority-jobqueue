@@ -9,7 +9,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.PersistableBundle;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.birbit.android.jobqueue.network.NetworkUtil;
 
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class FrameworkSchedulerTest {
     FrameworkScheduler fwScheduler;

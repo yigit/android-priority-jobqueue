@@ -2,8 +2,8 @@ package com.birbit.android.jobqueue.test.jobmanager;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.birbit.android.jobqueue.CancelReason;
 import com.birbit.android.jobqueue.Job;
@@ -27,7 +27,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class PriorityTest extends JobManagerTestBase {
     private static CountDownLatch priorityRunLatch;
 

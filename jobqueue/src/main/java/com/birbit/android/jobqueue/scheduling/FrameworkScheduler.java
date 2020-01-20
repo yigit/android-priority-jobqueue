@@ -10,8 +10,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.PersistableBundle;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.log.JqLog;

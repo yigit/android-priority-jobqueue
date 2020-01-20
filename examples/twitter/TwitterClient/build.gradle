@@ -1,29 +1,9 @@
-buildscript {
-    repositories {
-        jcenter()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
-    }
-}
-
 apply plugin: 'com.android.application'
 
-repositories {
-    jcenter()
-    mavenLocal()
-    mavenCentral()
-    maven {
-        url "https://jitpack.io"
-    }
-}
-
 class RunApk extends DefaultTask {
-    def adbExec;
     @TaskAction
     def runApp() {
+        def adbExec = "${project.android.getSdkDirectory().getAbsolutePath()}/platform-tools/adb"
         println "running path on device or emulator"
         println "adb:" + adbExec
         def cmd = adbExec + " shell am start -a android.intent.action.MAIN -n com.birbit.android.jobqueue.examples.twitter/com.birbit.android.jobqueue.examples.twitter.SampleTwitterClient"
@@ -35,46 +15,22 @@ class RunApk extends DefaultTask {
     }
 }
 
-def Properties localProps = new Properties()
-localProps.load(new FileInputStream(file('local.properties')))
-println localProps["sdk.dir"]
-def adb = localProps['sdk.dir'] + "/platform-tools/adb"
-
-
-tasks.create(name: "runTwitter", type: RunApk){
-    adbExec = adb
-}
+tasks.create(name: "runTwitter", type: RunApk)
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "24.0.3"
+    compileSdkVersion 29
     defaultConfig {
+        applicationId "com.birbit.android.jobqueue.examples.twitter"
         minSdkVersion 15
-        targetSdkVersion 25
+        targetSdkVersion 29
     }
 
     dependencies {
-        compile ('de.greenrobot:eventbus:2.1.0-beta-1') {
-            exclude module: 'support-core-utils'
-            exclude module: 'support-v4'
-            exclude group: 'com.google.android', module: 'android'
-        }
-        // add explicit dependency because gcm uses full support-v4 instead of core utils.
-        compile 'com.android.support:support-v4:25.0.1'
-        compile 'org.twitter4j:twitter4j-core:3.0.5'
-        compile project(":jobqueue")
-        compile files('external-libs/greenDAO.jar')
-        compile 'com.google.android.gms:play-services-gcm:10.0.1'
-
-    }
-
-    sourceSets {
-        main {
-            manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['src', 'src-gen']
-            resources.srcDirs = ['src']
-            res.srcDirs = ['res']
-            assets.srcDirs = ['assets']
-        }
+        implementation 'org.greenrobot:greendao:3.2.2'
+        implementation 'org.greenrobot:eventbus:3.1.1'
+        implementation 'androidx.annotation:annotation:1.1.0'
+        implementation 'org.twitter4j:twitter4j-core:3.0.5'
+        implementation project(":jobqueue")
+        implementation 'com.google.android.gms:play-services-gcm:17.0.0'
     }
 }

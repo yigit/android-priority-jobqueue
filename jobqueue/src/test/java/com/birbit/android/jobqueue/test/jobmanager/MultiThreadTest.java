@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import com.birbit.android.jobqueue.CancelResult;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class MultiThreadTest extends JobManagerTestBase {
     private static AtomicInteger multiThreadedJobCounter;
 

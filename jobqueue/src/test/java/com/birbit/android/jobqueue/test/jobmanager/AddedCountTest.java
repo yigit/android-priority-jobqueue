@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class AddedCountTest extends JobManagerTestBase {
     @Test
     public void testAddedCount() throws Exception {

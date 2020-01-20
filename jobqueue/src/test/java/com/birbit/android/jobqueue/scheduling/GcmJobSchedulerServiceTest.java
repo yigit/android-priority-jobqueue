@@ -2,7 +2,7 @@ package com.birbit.android.jobqueue.scheduling;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.birbit.android.jobqueue.JobManager;
 import com.google.android.gms.gcm.TaskParams;
@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class GcmJobSchedulerServiceTest {
     JobManager mockJobManager;

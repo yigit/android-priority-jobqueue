@@ -1,8 +1,8 @@
 package com.birbit.android.jobqueue;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.birbit.android.jobqueue.callback.JobManagerCallback;
 import com.birbit.android.jobqueue.log.JqLog;

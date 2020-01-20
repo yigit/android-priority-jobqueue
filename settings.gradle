@@ -1,0 +1,3 @@
+rootProject.name = "android-priority-jobqueue"
+include ":jobqueue"
+include ":examples:twitter:TwitterClient"

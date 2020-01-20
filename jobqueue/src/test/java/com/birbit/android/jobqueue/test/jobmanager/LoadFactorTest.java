@@ -16,7 +16,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import android.annotation.SuppressLint;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.hamcrest.*;
 import org.junit.After;
@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class LoadFactorTest extends JobManagerTestBase {
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch canEndLatch = new CountDownLatch(1);

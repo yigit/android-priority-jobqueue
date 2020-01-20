@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class GroupingTest extends JobManagerTestBase {
     private String addJob(JobManager jobManager, Job job) {
         jobManager.addJob(job);

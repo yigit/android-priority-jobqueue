@@ -1,71 +1,23 @@
-import java.util.regex.Pattern
-
 apply plugin: 'com.android.library'
-
-Properties releaseConfig = new Properties()
-File releaseFile = new File("${projectDir}/releaseConfig.properties")
-if (releaseFile.exists()) {
-    releaseConfig.load(new FileInputStream(releaseFile))
-}
-// for jitpack
-group='com.github.yigit'
-ext.releaseConfig = releaseConfig
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.3'
-}
-
-apply plugin: 'maven'
-apply plugin: 'signing'
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'jacoco'
-
-buildscript {
-    repositories {
-        jcenter()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
-    }
-}
-
-repositories {
-    mavenCentral()
-    jcenter()
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
-}
-
-configurations {
-    archives {
-        extendsFrom configurations.default
-    }
-}
+apply plugin: 'com.vanniktech.maven.publish'
 
 dependencies {
-    testCompile 'junit:junit:4.12'
-    testCompile "org.robolectric:robolectric:3.3"
-    testCompile 'org.hamcrest:hamcrest-core:1.3'
-    testCompile 'org.easytesting:fest-util:1.2.5'
-    testCompile 'org.easytesting:fest-reflect:1.4.1'
-    testCompile 'org.mockito:mockito-core:2.7.13'
+    testImplementation 'junit:junit:4.12'
+    testImplementation "org.robolectric:robolectric:4.3.1"
+    testImplementation 'org.hamcrest:hamcrest-core:1.3'
+    testImplementation 'org.easytesting:fest-util:1.2.5'
+    testImplementation 'org.easytesting:fest-reflect:1.4.1'
+    testImplementation 'org.mockito:mockito-core:2.7.13'
+    testImplementation 'androidx.core:core:1.1.0'
+    testImplementation 'com.google.android.gms:play-services-gcm:17.0.0'
 
-    compile 'com.squareup.okio:okio:1.8.0'
+    implementation 'com.squareup.okio:okio:1.17.5'
 
-    // use an old version since we only need a few util classes that were already there for a long
-    // time. If app depends on a newer one, gradle will pick it for us.
-    //noinspection GradleDependency
-    // remove when gms moves to individual libraries
-    compile 'com.android.support:support-v4:25.2.0'
-    // build tools does not allow making this provided so we make it optional when pom is created
-    compile 'com.google.android.gms:play-services-gcm:10.2.0'
+    compileOnly 'com.google.android.gms:play-services-gcm:17.0.0'
 }
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 29
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -77,178 +29,16 @@ android {
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 25
     }
 
     testOptions {
         unitTests.all {
             // All the usual Gradle options.
             jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
-            jacoco {
-                includeNoLocationClasses = true
-            }
         }
     }
 
     lintOptions {
         warning 'InvalidPackage'
     }
-}
-
-//READ VERSION NAME
-def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-def pattern = Pattern.compile("versionName=\"([\\d\\.\\w\\-]+)\"")
-def manifestText = manifestFile.getText()
-def matcher = pattern.matcher(manifestText)
-matcher.find()
-def manifestVersionName = matcher.group(1)
-println "version name:${manifestVersionName}"
-
-//create jar tasks
-
-android.libraryVariants.all { variant ->
-    def name = variant.buildType.name
-    println "checking variant ${name}"
-    if (variant.buildType.isDebuggable()) {
-        return; // Skip debug builds.
-    }
-    def suffix = name.capitalize()
-    println "found release variant"
-    project.tasks.create(name: "jar${suffix}", type: Jar){
-        dependsOn variant.javaCompile
-        from variant.javaCompile.destinationDir
-        from 'LICENSE.txt'
-    }
-    project.tasks.create(name: "javadoc${suffix}", type: Javadoc) {
-        source = variant.javaCompile.source
-        ext.androidJar = "${android.sdkDirectory}/platforms/${android.compileSdkVersion}/android.jar"
-        classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar)
-        exclude 'com/google/**'
-    }
-
-    def javadocJarTask = project.tasks.create(name: "javadocJar${suffix}", type: Jar) {
-        classifier = 'javadoc'
-        from 'build/docs/javadoc'
-    }
-
-    def sourcesJarTask = project.tasks.create(name: "sourceJar${suffix}", type: Jar) {
-        from android.sourceSets.main.getJava().getSrcDirs()
-        classifier = 'sources'
-    }
-    artifacts.add('archives', javadocJarTask);
-    artifacts.add('archives', sourcesJarTask);
-}
-//create jar tasks end
-
-afterEvaluate { project ->
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment {
-                    MavenDeployment deployment -> signing.signPom(deployment)
-                }
-                println "ossr username: ${releaseConfig.ossrhUsername}"
-
-                pom.artifactId = 'android-priority-jobqueue'
-
-
-//                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots") {
-//                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
-//                }
-                snapshotRepository(url: mavenLocal().url) {
-
-                }
-
-                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
-                    authentication(userName: releaseConfig.ossrhUsername, password: releaseConfig.ossrhPassword)
-                }
-
-                pom.project {
-                    modelVersion '4.0.0'
-                    groupId 'com.birbit'
-                    artifactId 'android-priority-jobqueue'
-                    packaging 'jar'
-                    name 'Android Priority Job Queue'
-                    version manifestVersionName
-                    description 'a Job Queue specifically written for Android to easily schedule jobs (tasks) that run in the background, improving UX and application stability.'
-                    url 'https://github.com/yigit/android-priority-jobqueue'
-
-                    parent {
-                        groupId 'org.sonatype.oss'
-                        artifactId 'oss-parent'
-                        version 7
-                    }
-
-                    scm {
-                        connection 'scm:git:git@github.com:yigit/android-priority-jobqueue.git'
-                        developerConnection 'scm:git:git@github.com:yigit/android-priority-jobqueue.git'
-                        url 'git@github.com:yigit/android-priority-jobqueue.git'
-                    }
-
-                    licenses {
-                        license {
-                            name 'The MIT License (MIT)'
-                            url 'http://opensource.org/licenses/MIT'
-                            distribution 'repo'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id "yigit"
-                            name "Yigit Boyar"
-                        }
-                    }
-                }
-                pom.whenConfigured { MavenPom pom ->
-                    pom.dependencies.each {
-                        if (it.artifactId == 'play-services-gcm') {
-                            it.optional = true
-                            it.scope = "provided"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    signing {
-        required { gradle.taskGraph.hasTask("uploadArchives") }
-        sign configurations.archives
-    }
-}
-
-task testLint(type : Exec) {
-    workingDir project.projectDir
-    // SET ANDROID_LINT_JARS ENV VARIABLE
-    commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
-}
-
-task jacocoTestReport(type:JacocoReport, dependsOn: "testDebugUnitTest") {
-    group = "Reporting"
-
-    description = "Generate Jacoco coverage reports"
-
-    classDirectories = fileTree(
-            dir: "$buildDir/intermediates/classes/debug",
-            excludes: ['**/R.class',
-                       '**/R$*.class',
-                       '**/BuildConfig.*',
-                       '**/Manifest*.*',
-                       'android/**/*.*',
-                       'com/google/**']
-    )
-
-    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = fileTree(dir: "$buildDir", includes: [
-            "jacoco/testDebugUnitTest.exec",
-            "outputs/code-coverage/connected/*coverage.ec"
-    ])
-
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-
-    dependsOn "createDebugCoverageReport"
 }

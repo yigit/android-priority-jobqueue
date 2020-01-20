@@ -1,6 +1,6 @@
 package com.birbit.android.jobqueue;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.birbit.android.jobqueue.config.Configuration;
 import com.birbit.android.jobqueue.log.JqLog;
