@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class LoadFactorTest extends JobManagerTestBase {
     CountDownLatch startLatch = new CountDownLatch(1);
     CountDownLatch canEndLatch = new CountDownLatch(1);

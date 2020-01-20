@@ -25,7 +25,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class ApplicationContextTests extends JobManagerTestBase {
     static int retryCount = 0;
     static List<Throwable> errors = new ArrayList<>();

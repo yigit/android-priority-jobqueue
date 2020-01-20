@@ -33,7 +33,7 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.CoreMatchers.*;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class SqliteJobQueueTest extends JobQueueTestBase {
     public SqliteJobQueueTest() {
         super(new JobQueueFactory() {

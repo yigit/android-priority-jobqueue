@@ -27,7 +27,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class JobStatusTest extends JobManagerTestBase {
     private static final String REQ_NETWORK_TAG = "reqNetwork";
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)

@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class CancelWhileRunningWithGroupsTest extends JobManagerTestBase {
     public static CountDownLatch[] endLatches = new CountDownLatch[]{new CountDownLatch(2), new CountDownLatch(2)};
     public static CountDownLatch[] startLatches = new CountDownLatch[]{new CountDownLatch(2), new CountDownLatch(2)};

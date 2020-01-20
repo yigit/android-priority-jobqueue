@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class CancelFailingJobsTest extends JobManagerTestBase {
     static DummyNetworkUtilWithConnectivityEventSupport networkUtil = new
             DummyNetworkUtilWithConnectivityEventSupport();

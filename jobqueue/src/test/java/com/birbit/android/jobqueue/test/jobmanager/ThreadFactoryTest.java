@@ -21,7 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadFactory;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class ThreadFactoryTest extends JobManagerTestBase {
 
     private Throwable error;

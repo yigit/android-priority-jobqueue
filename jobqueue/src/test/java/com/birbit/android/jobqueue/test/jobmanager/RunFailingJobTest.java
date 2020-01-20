@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class RunFailingJobTest extends JobManagerTestBase {
     @Test
     public void runFailingJob() throws Exception {

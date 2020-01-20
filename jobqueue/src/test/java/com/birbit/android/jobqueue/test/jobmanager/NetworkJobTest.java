@@ -33,7 +33,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(ParameterizedRobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class NetworkJobTest extends JobManagerTestBase {
     final boolean unmetered;
     static CountDownLatch persistentDummyJobRunLatch;

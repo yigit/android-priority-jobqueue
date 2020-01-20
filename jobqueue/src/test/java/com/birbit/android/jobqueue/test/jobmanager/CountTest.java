@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class CountTest extends JobManagerTestBase {
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
