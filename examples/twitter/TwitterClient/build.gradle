@@ -20,6 +20,7 @@ tasks.create(name: "runTwitter", type: RunApk)
 android {
     compileSdkVersion 29
     defaultConfig {
+        applicationId "com.birbit.android.jobqueue.examples.twitter"
         minSdkVersion 15
         targetSdkVersion 29
     }
