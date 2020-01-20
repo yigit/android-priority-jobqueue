@@ -1,26 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'com.vanniktech.maven.publish'
 
-buildscript {
-    repositories {
-        google()
-        jcenter()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
-        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.8.0'
-    }
-}
-
-repositories {
-    google()
-    mavenCentral()
-    jcenter()
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
-}
-
 dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation "org.robolectric:robolectric:3.3"

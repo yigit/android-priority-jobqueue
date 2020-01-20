@@ -1,0 +1,20 @@
+buildscript {
+  repositories {
+    google()
+    jcenter()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.5.3'
+    classpath 'com.vanniktech:gradle-maven-publish-plugin:0.8.0'
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    jcenter()
+  }
+}
