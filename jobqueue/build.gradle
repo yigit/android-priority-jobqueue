@@ -29,7 +29,7 @@ dependencies {
     testImplementation 'org.easytesting:fest-reflect:1.4.1'
     testImplementation 'org.mockito:mockito-core:2.7.13'
 
-    implementation 'com.squareup.okio:okio:1.8.0'
+    implementation 'com.squareup.okio:okio:1.17.5'
 
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
