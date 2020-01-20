@@ -9,9 +9,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.birbit.android.jobqueue.JobManager;
-import com.birbit.android.jobqueue.examples.twitter.R;
 import com.birbit.android.jobqueue.examples.twitter.activities.BaseActivity;
 import com.birbit.android.jobqueue.examples.twitter.adapters.LazyListAdapter;
 import com.birbit.android.jobqueue.examples.twitter.entities.Tweet;
@@ -23,7 +21,6 @@ import com.birbit.android.jobqueue.examples.twitter.jobs.FetchTweetsJob;
 import com.birbit.android.jobqueue.examples.twitter.jobs.PostTweetJob;
 import com.birbit.android.jobqueue.examples.twitter.models.TweetModel;
 import com.birbit.android.jobqueue.examples.twitter.tasks.SimpleBackgroundTask;
-import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.greendao.query.LazyList;
 
 public class SampleTwitterClient extends BaseActivity {
@@ -49,21 +46,10 @@ public class SampleTwitterClient extends BaseActivity {
             }
         });
         listView.setAdapter(tweetAdapter);
-        EventBus.getDefault().register(this);
     }
 
     private void sendTweet(final String text) {
         jobManager.addJobInBackground(new PostTweetJob(text));
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        try {
-            EventBus.getDefault().unregister(this);
-        } catch (Throwable t){
-            //this may crash if registration did not go through. just be safe
-        }
     }
 
     @SuppressWarnings("UnusedDeclaration")
