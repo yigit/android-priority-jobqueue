@@ -23,7 +23,7 @@ import java.util.UUID;
  * Scheduler implementation that uses the frameworks' scheduler API.
  */
 @TargetApi(21)
-class FrameworkScheduler extends Scheduler {
+public class FrameworkScheduler extends Scheduler {
     private static final String KEY_UUID = "uuid";
     @VisibleForTesting
     static final String KEY_ID = "id";
