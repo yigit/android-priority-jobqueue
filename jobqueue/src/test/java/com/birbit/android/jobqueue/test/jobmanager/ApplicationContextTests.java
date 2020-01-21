@@ -5,10 +5,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.birbit.android.jobqueue.CancelReason;
+import com.birbit.android.jobqueue.CancelResult;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
 import com.birbit.android.jobqueue.Params;
 import com.birbit.android.jobqueue.RetryConstraint;
+import com.birbit.android.jobqueue.TagConstraint;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class ApplicationContextTests extends JobManagerTestBase {
     static int retryCount = 0;
     static List<Throwable> errors = new ArrayList<>();
+
     @Before
     public void clear() {
         retryCount = 0;
@@ -43,6 +46,29 @@ public class ApplicationContextTests extends JobManagerTestBase {
     @Test
     public void getContextPersistent() throws InterruptedException, MultipleFailureException {
         getContextTest(true);
+    }
+
+    @Test
+    public void getContextCancelRequestPersistent() throws MultipleFailureException {
+        getContextCancelRequestTest(true);
+    }
+
+    @Test
+    public void getContextCancelRequestNonPersistent() throws MultipleFailureException {
+        getContextCancelRequestTest(false);
+    }
+
+    public void getContextCancelRequestTest(boolean persistent) throws MultipleFailureException {
+        JobManager jobManager = createJobManager();
+        jobManager.stop();
+        ContextCheckJob dummyJob = new ContextCheckJob(new Params(0).addTags("dummyTag").setPersistent(persistent));
+
+        jobManager.addJob(dummyJob);
+        CancelResult cancelResult = jobManager.cancelJobs(TagConstraint.ANY, "dummyTag");
+        assertThat("Could not cancel job", cancelResult.getCancelledJobs().size() == 1);
+        if (!errors.isEmpty()) {
+            throw new MultipleFailureException(errors);
+        }
     }
 
     public void getContextTest(boolean persistent)
@@ -89,7 +115,7 @@ public class ApplicationContextTests extends JobManagerTestBase {
         public void onRun() throws Throwable {
             assertContext("onRun");
             if (retryCount < 2) {
-                retryCount ++;
+                retryCount++;
                 throw new RuntimeException("failure on purpose");
             }
         }

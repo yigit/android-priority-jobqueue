@@ -150,11 +150,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         } else {
             JqLog.d("another job with same singleId: %s was already queued", job.getSingleInstanceId());
         }
-        if(dependencyInjector != null) {
-            //inject members b4 calling onAdded
-            dependencyInjector.inject(job);
-        }
-        jobHolder.setApplicationContext(appContext);
+        setupJobHolder(jobHolder);
         jobHolder.getJob().onAdded();
         callbackManager.notifyOnAdded(jobHolder.getJob());
         if (insert) {
@@ -669,10 +665,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             if (jobHolder == null) {
                 return null;
             }
-            if (persistent && dependencyInjector != null) {
-                dependencyInjector.inject(jobHolder.getJob());
+            if (persistent){
+              setupJobHolder(jobHolder);
             }
-            jobHolder.setApplicationContext(appContext);
             jobHolder.setDeadlineIsReached(jobHolder.getDeadlineNs() <= now);
             if (jobHolder.getDeadlineNs() <= now
                     && jobHolder.shouldCancelOnDeadline()) {
@@ -682,5 +677,12 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             }
         }
         return jobHolder;
+    }
+
+    protected void setupJobHolder(JobHolder jobHolder) {
+      jobHolder.setApplicationContext(appContext);
+      if (dependencyInjector != null) {
+        dependencyInjector.inject(jobHolder.getJob());
+      }
     }
 }
