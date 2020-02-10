@@ -37,7 +37,7 @@ dependencies {
     testImplementation 'androidx.core:core:1.1.0'
     testImplementation 'com.google.android.gms:play-services-gcm:17.0.0'
 
-    implementation 'androidx.collection:collection:1.1.0'
+    api 'androidx.annotation:annotation:1.1.0'
     implementation 'com.squareup.okio:okio:1.17.5'
 
 
@@ -61,6 +61,7 @@ android {
 
     defaultConfig {
         minSdkVersion 14
+        consumerProguardFiles 'android-priority-jobqueue.pro'
     }
 
     testOptions {
