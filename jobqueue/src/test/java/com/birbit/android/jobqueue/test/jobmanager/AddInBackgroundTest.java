@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RunWith(ParameterizedRobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class AddInBackgroundTest extends JobManagerTestBase {
 
     public AddInBackgroundTest(boolean delay, boolean useCallback) {

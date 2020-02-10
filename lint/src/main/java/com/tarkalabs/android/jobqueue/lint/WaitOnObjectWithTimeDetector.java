@@ -1,4 +1,4 @@
-package com.tarkalabs.android.jobqueue.lint;
+package com.birbit.android.jobqueue.lint;
 
 import com.android.annotations.NonNull;
 import com.android.tools.lint.detector.api.*;

@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config;
 import java.util.Iterator;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class RunningJobSetTest {
     RunningJobSet set;
     @Before

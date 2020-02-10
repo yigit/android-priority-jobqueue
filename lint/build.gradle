@@ -1,4 +1,4 @@
-group 'com.tarkalabs.android.jobqueue'
+group 'com.birbit.android.jobqueue'
 version '1.0'
 
 apply plugin: 'java'
@@ -17,6 +17,6 @@ dependencies {
 
 jar {
     manifest {
-        attributes("Lint-Registry": "com.tarkalabs.android.jobqueue.lint.JobQueueDevelopmentLintRegistery")
+        attributes("Lint-Registry": "com.birbit.android.jobqueue.lint.JobQueueDevelopmentLintRegistery")
     }
 }

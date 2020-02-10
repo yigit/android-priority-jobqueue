@@ -27,7 +27,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(ParameterizedRobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class DeadlineTest extends JobManagerTestBase {
     private final boolean persistent;
     private final boolean reqNetwork;

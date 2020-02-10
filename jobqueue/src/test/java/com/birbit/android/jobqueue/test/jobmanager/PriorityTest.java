@@ -28,7 +28,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class PriorityTest extends JobManagerTestBase {
     private static CountDownLatch priorityRunLatch;
 

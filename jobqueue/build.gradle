@@ -1,19 +1,4 @@
-import java.util.regex.Pattern
-
 apply plugin: 'com.android.library'
-
-Properties releaseConfig = new Properties()
-File releaseFile = new File("${projectDir}/releaseConfig.properties")
-if (releaseFile.exists()) {
-    releaseConfig.load(new FileInputStream(releaseFile))
-}
-// for jitpack
-group = 'com.github.tarkalabs'
-ext.releaseConfig = releaseConfig
-
-apply plugin: 'maven'
-apply plugin: 'signing'
-apply plugin: 'jacoco'
 apply plugin: "com.vanniktech.maven.publish"
 
 buildscript {
@@ -44,26 +29,27 @@ configurations {
 
 dependencies {
     testImplementation 'junit:junit:4.12'
-    testImplementation "org.robolectric:robolectric:3.8"
+    testImplementation "org.robolectric:robolectric:4.3.1"
     testImplementation 'org.hamcrest:hamcrest-core:1.3'
     testImplementation 'org.easytesting:fest-util:1.2.5'
     testImplementation 'org.easytesting:fest-reflect:1.4.1'
     testImplementation 'org.mockito:mockito-core:2.19.0'
+    testImplementation 'androidx.core:core:1.1.0'
+    testImplementation 'com.google.android.gms:play-services-gcm:17.0.0'
 
-    implementation 'com.squareup.okio:okio:1.17.2'
+    implementation 'androidx.collection:collection:1.1.0'
+    implementation 'com.squareup.okio:okio:1.17.5'
+
 
     // use an old version since we only need a few util classes that were already there for a long
     // time. If app depends on a newer one, gradle will pick it for us.
     //noinspection GradleDependency
     // remove when gms moves to individual libraries
-    implementation 'androidx.collection:collection:1.1.0'
-    // build tools does not allow making this provided so we make it optional when pom is created
-    implementation 'com.google.android.gms:play-services-gcm:17.0.0'
+    compileOnly 'com.google.android.gms:play-services-gcm:17.0.0'
 }
 
 android {
-    compileSdkVersion 28
-    buildToolsVersion "28.0.3"
+    compileSdkVersion 29
     buildTypes {
         debug {
             testCoverageEnabled = true
@@ -75,87 +61,16 @@ android {
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 28
     }
 
     testOptions {
         unitTests.all {
             // All the usual Gradle options.
             jvmArgs '-Xmx2000m', '-XX:+HeapDumpOnOutOfMemoryError', "-XX:HeapDumpPath=${System.env.CIRCLE_ARTIFACTS == null ? "." : System.env.CIRCLE_ARTIFACTS}/oom.hprof"
-            jacoco {
-                includeNoLocationClasses = true
-            }
         }
     }
 
     lintOptions {
         warning 'InvalidPackage'
     }
-}
-
-//READ VERSION NAME
-def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-def pattern = Pattern.compile("versionName=\"([\\d\\.\\w\\-]+)\"")
-def manifestText = manifestFile.getText()
-def matcher = pattern.matcher(manifestText)
-matcher.find()
-def manifestVersionName = matcher.group(1)
-println "version name:${manifestVersionName}"
-
-afterEvaluate { project ->
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                pom.whenConfigured { MavenPom pom ->
-                    pom.dependencies.each {
-                        if (it.artifactId == 'play-services-gcm') {
-                            it.optional = true
-                            it.scope = "provided"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (project.tasks.findByName('androidJavadocs')) {
-        project.tasks.androidJavadocs {
-            exclude "**/strings.xml"
-        }
-    }
-}
-
-task testLint(type: Exec) {
-    workingDir project.projectDir
-    // SET ANDROID_LINT_JARS ENV VARIABLE
-    commandLine 'lint', '.', '--sources', 'src/test/java', '--disable', 'InlinedApi,AllowBackup,MissingApplicationIcon,LintError,NOTIFY_ON_OBJECT'
-}
-
-task jacocoTestReport(type: JacocoReport, dependsOn: "testDebugUnitTest") {
-    group = "Reporting"
-
-    description = "Generate Jacoco coverage reports"
-
-    classDirectories = fileTree(
-            dir: "$buildDir/intermediates/classes/debug",
-            excludes: ['**/R.class',
-                       '**/R$*.class',
-                       '**/BuildConfig.*',
-                       '**/Manifest*.*',
-                       'android/**/*.*',
-                       'com/google/**']
-    )
-
-    sourceDirectories = files(android.sourceSets.main.getJava().getSrcDirs())
-    executionData = fileTree(dir: "$buildDir", includes: [
-            "jacoco/testDebugUnitTest.exec",
-            "outputs/code-coverage/connected/*coverage.ec"
-    ])
-
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-
-    dependsOn "createDebugCoverageReport"
 }

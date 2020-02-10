@@ -31,7 +31,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class KeepAliveTest extends JobManagerTestBase {
     @Test
     public void testKeepAlive() throws Exception {

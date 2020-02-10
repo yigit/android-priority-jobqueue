@@ -21,7 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class HitDeadlineAfterException extends JobManagerTestBase {
     @Test
     public void failAndHitDeadline() throws InterruptedException {

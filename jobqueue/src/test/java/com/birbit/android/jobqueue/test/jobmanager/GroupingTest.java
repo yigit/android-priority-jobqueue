@@ -32,7 +32,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class GroupingTest extends JobManagerTestBase {
     private String addJob(JobManager jobManager, Job job) {
         jobManager.addJob(job);

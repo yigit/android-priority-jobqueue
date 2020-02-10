@@ -15,7 +15,7 @@ import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class JobParamsTest extends TestBase {
     @Test
     public void assertParamsUnderstood() {

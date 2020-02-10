@@ -25,7 +25,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class CountTest extends JobManagerTestBase {
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     @Test
