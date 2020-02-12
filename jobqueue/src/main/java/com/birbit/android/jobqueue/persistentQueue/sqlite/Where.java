@@ -14,6 +14,7 @@ public class Where {
     private SQLiteStatement countReadyStmt;
     private String findJobsQuery;
     private SQLiteStatement nextJobDelayUntilStmt;
+    private SQLiteStatement countJobsStmt;
     private String nextJobQuery;
     private String findJobsToScheduleQuery;
     static final String NEVER = Long.toString(Params.NEVER);
@@ -48,6 +49,23 @@ public class Where {
             countReadyStmt.bindString(i, args[i - 1]);
         }
         return countReadyStmt;
+    }
+
+    public SQLiteStatement countJobs(SQLiteDatabase database, StringBuilder stringBuilder) {
+        if (countJobsStmt == null) {
+            stringBuilder.setLength(0);
+            stringBuilder.append("SELECT count(*) FROM ")
+                    .append(DbOpenHelper.JOB_HOLDER_TABLE_NAME)
+                    .append(" WHERE ")
+                    .append(query);
+            countJobsStmt = database.compileStatement(stringBuilder.toString());
+        } else {
+            countJobsStmt.clearBindings();
+        }
+        for (int i = 1; i <= args.length; i++) {
+            countJobsStmt.bindString(i, args[i - 1]);
+        }
+        return countJobsStmt;
     }
 
     public SQLiteStatement nextJobDelayUntil(SQLiteDatabase database, SqlHelper sqlHelper) {

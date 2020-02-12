@@ -14,7 +14,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class PersistentJobTest extends JobManagerTestBase {
     //TEST parallel running
     public static CountDownLatch persistentRunLatch = new CountDownLatch(1);

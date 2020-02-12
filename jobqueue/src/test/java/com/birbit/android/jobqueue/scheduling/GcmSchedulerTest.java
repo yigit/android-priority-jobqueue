@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class GcmSchedulerTest {
     GcmScheduler gcmScheduler;

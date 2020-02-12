@@ -11,7 +11,7 @@ import org.robolectric.*;
 import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class CachedPersistentJobQueueTest extends JobQueueTestBase {
     public CachedPersistentJobQueueTest() {
         super(new JobQueueFactory() {

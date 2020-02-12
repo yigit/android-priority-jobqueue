@@ -7,15 +7,15 @@ import com.birbit.android.jobqueue.TagConstraint;
 import com.birbit.android.jobqueue.WrongThreadException;
 import com.birbit.android.jobqueue.test.jobs.DummyJob;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class AssertThreadsTest extends JobManagerTestBase {
     JobManager jobManager;
 
@@ -85,6 +85,16 @@ public class AssertThreadsTest extends JobManagerTestBase {
             @Override
             public void run() {
                 jobManager.clear();
+            }
+        });
+    }
+
+    @Test
+    public void testCountJobsForTag() throws InterruptedException {
+        assertFailure(new Runnable() {
+            @Override
+            public void run() {
+                jobManager.countJobsForTag();
             }
         });
     }

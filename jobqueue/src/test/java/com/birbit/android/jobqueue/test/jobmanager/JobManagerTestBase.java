@@ -47,9 +47,12 @@ import static org.hamcrest.CoreMatchers.is;
 public class JobManagerTestBase extends TestBase {
     List<JobManager> createdJobManagers = new ArrayList<JobManager>();
     final MockTimer mockTimer = new MockTimer();
-    @Rule public CleanupRule cleanup = new CleanupRule(this);
-    @Rule public Timeout timeout = Timeout.seconds(getTimeout());
-    @Rule public CollectLogsRule collectLogsRule = new CollectLogsRule();
+    @Rule
+    public CleanupRule cleanup = new CleanupRule(this);
+    @Rule
+    public Timeout timeout = Timeout.seconds(getTimeout());
+    @Rule
+    public CollectLogsRule collectLogsRule = new CollectLogsRule();
 
 
     protected int getActiveConsumerCount(JobManager jobManager) {
@@ -61,18 +64,18 @@ public class JobManagerTestBase extends TestBase {
     }
 
     protected JobManager createJobManager() {
-        if(createdJobManagers.size() > 0) {
+        if (createdJobManagers.size() > 0) {
             throw new AssertionError("only 1 job manager per test");
         }
         final JobManager jobManager = createJobManager(new Configuration.Builder(RuntimeEnvironment.application)
-            .timer(mockTimer)
-            .inTestMode());
+                .timer(mockTimer)
+                .inTestMode());
         createdJobManagers.add(jobManager);
         return jobManager;
     }
 
     protected JobManager createJobManager(Configuration.Builder configurationBuilder) {
-        if(createdJobManagers.size() > 0) {
+        if (createdJobManagers.size() > 0) {
             throw new AssertionError("only 1 job manager per test");
         }
         if (BuildConfig.DEBUG) {
@@ -166,8 +169,28 @@ public class JobManagerTestBase extends TestBase {
     }
 
 
+    protected interface WaitUntilCallback {
+        void run();
+
+        void assertJob(Job job);
+    }
+
+    protected static class DummyNetworkUtil implements NetworkUtil {
+        private int networkStatus;
+
+        protected void setNetworkStatus(int networkStatus) {
+            this.networkStatus = networkStatus;
+        }
+
+        @Override
+        public int getNetworkStatus(Context context) {
+            return networkStatus;
+        }
+    }
+
     protected static class DummyJobWithRunCount extends DummyJob {
         public static int runCount;
+
         protected DummyJobWithRunCount(boolean persistent) {
             super(new Params(0).setPersistent(persistent));
         }
@@ -190,16 +213,15 @@ public class JobManagerTestBase extends TestBase {
         }
     }
 
-    protected static class DummyNetworkUtil implements NetworkUtil {
-        private int networkStatus;
+    protected static class ObjectReference {
+        Object object;
 
-        protected void setNetworkStatus(int networkStatus) {
-            this.networkStatus = networkStatus;
+        Object getObject() {
+            return object;
         }
 
-        @Override
-        public int getNetworkStatus(Context context) {
-            return networkStatus;
+        void setObject(Object object) {
+            this.object = object;
         }
     }
 
@@ -210,7 +232,7 @@ public class JobManagerTestBase extends TestBase {
 
         protected void setNetworkStatus(int networkStatus, boolean notifyListener) {
             this.networkStatus = networkStatus;
-            if(notifyListener && listener != null) {
+            if (notifyListener && listener != null) {
                 listener.onNetworkChange(networkStatus);
             }
         }
@@ -232,47 +254,6 @@ public class JobManagerTestBase extends TestBase {
         @Override
         public void setListener(Listener listener) {
             this.listener = listener;
-        }
-    }
-
-    protected static class ObjectReference {
-        Object object;
-
-        Object getObject() {
-            return object;
-        }
-
-        void setObject(Object object) {
-            this.object = object;
-        }
-    }
-
-    public static class NeverEndingDummyJob extends DummyJob {
-        // used for cleanup
-        static List<NeverEndingDummyJob> createdJobs = new ArrayList<>();
-        final CountDownLatch lock;
-        final Semaphore semaphore;
-        public NeverEndingDummyJob(Params params, CountDownLatch lock, Semaphore semaphore) {
-            super(params);
-            this.lock = lock;
-            this.semaphore = semaphore;
-            createdJobs.add(this);
-        }
-
-        @TargetApi(Build.VERSION_CODES.GINGERBREAD)
-        @Override
-        public void onRun() throws Throwable {
-            super.onRun();
-            MatcherAssert.assertThat("job should be able to acquire a semaphore",
-                    semaphore.tryAcquire(), equalTo(true));
-            lock.await(1, TimeUnit.MINUTES);
-            semaphore.release();
-        }
-
-        public static void unlockAll() {
-            for (NeverEndingDummyJob job : createdJobs) {
-                job.lock.countDown();
-            }
         }
     }
 
@@ -329,8 +310,34 @@ public class JobManagerTestBase extends TestBase {
         MatcherAssert.assertThat("The job should be done", runJob.await(1, TimeUnit.MINUTES), is(true));
         MatcherAssert.assertThat("Job assertion failed", throwable[0], CoreMatchers.nullValue());
     }
-    protected interface WaitUntilCallback {
-        void run();
-        void assertJob(Job job);
+
+    public static class NeverEndingDummyJob extends DummyJob {
+        // used for cleanup
+        static List<NeverEndingDummyJob> createdJobs = new ArrayList<>();
+        final CountDownLatch lock;
+        final Semaphore semaphore;
+
+        public NeverEndingDummyJob(Params params, CountDownLatch lock, Semaphore semaphore) {
+            super(params);
+            this.lock = lock;
+            this.semaphore = semaphore;
+            createdJobs.add(this);
+        }
+
+        @TargetApi(Build.VERSION_CODES.GINGERBREAD)
+        @Override
+        public void onRun() throws Throwable {
+            super.onRun();
+            MatcherAssert.assertThat("job should be able to acquire a semaphore",
+                    semaphore.tryAcquire(), equalTo(true));
+            lock.await(1, TimeUnit.MINUTES);
+            semaphore.release();
+        }
+
+        public static void unlockAll() {
+            for (NeverEndingDummyJob job : createdJobs) {
+                job.lock.countDown();
+            }
+        }
     }
 }

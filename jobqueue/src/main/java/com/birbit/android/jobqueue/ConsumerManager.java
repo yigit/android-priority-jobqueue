@@ -67,7 +67,7 @@ class ConsumerManager {
             = new CopyOnWriteArrayList<>();
 
     ConsumerManager(JobManagerThread jobManagerThread, Timer timer, MessageFactory factory,
-            Configuration configuration) {
+                    Configuration configuration) {
         this.jobManagerThread = jobManagerThread;
         this.timer = timer;
         this.factory = factory;
@@ -221,7 +221,7 @@ class ConsumerManager {
             final boolean tooMany = consumers.size() > minConsumerCount;
             boolean kill = !running || (tooMany && keepAliveTimeout < timer.nanoTime());
             JqLog.v("Consumer idle, will kill? %s. isRunning: %s. too many? %s timeout: %s now: %s",
-                    kill, running, tooMany, keepAliveTimeout, timer.nanoTime() );
+                    kill, running, tooMany, keepAliveTimeout, timer.nanoTime());
             if (kill) {
                 CommandMessage command = factory.obtain(CommandMessage.class);
                 command.set(CommandMessage.QUIT);
@@ -288,7 +288,7 @@ class ConsumerManager {
     }
 
     void handleRunJobResult(RunJobResultMessage message, JobHolder jobHolder,
-            RetryConstraint retryConstraint) {
+                            RetryConstraint retryConstraint) {
         Consumer consumer = (Consumer) message.getWorker();
         if (!consumer.hasJob) {
             throw new IllegalStateException("this worker should not have a job");
@@ -319,7 +319,7 @@ class ConsumerManager {
             if (!jobHolder.getJob().isPersistent()) {
                 continue;
             }
-            if(constraint.getNetworkStatus() >= jobHolder.requiredNetworkType) {
+            if (constraint.getNetworkStatus() >= jobHolder.requiredNetworkType) {
                 return true;
             }
         }
@@ -382,7 +382,7 @@ class ConsumerManager {
         }
 
         public Consumer(MessageQueue parentMessageQueue, SafeMessageQueue messageQueue,
-                MessageFactory factory, Timer timer) {
+                        MessageFactory factory, Timer timer) {
             this.messageQueue = messageQueue;
             this.factory = factory;
             this.parentMessageQueue = parentMessageQueue;

@@ -32,7 +32,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 @RunWith(ParameterizedRobolectricTestRunner.class)
-@Config(constants = com.birbit.android.jobqueue.BuildConfig.class)
+
 public class SchedulerSimpleTestCase extends JobManagerTestBase {
     final boolean persistent;
     final boolean requireNetwork;

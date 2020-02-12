@@ -38,7 +38,7 @@ public class BatchingScheduler extends Scheduler {
      * This constructor uses 15 minutes as the batching range.
      *
      * @param delegate The actual scheduler
-     * @param timer The Timer instance used by the JobManager
+     * @param timer    The Timer instance used by the JobManager
      */
     public BatchingScheduler(Scheduler delegate, Timer timer) {
         this(delegate, timer, DEFAULT_BATCHING_PERIOD_IN_MS);
@@ -48,8 +48,8 @@ public class BatchingScheduler extends Scheduler {
      * Creates a scheduler that wraps another scheduler and batches similar jobs into a single
      * request to minimize IPC.
      *
-     * @param delegate The actual scheduler
-     * @param timer The Timer instance used by the JobManager
+     * @param delegate             The actual scheduler
+     * @param timer                The Timer instance used by the JobManager
      * @param batchingDurationInMs Jobs whose criteria match and execution period is within this
      *                             value will be merged into 1 request.
      */

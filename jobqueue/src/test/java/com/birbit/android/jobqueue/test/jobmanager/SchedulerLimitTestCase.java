@@ -123,7 +123,7 @@ public class SchedulerLimitTestCase extends JobManagerTestBase {
         Mockito.verify(scheduler, times(1)).request(ArgumentMatchers.any(SchedulerConstraint.class));
 
         cancelLatch.await(30, TimeUnit.SECONDS);
-        Thread.sleep(500);
+        Thread.sleep(1000);
         Mockito.verify(scheduler, times(2)).request(ArgumentMatchers.any(SchedulerConstraint.class));
     }
 

@@ -257,6 +257,13 @@ public class SqliteJobQueue implements JobQueue {
         return (int) result;
     }
 
+    @Override
+    public int countJobs(Constraint constraint) {
+        final Where where = createWhere(constraint);
+        final long result = where.countJobs(db, reusedStringBuilder).simpleQueryForLong();
+        return (int) result;
+    }
+
     /**
      * {@inheritDoc}
      */

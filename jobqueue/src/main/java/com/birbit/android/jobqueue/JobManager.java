@@ -430,6 +430,23 @@ public class JobManager {
     }
 
     /**
+     * Returns number of jobs that are in JobManager and are waiting queue to be executed which were added with given tag.
+     * <p>
+     * You cannot call this method on the main thread because it may potentially block it for a long
+     * time.
+     *
+     * @param tags whose job count is required.
+     * @return The number of jobs that are in job manager and are ready to be executed but waiting in the queue.
+     */
+    public int countJobsForTag(String... tags) {
+        assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call countJobsForTag sync method on JobManager's thread");
+        PublicQueryMessage message = messageFactory.obtain(PublicQueryMessage.class);
+        message.set(PublicQueryMessage.COUNT_FOR_TAG, tags, null);
+        return new IntQueryFuture<>(messageQueue, message).getSafe();
+    }
+
+    /**
      * Returns the current status of a given job
      * <p>
      * You cannot call this method on the main thread because it may potentially block it for a long
@@ -500,7 +517,7 @@ public class JobManager {
 
     @SuppressWarnings("WeakerAccess")
     static class IntQueryFuture<T extends Message & IntCallback.MessageWithCallback>
-            implements Future<Integer>,IntCallback {
+            implements Future<Integer>, IntCallback {
         final MessageQueue messageQueue;
         volatile Integer result = null;
         final CountDownLatch latch = new CountDownLatch(1);

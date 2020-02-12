@@ -146,4 +146,12 @@ public interface JobQueue {
      */
     @NonNull
     Set<JobHolder> findJobsAndMarkScheduled(@NonNull Constraint constraint, int limit);
+
+    /**
+     * counts the # of jobs in jobManager
+     *
+     * @param constraint The constraint to match the jobs
+     * @return The number of jobs that are wither ready to run or scheduled to run.
+     */
+    int countJobs(Constraint constraint);
 }
