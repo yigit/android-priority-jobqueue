@@ -436,6 +436,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             case PublicQueryMessage.INTERNAL_RUNNABLE:
                 message.getCallback().onResult(0);
                 break;
+            case PublicQueryMessage.COUNT_FOR_TAG:
+                message.getCallback().onResult(countJobsForTags(message.getTags()));
+                break;
             default:
                 throw new IllegalArgumentException("cannot handle public query with type " +
                         message.getWhat());
@@ -636,6 +639,15 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
         total += nonPersistentJobQueue.countReadyJobs(queryConstraint);
         total += persistentJobQueue.countReadyJobs(queryConstraint);
         return total;
+    }
+
+    private int countJobsForTags(String[] tags) {
+        queryConstraint.clear();
+        queryConstraint.setExcludeRunning(false);
+        queryConstraint.setExcludeDependent(false);
+        queryConstraint.setTags(tags);
+        queryConstraint.setTagConstraint(TagConstraint.ALL);
+        return persistentJobQueue.countJobs(queryConstraint);
     }
 
     @NetworkUtil.NetworkStatus

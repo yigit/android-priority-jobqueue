@@ -209,7 +209,7 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
         throw new RuntimeException("Operation not supported yet.");
     }
 
-    private static boolean matches(JobHolder holder, Constraint constraint, boolean acceptAnyDeadline) {
+    private boolean matches(JobHolder holder, Constraint constraint, boolean acceptAnyDeadline) {
         boolean hitDeadline = constraint.getNowInNs() >= holder.getDeadlineNs()
                 || (acceptAnyDeadline && holder.hasDeadline());
         if (!hitDeadline) {
@@ -232,12 +232,26 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
                         !constraint.getTagConstraint().matches(constraint.getTags(), holder.getTags()))) {
             return false;
         }
+//        if (constraint.excludeDependent() && holder.getDependeeTags() != null && !holder.getDependeeTags().isEmpty()) {
+//            Set<String> tags = new HashSet<>();
+//            for (JobHolder job : jobs) {
+//                tags.addAll(job.getTags());
+//            }
+//            if (TagConstraint.ANY.matches(tags, holder.getDependeeTags())) {
+//                return false;
+//            }
+//        }
         return true;
     }
 
     @NonNull
     @Override
     public Set<JobHolder> findJobsAndMarkScheduled(@NonNull Constraint constraint, int limit) {
+        throw new RuntimeException("Operation not supported yet.");
+    }
+
+    @Override
+    public int countJobs(Constraint constraint) {
         throw new RuntimeException("Operation not supported yet.");
     }
 }

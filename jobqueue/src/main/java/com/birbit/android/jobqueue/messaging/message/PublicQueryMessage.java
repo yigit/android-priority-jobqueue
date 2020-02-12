@@ -13,12 +13,14 @@ public class PublicQueryMessage extends Message implements IntCallback.MessageWi
     public static final int CLEAR = 5;
     public static final int ACTIVE_CONSUMER_COUNT = 6;
     public static final int SCHEDULER_START = 7;
+    public static final int COUNT_FOR_TAG = 8;
     // used for testing
     public static final int INTERNAL_RUNNABLE = 101;
 
     private IntCallback callback;
     private int what = -1;
     private String stringArg;
+    private String[] tags;
 
     public PublicQueryMessage() {
         super(Type.PUBLIC_QUERY);
@@ -35,6 +37,12 @@ public class PublicQueryMessage extends Message implements IntCallback.MessageWi
         this.callback = callback;
     }
 
+    public void set(int what, String[] tags, IntCallback intCallback) {
+        this.what = what;
+        this.tags = tags;
+        this.callback = intCallback;
+    }
+
     public IntCallback getCallback() {
         return callback;
     }
@@ -45,6 +53,10 @@ public class PublicQueryMessage extends Message implements IntCallback.MessageWi
 
     public String getStringArg() {
         return stringArg;
+    }
+
+    public String[] getTags() {
+        return tags;
     }
 
     public void setCallback(IntCallback callback) {
