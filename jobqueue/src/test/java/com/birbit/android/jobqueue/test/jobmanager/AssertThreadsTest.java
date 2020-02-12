@@ -94,7 +94,7 @@ public class AssertThreadsTest extends JobManagerTestBase {
         assertFailure(new Runnable() {
             @Override
             public void run() {
-                jobManager.countJobsForTag(null);
+                jobManager.countJobsForTag();
             }
         });
     }
