@@ -168,8 +168,8 @@ Maven:
 
 ``` xml
 <dependency>
-    <groupId>com.birbit</groupId>
-    <artifactId>android-priority-jobqueue</artifactId>
+    <groupId>com.tarkalabs</groupId>
+    <artifactId>jobqueue</artifactId>
     <version>3.0.1</version>
 </dependency>
 ```
@@ -183,6 +183,9 @@ We highly recommend checking how you can configure job manager and individual jo
 * [Review sample configuration][7]
 
 ### Version History
+  - 3.0.1 (Feb 12, 2020)
+   - Now you can schedule more than 100 jobs with With framework schedulars.
+   - Added new method to count jobs in JobManager by tags. `JobManager.countJobsForTag(String... tags)`
   - 3.0.0 (Jan 20, 2020)
    - Updated to AndroidX dependencies
   - 2.0.1 (Oct 11, 2016)
