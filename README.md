@@ -163,7 +163,7 @@ At Path, we use [greenrobot's EventBus](https://github.com/greenrobot/EventBus);
 We distribute artifacts through maven central repository.
 
 ### AndroidX Version
-Gradle: `compile 'com.birbit:android-priority-jobqueue:3.0.1'`
+Gradle: `implementation 'com.tarkalabs:jobqueue:3.0.1'`
 Maven:
 
 ``` xml
