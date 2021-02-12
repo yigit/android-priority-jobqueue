@@ -116,7 +116,6 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
 
     private void handleAddJob(AddJobMessage message) {
         Job job = message.getJob();
-        //noinspection deprecation
         long now = timer.nanoTime();
         long delayUntilNs = job.getDelayInMs() > 0
                 ? now + job.getDelayInMs() * NS_PER_MS
@@ -528,7 +527,7 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
             int limit = pendingCancelHandlers.size();
             for (int i = 0; i < limit; i++) {
                 CancelHandler handler = pendingCancelHandlers.get(i);
-                handler.onJobRun(jobHolder, result);
+                handler.onJobRun(this, jobHolder, result);
                 if (handler.isDone()) {
                     handler.commit(this);
                     pendingCancelHandlers.remove(i);

@@ -5,36 +5,50 @@ import com.birbit.android.jobqueue.network.NetworkUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Temporary object to keep track of cancel handling
  */
 class CancelHandler {
-    private Set<String> running;
+    private Set<JobHolder> running;
     private final TagConstraint tagConstraint;
     private final String[] tags;
     private final Collection<JobHolder> cancelled;
-    private final Collection<JobHolder> dependentCancelled;
+    private final Set<JobHolder> dependentCancelled;
     private final Collection<JobHolder> failedToCancel;
+    private final Map<JobHolder, Set<JobHolder>> dependentOfRunning;
     private final CancelResult.AsyncCancelCallback callback;
 
     CancelHandler(TagConstraint constraint, String[] tags, CancelResult.AsyncCancelCallback callback) {
         this.tagConstraint = constraint;
         this.tags = tags;
         cancelled = new ArrayList<>();
-        dependentCancelled = new ArrayList<>();
+        dependentCancelled = new HashSet<>();
         failedToCancel = new ArrayList<>();
+        dependentOfRunning = new HashMap<>();
         this.callback = callback;
     }
 
     void query(JobManagerThread jobManagerThread, ConsumerManager consumerManager) {
         running = consumerManager.markJobsCancelled(tagConstraint, tags);
+
+        Set<String> runningJobIds = new HashSet<>(running.size());
+        for (JobHolder jobHolder : running) {
+            runningJobIds.add(jobHolder.id);
+            if (jobHolder.persistent) {
+                dependentOfRunning.put(jobHolder, jobManagerThread.persistentJobQueue.findDependentJobs(jobHolder));
+            }
+        }
         Constraint queryConstraint = jobManagerThread.queryConstraint;
         queryConstraint.clear();
         queryConstraint.setNowInNs(jobManagerThread.timer.nanoTime());
         queryConstraint.setTagConstraint(tagConstraint);
-        queryConstraint.setExcludeJobIds(running);
+
+        queryConstraint.setExcludeJobIds(runningJobIds);
         queryConstraint.setTags(tags);
         queryConstraint.setExcludeRunning(true);
         queryConstraint.setMaxNetworkType(NetworkUtil.UNMETERED);
@@ -44,6 +58,7 @@ class CancelHandler {
                 .findJobs(queryConstraint);
         Set<JobHolder> persistedDependentInQueue = jobManagerThread.persistentJobQueue
                 .findDependentJobs(persistentInQueue);
+
         for (JobHolder nonPersistent : nonPersistentInQueue) {
             nonPersistent.markAsCancelled();
             cancelled.add(nonPersistent);
@@ -55,9 +70,7 @@ class CancelHandler {
             jobManagerThread.persistentJobQueue.onJobCancelled(persistent);
         }
         for (JobHolder dependent : persistedDependentInQueue) {
-            dependent.markAsCancelled();
-            dependentCancelled.add(dependent);
-            jobManagerThread.persistentJobQueue.onJobCancelled(dependent);
+            cancelDependentJob(jobManagerThread, dependent);
         }
     }
 
@@ -116,16 +129,32 @@ class CancelHandler {
         }
     }
 
-    void onJobRun(JobHolder holder, int resultCode) {
+    void onJobRun(JobManagerThread jobManagerThread, JobHolder holder, int resultCode) {
         final boolean exists;
-        exists = running.remove(holder.getId());
+        exists = running.remove(holder);
         if (exists) {
             if (resultCode == JobHolder.RUN_RESULT_FAIL_FOR_CANCEL) {
+                if (holder.persistent) {
+                    final Set<JobHolder> dependentJobs = dependentOfRunning.get(holder);
+                    if (dependentJobs != null) {
+                        for (JobHolder dependent : dependentJobs) {
+                            if (!dependentCancelled.contains(dependent)) {
+                                cancelDependentJob(jobManagerThread, dependent);
+                            }
+                        }
+                    }
+                }
                 cancelled.add(holder);
             } else {
                 failedToCancel.add(holder);
             }
         }
+    }
+
+    private void cancelDependentJob(JobManagerThread jobManagerThread, JobHolder dependent) {
+        dependent.markAsCancelled();
+        dependentCancelled.add(dependent);
+        jobManagerThread.persistentJobQueue.onJobCancelled(dependent);
     }
 
     boolean isDone() {
