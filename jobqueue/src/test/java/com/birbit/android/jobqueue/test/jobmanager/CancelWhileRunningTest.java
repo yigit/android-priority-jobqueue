@@ -1,5 +1,6 @@
 package com.birbit.android.jobqueue.test.jobmanager;
 
+import androidx.annotation.NonNull;
 import com.birbit.android.jobqueue.CancelResult;
 import com.birbit.android.jobqueue.Job;
 import com.birbit.android.jobqueue.JobManager;
@@ -13,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
-import org.robolectric.annotation.Config;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +22,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
-
 public class CancelWhileRunningTest extends JobManagerTestBase {
     @Test
     public void testCancelBeforeRunning() throws InterruptedException {
@@ -35,10 +34,13 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
         DummyJob persistentJob1 = new PersistentJobWithEndLatch(new Params(0).addTags("dummyTag"), false);
         DummyJob persistentJob2 = new PersistentJobWithEndLatch(new Params(0).addTags("dummyTag"), true);
 
+        DummyJob persistentDependeeJob = new PersistentJobWithEndLatch(new Params(0).addDependeeTags("dummyTag"), false);
+
         jobManager.addJob(nonPersistent1);
         jobManager.addJob(nonPersistent2);
         jobManager.addJob(persistentJob1);
         jobManager.addJob(persistentJob2);
+        jobManager.addJob(persistentDependeeJob);
 
         onStartLatch.await();
         nonPersistent1.onStartLatch.await();
@@ -97,6 +99,8 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
             }
         }
 
+        assertThat("Persistent Dependent Job did not get cancelled when running dependee job cancelled", result.getCancelledDependentJobs().size(), is(1));
+
         assertThat("second cancel should not cancel anything",
                 resultHolder[1].getCancelledJobs().size(), is(0));
         assertThat("second cancel should not cancel anything",
@@ -154,7 +158,7 @@ public class CancelWhileRunningTest extends JobManagerTestBase {
             this.fail = fail;
         }
 
-        @Override
+        @NonNull @Override
         public String toString() {
             return getClass().getSimpleName() + "[" +id + "](" + System.identityHashCode(this) + ")";
         }
