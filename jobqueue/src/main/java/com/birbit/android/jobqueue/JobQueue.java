@@ -154,4 +154,6 @@ public interface JobQueue {
      * @return The number of jobs that are wither ready to run or scheduled to run.
      */
     int countJobs(Constraint constraint);
+
+    Set<JobHolder> findJobsByTags(String[] tags);
 }

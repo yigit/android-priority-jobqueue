@@ -6,6 +6,7 @@ import com.birbit.android.jobqueue.messaging.message.CancelMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelResultMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
+import com.birbit.android.jobqueue.messaging.message.JobStatusByTagsMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobMessage;
@@ -29,7 +30,8 @@ public enum Type {
     CANCEL(CancelMessage.class, 1),
     CONSTRAINT_CHANGE(ConstraintChangeMessage.class, 2),
     RUN_JOB_RESULT(RunJobResultMessage.class, 3),
-    SCHEDULER(SchedulerMessage.class, 4);
+    SCHEDULER(SchedulerMessage.class, 4),
+    JOB_STATUS_BY_TAGS(JobStatusByTagsMessage.class, 0);
     final Class<? extends Message> klass;
     final static Map<Class<? extends Message>, Type> mapping;
     final int priority; // higher is better

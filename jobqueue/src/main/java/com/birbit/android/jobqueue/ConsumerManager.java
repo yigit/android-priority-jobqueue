@@ -17,6 +17,8 @@ import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -308,6 +310,18 @@ class ConsumerManager {
 
     boolean isJobRunning(String id) {
         return runningJobHolders.get(id) != null;
+    }
+
+    List<JobHolder> getRunningJobs(String[] tags) {
+        List<String> tagsList = Arrays.asList(tags);
+        Collection<JobHolder> jobHolders = runningJobHolders.values();
+        List<JobHolder> runningJobs = new ArrayList<>();
+        for (JobHolder jobHolder : jobHolders) {
+            if (jobHolder.tags != null && jobHolder.tags.containsAll(tagsList)) {
+                runningJobs.add(jobHolder);
+            }
+        }
+        return runningJobs;
     }
 
     public int getWorkerCount() {

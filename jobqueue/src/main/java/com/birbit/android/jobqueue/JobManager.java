@@ -13,11 +13,16 @@ import com.birbit.android.jobqueue.messaging.PriorityMessageQueue;
 import com.birbit.android.jobqueue.messaging.message.AddJobMessage;
 import com.birbit.android.jobqueue.messaging.message.CancelMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
+import com.birbit.android.jobqueue.messaging.message.JobStatusByTagsMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
 import com.birbit.android.jobqueue.scheduling.Scheduler;
 import com.birbit.android.jobqueue.scheduling.SchedulerConstraint;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -464,6 +469,15 @@ public class JobManager {
         return JobStatus.values()[status];
     }
 
+    public Map<Job, JobStatus> getJobStatus(String... tags) {
+        assertNotInMainThread();
+        assertNotInJobManagerThread("Cannot call getJobStatus on JobManager's thread");
+        JobStatusByTagsMessage message = messageFactory.obtain(JobStatusByTagsMessage.class);
+        message.setTags(tags);
+        return new MapQueryFuture<Job, JobStatus, JobStatusByTagsMessage>(messageQueue,
+            message).getSafe();
+    }
+
     /**
      * Clears all waiting Jobs in the JobManager. Note that this won't touch any job that is
      * currently running.
@@ -570,6 +584,64 @@ public class JobManager {
 
         @Override
         public void onResult(int result) {
+            this.result = result;
+            latch.countDown();
+        }
+    }
+
+    static class MapQueryFuture<K, V, T extends Message & MapCallback.MessageWithCallback>
+        implements Future<Map<K, V>>, MapCallback<K, V> {
+        final MessageQueue messageQueue;
+        volatile Map<K, V> result = null;
+        final CountDownLatch latch = new CountDownLatch(1);
+        final T message;
+
+        MapQueryFuture(MessageQueue messageQueue, T message) {
+            this.messageQueue = messageQueue;
+            this.message = message;
+            message.setCallback(this);
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return latch.getCount() == 0;
+        }
+
+        Map<K, V> getSafe() {
+            try {
+                return get();
+            } catch (Throwable t) {
+                JqLog.e(t, "message is not complete");
+            }
+            throw new RuntimeException("cannot get the result of the JobManager query");
+        }
+
+        @Override
+        public Map<K, V> get() throws InterruptedException, ExecutionException {
+            messageQueue.post(message);
+            latch.await();
+            return result;
+        }
+
+        @Override
+        public Map<K, V> get(long timeout, @NonNull TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
+            messageQueue.post(message);
+            latch.await(timeout, unit);
+            return result;
+        }
+
+        @Override public void onResult(Map<K, V> result) {
             this.result = result;
             latch.countDown();
         }

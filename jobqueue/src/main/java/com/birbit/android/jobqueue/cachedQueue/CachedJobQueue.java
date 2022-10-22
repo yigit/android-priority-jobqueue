@@ -134,4 +134,8 @@ public class CachedJobQueue implements JobQueue {
     public int countJobs(Constraint constraint) {
         return delegate.countJobs(constraint);
     }
+
+    @Override public Set<JobHolder> findJobsByTags(String[] tags) {
+        return delegate.findJobsByTags(tags);
+    }
 }

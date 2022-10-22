@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -609,6 +610,39 @@ public class SqliteJobQueue implements JobQueue {
             }
         }
         return dependentJobs;
+    }
+
+
+    @Override public Set<JobHolder> findJobsByTags(String[] tags) {
+        final Set<JobHolder> jobs = new HashSet<>();
+        final Set<JobHolder> jobsCache = new HashSet<>();
+        Set<String> tagsCache = new HashSet<>(Arrays.asList(tags));
+        while (!tagsCache.isEmpty()) {
+            String query = sqlHelper.getJobsByTagsQuery(tagsCache.size());
+            Cursor cursor = db.rawQuery(query, tagsCache.toArray(new String[0]));
+
+            try {
+                while (cursor.moveToNext()) {
+                    jobsCache.add(createJobHolderFromCursor(cursor));
+                }
+            } catch (InvalidJobException e) {
+                JqLog.e(e, "invalid dependent job found by tags.");
+            } finally {
+                cursor.close();
+            }
+
+            tagsCache.clear();
+            if (!jobsCache.isEmpty()) {
+                jobs.addAll(jobsCache);
+                for (JobHolder jobHolder : jobsCache) {
+                    if (jobHolder.hasTags()) {
+                        tagsCache.addAll(jobHolder.getTags());
+                    }
+                }
+                jobsCache.clear();
+            }
+        }
+        return jobs;
     }
 
     private Job safeDeserialize(byte[] bytes) {

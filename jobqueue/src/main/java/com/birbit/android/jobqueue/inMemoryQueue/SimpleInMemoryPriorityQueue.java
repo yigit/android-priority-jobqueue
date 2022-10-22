@@ -254,4 +254,8 @@ public class SimpleInMemoryPriorityQueue implements JobQueue {
     public int countJobs(Constraint constraint) {
         throw new RuntimeException("Operation not supported yet.");
     }
+
+    @Override public Set<JobHolder> findJobsByTags(String[] tags) {
+        throw new RuntimeException("Operation not supported yet.");
+    }
 }

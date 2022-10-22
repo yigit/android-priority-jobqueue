@@ -332,6 +332,24 @@ public class SqlHelper {
         return createSelect(where, null);
     }
 
+    public String getJobsByTagsQuery(int tagsLength) {
+        reusedStringBuilder.setLength(0);
+        reusedStringBuilder
+            .append(DbOpenHelper.ID_COLUMN.columnName)
+            .append(" IN (SELECT DISTINCT ")
+            .append(DbOpenHelper.TAGS_JOB_ID_COLUMN.columnName)
+            .append(" FROM ")
+            .append(DbOpenHelper.JOB_TAGS_TABLE_NAME)
+            .append(" WHERE ")
+            .append(DbOpenHelper.TAGS_NAME_COLUMN.columnName)
+            .append(" IN (");
+        addPlaceholdersInto(reusedStringBuilder, tagsLength);
+        reusedStringBuilder.append("))");
+
+        String where = reusedStringBuilder.toString();
+        return createSelect(where, null);
+    }
+
     public void truncate() {
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_HOLDER_TABLE_NAME);
         db.execSQL("DELETE FROM " + DbOpenHelper.JOB_TAGS_TABLE_NAME);

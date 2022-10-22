@@ -15,6 +15,7 @@ import com.birbit.android.jobqueue.messaging.message.CancelMessage;
 import com.birbit.android.jobqueue.messaging.message.CommandMessage;
 import com.birbit.android.jobqueue.messaging.message.ConstraintChangeMessage;
 import com.birbit.android.jobqueue.messaging.message.JobConsumerIdleMessage;
+import com.birbit.android.jobqueue.messaging.message.JobStatusByTagsMessage;
 import com.birbit.android.jobqueue.messaging.message.PublicQueryMessage;
 import com.birbit.android.jobqueue.messaging.message.RunJobResultMessage;
 import com.birbit.android.jobqueue.messaging.message.SchedulerMessage;
@@ -26,7 +27,9 @@ import com.birbit.android.jobqueue.timer.Timer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -269,6 +272,9 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                     case PUBLIC_QUERY:
                         handlePublicQuery((PublicQueryMessage) message);
                         break;
+                    case JOB_STATUS_BY_TAGS:
+                        getJobStatusByTags((JobStatusByTagsMessage) message);
+                        break;
                     case COMMAND:
                         handleCommand((CommandMessage) message);
                         break;
@@ -442,6 +448,29 @@ class JobManagerThread implements Runnable, NetworkEventProvider.Listener {
                 throw new IllegalArgumentException("cannot handle public query with type " +
                         message.getWhat());
         }
+    }
+
+    private void getJobStatusByTags(JobStatusByTagsMessage message) {
+        List<JobHolder> runningJobs = consumerManager.getRunningJobs(message.tags);
+
+        Set<JobHolder> jobsByTags = persistentJobQueue.findJobsByTags(message.tags);
+        final int networkStatus = getNetworkStatus();
+        final long now = timer.nanoTime();
+        Map<Job, JobStatus> jobStatusMap = new HashMap<>();
+        for (JobHolder holder : jobsByTags) {
+            if (networkStatus < holder.requiredNetworkType) {
+                jobStatusMap.put(holder.job, JobStatus.WAITING_NOT_READY);
+            } else if (holder.getDelayUntilNs() > now) {
+                jobStatusMap.put(holder.job, JobStatus.WAITING_NOT_READY);
+            } else  {
+                jobStatusMap.put(holder.job, JobStatus.WAITING_READY);
+            }
+        }
+
+        for (JobHolder holder: runningJobs) {
+            jobStatusMap.put(holder.job, JobStatus.RUNNING);
+        }
+        message.mapCallback.onResult(jobStatusMap);
     }
 
     private void clear() {
